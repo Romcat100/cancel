@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+    overscroll-behavior: none;
+  }
+  body {
+    font-family: theme(fontFamily.display);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    background: theme(colors.ink);
+    color: theme(colors.paper);
+  }
+  button,
+  input {
+    font-family: inherit;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-2xl px-5 py-3 font-bold tracking-tight transition active:scale-[.98];
+  }
+  .btn-primary {
+    @apply btn bg-accent text-ink shadow-[0_4px_0_0_#993224];
+  }
+  .btn-primary:active {
+    @apply translate-y-1 shadow-none;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-paper border border-paper/30;
+  }
+  .input {
+    @apply w-full rounded-2xl bg-paper text-ink px-4 py-3 text-lg font-bold tracking-tight outline-none ring-0 placeholder:text-ink/40;
+  }
+  .chip {
+    @apply inline-flex items-center gap-2 rounded-full bg-paper/10 px-3 py-1 text-xs font-bold uppercase tracking-widest;
+  }
+  .card-face {
+    @apply relative rounded-2xl flex items-center justify-center font-mono font-bold;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 6px 0 0 rgba(0, 0, 0, 0.45);
+  }
+}
+
+.confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.confetti span {
+  position: absolute;
+  width: 8px;
+  height: 14px;
+  top: -20px;
+  animation: fall 2.4s linear infinite;
+}
+@keyframes fall {
+  to {
+    transform: translateY(110vh) rotate(720deg);
+  }
+}
