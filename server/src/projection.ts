@@ -19,6 +19,7 @@ function toRevealedTurn(rv: RevealDoc, roundIndex: number): RevealedTurn {
       number: s.number,
       powerUp: s.powerUp,
       powerUpTarget: s.powerUpTarget,
+      sabotageNumber: s.sabotageNumber,
     })),
     scoring: rv.scoreLines.map<ScoreLine>((l) => ({
       playerId: l.playerId,
@@ -27,6 +28,7 @@ function toRevealedTurn(rv: RevealDoc, roundIndex: number): RevealedTurn {
       notes: l.notes,
     })),
     peekUsed: rv.peekUsed,
+    sabotageUsed: rv.sabotageUsed,
   };
 }
 
@@ -51,6 +53,7 @@ export function projectStateForPlayer(
     seat: p.seat,
     online: onlinePlayerIds.has(p.id),
     totalScore: p.totalScore,
+    hand: round ? [...(round.hands[p.id] ?? [])].sort((a, b) => a - b) : [],
   }));
 
   const isPeekerReviewing = room.phase === "turn_peek_review" && room.peekReview?.peekerId === playerId;

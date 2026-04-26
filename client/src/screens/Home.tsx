@@ -89,7 +89,7 @@ export function Home() {
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Alex"
+            placeholder="e.g. Taylor"
             maxLength={16}
           />
           <button className="btn-primary text-xl py-5 mt-4" disabled={busy} onClick={handleCreate}>
@@ -135,9 +135,6 @@ export function Home() {
         </div>
       )}
 
-      <div className="mt-auto pt-12 text-center text-paper/40 text-xs font-mono uppercase tracking-widest">
-        play together · live or async
-      </div>
     </div>
   );
 }

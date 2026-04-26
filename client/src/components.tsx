@@ -61,6 +61,7 @@ const POWER_VISUAL: Record<PowerUpId, { abbr: string; bg: string; text: string }
   mute: { abbr: "⌖", bg: "bg-paper/40", text: "text-ink" },
   trade: { abbr: "↻", bg: "bg-fuchsia-500", text: "text-paper" },
   equalize: { abbr: "≈", bg: "bg-cyan-300", text: "text-ink" },
+  sabotage: { abbr: "✖", bg: "bg-rose-600", text: "text-paper" },
 };
 
 const POWER_CARD_DIM = "w-[68px] h-[88px]";
@@ -113,19 +114,32 @@ export function PowerUpChip({
   count?: number;
 }) {
   const v = POWER_VISUAL[id];
+  const [showName, setShowName] = useState(false);
+  useEffect(() => {
+    if (!showName) return;
+    const t = setTimeout(() => setShowName(false), 1800);
+    return () => clearTimeout(t);
+  }, [showName]);
   return (
     <div className="relative">
-      <div
+      <button
+        type="button"
+        onClick={() => setShowName((s) => !s)}
         className={`shrink-0 w-9 h-12 rounded-lg ${v.bg} ${v.text} flex items-center justify-center font-mono font-bold text-sm shadow-[0_3px_0_0_rgba(0,0,0,0.4)] ${
           used ? "opacity-25 grayscale" : ""
         }`}
         title={POWER_UPS[id].name}
       >
         {v.abbr}
-      </div>
+      </button>
       {count !== undefined && count > 1 && (
         <span className="absolute -top-1 -right-1 bg-paper text-ink text-[9px] font-bold rounded-full px-1.5 py-0.5">
           ×{count}
+        </span>
+      )}
+      {showName && (
+        <span className="absolute top-full mt-1 left-1/2 -translate-x-1/2 z-10 bg-paper text-ink text-[10px] font-mono uppercase tracking-tight px-2 py-1 rounded-md shadow-lg whitespace-nowrap pointer-events-none animate-rise">
+          {POWER_UPS[id].name}
         </span>
       )}
     </div>
@@ -157,6 +171,7 @@ export function PlayerChip({
   isSelf,
   isPicker,
   small,
+  hand,
 }: {
   name: string;
   seat: number;
@@ -166,6 +181,7 @@ export function PlayerChip({
   isSelf?: boolean;
   isPicker?: boolean;
   small?: boolean;
+  hand?: number[];
 }) {
   const color = SEAT_COLORS[seat % SEAT_COLORS.length];
   const sz = small ? "w-8 h-8 text-sm" : "w-10 h-10";
@@ -188,12 +204,17 @@ export function PlayerChip({
           />
         )}
       </div>
-      <div className="flex flex-col leading-tight">
-        <span className="font-bold text-sm">
+      <div className="flex flex-col leading-tight min-w-0">
+        <span className="font-bold text-sm truncate">
           {name}
           {isSelf && <span className="ml-1 text-paper/40 font-mono text-[10px]">(you)</span>}
         </span>
-        <span className="text-[10px] uppercase tracking-widest font-mono text-paper/50">
+        {hand && hand.length > 0 && (
+          <span className="font-mono text-[11px] tracking-wider text-paper/70 leading-none mt-0.5">
+            {hand.map((n) => (n === 0 ? "Ø" : n)).join(" ")}
+          </span>
+        )}
+        <span className="text-[10px] uppercase tracking-widest font-mono text-paper/50 mt-0.5">
           {submitted ? "submitted" : "thinking…"}
         </span>
       </div>

@@ -21,6 +21,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
   const [selectedNumber, setSelectedNumber] = useState<number | null>(null);
   const [selectedPower, setSelectedPower] = useState<PowerUpId | null>(null);
   const [powerTarget, setPowerTarget] = useState<string | null>(null);
+  const [sabotageNumber, setSabotageNumber] = useState<number | null>(null);
   const [previewingPower, setPreviewingPower] = useState<PowerUpId | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -34,6 +35,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
     setSelectedNumber(null);
     setSelectedPower(null);
     setPowerTarget(null);
+    setSabotageNumber(null);
     setPreviewingPower(null);
     setErr(null);
   }, [publicState.currentTurnIndex, round.index, phase]);
@@ -93,7 +95,25 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
         number: selectedNumber,
         powerUp: phase === "turn_peek_review" ? undefined : selectedPower ?? undefined,
         powerUpTarget: phase === "turn_peek_review" ? undefined : powerTarget ?? undefined,
+        sabotageNumber:
+          phase === "turn_peek_review" || selectedPower !== "sabotage"
+            ? undefined
+            : sabotageNumber ?? undefined,
       });
+      setState(res.state);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function unlock() {
+    if (!id) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await api.unsubmitTurn(publicState.roomCode, id.claimToken);
       setState(res.state);
     } catch (e) {
       setErr((e as Error).message);
@@ -107,6 +127,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
   const blockedByPeek = phase === "turn_peek_review" && privateState.blockedByOthers;
   const poolForPicker = isPicker && phase === "turn_submitting" ? round.poolRemaining : undefined;
   const needsTarget = selectedPower ? POWER_UPS[selectedPower].needsTarget : false;
+  const needsSabotageNumber = selectedPower === "sabotage";
 
   const canSubmit =
     phase === "turn_peek_review"
@@ -114,7 +135,8 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
       : !privateState.hasSubmittedThisTurn &&
         selectedNumber != null &&
         (!isPicker || (poolForPicker?.length ?? 0) === 0 || selectedPower) &&
-        (!needsTarget || powerTarget);
+        (!needsTarget || powerTarget) &&
+        (!needsSabotageNumber || sabotageNumber != null);
 
   const playerById = useMemo(() => new Map(publicState.players.map((p) => [p.id, p])), [publicState.players]);
   const isHost = publicState.hostId === selfPlayerId;
@@ -168,7 +190,10 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
           onSelect={(p) => {
             setPreviewingPower(p);
             setSelectedPower((cur) => (cur === p ? null : p));
-            if (selectedPower !== p) setPowerTarget(null);
+            if (selectedPower !== p) {
+              setPowerTarget(null);
+              setSabotageNumber(null);
+            }
           }}
         />
         {previewingPower && isPicker && (
@@ -192,6 +217,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
             isSelf={p.id === selfPlayerId}
             isPicker={p.id === publicState.currentPickerId}
             submitted={publicState.currentSubmissions.find((s) => s.playerId === p.id)?.submitted}
+            hand={p.hand}
             small
           />
         ))}
@@ -225,17 +251,42 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
                   className={`px-3 py-2 rounded-xl text-sm font-bold transition ${
                     powerTarget === p.id ? "bg-paper text-ink" : "bg-paper/10 text-paper"
                   }`}
-                  onClick={() => setPowerTarget(p.id)}
+                  onClick={() => {
+                    setPowerTarget(p.id);
+                    setSabotageNumber(null);
+                  }}
                 >
                   {p.name}
                 </button>
               ))}
           </div>
+          {needsSabotageNumber && powerTarget && (() => {
+            const target = playerById.get(powerTarget);
+            const targetHand = target?.hand ?? [];
+            return (
+              <div className="mt-3 pt-3 border-t border-paper/10">
+                <div className="text-xs uppercase tracking-widest font-mono text-paper/50 mb-2">
+                  Force {target?.name} to play
+                </div>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {targetHand.map((n) => (
+                    <NumberCard
+                      key={n}
+                      n={n}
+                      size="sm"
+                      state={sabotageNumber === n ? "selected" : "idle"}
+                      onClick={() => setSabotageNumber(n === sabotageNumber ? null : n)}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
       <div className="mt-auto pt-2">
-        <div className="text-xs uppercase tracking-[0.3em] font-mono text-paper/50 mb-2">Your hand</div>
+        <div className="text-xs uppercase tracking-[0.3em] font-mono text-paper/50 mb-4">Your hand</div>
         <div className="flex flex-wrap gap-2 justify-center">
           {Array.from({ length: handSize }, (_, i) => i).map((n) => {
             const inHand = privateState.hand.includes(n);
@@ -259,29 +310,39 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
             {err}
           </div>
         )}
-        <button
-          className={`btn-primary w-full text-xl py-5 mt-4 ${canSubmit ? "" : "opacity-40 cursor-not-allowed shadow-none"}`}
-          disabled={!canSubmit || busy}
-          onClick={submit}
-        >
-          {phase === "turn_peek_review" && !isPeekReview
-            ? "Waiting on the peeker…"
-            : phase === "turn_peek_review"
-            ? selectedNumber == null
-              ? "Pick a new number"
-              : "Lock it in"
-            : privateState.hasSubmittedThisTurn
-            ? "Locked in — waiting for others…"
-            : busy
-            ? "Submitting…"
-            : selectedNumber == null
-            ? "Pick a number"
-            : isPicker && (poolForPicker?.length ?? 0) > 0 && !selectedPower
-            ? "Pick a power-up"
-            : needsTarget && !powerTarget
-            ? "Pick a target"
-            : "Lock it in"}
-        </button>
+        {phase === "turn_submitting" && privateState.hasSubmittedThisTurn ? (
+          <button
+            className="btn-ghost w-full text-base py-4 mt-4 border border-paper/20"
+            disabled={busy}
+            onClick={unlock}
+          >
+            {busy ? "Unlocking…" : "Locked in — tap to unlock"}
+          </button>
+        ) : (
+          <button
+            className={`btn-primary w-full text-xl py-5 mt-4 ${canSubmit ? "" : "opacity-40 cursor-not-allowed shadow-none"}`}
+            disabled={!canSubmit || busy}
+            onClick={submit}
+          >
+            {phase === "turn_peek_review" && !isPeekReview
+              ? "Waiting on the peeker…"
+              : phase === "turn_peek_review"
+              ? selectedNumber == null
+                ? "Pick a new number"
+                : "Lock it in"
+              : busy
+              ? "Submitting…"
+              : selectedNumber == null
+              ? "Pick a number"
+              : isPicker && (poolForPicker?.length ?? 0) > 0 && !selectedPower
+              ? "Pick a power-up"
+              : needsTarget && !powerTarget
+              ? "Pick a target"
+              : needsSabotageNumber && sabotageNumber == null
+              ? "Pick their number"
+              : "Lock it in"}
+          </button>
+        )}
       </div>
 
       {showPreview && phase !== "round_end" && (
@@ -503,6 +564,19 @@ function RevealView({
           <span className="text-paper">
             {reveal.submissions.find((s) => s.playerId === reveal.peekUsed!.peekerId)?.number}
           </span>
+        </div>
+      )}
+      {reveal.sabotageUsed && (
+        <div className="mt-4 text-rose-200 text-sm font-mono text-center">
+          ✖ {playerById.get(reveal.sabotageUsed.sabotagerId)?.name} sabotaged{" "}
+          {playerById.get(reveal.sabotageUsed.targetId)?.name}: forced{" "}
+          <span className="text-paper">{reveal.sabotageUsed.forcedNumber}</span>
+          {reveal.sabotageUsed.forcedNumber !== reveal.sabotageUsed.originalNumber && (
+            <>
+              {" "}
+              over their pick of <span className="text-paper/60">{reveal.sabotageUsed.originalNumber}</span>
+            </>
+          )}
         </div>
       )}
       <button className="btn-primary mt-6 px-8 py-3" onClick={onClose}>

@@ -26,6 +26,7 @@ export function scoreTurn(plays: PlayInput[]): ScoreResult {
   const negateZeroActive = powerUp === "negate_zero";
   const mutedId = powerUp === "mute" ? powerTarget : undefined;
   const freeThreeActive = powerUp === "free_three";
+  const plusTwoUserId = powerUp === "plus_two" ? powerUserId : undefined;
 
   type Eff = {
     playerId: string;
@@ -37,11 +38,14 @@ export function scoreTurn(plays: PlayInput[]): ScoreResult {
 
   const eff: Eff[] = plays.map((p) => {
     const isMuted = mutedId === p.playerId;
-    const face = isMuted ? 0 : p.number;
-    const isCancel = !isMuted && p.number === 0 && !negateZeroActive;
-    const scoreValue = isMuted ? 0 : p.number;
+    const isPlusTwoUser = plusTwoUserId === p.playerId;
+    const bumped = isPlusTwoUser ? p.number + 2 : p.number;
+    const face = isMuted ? 0 : bumped;
+    const isCancel = !isMuted && !isPlusTwoUser && p.number === 0 && !negateZeroActive;
+    const scoreValue = isMuted ? 0 : bumped;
     const notes: string[] = [];
     if (isMuted) notes.push("Muted (treated as 0)");
+    if (isPlusTwoUser) notes.push(`Plus Two: ${p.number} → ${bumped}`);
     return { playerId: p.playerId, face, scoreValue, isCancel, notes };
   });
 
@@ -127,16 +131,6 @@ export function scoreTurn(plays: PlayInput[]): ScoreResult {
         l.delta -= 2;
         l.notes.push("Steal Two: −2");
       }
-    }
-  }
-
-  if (powerUp === "plus_two" && powerUserId) {
-    const line = lines.find((l) => l.playerId === powerUserId);
-    if (line && !cancelActive) {
-      line.delta += 2;
-      line.notes.push("Plus Two: +2");
-    } else if (line && cancelActive) {
-      line.notes.push("Plus Two: cancelled by 0");
     }
   }
 

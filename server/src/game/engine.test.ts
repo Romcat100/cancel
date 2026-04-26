@@ -17,7 +17,7 @@ function room3p(): RoomDoc {
 }
 
 function pickSafePower(pool: PowerUpId[]): PowerUpId {
-  return pool.find((p) => p !== "peek" && p !== "mute") ?? pool[0];
+  return pool.find((p) => p !== "peek" && p !== "mute" && p !== "sabotage") ?? pool[0];
 }
 
 function ackAll(r: RoomDoc): RoomDoc {
@@ -25,7 +25,7 @@ function ackAll(r: RoomDoc): RoomDoc {
   return r;
 }
 
-const SAFE_POOL: PowerUpId[] = ["double", "shield", "negate_zero", "plus_two", "free_three", "negate", "steal_two", "plus_five_self"];
+const SAFE_POOL: PowerUpId[] = ["double", "shield", "negate_zero", "plus_two", "free_three", "negate", "steal_two", "trade", "equalize"];
 
 function forceSafePool(r: RoomDoc): RoomDoc {
   const cur = r.rounds[r.currentRoundIndex];
@@ -228,5 +228,72 @@ describe("peek mid-turn re-pick", () => {
     expect(r.phase).toBe("turn_submitting");
     const reveal = r.rounds[0].reveals[0];
     expect(reveal.submissions.find((s) => s.playerId === "A")!.number).toBe(4);
+  });
+});
+
+describe("sabotage", () => {
+  function setup(): RoomDoc {
+    let r = startGame(room3p());
+    const round = r.rounds[r.currentRoundIndex];
+    if (!round.poolRemaining.includes("sabotage")) {
+      round.poolFull = ["sabotage", ...round.poolFull.slice(1)];
+      round.poolRemaining = ["sabotage", ...round.poolRemaining.slice(1)];
+    }
+    return r;
+  }
+
+  it("sabotage requires a target and a sabotage number", () => {
+    const r = setup();
+    expect(() =>
+      submitTurn(r, { playerId: "A", number: 1, powerUp: "sabotage" }),
+    ).toThrow(/target required/);
+    expect(() =>
+      submitTurn(r, { playerId: "A", number: 1, powerUp: "sabotage", powerUpTarget: "B" }),
+    ).toThrow(/sabotage number required/);
+  });
+
+  it("sabotage number must be in the target's hand", () => {
+    let r = setup();
+    r.rounds[0].hands["B"] = [0, 1, 2];
+    expect(() =>
+      submitTurn(r, { playerId: "A", number: 4, powerUp: "sabotage", powerUpTarget: "B", sabotageNumber: 5 }),
+    ).toThrow(/not in target's hand/);
+  });
+
+  it("sabotage overrides the target's submitted number at resolve time", () => {
+    let r = setup();
+    r = submitTurn(r, { playerId: "A", number: 4, powerUp: "sabotage", powerUpTarget: "B", sabotageNumber: 0 });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+    const reveal = r.rounds[0].reveals[0];
+    expect(reveal.submissions.find((s) => s.playerId === "B")!.number).toBe(0);
+    expect(reveal.sabotageUsed).toEqual({ sabotagerId: "A", targetId: "B", forcedNumber: 0, originalNumber: 3 });
+    // B's hand should have lost the forced 0, not their original 3.
+    expect(r.rounds[0].hands["B"]).not.toContain(0);
+    expect(r.rounds[0].hands["B"]).toContain(3);
+  });
+
+  it("sabotage forcing a 0 cancels everyone (a single 0 still cancels)", () => {
+    let r = setup();
+    r = submitTurn(r, { playerId: "A", number: 4, powerUp: "sabotage", powerUpTarget: "B", sabotageNumber: 0 });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+    const reveal = r.rounds[0].reveals[0];
+    const scoreFor = (id: string) => reveal.scoreLines.find((l) => l.playerId === id)?.delta;
+    expect(scoreFor("A")).toBe(0);
+    expect(scoreFor("B")).toBe(0);
+    expect(scoreFor("C")).toBe(0);
+  });
+
+  it("sabotage can force a tie with the picker to neutralize the target", () => {
+    let r = setup();
+    r = submitTurn(r, { playerId: "A", number: 4, powerUp: "sabotage", powerUpTarget: "B", sabotageNumber: 4 });
+    r = submitTurn(r, { playerId: "B", number: 1 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+    const reveal = r.rounds[0].reveals[0];
+    const scoreFor = (id: string) => reveal.scoreLines.find((l) => l.playerId === id)?.delta;
+    expect(scoreFor("A")).toBe(0);
+    expect(scoreFor("B")).toBe(0);
+    expect(scoreFor("C")).toBe(2);
   });
 });

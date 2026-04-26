@@ -20,6 +20,7 @@ export interface SubmissionDoc {
   number: number;
   powerUp?: PowerUpId;
   powerUpTarget?: string;
+  sabotageNumber?: number;
 }
 
 export interface RevealDoc {
@@ -28,6 +29,7 @@ export interface RevealDoc {
   submissions: SubmissionDoc[];
   scoreLines: { playerId: string; delta: number; notes: string[] }[];
   peekUsed?: { peekerId: string; targetId: string; revealedNumber: number; originalNumber: number };
+  sabotageUsed?: { sabotagerId: string; targetId: string; forcedNumber: number; originalNumber: number };
   revealedAt: number;
 }
 
@@ -173,6 +175,7 @@ export interface SubmitInput {
   number: number;
   powerUp?: PowerUpId;
   powerUpTarget?: string;
+  sabotageNumber?: number;
 }
 
 export function submitTurn(room: RoomDoc, input: SubmitInput): RoomDoc {
@@ -197,10 +200,15 @@ export function submitTurn(room: RoomDoc, input: SubmitInput): RoomDoc {
   } else if (input.playerId === pickerId && round.poolRemaining.length > 0) {
     throw new Error("picker must pick a power-up while pool is non-empty");
   }
-  if (input.powerUp === "peek" || input.powerUp === "mute") {
+  if (input.powerUp === "peek" || input.powerUp === "mute" || input.powerUp === "sabotage") {
     if (!input.powerUpTarget) throw new Error("target required");
     if (input.powerUpTarget === input.playerId) throw new Error("cannot target self");
     if (!room.players.some((p) => p.id === input.powerUpTarget)) throw new Error("unknown target");
+  }
+  if (input.powerUp === "sabotage") {
+    if (input.sabotageNumber == null) throw new Error("sabotage number required");
+    const targetHand = round.hands[input.powerUpTarget!];
+    if (!targetHand.includes(input.sabotageNumber)) throw new Error("sabotage number not in target's hand");
   }
 
   const submission: SubmissionDoc = {
@@ -208,6 +216,7 @@ export function submitTurn(room: RoomDoc, input: SubmitInput): RoomDoc {
     number: input.number,
     powerUp: input.powerUp,
     powerUpTarget: input.powerUpTarget,
+    sabotageNumber: input.powerUp === "sabotage" ? input.sabotageNumber : undefined,
   };
 
   let next: RoomDoc = {
@@ -272,14 +281,32 @@ function resolveTurn(room: RoomDoc): RoomDoc {
   const turnIndex = room.currentTurnIndex;
   const pickerId = round.rotation[turnIndex];
 
+  const sabotageSub = Object.values(room.pendingSubmissions).find((s) => s.powerUp === "sabotage");
+  let sabotageUsed: RevealDoc["sabotageUsed"];
+  const overrides: { [playerId: string]: number } = {};
+  if (sabotageSub && sabotageSub.powerUpTarget && sabotageSub.sabotageNumber != null) {
+    const original = room.pendingSubmissions[sabotageSub.powerUpTarget];
+    if (original) {
+      overrides[sabotageSub.powerUpTarget] = sabotageSub.sabotageNumber;
+      sabotageUsed = {
+        sabotagerId: sabotageSub.playerId,
+        targetId: sabotageSub.powerUpTarget,
+        forcedNumber: sabotageSub.sabotageNumber,
+        originalNumber: original.number,
+      };
+    }
+  }
+
   const playsBySeat = [...room.players].sort((a, b) => a.seat - b.seat);
   const plays = playsBySeat.map((p) => {
     const s = room.pendingSubmissions[p.id];
+    const number = overrides[p.id] ?? s.number;
     return {
       playerId: p.id,
-      number: s.number,
+      number,
       powerUp: s.powerUp,
       powerUpTarget: s.powerUpTarget,
+      sabotageNumber: s.sabotageNumber,
     };
   });
 
@@ -323,6 +350,7 @@ function resolveTurn(room: RoomDoc): RoomDoc {
     submissions: plays,
     scoreLines: result.lines,
     peekUsed,
+    sabotageUsed,
     revealedAt: Date.now(),
   };
 
@@ -353,6 +381,18 @@ function resolveTurn(room: RoomDoc): RoomDoc {
     return isLastRound ? endGame(ended) : ended;
   }
   return next;
+}
+
+export function unsubmitTurn(room: RoomDoc, playerId: string): RoomDoc {
+  if (room.phase !== "turn_submitting") throw new Error("can only unlock during submission phase");
+  if (!room.pendingSubmissions[playerId]) throw new Error("nothing to unlock");
+  const remaining = { ...room.pendingSubmissions };
+  delete remaining[playerId];
+  return {
+    ...room,
+    pendingSubmissions: remaining,
+    updatedAt: Date.now(),
+  };
 }
 
 export function ackRoundEnd(room: RoomDoc, playerId: string): RoomDoc {

@@ -43,6 +43,12 @@ export interface SubmitTurnReq {
   number: number;
   powerUp?: PowerUpId;
   powerUpTarget?: string;
+  sabotageNumber?: number;
+}
+
+export interface UnsubmitTurnReq {
+  roomCode: string;
+  claimToken: string;
 }
 
 export interface KickPlayerReq {

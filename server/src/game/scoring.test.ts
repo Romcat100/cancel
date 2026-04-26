@@ -131,31 +131,49 @@ describe("scoreTurn — power-ups", () => {
     expect(points(r)).toEqual({ A: 5, B: 0, C: 3 });
   });
 
-  it("Plus Two adds 2 even when tied (tie alone doesn't suppress the bonus)", () => {
+  it("Plus Two bumps the user's face value by 2; +2 collides with another player's matching number", () => {
     const r = scoreTurn([
-      { playerId: "A", number: 4, powerUp: "plus_two" },
-      { playerId: "B", number: 4 },
+      { playerId: "A", number: 4, powerUp: "plus_two" }, // face becomes 6
+      { playerId: "B", number: 6 },
       { playerId: "C", number: 3 },
     ]);
-    expect(points(r)).toEqual({ A: 2, B: 0, C: 3 });
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 3 });
   });
 
-  it("Plus Two is suppressed when cancelled by a 0", () => {
+  it("Plus Two on a 0: the user plays a 2 and no longer cancels", () => {
     const r = scoreTurn([
-      { playerId: "A", number: 4, powerUp: "plus_two" },
+      { playerId: "A", number: 0, powerUp: "plus_two" }, // face becomes 2
+      { playerId: "B", number: 5 },
+      { playerId: "C", number: 3 },
+    ]);
+    expect(points(r)).toEqual({ A: 2, B: 5, C: 3 });
+  });
+
+  it("Plus Two on a 0 ties when another player plays a 2", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 0, powerUp: "plus_two" }, // face becomes 2
+      { playerId: "B", number: 2 },
+      { playerId: "C", number: 5 },
+    ]);
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 5 });
+  });
+
+  it("Plus Two on a 3: the user plays a 5", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 3, powerUp: "plus_two" }, // face becomes 5
+      { playerId: "B", number: 4 },
+      { playerId: "C", number: 1 },
+    ]);
+    expect(points(r)).toEqual({ A: 5, B: 4, C: 1 });
+  });
+
+  it("Plus Two does not protect the user from a true 0 cancel by another player", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 4, powerUp: "plus_two" }, // face becomes 6
       { playerId: "B", number: 0 },
       { playerId: "C", number: 5 },
     ]);
     expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
-  });
-
-  it("Plus Two scores +2 on a unique non-zero card", () => {
-    const r = scoreTurn([
-      { playerId: "A", number: 4, powerUp: "plus_two" },
-      { playerId: "B", number: 1 },
-      { playerId: "C", number: 5 },
-    ]);
-    expect(points(r)).toEqual({ A: 6, B: 1, C: 5 });
   });
 
   it("Free Three adds +3 when no other player played a 3", () => {

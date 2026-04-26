@@ -7,6 +7,7 @@ import {
   removePlayer,
   startGame,
   submitTurn,
+  unsubmitTurn,
   type RoomDoc,
 } from "./game/engine.js";
 import { archiveRoom, findPlayerByClaim, generateRoomCode, loadRoom, newClaimToken, newPlayerId, recordPlayer, saveRoom } from "./rooms.js";
@@ -18,6 +19,7 @@ import type {
   JoinRoomReq,
   StartGameReq,
   SubmitTurnReq,
+  UnsubmitTurnReq,
   AckRoundEndReq,
   KickPlayerReq,
 } from "../../shared/protocol.js";
@@ -207,7 +209,18 @@ export function apiSubmitTurn(req: SubmitTurnReq, ctx: ApiCtx) {
     number: req.number,
     powerUp: req.powerUp,
     powerUpTarget: req.powerUpTarget,
+    sabotageNumber: req.sabotageNumber,
   });
+  saveRoom(room);
+  setImmediate(() => broadcastRoom(ctx.io, room));
+  return { ok: true as const, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)) };
+}
+
+export function apiUnsubmitTurn(req: UnsubmitTurnReq, ctx: ApiCtx) {
+  const player = authPlayer(req.roomCode, req.claimToken);
+  let room = loadRoom(req.roomCode);
+  if (!room) throw new Error("room not found");
+  room = unsubmitTurn(room, player.id);
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));
   return { ok: true as const, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)) };

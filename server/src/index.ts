@@ -12,6 +12,7 @@ import {
   apiJoinRoom,
   apiStartGame,
   apiSubmitTurn,
+  apiUnsubmitTurn,
   apiAckRoundEnd,
   apiForceAdvance,
   apiKickPlayer,
@@ -61,6 +62,9 @@ app.post("/api/rooms/:code/force-advance", (req, res) =>
 );
 app.post("/api/rooms/:code/submit", (req, res) =>
   safe(res, () => apiSubmitTurn({ ...req.body, roomCode: req.params.code }, ctx)),
+);
+app.post("/api/rooms/:code/unsubmit", (req, res) =>
+  safe(res, () => apiUnsubmitTurn({ ...req.body, roomCode: req.params.code }, ctx)),
 );
 app.post("/api/rooms/:code/kick", (req, res) =>
   safe(res, () => apiKickPlayer({ ...req.body, roomCode: req.params.code }, ctx)),

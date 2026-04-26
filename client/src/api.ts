@@ -31,12 +31,15 @@ export const api = {
   submitTurn(
     roomCode: string,
     claimToken: string,
-    payload: { number: number; powerUp?: PowerUpId; powerUpTarget?: string },
+    payload: { number: number; powerUp?: PowerUpId; powerUpTarget?: string; sabotageNumber?: number },
   ) {
     return call<{ ok: true; state: RoomStateForPlayer }>("POST", `/api/rooms/${roomCode}/submit`, {
       claimToken,
       ...payload,
     });
+  },
+  unsubmitTurn(roomCode: string, claimToken: string) {
+    return call<{ ok: true; state: RoomStateForPlayer }>("POST", `/api/rooms/${roomCode}/unsubmit`, { claimToken });
   },
   fetchState(roomCode: string, claimToken: string) {
     return call<{ ok: true; state: RoomStateForPlayer }>(

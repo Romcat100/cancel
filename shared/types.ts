@@ -9,7 +9,8 @@ export type PowerUpId =
   | "peek"
   | "mute"
   | "trade"
-  | "equalize";
+  | "equalize"
+  | "sabotage";
 
 export interface PowerUpDef {
   id: PowerUpId;
@@ -24,6 +25,7 @@ export interface Player {
   seat: number;
   online: boolean;
   totalScore: number;
+  hand: number[];
 }
 
 export type RoomPhase =
@@ -43,6 +45,7 @@ export interface RevealedSubmission {
   number: number;
   powerUp?: PowerUpId;
   powerUpTarget?: string;
+  sabotageNumber?: number;
 }
 
 export interface ScoreLine {
@@ -59,6 +62,7 @@ export interface RevealedTurn {
   scoring: ScoreLine[];
   pickerId: string;
   peekUsed?: { peekerId: string; targetId: string; revealedNumber: number; originalNumber: number };
+  sabotageUsed?: { sabotagerId: string; targetId: string; forcedNumber: number; originalNumber: number };
 }
 
 export interface RoundState {
@@ -106,7 +110,7 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
   double: {
     id: "double",
     name: "Double",
-    description: "All scored points this turn are multiplied x2.",
+    description: "(Universal) All scored points this turn are multiplied x2.",
     needsTarget: false,
   },
   shield: {
@@ -118,13 +122,13 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
   negate_zero: {
     id: "negate_zero",
     name: "Negate Zero",
-    description: "All 0 cards are inert this turn — no cancel effect.",
+    description: "(Universal) All 0 cards are inert this turn — no cancel effect.",
     needsTarget: false,
   },
   plus_two: {
     id: "plus_two",
     name: "Plus Two",
-    description: "+2 added to your score this turn — but if a 0 cancels you, it's lost.",
+    description: "Your card's face value is bumped up by 2 (so a 0 becomes a 2 and no longer cancels; a 3 becomes a 5). Tie checks use the bumped value.",
     needsTarget: false,
   },
   free_three: {
@@ -136,13 +140,13 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
   negate: {
     id: "negate",
     name: "Make Negative",
-    description: "All scored points this turn are flipped negative.",
+    description: "(Universal) All scored points this turn are flipped negative.",
     needsTarget: false,
   },
   steal_two: {
     id: "steal_two",
     name: "Steal Two",
-    description: "Every opponent who scores >0 loses 2.",
+    description: "(Universal) Every opponent who scores >0 loses 2.",
     needsTarget: false,
   },
   peek: {
@@ -160,14 +164,20 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
   trade: {
     id: "trade",
     name: "Switch",
-    description: "Everyone's score this turn slides one seat — your score goes to the next player; you receive the previous player's score.",
+    description: "(Universal) Everyone's score this turn slides one seat — your score goes to the next player; you receive the previous player's score.",
     needsTarget: false,
   },
   equalize: {
     id: "equalize",
     name: "Equalize",
-    description: "Every player who scored above zero this turn gets the average of those positive scores. High earners come down; low earners come up.",
+    description: "(Universal) Every player who scored above zero this turn gets the average of those positive scores. High earners come down; low earners come up.",
     needsTarget: false,
+  },
+  sabotage: {
+    id: "sabotage",
+    name: "Sabotage",
+    description: "Choose another player AND pick the number they'll play this turn (from their remaining hand). Whatever they thought they were submitting is overridden.",
+    needsTarget: true,
   },
 };
 

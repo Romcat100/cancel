@@ -86,7 +86,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
               {publicState.players.length < 2 ? "Waiting for players…" : busy ? "Starting…" : "Start game"}
             </button>
             <p className="text-paper/40 text-xs text-center font-mono">
-              {publicState.players.length + 2} cards each · 3 rounds · power-ups deal at round start
+              {publicState.players.length + 2} cards each · 3 rounds
             </p>
           </>
         ) : (
