@@ -137,7 +137,7 @@ export function scoreTurn(plays: PlayInput[]): ScoreResult {
     for (const l of lines) {
       if (l.playerId !== powerUserId && l.delta > 0) {
         l.delta -= 2;
-        l.notes.push("Steal Two: −2");
+        l.notes.push("Minus Two: −2");
       }
     }
   }

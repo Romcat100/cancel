@@ -147,7 +147,7 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
   },
   steal_two: {
     id: "steal_two",
-    name: "Steal Two",
+    name: "Minus Two",
     description: "(Universal) Every opponent who scores >0 loses 2.",
     needsTarget: false,
   },
@@ -160,7 +160,7 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
   mute: {
     id: "mute",
     name: "Mute",
-    description: "Chosen opponent's card is treated as 0 (no value, no cancel).",
+    description: "Chosen opponent's card loses all value and effect this turn.",
     needsTarget: true,
   },
   trade: {

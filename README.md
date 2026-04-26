@@ -60,7 +60,7 @@ At the start of each round, `N+2` power-ups are dealt face-up. They stay face-up
 | **Plus Two** (`+2`) | Bumps your card's face value up by 2 — `0` becomes `2` (so it no longer cancels), `3` becomes `5`, etc. Tie checks use the bumped value, so a Plus Two `0` ties with someone else's `2`. |
 | **Free Three** (`+3`) | Plays a virtual `3` alongside your card. If no other player played a 3, you gain `+3`. If anyone else played a 3, both 3s tie out (theirs scores 0, your bonus is lost). |
 | **Make Negative** (`−`) | All scored points this turn are inverted (positive becomes negative). Useful when you expect to be cancelled or tied (you score 0 either way) while your opponents are about to score big. |
-| **Steal Two** (`←2`) | Every opponent who scored more than 0 this turn loses 2 points. You don't lose any; their loss isn't transferred to you. |
+| **Minus Two** (`←2`) | Every opponent who scored more than 0 this turn loses 2 points. You don't lose any; their loss isn't transferred to you. |
 | **Peek** (`◎`) | Pick an opponent. After everyone submits this turn, you privately see what they played and your own submission is wiped — you re-pick a number while everyone waits. The cost is everyone has to pause for you. |
 | **Mute** (`⌖`) | A chosen opponent's card is treated as `0`-value, non-cancel, this turn. Wipes their score, removes their `0` cancel if they played one, and breaks any tie they would have caused on their card's face. |
 | **Trade** (`↻`) | Everyone's score this turn slides one seat clockwise — your score goes to the next player; you receive the previous player's score. Whether you "win" depends on who's behind you in seat order. |
