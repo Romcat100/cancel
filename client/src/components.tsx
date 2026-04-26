@@ -62,6 +62,8 @@ const POWER_VISUAL: Record<PowerUpId, { abbr: string; bg: string; text: string }
   trade: { abbr: "↻", bg: "bg-fuchsia-500", text: "text-paper" },
   equalize: { abbr: "≈", bg: "bg-cyan-300", text: "text-ink" },
   sabotage: { abbr: "✖", bg: "bg-rose-600", text: "text-paper" },
+  reverse: { abbr: "⇋", bg: "bg-indigo-400", text: "text-ink" },
+  snipe: { abbr: "↳", bg: "bg-amber-500", text: "text-ink" },
 };
 
 const POWER_CARD_DIM = "w-[68px] h-[88px]";

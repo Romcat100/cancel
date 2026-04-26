@@ -27,6 +27,8 @@ export function scoreTurn(plays: PlayInput[]): ScoreResult {
   const mutedId = powerUp === "mute" ? powerTarget : undefined;
   const freeThreeActive = powerUp === "free_three";
   const plusTwoUserId = powerUp === "plus_two" ? powerUserId : undefined;
+  const reverseActive = powerUp === "reverse";
+  const maxCard = plays.length + 1; // handSize - 1 (handSize = playerCount + 2)
 
   type Eff = {
     playerId: string;
@@ -39,26 +41,28 @@ export function scoreTurn(plays: PlayInput[]): ScoreResult {
   const eff: Eff[] = plays.map((p) => {
     const isMuted = mutedId === p.playerId;
     const isPlusTwoUser = plusTwoUserId === p.playerId;
-    const bumped = isPlusTwoUser ? p.number + 2 : p.number;
+    const flipped = reverseActive ? maxCard - p.number : p.number;
+    const bumped = isPlusTwoUser ? p.number + 2 : flipped;
     const face = isMuted ? 0 : bumped;
-    const isCancel = !isMuted && !isPlusTwoUser && p.number === 0 && !negateZeroActive;
+    const isCancel = !isMuted && bumped === 0 && !negateZeroActive;
     const scoreValue = isMuted ? 0 : bumped;
     const notes: string[] = [];
     if (isMuted) notes.push("Muted (treated as 0)");
     if (isPlusTwoUser) notes.push(`Plus Two: ${p.number} → ${bumped}`);
+    if (reverseActive && flipped !== p.number) notes.push(`Reverse: ${p.number} → ${flipped}`);
     return { playerId: p.playerId, face, scoreValue, isCancel, notes };
   });
 
   const cancellers = eff.filter((e) => e.isCancel).length;
   const cancelActive = cancellers === 1;
 
-  // Tie detection: treat free_three's user as if they ALSO played a 3 (a "phantom 3")
-  // — only against other players. This means: if any OTHER player played a 3, both their 3
-  // and the free_three bonus are nullified.
-  const others3 = freeThreeActive
-    ? eff.filter((e) => e.playerId !== powerUserId && e.face === 3 && !e.isCancel).length
+  // Tie detection: treat free_three as adding a "phantom 3" to the board. If anyone —
+  // including the user themselves — played a real 3, that 3 collides with the phantom and
+  // the free_three bonus is lost. The user's own 3 self-cancels just like another player's would.
+  const realThrees = freeThreeActive
+    ? eff.filter((e) => e.face === 3 && !e.isCancel).length
     : 0;
-  const phantomThreeIsContested = freeThreeActive && others3 > 0;
+  const phantomThreeIsContested = freeThreeActive && realThrees > 0;
 
   const faceCount = new Map<number, number>();
   for (const e of eff) faceCount.set(e.face, (faceCount.get(e.face) ?? 0) + 1);
@@ -88,8 +92,12 @@ export function scoreTurn(plays: PlayInput[]): ScoreResult {
           notes.push(`Shield: scored ${e.scoreValue} despite tie on ${e.face}`);
         } else {
           delta = 0;
-          if (e.face === 3 && phantomThreeIsContested && e.playerId !== powerUserId) {
-            notes.push("Tied with Free Three's virtual 3");
+          if (e.face === 3 && phantomThreeIsContested) {
+            notes.push(
+              e.playerId === powerUserId
+                ? "Self-cancelled by Free Three's virtual 3"
+                : "Tied with Free Three's virtual 3",
+            );
           } else {
             notes.push(`Tied on ${e.face}`);
           }
@@ -165,6 +173,19 @@ export function scoreTurn(plays: PlayInput[]): ScoreResult {
         l.delta = avg;
         l.notes.push(`Equalized to avg ${avg}`);
       }
+    }
+  }
+
+  if (powerUp === "snipe" && powerUserId && powerTarget) {
+    const sniper = lines.find((l) => l.playerId === powerUserId);
+    const target = lines.find((l) => l.playerId === powerTarget);
+    if (sniper && target && target.delta > 0) {
+      sniper.delta += target.delta;
+      sniper.notes.push(`Sniped +${target.delta} from target`);
+      target.notes.push(`Sniped — score taken by sniper`);
+      target.delta = 0;
+    } else if (sniper) {
+      sniper.notes.push("Snipe: target had nothing to take");
     }
   }
 

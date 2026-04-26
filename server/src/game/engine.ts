@@ -116,8 +116,14 @@ function shuffle<T>(arr: T[], rng: () => number = Math.random): T[] {
   return a;
 }
 
-function dealPool(handSize: number, rng = Math.random): PowerUpId[] {
-  const ids = [...POWER_UP_IDS];
+// Powers that are too oppressive in a 1v1 — we exclude them from the dealt pool whenever
+// a game has 2 players. Sabotage gives perfect lock-in on the opponent's only card; Peek
+// gives free information with nothing to disambiguate.
+const TWO_PLAYER_EXCLUDED: ReadonlySet<PowerUpId> = new Set(["peek", "sabotage"]);
+
+function dealPool(handSize: number, playerCount: number, rng = Math.random): PowerUpId[] {
+  let ids: PowerUpId[] = [...POWER_UP_IDS];
+  if (playerCount <= 2) ids = ids.filter((id) => !TWO_PLAYER_EXCLUDED.has(id));
   if (handSize <= ids.length) return shuffle(ids, rng).slice(0, handSize);
   const out: PowerUpId[] = [];
   while (out.length < handSize) {
@@ -149,7 +155,7 @@ function startRound(room: RoomDoc, roundIndex: number): RoomDoc {
   const handSize = room.players.length + 2;
   const round: RoundDoc = {
     index: roundIndex,
-    poolFull: dealPool(handSize),
+    poolFull: dealPool(handSize, room.players.length),
     poolRemaining: [],
     rotation: buildRotation(room.players, handSize, roundIndex),
     reveals: [],
@@ -197,6 +203,9 @@ export function submitTurn(room: RoomDoc, input: SubmitInput): RoomDoc {
   if (input.powerUp) {
     if (input.playerId !== pickerId) throw new Error("only picker plays power-up");
     if (!round.poolRemaining.includes(input.powerUp)) throw new Error("power-up not in pool");
+    if (room.players.length <= 2 && TWO_PLAYER_EXCLUDED.has(input.powerUp)) {
+      throw new Error(`${input.powerUp} is disabled in 2-player games`);
+    }
   } else if (input.playerId === pickerId && round.poolRemaining.length > 0) {
     throw new Error("picker must pick a power-up while pool is non-empty");
   }

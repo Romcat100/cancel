@@ -194,6 +194,25 @@ describe("scoreTurn — power-ups", () => {
     expect(points(r)).toEqual({ A: 5, B: 0, C: 4 });
   });
 
+  it("Free Three's virtual 3 also self-cancels with the user's own real 3", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 3, powerUp: "free_three" },
+      { playerId: "B", number: 5 },
+      { playerId: "C", number: 4 },
+    ]);
+    // A's real 3 collides with their phantom 3 — A's card is cancelled and the +3 bonus is lost.
+    expect(points(r)).toEqual({ A: 0, B: 5, C: 4 });
+  });
+
+  it("Free Three on a 1 still scores the bonus when nobody plays a 3", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 1, powerUp: "free_three" },
+      { playerId: "B", number: 5 },
+      { playerId: "C", number: 4 },
+    ]);
+    expect(points(r)).toEqual({ A: 4, B: 5, C: 4 });
+  });
+
   it("Free Three is suppressed when cancelled by a 0", () => {
     const r = scoreTurn([
       { playerId: "A", number: 5, powerUp: "free_three" },
@@ -299,6 +318,65 @@ describe("scoreTurn — power-ups", () => {
     ]);
     // A and B tied (0). C=1 unique. Only one positive → no averaging.
     expect(points(r)).toEqual({ A: 0, B: 0, C: 1 });
+  });
+
+  it("Reverse flips face values; a max-card flips to 0 and now cancels everyone", () => {
+    // 3 players → max card = 4. B's 4 flips to 0, which cancels the whole turn.
+    const r = scoreTurn([
+      { playerId: "A", number: 0, powerUp: "reverse" },
+      { playerId: "B", number: 4 },
+      { playerId: "C", number: 2 },
+    ]);
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
+  });
+
+  it("Reverse with no flipped 0s — every face is just inverted and scored", () => {
+    // 3 players → max = 4. Plays 1, 2, 3 → flipped 3, 2, 1.
+    const r = scoreTurn([
+      { playerId: "A", number: 1, powerUp: "reverse" },
+      { playerId: "B", number: 2 },
+      { playerId: "C", number: 3 },
+    ]);
+    expect(points(r)).toEqual({ A: 3, B: 2, C: 1 });
+  });
+
+  it("Reverse can create ties on flipped values", () => {
+    // 3 players → max = 4. A=1→3, B=3→1, C=1→3 → A and C now tie on 3.
+    const r = scoreTurn([
+      { playerId: "A", number: 1, powerUp: "reverse" },
+      { playerId: "B", number: 3 },
+      { playerId: "C", number: 1 },
+    ]);
+    expect(points(r)).toEqual({ A: 0, B: 1, C: 0 });
+  });
+
+  it("Snipe steals all of the target's positive points; target ends at 0", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 1, powerUp: "snipe", powerUpTarget: "B" },
+      { playerId: "B", number: 5 },
+      { playerId: "C", number: 3 },
+    ]);
+    expect(points(r)).toEqual({ A: 6, B: 0, C: 3 });
+  });
+
+  it("Snipe is a no-op when the target already scores 0", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 1, powerUp: "snipe", powerUpTarget: "B" },
+      { playerId: "B", number: 3 },
+      { playerId: "C", number: 3 },
+    ]);
+    // B and C tie on 3 → both 0. Snipe takes nothing.
+    expect(points(r)).toEqual({ A: 1, B: 0, C: 0 });
+  });
+
+  it("Snipe collapses to 0 when the picker's own card is cancelled by a 0", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 1, powerUp: "snipe", powerUpTarget: "C" },
+      { playerId: "B", number: 0 },
+      { playerId: "C", number: 4 },
+    ]);
+    // B's 0 cancels everyone — C has nothing to take.
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
   });
 });
 

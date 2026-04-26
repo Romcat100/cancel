@@ -485,6 +485,12 @@ function PoolPreview({
   );
 }
 
+function zeroReason(notes: string[]): "cancel" | "tie" | null {
+  if (notes.some((n) => n.startsWith("Tied"))) return "tie";
+  if (notes.some((n) => n.startsWith("Cancelled by") || n.includes("cancel suppressed"))) return "cancel";
+  return null;
+}
+
 function RevealView({
   reveal,
   players,
@@ -538,20 +544,37 @@ function RevealView({
               <div className={phase === "flip" ? "animate-flip" : ""}>
                 <NumberCard n={s.number} state="played" />
               </div>
-              <div
-                className={`mt-1 font-mono font-bold text-lg ${
-                  phase === "score" ? "animate-rise" : "opacity-0"
-                } ${
-                  (score?.delta ?? 0) > 0
-                    ? "text-emerald-300"
-                    : (score?.delta ?? 0) < 0
-                    ? "text-rose-300"
-                    : "text-paper/40"
-                }`}
-              >
-                {(score?.delta ?? 0) > 0 ? "+" : ""}
-                {score?.delta ?? 0}
-              </div>
+              {(() => {
+                const delta = score?.delta ?? 0;
+                const reason = delta === 0 ? zeroReason(score?.notes ?? []) : null;
+                const animCls = phase === "score" ? "animate-rise" : "opacity-0";
+                if (reason === "tie") {
+                  return (
+                    <div className={`mt-1 flex flex-col items-center ${animCls}`}>
+                      <div className="font-mono font-bold text-xl leading-none text-rose-400">✕</div>
+                      <div className="mt-0.5 text-[9px] font-mono uppercase tracking-widest text-rose-400/80">Tied</div>
+                    </div>
+                  );
+                }
+                if (reason === "cancel") {
+                  return (
+                    <div className={`mt-1 flex flex-col items-center ${animCls}`}>
+                      <div className="font-mono font-bold text-lg leading-none text-rose-400">0</div>
+                      <div className="mt-0.5 text-[9px] font-mono uppercase tracking-widest text-rose-400/80">Cancelled</div>
+                    </div>
+                  );
+                }
+                return (
+                  <div
+                    className={`mt-1 font-mono font-bold text-lg ${animCls} ${
+                      delta > 0 ? "text-emerald-300" : delta < 0 ? "text-rose-300" : "text-paper/40"
+                    }`}
+                  >
+                    {delta > 0 ? "+" : ""}
+                    {delta}
+                  </div>
+                );
+              })()}
             </div>
           );
         })}

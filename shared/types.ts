@@ -10,7 +10,9 @@ export type PowerUpId =
   | "mute"
   | "trade"
   | "equalize"
-  | "sabotage";
+  | "sabotage"
+  | "reverse"
+  | "snipe";
 
 export interface PowerUpDef {
   id: PowerUpId;
@@ -134,7 +136,7 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
   free_three: {
     id: "free_three",
     name: "Free Three",
-    description: "Adds a virtual 3 to your play. If no other player played a 3, you score +3. If anyone else played a 3, both 3s cancel out and the bonus is lost.",
+    description: "Adds a virtual 3 to your play. If nobody plays a 3, you score +3. If anyone — including you — plays a 3, that 3 cancels with the virtual 3 and the bonus is lost.",
     needsTarget: false,
   },
   negate: {
@@ -177,6 +179,18 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
     id: "sabotage",
     name: "Sabotage",
     description: "Choose another player AND pick the number they'll play this turn (from their remaining hand). Whatever they thought they were submitting is overridden.",
+    needsTarget: true,
+  },
+  reverse: {
+    id: "reverse",
+    name: "Reverse",
+    description: "(Universal) All face values flip within the card range — a 0 becomes the highest card and the highest card becomes 0. Tie checks, scoring, and the cancel effect all use the flipped values.",
+    needsTarget: false,
+  },
+  snipe: {
+    id: "snipe",
+    name: "Snipe",
+    description: "Choose another player. If they would score points this turn, you steal those points and they score 0 instead.",
     needsTarget: true,
   },
 };
