@@ -78,3 +78,15 @@ export function gcAbandoned(maxAgeMs: number): number {
     .run(cutoff);
   return res.changes;
 }
+
+export function countActiveGames(): number {
+  const db = getDb();
+  const row = db
+    .prepare(
+      `SELECT COUNT(*) AS c FROM rooms
+       WHERE status = 'active'
+         AND json_extract(state, '$.phase') IN ('turn_submitting', 'turn_peek_review', 'round_end')`,
+    )
+    .get() as { c: number };
+  return row.c;
+}

@@ -6,6 +6,7 @@ import fs from "node:fs";
 import os from "node:os";
 import { Server as SocketServer } from "socket.io";
 import { getDb } from "./db.js";
+import { countActiveGames } from "./rooms.js";
 import {
   attachSocketHandlers,
   apiCreateRoom,
@@ -97,4 +98,25 @@ server.listen(PORT, () => {
   console.log(`Cancel server listening on http://localhost:${PORT}`);
   const lan = lanUrl();
   if (lan) console.log(`LAN access: ${lan}`);
+  startKeepAlive();
 });
+
+// Render's free tier spins down after ~15 min of no inbound traffic. While async
+// games are still in progress, ping our own public URL on a slow interval so the
+// instance stays warm and players don't hit a 50s cold start when they return.
+// No-op locally (RENDER_EXTERNAL_URL is only set on Render).
+function startKeepAlive() {
+  const externalUrl = (process.env.RENDER_EXTERNAL_URL ?? process.env.PUBLIC_URL)?.replace(/\/$/, "");
+  if (!externalUrl) return;
+  const intervalMs = parseInt(process.env.KEEPALIVE_INTERVAL_MS ?? String(10 * 60 * 1000), 10);
+  console.log(`Keep-alive enabled: ${externalUrl}/api/health every ${Math.round(intervalMs / 60000)}m while games are active`);
+  setInterval(async () => {
+    try {
+      if (countActiveGames() === 0) return;
+      const r = await fetch(`${externalUrl}/api/health`);
+      console.log(`[keepalive] ${r.status}`);
+    } catch (e) {
+      console.warn(`[keepalive] failed: ${(e as Error).message}`);
+    }
+  }, intervalMs).unref();
+}
