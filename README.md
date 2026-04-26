@@ -97,6 +97,14 @@ On iOS/Android, the site can be added to home screen and launches full-screen wi
 
 ## Deploying to Render (free tier)
 
+### Build
+
+Render sets `NODE_ENV=production`, which makes modern npm skip every `devDependency` — including `vite`, `typescript`, and `@types/react`, all of which the client build needs. The repo's root `.npmrc` (`include=dev`) overrides this so `npm install` always pulls dev deps. It's the cleanest fix because it works regardless of which `npm install` flavor Render runs and regardless of `NODE_ENV`. **No `NPM_CONFIG_PRODUCTION` env var is needed** (and that one is deprecated anyway).
+
+Build command: `npm install && npm run build`. Start command: `npm start`.
+
+### Keep-alive
+
 The free Render web service spins down after ~15 minutes of no inbound traffic — a player returning to an async game would otherwise hit a 50+ second cold start. The server has a built-in self-ping that keeps the instance warm only while at least one game is mid-play (`turn_submitting`, `turn_peek_review`, or `round_end`). It's a no-op locally.
 
 It activates automatically when the `RENDER_EXTERNAL_URL` env var is set (Render injects this for every web service). You can override:
