@@ -5,6 +5,7 @@ import {
   createRoom,
   forceAdvanceRound,
   removePlayer,
+  setRoomConfig,
   startGame,
   submitTurn,
   unsubmitTurn,
@@ -17,6 +18,7 @@ import type {
   AbandonRoomReq,
   CreateRoomReq,
   JoinRoomReq,
+  SetRoomConfigReq,
   StartGameReq,
   SubmitTurnReq,
   UnsubmitTurnReq,
@@ -122,7 +124,8 @@ export function apiCreateRoom(req: CreateRoomReq, ctx: ApiCtx) {
   const claimToken = newClaimToken();
   const rounds = req.rounds ?? 3;
   const turnDeadlineMs = req.turnDeadlineMs ?? null;
-  const room = createRoom({ code, hostId, hostName: req.name.trim(), rounds, turnDeadlineMs });
+  const powerUps = req.powerUps ?? true;
+  const room = createRoom({ code, hostId, hostName: req.name.trim(), rounds, turnDeadlineMs, powerUps });
   saveRoom(room);
   recordPlayer({ id: hostId, roomCode: code, name: req.name.trim(), seat: 0, claimToken });
   return {
@@ -167,6 +170,17 @@ export function apiJoinRoom(req: JoinRoomReq, ctx: ApiCtx) {
     playerId,
     state: projectStateForPlayer(room, playerId, onlineSet(req.roomCode)),
   };
+}
+
+export function apiSetRoomConfig(req: SetRoomConfigReq, ctx: ApiCtx) {
+  const player = authPlayer(req.roomCode, req.claimToken);
+  let room = loadRoom(req.roomCode);
+  if (!room) throw new Error("room not found");
+  if (player.id !== room.hostId) throw new Error("only host can change settings");
+  room = setRoomConfig(room, { powerUps: req.powerUps });
+  saveRoom(room);
+  setImmediate(() => broadcastRoom(ctx.io, room));
+  return { ok: true as const, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)) };
 }
 
 export function apiStartGame(req: StartGameReq, ctx: ApiCtx) {

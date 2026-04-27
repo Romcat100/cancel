@@ -22,6 +22,12 @@ export const api = {
   startGame(roomCode: string, claimToken: string) {
     return call<{ ok: true; state: RoomStateForPlayer }>("POST", `/api/rooms/${roomCode}/start`, { claimToken });
   },
+  setConfig(roomCode: string, claimToken: string, patch: { powerUps?: boolean }) {
+    return call<{ ok: true; state: RoomStateForPlayer }>("POST", `/api/rooms/${roomCode}/config`, {
+      claimToken,
+      ...patch,
+    });
+  },
   ackRoundEnd(roomCode: string, claimToken: string) {
     return call<{ ok: true; state: RoomStateForPlayer }>("POST", `/api/rooms/${roomCode}/ack-round-end`, { claimToken });
   },

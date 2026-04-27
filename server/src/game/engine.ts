@@ -54,7 +54,7 @@ export interface PeekReviewDoc {
 export interface RoomDoc {
   code: string;
   hostId: string;
-  config: { rounds: number; turnDeadlineMs: number | null };
+  config: { rounds: number; turnDeadlineMs: number | null; powerUps: boolean };
   phase: RoomPhaseDoc;
   players: PlayerDoc[];
   rounds: RoundDoc[];
@@ -76,12 +76,13 @@ export function createRoom(opts: {
   hostName: string;
   rounds: number;
   turnDeadlineMs: number | null;
+  powerUps?: boolean;
 }): RoomDoc {
   const now = Date.now();
   return {
     code: opts.code,
     hostId: opts.hostId,
-    config: { rounds: opts.rounds, turnDeadlineMs: opts.turnDeadlineMs },
+    config: { rounds: opts.rounds, turnDeadlineMs: opts.turnDeadlineMs, powerUps: opts.powerUps ?? true },
     phase: "lobby",
     players: [{ id: opts.hostId, name: opts.hostName, seat: HOST_SEAT, totalScore: 0 }],
     rounds: [],
@@ -151,11 +152,27 @@ export function startGame(room: RoomDoc): RoomDoc {
   return startRound(room, 0);
 }
 
+export function setRoomConfig(
+  room: RoomDoc,
+  patch: { powerUps?: boolean },
+): RoomDoc {
+  if (room.phase !== "lobby") throw new Error("config locked once game starts");
+  return {
+    ...room,
+    config: {
+      ...room.config,
+      powerUps: patch.powerUps ?? room.config.powerUps,
+    },
+    updatedAt: Date.now(),
+  };
+}
+
 function startRound(room: RoomDoc, roundIndex: number): RoomDoc {
   const handSize = room.players.length + 2;
+  const poolFull = room.config.powerUps === false ? [] : dealPool(handSize, room.players.length);
   const round: RoundDoc = {
     index: roundIndex,
-    poolFull: dealPool(handSize, room.players.length),
+    poolFull,
     poolRemaining: [],
     rotation: buildRotation(room.players, handSize, roundIndex),
     reveals: [],

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { POWER_UPS, type PowerUpId } from "../../shared/types.js";
 
 export const SEAT_COLORS = [
@@ -145,6 +145,92 @@ export function PowerUpChip({
         </span>
       )}
     </div>
+  );
+}
+
+export function Rules({ onClose, includePowerUps = true }: { onClose: () => void; includePowerUps?: boolean }) {
+  return (
+    <div className="fixed inset-0 z-50 bg-ink/95 backdrop-blur-md flex flex-col animate-rise">
+      <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0 border-b border-paper/10">
+        <div>
+          <div className="font-mono text-xs uppercase tracking-[0.3em] text-paper/50">How to play</div>
+          <div className="font-display text-2xl font-bold text-paper">Cancel — the rules</div>
+        </div>
+        <button className="btn-ghost text-xs px-3 py-2" onClick={onClose}>
+          Close
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto px-5 py-5 max-w-md w-full mx-auto">
+        <RulesSection title="The goal">
+          Score the most points by the end of the final round. Each round, you'll secretly pick numbers from your hand.
+          The trick is dodging your friends and avoiding the cards they pick at the same time.
+        </RulesSection>
+
+        <RulesSection title="Setup">
+          You'll play 3 rounds. Each round, every player gets a fresh hand of cards numbered <b>0</b> up
+          to 1 more than the number of players. So 3 players each get 0–4, 4 players get 0–5, and so on.
+          A round has one turn per card.
+        </RulesSection>
+
+        <RulesSection title="A turn">
+          <ol className="list-decimal pl-5 space-y-1.5 text-paper/80">
+            <li>Everyone secretly chooses one card from their hand.</li>
+            <li>Once all submissions are in, the cards flip face-up.</li>
+            <li>Scores update, then the played cards are discarded and the next turn begins.</li>
+          </ol>
+          <div className="mt-2 text-paper/60 text-xs">
+            You can tap your locked-in submission to unlock it and re-pick, but only until the last person submits.
+          </div>
+        </RulesSection>
+
+        <RulesSection title="Scoring">
+          Your card's <b>face value</b> is the points you earn. For example, a 5 scores 5. With two big exceptions:
+          <ul className="list-disc pl-5 mt-2 space-y-1.5 text-paper/80">
+            <li>
+              <b className="text-accent">Zero cancels.</b> If exactly one player plays a 0, every other card scores 0.
+              The 0 itself also scores 0. If two or more players play a 0, the cancel is suppressed and everyone scores
+              normally.
+            </li>
+            <li>
+              <b>Ties wipe.</b> If two or more players play the same number, all tied cards score 0. The unique cards
+              still score.
+            </li>
+          </ul>
+        </RulesSection>
+
+        <RulesSection title="Rounds &amp; winning">
+          When all hands are empty, the round ends and totals carry over. After the final round, the highest total wins.
+        </RulesSection>
+
+        {includePowerUps && (
+          <RulesSection title="Power-ups">
+            At the start of each round, a small pool of power-ups is dealt face-up. On each turn,
+            the player who is the <b>picker</b> for that turn chooses a number <i>and</i> one power-up
+            from the pool. Used power-ups are gone for the rest of the round.
+          </RulesSection>
+        )}
+
+        {!includePowerUps && (
+          <RulesSection title="Power-ups (off)">
+            This game is set to <b>no power-ups</b>. Every turn is a pure number pick, without any twists.
+          </RulesSection>
+        )}
+      </div>
+      <div className="px-5 pb-5 pt-3 border-t border-paper/10 max-w-md w-full mx-auto shrink-0">
+        <button className="btn-primary w-full text-lg py-4" onClick={onClose}>
+          Got it
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RulesSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="mb-6">
+      <h3 className="font-display text-lg font-bold text-paper mb-2">{title}</h3>
+      <div className="text-paper/80 text-sm leading-relaxed">{children}</div>
+    </section>
   );
 }
 

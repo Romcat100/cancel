@@ -38,7 +38,9 @@ export function loadRoom(code: string): RoomDoc | null {
     | { state: string }
     | undefined;
   if (!row) return null;
-  return JSON.parse(row.state) as RoomDoc;
+  const doc = JSON.parse(row.state) as RoomDoc;
+  if (doc.config.powerUps === undefined) doc.config.powerUps = true;
+  return doc;
 }
 
 export function archiveRoom(code: string, status: "complete" | "archived" = "complete"): void {

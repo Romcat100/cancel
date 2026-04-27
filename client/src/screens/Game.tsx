@@ -3,7 +3,7 @@ import { POWER_UPS, type PowerUpId, type RevealedTurn } from "../../../shared/ty
 import { api } from "../api.js";
 import { getIdentity, hasSeenPreviewLocal, markPreviewSeenLocal } from "../identity.js";
 import { useAppStore } from "../store.js";
-import { NumberCard, PlayerChip, PowerDescription, PowerUpCard, PowerUpChip, SEAT_COLORS } from "../components.js";
+import { NumberCard, PlayerChip, PowerDescription, PowerUpCard, PowerUpChip, Rules, SEAT_COLORS } from "../components.js";
 import { GameEnd } from "./GameEnd.js";
 
 export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandoned: () => void }) {
@@ -27,6 +27,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
   const [err, setErr] = useState<string | null>(null);
 
   const [showPreview, setShowPreview] = useState(false);
+  const [showRules, setShowRules] = useState(false);
   const [revealOverlay, setRevealOverlay] = useState<RevealedTurn | null>(null);
 
   const lastRevealKey = useRef<number | null>(null);
@@ -161,6 +162,13 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
         </div>
         <div className="flex items-center gap-2">
           <span className="font-mono text-paper/60 text-sm tracking-widest">{publicState.roomCode}</span>
+          <button
+            onClick={() => setShowRules(true)}
+            className="text-[10px] uppercase tracking-widest font-mono text-paper/50 hover:text-paper border border-paper/15 hover:border-paper/40 rounded-lg px-2 py-1 transition"
+            title="How to play"
+          >
+            Rules
+          </button>
           {isHost && (
             <button
               onClick={abandon}
@@ -176,6 +184,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
 
       <Scoreboard players={publicState.players} selfId={selfPlayerId} />
 
+      {round.poolFull.length > 0 && (
       <div className="mt-4 mb-3">
         <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] font-mono text-paper/50 mb-2">
           <span>Power-ups remaining</span>
@@ -202,10 +211,17 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
           </div>
         )}
       </div>
+      )}
 
       <div className="text-xs uppercase tracking-[0.3em] font-mono text-paper/50 mt-1 mb-2">
-        Players · picker:&nbsp;
-        <span className="text-paper">{picker?.name ?? "—"}</span>
+        {round.poolFull.length > 0 ? (
+          <>
+            Players · picker:&nbsp;
+            <span className="text-paper">{picker?.name ?? "—"}</span>
+          </>
+        ) : (
+          "Players"
+        )}
       </div>
       <div className="grid grid-cols-2 gap-2 mb-3">
         {publicState.players.map((p) => (
@@ -215,7 +231,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
             seat={p.seat}
             online={p.online}
             isSelf={p.id === selfPlayerId}
-            isPicker={p.id === publicState.currentPickerId}
+            isPicker={round.poolFull.length > 0 && p.id === publicState.currentPickerId}
             submitted={publicState.currentSubmissions.find((s) => s.playerId === p.id)?.submitted}
             hand={p.hand}
             small
@@ -345,8 +361,11 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
         )}
       </div>
 
-      {showPreview && phase !== "round_end" && (
+      {showPreview && phase !== "round_end" && round.poolFull.length > 0 && (
         <PoolPreview pool={round.poolFull} onDismiss={dismissPreview} roundIndex={round.index} />
+      )}
+      {showRules && (
+        <Rules onClose={() => setShowRules(false)} includePowerUps={publicState.config.powerUps !== false} />
       )}
       {revealOverlay && (
         <RevealView reveal={revealOverlay} players={publicState.players} onClose={() => setRevealOverlay(null)} />

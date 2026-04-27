@@ -99,6 +99,7 @@ export interface PublicState {
   config: {
     rounds: number;
     turnDeadlineMs: number | null;
+    powerUps: boolean;
   };
 }
 

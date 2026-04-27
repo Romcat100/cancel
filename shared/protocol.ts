@@ -17,6 +17,13 @@ export interface CreateRoomReq {
   name: string;
   rounds?: number;
   turnDeadlineMs?: number | null;
+  powerUps?: boolean;
+}
+
+export interface SetRoomConfigReq {
+  roomCode: string;
+  claimToken: string;
+  powerUps?: boolean;
 }
 
 export interface CreateRoomRes {

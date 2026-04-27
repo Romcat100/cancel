@@ -11,6 +11,7 @@ import {
   attachSocketHandlers,
   apiCreateRoom,
   apiJoinRoom,
+  apiSetRoomConfig,
   apiStartGame,
   apiSubmitTurn,
   apiUnsubmitTurn,
@@ -54,6 +55,9 @@ app.post("/api/rooms/:code/join", (req, res) =>
 );
 app.post("/api/rooms/:code/start", (req, res) =>
   safe(res, () => apiStartGame({ ...req.body, roomCode: req.params.code }, ctx)),
+);
+app.post("/api/rooms/:code/config", (req, res) =>
+  safe(res, () => apiSetRoomConfig({ ...req.body, roomCode: req.params.code }, ctx)),
 );
 app.post("/api/rooms/:code/ack-round-end", (req, res) =>
   safe(res, () => apiAckRoundEnd({ ...req.body, roomCode: req.params.code }, ctx)),
