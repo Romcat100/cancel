@@ -12,6 +12,20 @@ export const SEAT_COLORS = [
   "bg-rose-400",
 ];
 
+// Parallel to SEAT_COLORS — kept as a literal list (not derived via .replace) so
+// Tailwind's JIT actually emits each text-* rule. Otherwise classes like text-cool
+// silently no-op because their string never appears in source.
+export const SEAT_TEXT_COLORS = [
+  "text-accent",
+  "text-cool",
+  "text-gold",
+  "text-emerald-500",
+  "text-fuchsia-500",
+  "text-cyan-400",
+  "text-orange-300",
+  "text-rose-400",
+];
+
 const NUMBER_CARD_DIM = { sm: "w-12 h-16", md: "w-[60px] h-20", lg: "w-20 h-28" } as const;
 const NUMBER_CARD_TEXT = { sm: "text-2xl", md: "text-4xl", lg: "text-5xl" } as const;
 

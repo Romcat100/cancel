@@ -48,7 +48,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col px-6 pt-10 pb-8 max-w-md mx-auto">
+    <div className="min-h-[100dvh] flex flex-col px-6 pt-10 pb-8 max-w-md mx-auto">
       <div className="flex items-center justify-between mb-4">
         <button className="btn-ghost text-xs px-3 py-2" onClick={onLeave}>
           ← Leave

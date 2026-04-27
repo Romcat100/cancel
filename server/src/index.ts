@@ -6,7 +6,7 @@ import fs from "node:fs";
 import os from "node:os";
 import { Server as SocketServer } from "socket.io";
 import { getDb } from "./db.js";
-import { countActiveGames } from "./rooms.js";
+import { countActiveGames, gcAbandoned } from "./rooms.js";
 import {
   attachSocketHandlers,
   apiCreateRoom,
@@ -103,6 +103,7 @@ server.listen(PORT, () => {
   const lan = lanUrl();
   if (lan) console.log(`LAN access: ${lan}`);
   startKeepAlive();
+  startRoomGc();
 });
 
 // Render's free tier spins down after ~15 min of no inbound traffic. While async
@@ -123,4 +124,19 @@ function startKeepAlive() {
       console.warn(`[keepalive] failed: ${(e as Error).message}`);
     }
   }, intervalMs).unref();
+}
+
+function startRoomGc() {
+  const maxAgeMs = parseInt(process.env.ROOM_GC_MAX_AGE_MS ?? String(90 * 24 * 60 * 60 * 1000), 10);
+  const intervalMs = parseInt(process.env.ROOM_GC_INTERVAL_MS ?? String(24 * 60 * 60 * 1000), 10);
+  const sweep = () => {
+    try {
+      const archived = gcAbandoned(maxAgeMs);
+      if (archived > 0) console.log(`[room-gc] archived ${archived} stale rooms`);
+    } catch (e) {
+      console.warn(`[room-gc] failed: ${(e as Error).message}`);
+    }
+  };
+  sweep();
+  setInterval(sweep, intervalMs).unref();
 }
