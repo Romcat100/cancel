@@ -142,7 +142,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
   const isHost = publicState.hostId === selfPlayerId;
 
   if (phase === "game_end" && !revealOverlay) {
-    return <GameEnd onLeave={onLeave} />;
+    return <GameEnd onLeave={onAbandoned} />;
   }
 
   return (

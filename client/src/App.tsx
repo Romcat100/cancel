@@ -20,15 +20,19 @@ export function App() {
       if (recent && Date.now() - recent.lastSeenAt < 1000 * 60 * 60 * 24 * 14) {
         try {
           const res = await api.fetchState(recent.roomCode, recent.claimToken);
-          setState(res.state);
-          connectSocket(recent.roomCode, recent.claimToken, {
-            onRoomState: setState,
-            onRoomAbandoned: () => {
-              clearIdentity(recent.roomCode);
-              disconnectSocket();
-              reset();
-            },
-          });
+          if (res.state.publicState.phase === "game_end") {
+            clearIdentity(recent.roomCode);
+          } else {
+            setState(res.state);
+            connectSocket(recent.roomCode, recent.claimToken, {
+              onRoomState: setState,
+              onRoomAbandoned: () => {
+                clearIdentity(recent.roomCode);
+                disconnectSocket();
+                reset();
+              },
+            });
+          }
         } catch {
           // fall through to home
         }
