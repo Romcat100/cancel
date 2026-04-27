@@ -24,21 +24,22 @@ npm start
 ## Test it
 
 ```bash
-npm test          # runs the scoring engine + state machine tests (58 tests)
+npm test          # runs the scoring engine + state machine tests (66 tests)
 ```
 
 ## Play it
 
 1. **Create a room** → you get a 4-character code.
 2. **Share the code** with friends; they tap "Join with code" on the same site.
-3. **Host taps Start.** A "This round's powers" screen shows what's in this round's pool — tap any card to read what it does, then tap Let's play.
-4. **Each turn:**
+3. In the lobby, the **Rules** button opens a full how-to-play overlay, and the host has a **Power-ups** toggle (default on) — flip it off for a pure-numbers game with no powers dealt. The same Rules button is in the in-game header so anyone can re-read the rules mid-match.
+4. **Host taps Start.** When power-ups are on, a "This round's powers" screen shows what's in this round's pool — tap any card to read what it does, then tap Let's play. (Skipped when power-ups are off.)
+5. **Each turn:**
    - Everyone privately picks a number from their hand. Each player's remaining hand is shown publicly under their name so you can see what cards your opponents still have.
-   - The picker (rotation, shown by a **PICK** badge) additionally picks one power-up from the pool — face-up to all so others know what's available, but only the picker plays it.
+   - With power-ups on, a picker rotates each turn (shown by a **PICK** badge) and additionally picks one power-up from the pool — face-up to all so others know what's available, but only the picker plays it. With power-ups off, there's no picker — every turn is a pure simultaneous number pick.
    - You can **un-lock** your submission by tapping the locked-in button — as long as the turn hasn't fully resolved (i.e. not everyone has locked in yet), you can change your pick.
    - When all submissions are in, numbers and the played power-up flip face-up at once, scores tally, the next turn starts. (Exception: if **Peek** was played, the peeker is sent back to thinking with their target's number revealed; everyone waits while they re-pick.)
-5. **End of round** — a tally screen shows what each player scored that round and the running totals. Tap **Next round** when you're ready; the round advances when all players are.
-6. **3 rounds × (N+2) turns each.** Highest total wins.
+6. **End of round** — a tally screen shows what each player scored that round and the running totals. Tap **Next round** when you're ready; the round advances when all players are.
+7. **3 rounds × (N+2) turns each.** Highest total wins.
 
 ## Scoring rules
 
@@ -50,7 +51,9 @@ npm test          # runs the scoring engine + state machine tests (58 tests)
 
 ## Power-ups
 
-At the start of each round, `N+2` power-ups are dealt face-up. They stay face-up the whole round so everyone sees what's still in the pool — tap any card to read its description. Only the picker for each turn (rotation shifts every round) can actually play one. Power-ups resolve at the same instant numbers do, except for **Peek** which pauses the turn for a re-pick.
+Power-ups are on by default. The host can turn them off in the lobby for a pure-numbers game.
+
+When on: at the start of each round, `N+2` power-ups are dealt face-up. They stay face-up the whole round so everyone sees what's still in the pool — tap any card to read its description. Only the picker for each turn (rotation shifts every round) can actually play one. Power-ups resolve at the same instant numbers do, except for **Peek** which pauses the turn for a re-pick.
 
 | Card | What it does |
 |---|---|
@@ -66,8 +69,10 @@ At the start of each round, `N+2` power-ups are dealt face-up. They stay face-up
 | **Trade** (`↻`) | Everyone's score this turn slides one seat clockwise — your score goes to the next player; you receive the previous player's score. Whether you "win" depends on who's behind you in seat order. |
 | **Equalize** (`≈`) | Every player who scored above zero this turn receives the *average* of those positive scores. High earners come down, low earners come up. Cancelled and tied players are unaffected. |
 | **Sabotage** (`✖`) | Pick an opponent AND choose which card from their visible hand they'll play this turn. Their submitted pick is overridden — they don't find out until the reveal. Their original choice stays in their hand for a future turn. |
+| **Reverse** (`⇋`) | All face values flip within the card range — a `0` becomes the highest card and the highest card becomes `0`. Tie checks, scoring, and the cancel effect all use the flipped values. |
+| **Snipe** (`↳`) | Pick an opponent. If they would score points this turn, you steal those points and they score 0 instead. |
 
-The pool is drawn from this 12-card master list — random subset each round.
+The pool is drawn from this 14-card master list — random subset each round. (In 2-player games, **Peek** and **Sabotage** are excluded as they're too dominant 1-on-1.)
 
 ## Project layout
 
@@ -88,7 +93,7 @@ Game state is persisted in `server/data/cancel.sqlite` so games survive server r
 
 - **Web Push notifications** ("your turn!" pings when offline). The PWA manifest is in place, so the app installs to a home screen, but push subscriptions and the VAPID key flow are not wired up yet.
 - **Per-turn deadlines / auto-skip** for stuck async games — the current model just waits.
-- **Custom rule variants** (round count, player range, custom power-up sets). All defaults live in one place: `server/src/game/engine.ts`.
+- **Custom rule variants** (round count, player range, custom power-up subsets). The lobby has a host-controlled on/off toggle for the whole power-up system, but more granular tuning still lives only in code: `server/src/game/engine.ts`.
 - **Sounds, music, theming.**
 
 ## Mobile PWA

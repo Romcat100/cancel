@@ -147,7 +147,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
   }
 
   return (
-    <div className="min-h-screen flex flex-col px-4 pt-4 pb-6 max-w-md mx-auto relative">
+    <div className="min-h-[100dvh] flex flex-col px-4 pt-4 pb-6 max-w-md mx-auto relative">
       <header className="flex items-center justify-between mb-3 gap-2">
         <div className="flex items-baseline gap-3">
           <span className="font-mono font-bold text-paper">
@@ -192,20 +192,29 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
             {round.poolRemaining.length} / {round.poolFull.length}
           </span>
         </div>
-        <Pool
-          remaining={round.poolRemaining}
-          isPicker={isPicker && phase === "turn_submitting" && !privateState.hasSubmittedThisTurn}
-          selected={selectedPower}
-          onSelect={(p) => {
-            setPreviewingPower(p);
-            setSelectedPower((cur) => (cur === p ? null : p));
-            if (selectedPower !== p) {
-              setPowerTarget(null);
-              setSabotageNumber(null);
-            }
-          }}
-        />
-        {previewingPower && isPicker && (
+        {(() => {
+          const pickerCanSelect = isPicker && phase === "turn_submitting" && !privateState.hasSubmittedThisTurn;
+          return (
+            <Pool
+              remaining={round.poolRemaining}
+              isPicker={pickerCanSelect}
+              highlighted={pickerCanSelect ? selectedPower : previewingPower}
+              onSelect={(p) => {
+                if (pickerCanSelect) {
+                  setPreviewingPower(p);
+                  setSelectedPower((cur) => (cur === p ? null : p));
+                  if (selectedPower !== p) {
+                    setPowerTarget(null);
+                    setSabotageNumber(null);
+                  }
+                } else {
+                  setPreviewingPower((cur) => (cur === p ? null : p));
+                }
+              }}
+            />
+          );
+        })()}
+        {previewingPower && (
           <div className="mt-2">
             <PowerDescription id={previewingPower} />
           </div>
@@ -417,12 +426,12 @@ function Scoreboard({
 function Pool({
   remaining,
   isPicker,
-  selected,
+  highlighted,
   onSelect,
 }: {
   remaining: PowerUpId[];
   isPicker: boolean;
-  selected: PowerUpId | null;
+  highlighted: PowerUpId | null;
   onSelect: (p: PowerUpId) => void;
 }) {
   if (remaining.length === 0) {
@@ -437,7 +446,13 @@ function Pool({
       <div className="rounded-2xl px-2 py-2 bg-paper/[.04] border border-paper/10">
         <div className="flex flex-wrap gap-1.5 justify-center">
           {ordered.map((p) => (
-            <PowerUpChip key={p} id={p} count={counts.get(p)} />
+            <PowerUpChip
+              key={p}
+              id={p}
+              count={counts.get(p)}
+              selected={highlighted === p}
+              onClick={() => onSelect(p)}
+            />
           ))}
         </div>
       </div>
@@ -452,7 +467,7 @@ function Pool({
       <div className="flex flex-wrap gap-2 justify-center">
         {ordered.map((p) => (
           <div key={p} className="relative">
-            <PowerUpCard id={p} state={selected === p ? "selected" : "idle"} onClick={() => onSelect(p)} />
+            <PowerUpCard id={p} state={highlighted === p ? "selected" : "idle"} onClick={() => onSelect(p)} />
             {(counts.get(p) ?? 0) > 1 && (
               <span className="absolute -top-1 -right-1 bg-paper text-ink text-[10px] font-bold rounded-full px-1.5 py-0.5">
                 ×{counts.get(p)}

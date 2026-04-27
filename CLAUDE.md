@@ -41,7 +41,7 @@ The state machine in `server/src/game/engine.ts` is intentionally pure: `(roomDo
 
 Each room's *entire* state lives as a JSON blob in a single `rooms.state` row in SQLite (`server/data/cancel.sqlite`). There are no separate tables for turns or submissions — the engine is fast enough to recompute the projection from the full doc on every read. This means:
 
-- Adding fields to `RoomDoc` requires no migration; just default them defensively when reading old rows.
+- Adding fields to `RoomDoc` requires no migration; just default them defensively when reading old rows. `rooms.ts:loadRoom` is the single chokepoint for those defaults — e.g. it fills `config.powerUps = true` for rooms saved before that flag existed. Add new defaults there.
 - The DB is purely durable cache for the in-memory state; recomputing from scratch is cheap.
 - `players` and `push_subscriptions` are separate tables only because they're queried independently (claim-token lookup, push fan-out).
 
@@ -88,9 +88,12 @@ Three non-obvious flows:
 - `App.tsx` routes by `state.publicState.phase` — there's no router, just phase-driven rendering.
 - `Game.tsx` is the main play UI. The reveal overlay (`RevealView`) is **rendered regardless of phase** so the final turn's flip animation shows before the round-end summary; `RoundEnd` is gated on `!revealOverlay` to enforce that ordering. Don't combine those guards.
 - The non-picker pool uses `<PowerUpChip>` (small colored chip, symbol only); the picker's pool uses `<PowerUpCard>` (full card with name + tap-for-description). They're explicitly two components — `Pool` switches based on `isPicker`. `PowerUpChip` is tappable on mobile to flash the power's name (desktop relies on the `title` hover tooltip).
+- **Power-ups disabled**: `config.powerUps === false` ⇒ engine deals `poolFull = []`. The whole pool section in `Game.tsx`, the round-start `PoolPreview`, and the picker label/badge are all gated on `round.poolFull.length > 0`. Without power-ups, picker has no privileged action — keep new picker UI behind the same gate.
 - **Targeting flow**: the target-picker block in `Game.tsx` handles all `needsTarget` powers. For Sabotage specifically, after the target is chosen, the same block renders the target's public hand as `<NumberCard size="sm">` buttons so the picker can pick which card to force. The submission then carries `powerUp: "sabotage"`, `powerUpTarget`, and `sabotageNumber`.
 - **Locked-in button** swaps to a ghost-styled "tap to unlock" while `phase === "turn_submitting" && privateState.hasSubmittedThisTurn`, calling `api.unsubmitTurn`. Local UI state (selected number/power/target) is preserved across an unlock so the player can tweak and re-submit.
-- `getIdentity` / `saveIdentity` in `identity.ts` are how the client knows what room/token it has; `App.tsx` auto-rejoins the most recent room on bootstrap.
+- **Rules overlay**: `<Rules />` in `components.tsx` is a reusable how-to-play modal — power-up section auto-renders from the live `POWER_UPS` map (so any new power added there appears for free), and the section is swapped to a "(off)" note when `includePowerUps={false}` is passed. Rendered from a button in both `Lobby.tsx` and the `Game.tsx` header.
+- **Lobby toggle**: host-only `Power-ups on/off` switch in `Lobby.tsx` calls `api.setConfig` (`POST /api/rooms/:code/config` → `apiSetRoomConfig` → engine's `setRoomConfig`, which only succeeds while `phase === "lobby"`). Non-hosts see the read-only state via the broadcast-projected `publicState.config.powerUps`.
+- `getIdentity` / `saveIdentity` in `identity.ts` are how the client knows what room/token it has; `App.tsx` auto-rejoins the most recent room on bootstrap, **but skips and clears the identity if the loaded room is in `phase === "game_end"`** so a refresh after the game's over lands on Home, not on the finished result. The Done button in `GameEnd` likewise routes through `onAbandoned` (clears identity) rather than `onLeave`.
 
 ### Module conventions
 
@@ -100,10 +103,11 @@ Three non-obvious flows:
 
 ### Adding a new power-up
 
-1. Add the id to the `PowerUpId` union and `POWER_UPS` map in `shared/types.ts`. Mark `(Universal)` at the start of the description if it affects every player rather than just the picker.
+1. Add the id to the `PowerUpId` union and `POWER_UPS` map in `shared/types.ts`. Mark `(Universal)` at the start of the description if it affects every player rather than just the picker. The `Rules` overlay reads from this map, so descriptions you write here are what players see.
 2. Wire its scoring effect into `server/src/game/scoring.ts` at the right point in the resolution pipeline; add tests in `scoring.test.ts`. If the effect is structural (rewrites which card a player plays, like Sabotage; or pauses the turn, like Peek), put it in `engine.ts` instead — `scoreTurn` should stay focused on per-card math.
 3. Add a `POWER_VISUAL` entry in `client/src/components.tsx` (abbr glyph + tailwind colors). Long names auto-wrap inside the fixed `68×88px` card. Also add the id to `SAFE_POOL` in `engine.test.ts` if the power doesn't require a target — the lifecycle tests draw from that list.
 4. If it needs a target (like Mute/Peek/Sabotage), set `needsTarget: true` and the engine + client target-picker UI handle the rest. If it needs additional input beyond a target (like Sabotage's `sabotageNumber`), add a field to `SubmitTurnReq` / `SubmissionDoc` / `SubmitInput`, validate in `submitTurn`, and extend the target-picker block in `Game.tsx` to gather it.
+5. The pool can be globally disabled by the host (`config.powerUps === false` ⇒ `poolFull = []`). Don't write engine code that assumes the pool is non-empty — the picker is allowed to submit a number-only payload whenever the pool is empty, regardless of whether that's because power-ups are off or just because the round's used them all up.
 
 ### Deployment / keep-alive
 

@@ -110,26 +110,24 @@ export function PowerUpChip({
   id,
   used,
   count,
+  onClick,
+  selected,
 }: {
   id: PowerUpId;
   used?: boolean;
   count?: number;
+  onClick?: () => void;
+  selected?: boolean;
 }) {
   const v = POWER_VISUAL[id];
-  const [showName, setShowName] = useState(false);
-  useEffect(() => {
-    if (!showName) return;
-    const t = setTimeout(() => setShowName(false), 1800);
-    return () => clearTimeout(t);
-  }, [showName]);
   return (
     <div className="relative">
       <button
         type="button"
-        onClick={() => setShowName((s) => !s)}
+        onClick={onClick}
         className={`shrink-0 w-9 h-12 rounded-lg ${v.bg} ${v.text} flex items-center justify-center font-mono font-bold text-sm shadow-[0_3px_0_0_rgba(0,0,0,0.4)] ${
           used ? "opacity-25 grayscale" : ""
-        }`}
+        } ${selected ? "ring-2 ring-paper/70 -translate-y-0.5" : ""} transition`}
         title={POWER_UPS[id].name}
       >
         {v.abbr}
@@ -137,11 +135,6 @@ export function PowerUpChip({
       {count !== undefined && count > 1 && (
         <span className="absolute -top-1 -right-1 bg-paper text-ink text-[9px] font-bold rounded-full px-1.5 py-0.5">
           ×{count}
-        </span>
-      )}
-      {showName && (
-        <span className="absolute top-full mt-1 left-1/2 -translate-x-1/2 z-10 bg-paper text-ink text-[10px] font-mono uppercase tracking-tight px-2 py-1 rounded-md shadow-lg whitespace-nowrap pointer-events-none animate-rise">
-          {POWER_UPS[id].name}
         </span>
       )}
     </div>
