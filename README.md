@@ -24,7 +24,7 @@ npm start
 ## Test it
 
 ```bash
-npm test          # runs the scoring engine + state machine tests (66 tests)
+npm test          # runs the scoring engine + state machine tests
 ```
 
 ## Play it

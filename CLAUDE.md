@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development workflow
 
-Solo developer project. Commit directly to `main` — do not create feature branches or PRs unless explicitly asked. Commit only when asked.
+Solo developer project. Commit directly to `main` — do not create feature branches or PRs unless explicitly asked.
 
 ## Commands
 
@@ -99,6 +99,7 @@ Three non-obvious flows:
 - **Lobby toggle**: host-only `Power-ups on/off` switch in `Lobby.tsx` calls `api.setConfig` (`POST /api/rooms/:code/config` → `apiSetRoomConfig` → engine's `setRoomConfig`, which only succeeds while `phase === "lobby"`). Non-hosts see the read-only state via the broadcast-projected `publicState.config.powerUps`.
 - `getIdentity` / `saveIdentity` in `identity.ts` are how the client knows what room/token it has; `App.tsx` auto-rejoins the most recent room on bootstrap **including at `phase === "game_end"`** — a returning player stays connected so the host's "Play again" can pull them back. Leaving a finished game is explicit: the **Leave room** button on `GameEnd` routes through `onAbandoned` (clears identity → Home), and `onRoomAbandoned` does the same when the host abandons.
 - **Play again / rematch**: `engine.resetToLobby` is a pure `game_end → lobby` transition that keeps `code`/`hostId`/`config`/`players` (seats + claim tokens) but zeroes `totalScore` and wipes `rounds`/indices/`winnerId`. Host-only intent (`POST /api/rooms/:code/play-again` → `apiPlayAgain`), mirroring `startGame`. Because routing is phase-driven, the broadcast flips every connected client from `GameEnd` to `<Lobby>` for free. Players who hit Leave first linger as offline seats in the recycled lobby — host can kick them there. A cross-game series tally is deliberately *not* tracked; each rematch is a clean slate.
+- **Leaving & rejoining mid-game**: `Game.tsx`'s **Leave** (non-host only, gated `!isHost`) routes through `onLeave`, which *keeps* the claim token — not `onAbandoned` — so the game continues for others and the player can return. The host has no Leave by design (only the host can `forceAdvance`/`abandon`, so a host leaving would strand the table); they get only the destructive **End game** (`apiAbandonRoom`, host-only). Rejoin works because `Home.tsx:handleJoin` passes `getIdentity(roomCode)?.claimToken`, so `apiJoinRoom` reclaims the seat regardless of phase — the "game already started" error only fires when no token is sent. Don't switch Leave to clear identity, add a host Leave, or drop the token from the join call — each silently breaks this.
 
 ### Module conventions
 
