@@ -74,6 +74,11 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
     }
   }
 
+  function leave() {
+    if (!window.confirm("Leave this game? It keeps running for everyone else. You can rejoin from this device.")) return;
+    onLeave();
+  }
+
   async function abandon() {
     if (!id) return;
     if (!window.confirm("End this game for everyone? This can't be undone.")) return;
@@ -169,6 +174,15 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
           >
             Rules
           </button>
+          {!isHost && (
+            <button
+              onClick={leave}
+              className="text-[10px] uppercase tracking-widest font-mono text-paper/50 hover:text-paper border border-paper/15 hover:border-paper/40 rounded-lg px-2 py-1 transition"
+              title="The game continues; you can rejoin from this device"
+            >
+              Leave
+            </button>
+          )}
           {isHost && (
             <button
               onClick={abandon}

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api } from "../api.js";
 import { connectSocket, disconnectSocket } from "../socket.js";
-import { clearIdentity, saveIdentity } from "../identity.js";
+import { clearIdentity, getIdentity, saveIdentity } from "../identity.js";
 import { useAppStore } from "../store.js";
 
 type Mode = "menu" | "create" | "join";
@@ -49,7 +49,12 @@ export function Home() {
     setErr(null);
     try {
       const roomCode = code.trim().toUpperCase();
-      const res = await api.joinRoom(roomCode, name.trim());
+      // If this device already has a seat in this room (e.g. the player tapped
+      // Leave and is coming back), send the stored claim token so the server
+      // reclaims their existing seat instead of rejecting with "game already
+      // started". A fresh joiner has no stored identity and joins normally.
+      const existing = getIdentity(roomCode);
+      const res = await api.joinRoom(roomCode, name.trim(), existing?.claimToken);
       saveIdentity({ roomCode, claimToken: res.claimToken, playerId: res.playerId, name: name.trim() });
       setState(res.state);
       connectSocket(roomCode, res.claimToken, buildHandlers(roomCode));

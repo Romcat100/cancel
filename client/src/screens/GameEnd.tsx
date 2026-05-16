@@ -34,7 +34,7 @@ export function GameEnd({ onLeave }: { onLeave: () => void }) {
 
   return (
     <div className="h-[100dvh] flex flex-col px-6 pt-10 pb-6 max-w-md mx-auto relative overflow-hidden">
-      {!isTie && <Confetti />}
+      {!isTie && selfIsLeader && <Confetti />}
       <div className="text-center mb-6 animate-rise shrink-0">
         <div className="font-mono text-xs uppercase tracking-[0.3em] text-paper/50">Game over</div>
         <div className="font-display text-5xl font-bold mt-2">
