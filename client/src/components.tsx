@@ -155,7 +155,22 @@ export function PowerUpChip({
   );
 }
 
-export function Rules({ onClose, includePowerUps = true }: { onClose: () => void; includePowerUps?: boolean }) {
+export function Rules({
+  onClose,
+  includePowerUps = true,
+  pool,
+}: {
+  onClose: () => void;
+  includePowerUps?: boolean;
+  pool?: PowerUpId[];
+}) {
+  // Dedupe the current round's pool, preserving deal order, with a count per power.
+  const roundPowers: { id: PowerUpId; count: number }[] = [];
+  for (const id of pool ?? []) {
+    const existing = roundPowers.find((p) => p.id === id);
+    if (existing) existing.count++;
+    else roundPowers.push({ id, count: 1 });
+  }
   return (
     <div className="fixed inset-0 z-50 bg-ink/95 backdrop-blur-md flex flex-col animate-rise">
       <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0 border-b border-paper/10">
@@ -214,6 +229,39 @@ export function Rules({ onClose, includePowerUps = true }: { onClose: () => void
             At the start of each round, a small pool of power-ups is dealt face-up. On each turn,
             the player who is the <b>picker</b> for that turn chooses a number <i>and</i> one power-up
             from the pool. Used power-ups are gone for the rest of the round.
+          </RulesSection>
+        )}
+
+        {includePowerUps && roundPowers.length > 0 && (
+          <RulesSection title="This round's power-ups">
+            <div className="text-paper/60 text-xs mb-3">
+              The exact pool dealt for the current round. Shared by everyone — each one is gone once any
+              picker uses it.
+            </div>
+            <ul className="space-y-3">
+              {roundPowers.map(({ id, count }) => {
+                const v = POWER_VISUAL[id];
+                const def = POWER_UPS[id];
+                return (
+                  <li key={id} className="flex gap-3 items-start">
+                    <div
+                      className={`relative shrink-0 ${v.bg} ${v.text} w-9 h-9 rounded-lg flex items-center justify-center font-mono font-bold text-sm`}
+                    >
+                      {v.abbr}
+                      {count > 1 && (
+                        <span className="absolute -top-1 -right-1 bg-paper text-ink text-[9px] font-bold rounded-full px-1.5 py-0.5">
+                          ×{count}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-display font-bold text-paper">{def.name}</div>
+                      <div className="text-paper/75 text-sm leading-snug">{def.description}</div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           </RulesSection>
         )}
 

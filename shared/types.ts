@@ -167,7 +167,7 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
   trade: {
     id: "trade",
     name: "Switch",
-    description: "(Universal) Everyone's score this turn slides one seat — your score goes to the next player; you receive the previous player's score.",
+    description: "(Universal) Everyone's score this turn slides one — your score goes to the next player; you receive the previous player's score.",
     needsTarget: false,
   },
   equalize: {

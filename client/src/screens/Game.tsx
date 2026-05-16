@@ -388,7 +388,11 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
         <PoolPreview pool={round.poolFull} onDismiss={dismissPreview} roundIndex={round.index} />
       )}
       {showRules && (
-        <Rules onClose={() => setShowRules(false)} includePowerUps={publicState.config.powerUps !== false} />
+        <Rules
+          onClose={() => setShowRules(false)}
+          includePowerUps={publicState.config.powerUps !== false}
+          pool={round.poolFull}
+        />
       )}
       {revealOverlay && (
         <RevealView reveal={revealOverlay} players={publicState.players} onClose={() => setRevealOverlay(null)} />
