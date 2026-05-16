@@ -65,23 +65,60 @@ export function NumberCard({
 
 const POWER_VISUAL: Record<PowerUpId, { abbr: string; bg: string; text: string }> = {
   double: { abbr: "×2", bg: "bg-gold", text: "text-ink" },
-  shield: { abbr: "▽", bg: "bg-cool", text: "text-paper" },
+  tie_die: { abbr: "▽", bg: "bg-cool", text: "text-paper" },
   negate_zero: { abbr: "Ø!", bg: "bg-accent", text: "text-ink" },
   plus_two: { abbr: "+2", bg: "bg-emerald-500", text: "text-ink" },
   free_three: { abbr: "3", bg: "bg-emerald-400", text: "text-ink" },
-  negate: { abbr: "−", bg: "bg-rose-500", text: "text-paper" },
-  steal_two: { abbr: "←2", bg: "bg-rose-400", text: "text-ink" },
+  make_negative: { abbr: "−", bg: "bg-rose-500", text: "text-paper" },
+  minus_two: { abbr: "−2", bg: "bg-rose-400", text: "text-ink" },
   peek: { abbr: "◎", bg: "bg-cyan-400", text: "text-ink" },
   mute: { abbr: "⌖", bg: "bg-paper/40", text: "text-ink" },
-  trade: { abbr: "↻", bg: "bg-fuchsia-500", text: "text-paper" },
+  switch: { abbr: "↻", bg: "bg-fuchsia-500", text: "text-paper" },
   equalize: { abbr: "≈", bg: "bg-cyan-300", text: "text-ink" },
   sabotage: { abbr: "✖", bg: "bg-rose-600", text: "text-paper" },
   reverse: { abbr: "⇋", bg: "bg-indigo-400", text: "text-ink" },
-  snipe: { abbr: "↳", bg: "bg-amber-500", text: "text-ink" },
+  drain: { abbr: "↧", bg: "bg-amber-500", text: "text-ink" },
+  nothingburger: { abbr: "∅", bg: "bg-paper/20", text: "text-paper/70" },
 };
 
 const POWER_CARD_DIM = "w-[68px] h-[88px]";
 const POWER_CARD_DIM_LG = "w-[88px] h-[112px]";
+
+// Scope prefix tags live at the start of every POWER_UPS description as
+// "(Everyone|Opponents|Just you) …". Parsed out here and rendered as a chip.
+// Class strings are literals so Tailwind's JIT actually emits them (see SEAT_COLORS note).
+const SCOPE_CHIP: Record<string, string> = {
+  Everyone: "bg-cool text-ink",
+  Opponents: "bg-rose-500 text-paper",
+  "Just you": "bg-emerald-500 text-ink",
+};
+
+function parseScopedDescription(description: string): { scope: string | null; body: string } {
+  const m = description.match(/^\((Everyone|Opponents|Just you)\)\s*([\s\S]*)$/);
+  return m ? { scope: m[1], body: m[2] } : { scope: null, body: description };
+}
+
+export function ScopedDescription({
+  description,
+  className,
+}: {
+  description: string;
+  className?: string;
+}) {
+  const { scope, body } = parseScopedDescription(description);
+  return (
+    <div className={className}>
+      {scope && (
+        <span
+          className={`inline-block align-baseline mr-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${SCOPE_CHIP[scope] ?? "bg-paper/15 text-paper"}`}
+        >
+          {scope}
+        </span>
+      )}
+      {body}
+    </div>
+  );
+}
 
 export function PowerUpCard({
   id,
@@ -126,16 +163,25 @@ export function PowerUpChip({
   count,
   onClick,
   selected,
+  showName,
 }: {
   id: PowerUpId;
   used?: boolean;
   count?: number;
   onClick?: () => void;
   selected?: boolean;
+  showName?: boolean;
 }) {
   const v = POWER_VISUAL[id];
   return (
     <div className="relative">
+      {showName && (
+        <span className="absolute -top-7 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+          <span className="block whitespace-nowrap bg-paper text-ink text-[10px] font-bold px-2 py-1 rounded-md shadow-[0_3px_0_0_rgba(0,0,0,0.4)] animate-rise">
+            {POWER_UPS[id].name}
+          </span>
+        </span>
+      )}
       <button
         type="button"
         onClick={onClick}
@@ -201,7 +247,7 @@ export function Rules({
             <li>Scores update, then the played cards are discarded and the next turn begins.</li>
           </ol>
           <div className="mt-2 text-paper/60 text-xs">
-            You can tap your locked-in submission to unlock it and re-pick, but only until the last person submits.
+            You can press your locked-in submission to unlock it and re-pick, but only until the last person submits.
           </div>
         </RulesSection>
 
@@ -256,7 +302,10 @@ export function Rules({
                     </div>
                     <div>
                       <div className="font-display font-bold text-paper">{def.name}</div>
-                      <div className="text-paper/75 text-sm leading-snug">{def.description}</div>
+                      <ScopedDescription
+                        description={def.description}
+                        className="text-paper/75 text-sm leading-snug"
+                      />
                     </div>
                   </li>
                 );
@@ -300,7 +349,10 @@ export function PowerDescription({ id }: { id: PowerUpId }) {
         </div>
         <div className="font-display font-bold text-lg">{def.name}</div>
       </div>
-      <div className="text-paper/80 text-sm leading-relaxed">{def.description}</div>
+      <ScopedDescription
+        description={def.description}
+        className="text-paper/80 text-sm leading-relaxed"
+      />
     </div>
   );
 }
@@ -336,7 +388,7 @@ export function PlayerChip({
         {name.slice(0, 1).toUpperCase()}
         {isPicker && (
           <span className="absolute -top-1 -right-1 bg-gold text-ink text-[9px] font-bold rounded-full px-1.5 py-0.5">
-            PICK
+            POWER
           </span>
         )}
         {online !== undefined && (

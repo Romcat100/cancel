@@ -104,13 +104,43 @@ describe("scoreTurn — power-ups", () => {
     expect(points(r)).toEqual({ A: 0, B: 0, C: 6 });
   });
 
-  it("Shield lets the user score despite tie; tied opponents still score 0", () => {
+  it("Tie Die lets the user score despite tie; tied opponents still score 0", () => {
     const r = scoreTurn([
-      { playerId: "A", number: 5, powerUp: "shield" },
+      { playerId: "A", number: 5, powerUp: "tie_die" },
       { playerId: "B", number: 5 },
       { playerId: "C", number: 3 },
     ]);
     expect(points(r)).toEqual({ A: 5, B: 0, C: 3 });
+  });
+
+  it("Tie Die on a 0 still cancels everyone when another player also plays 0", () => {
+    // Without Tie Die the two 0s would suppress each other and C would score 5
+    // (see 'multiple 0s suppress the cancel'). Tie Die keeps A's 0 as the canceller.
+    const r = scoreTurn([
+      { playerId: "A", number: 0, powerUp: "tie_die" },
+      { playerId: "B", number: 0 },
+      { playerId: "C", number: 5 },
+    ]);
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
+  });
+
+  it("Tie Die on a 0 cancels through multiple other 0s", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 0, powerUp: "tie_die" },
+      { playerId: "B", number: 0 },
+      { playerId: "C", number: 0 },
+      { playerId: "D", number: 7 },
+    ]);
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0, D: 0 });
+  });
+
+  it("Tie Die on a non-zero does NOT protect from another player's single 0 cancel", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 5, powerUp: "tie_die" },
+      { playerId: "B", number: 0 },
+      { playerId: "C", number: 3 },
+    ]);
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
   });
 
   it("Negate Zero suppresses a single 0's cancel — others score normally", () => {
@@ -224,21 +254,39 @@ describe("scoreTurn — power-ups", () => {
 
   it("Negate inverts all scoring lines", () => {
     const r = scoreTurn([
-      { playerId: "A", number: 4, powerUp: "negate" },
+      { playerId: "A", number: 4, powerUp: "make_negative" },
       { playerId: "B", number: 5 },
       { playerId: "C", number: 3 },
     ]);
     expect(points(r)).toEqual({ A: -4, B: -5, C: -3 });
   });
 
-  it("Steal Two subtracts 2 from each scoring opponent (>0 only)", () => {
+  it("Minus Two lowers every player's face value by 2 (Universal), shifting ties and scores", () => {
     const r = scoreTurn([
-      { playerId: "A", number: 1, powerUp: "steal_two" },
-      { playerId: "B", number: 5 },
-      { playerId: "C", number: 3 },
-      { playerId: "D", number: 3 },
+      { playerId: "A", number: 1, powerUp: "minus_two" }, // 1 → -1
+      { playerId: "B", number: 5 }, // 5 → 3
+      { playerId: "C", number: 3 }, // 3 → 1
+      { playerId: "D", number: 3 }, // 3 → 1 (ties C on 1)
     ]);
-    expect(points(r)).toEqual({ A: 1, B: 3, C: 0, D: 0 });
+    expect(points(r)).toEqual({ A: -1, B: 3, C: 0, D: 0 });
+  });
+
+  it("Minus Two turns a played 2 into a 0 that cancels everyone", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 2, powerUp: "minus_two" }, // 2 → 0, now cancels
+      { playerId: "B", number: 5 }, // 5 → 3
+      { playerId: "C", number: 4 }, // 4 → 2
+    ]);
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
+  });
+
+  it("Minus Two drops a true 0 to -2 so it no longer cancels", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 0, powerUp: "minus_two" }, // 0 → -2, no cancel
+      { playerId: "B", number: 5 }, // 5 → 3
+      { playerId: "C", number: 4 }, // 4 → 2
+    ]);
+    expect(points(r)).toEqual({ A: -2, B: 3, C: 2 });
   });
 
   it("Mute zeros out a target's card and removes its cancel effect", () => {
@@ -270,7 +318,7 @@ describe("scoreTurn — power-ups", () => {
 
   it("Trade rotates scores one seat: A→B, B→C, C→A", () => {
     const r = scoreTurn([
-      { playerId: "A", number: 5, powerUp: "trade" },
+      { playerId: "A", number: 5, powerUp: "switch" },
       { playerId: "B", number: 3 },
       { playerId: "C", number: 2 },
     ]);
@@ -281,7 +329,7 @@ describe("scoreTurn — power-ups", () => {
 
   it("Trade with cancellation: zero deltas still rotate", () => {
     const r = scoreTurn([
-      { playerId: "A", number: 4, powerUp: "trade" },
+      { playerId: "A", number: 4, powerUp: "switch" },
       { playerId: "B", number: 4 },
       { playerId: "C", number: 5 },
     ]);
@@ -350,33 +398,33 @@ describe("scoreTurn — power-ups", () => {
     expect(points(r)).toEqual({ A: 0, B: 1, C: 0 });
   });
 
-  it("Snipe steals all of the target's positive points; target ends at 0", () => {
+  it("Drain transfers 1 point: +1 to the user, -1 to the target", () => {
     const r = scoreTurn([
-      { playerId: "A", number: 1, powerUp: "snipe", powerUpTarget: "B" },
+      { playerId: "A", number: 1, powerUp: "drain", powerUpTarget: "B" },
       { playerId: "B", number: 5 },
       { playerId: "C", number: 3 },
     ]);
-    expect(points(r)).toEqual({ A: 6, B: 0, C: 3 });
+    expect(points(r)).toEqual({ A: 2, B: 4, C: 3 });
   });
 
-  it("Snipe is a no-op when the target already scores 0", () => {
+  it("Drain still takes a point even if the target scored 0 (target goes negative)", () => {
     const r = scoreTurn([
-      { playerId: "A", number: 1, powerUp: "snipe", powerUpTarget: "B" },
+      { playerId: "A", number: 1, powerUp: "drain", powerUpTarget: "B" },
       { playerId: "B", number: 3 },
       { playerId: "C", number: 3 },
     ]);
-    // B and C tie on 3 → both 0. Snipe takes nothing.
-    expect(points(r)).toEqual({ A: 1, B: 0, C: 0 });
+    // B and C tie on 3 → both 0. Drain still applies: A +1, B -1.
+    expect(points(r)).toEqual({ A: 2, B: -1, C: 0 });
   });
 
-  it("Snipe collapses to 0 when the picker's own card is cancelled by a 0", () => {
+  it("Drain's +1/-1 is unconditional — applies even when the user's own card is cancelled", () => {
     const r = scoreTurn([
-      { playerId: "A", number: 1, powerUp: "snipe", powerUpTarget: "C" },
+      { playerId: "A", number: 1, powerUp: "drain", powerUpTarget: "C" },
       { playerId: "B", number: 0 },
       { playerId: "C", number: 4 },
     ]);
-    // B's 0 cancels everyone — C has nothing to take.
-    expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
+    // B's single 0 cancels everyone (all 0 from scoring). Drain still: A +1, C -1.
+    expect(points(r)).toEqual({ A: 1, B: 0, C: -1 });
   });
 });
 
@@ -384,7 +432,7 @@ describe("scoreTurn — combinations", () => {
   it("Double × Negate cancels out (negative doubled)", () => {
     // Only one power-up plays per turn, so this is impossible — sanity check Negate alone.
     const r = scoreTurn([
-      { playerId: "A", number: 4, powerUp: "negate" },
+      { playerId: "A", number: 4, powerUp: "make_negative" },
       { playerId: "B", number: 5 },
     ]);
     expect(points(r)).toEqual({ A: -4, B: -5 });
@@ -400,22 +448,22 @@ describe("scoreTurn — combinations", () => {
     expect(points(r)).toEqual({ A: 0, B: 0, C: 3 });
   });
 
-  it("Plus Five Self + Shield: shielded user scores adjusted value despite tie", () => {
-    // Only one power-up active; sanity check Shield with PlusFive scenarios separately.
+  it("Plus Five Self + Tie Die: protected user scores adjusted value despite tie", () => {
+    // Only one power-up active; sanity check Tie Die with PlusFive scenarios separately.
     const r = scoreTurn([
-      { playerId: "A", number: 3, powerUp: "shield" },
+      { playerId: "A", number: 3, powerUp: "tie_die" },
       { playerId: "B", number: 3 },
     ]);
     expect(points(r)).toEqual({ A: 3, B: 0 });
   });
 
-  it("Steal Two doesn't go below 0 from negative — applied only to >0 scorers", () => {
+  it("Minus Two also shifts the picker's own card (Universal, includes the user)", () => {
     const r = scoreTurn([
-      { playerId: "A", number: 5, powerUp: "steal_two" },
-      { playerId: "B", number: 5 },
-      { playerId: "C", number: 4 },
+      { playerId: "A", number: 5, powerUp: "minus_two" }, // 5 → 3 (ties B)
+      { playerId: "B", number: 5 }, // 5 → 3
+      { playerId: "C", number: 4 }, // 4 → 2
     ]);
-    // A and B tied → 0; A is the user (no self-steal), B is opponent with delta=0 (not >0). C is unique 4 → -2 = 2.
+    // A and B both shift to 3 and tie → 0. C shifts to a unique 2.
     expect(points(r)).toEqual({ A: 0, B: 0, C: 2 });
   });
 
@@ -436,5 +484,29 @@ describe("scoreTurn — combinations", () => {
       { playerId: "C", number: 4 },
     ]);
     expect(points(r)).toEqual({ A: 5, B: 0, C: 4 });
+  });
+
+  it("Nothingburger is a true no-op — scores exactly like no power-up", () => {
+    const withPower = scoreTurn([
+      { playerId: "A", number: 4, powerUp: "nothingburger" },
+      { playerId: "B", number: 5 },
+      { playerId: "C", number: 3 },
+    ]);
+    const withoutPower = scoreTurn([
+      { playerId: "A", number: 4 },
+      { playerId: "B", number: 5 },
+      { playerId: "C", number: 3 },
+    ]);
+    expect(points(withPower)).toEqual({ A: 4, B: 5, C: 3 });
+    expect(points(withPower)).toEqual(points(withoutPower));
+  });
+
+  it("Nothingburger does not interfere with another player's 0 cancel", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 5, powerUp: "nothingburger" },
+      { playerId: "B", number: 0 },
+      { playerId: "C", number: 3 },
+    ]);
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
   });
 });

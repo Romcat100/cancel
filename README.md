@@ -53,26 +53,27 @@ npm test          # runs the scoring engine + state machine tests
 
 Power-ups are on by default. The host can turn them off in the lobby for a pure-numbers game.
 
-When on: at the start of each round, `N+2` power-ups are dealt face-up. They stay face-up the whole round so everyone sees what's still in the pool — tap any card to read its description. Only the picker for each turn (rotation shifts every round) can actually play one. Power-ups resolve at the same instant numbers do, except for **Peek** which pauses the turn for a re-pick.
+When on: at the start of each round, `N+2` power-ups are dealt face-up. They stay face-up the whole round so everyone sees what's still in the pool. Press any card to read its description. Only the picker for each turn (rotation shifts every round) can actually play one. Power-ups resolve at the same instant numbers do, except for **Peek** which pauses the turn for a re-pick.
 
 | Card | What it does |
 |---|---|
-| **Double** (`×2`) | Every player's scored points this turn are multiplied by 2. Time it for a turn you expect to play a unique high card — but it doubles your opponents' scores too. |
-| **Shield** (`▽`) | Your card scores its full value even if you tied with another player. Other players who tied with you still score 0 — only your tie penalty is removed. |
-| **Negate Zero** (`Ø!`) | All `0` cards are inert this turn — no cancel effect. Use it to neuter someone's expected `0` play, or to play your own `0` safely without wasting it. |
-| **Plus Two** (`+2`) | Bumps your card's face value up by 2 — `0` becomes `2` (so it no longer cancels), `3` becomes `5`, etc. Tie checks use the bumped value, so a Plus Two `0` ties with someone else's `2`. |
-| **Free Three** (`+3`) | Plays a virtual `3` alongside your card. If no other player played a 3, you gain `+3`. If anyone else played a 3, both 3s tie out (theirs scores 0, your bonus is lost). |
+| **Double** (`×2`) | Every player's scored points this turn are multiplied by 2. Time it for a turn you expect to play a unique high card, but note it doubles your opponents' scores too. |
+| **Tie Die** (`▽`) | Your card still scores its full value even if you tied with another player, and your `0` still cancels everyone even if another player also plays a `0`. Opponents who tied with you still score 0. Only your own tie/zero penalty is removed. |
+| **Negate Zero** (`Ø!`) | All `0` cards are inert this turn, with no cancel effect. Use it to neuter someone's expected `0` play, or to play your own `0` safely without wasting it. |
+| **Plus Two** (`+2`) | Bumps your card's face value up by 2. A `0` becomes `2` (so it no longer cancels), a `3` becomes `5`, and so on. Tie checks use the bumped value, so a Plus Two `0` ties with someone else's `2`. |
+| **Free Three** (`3`) | Plays a virtual `3` alongside your card. If nobody plays a 3, you gain `+3`. If anyone plays a 3 (including you), that 3 cancels with the virtual 3 and the bonus is lost. |
 | **Make Negative** (`−`) | All scored points this turn are inverted (positive becomes negative). Useful when you expect to be cancelled or tied (you score 0 either way) while your opponents are about to score big. |
-| **Minus Two** (`←2`) | Every opponent who scored more than 0 this turn loses 2 points. You don't lose any; their loss isn't transferred to you. |
-| **Peek** (`◎`) | Pick an opponent. After everyone submits this turn, you privately see what they played and your own submission is wiped — you re-pick a number while everyone waits. The cost is everyone has to pause for you. |
+| **Minus Two** (`−2`) | Universal mirror of Plus Two: every player's face value drops by 2. A played `2` becomes `0` and now cancels everyone, a `5` becomes `3`, a `0` becomes `−2` and no longer cancels. Tie checks, scoring, and the cancel effect all use the lowered value. |
+| **Peek** (`◎`) | Pick an opponent. After everyone submits this turn, you privately see what they played and your own submission is wiped, then you re-pick a number while everyone waits. The cost is everyone has to pause for you. |
 | **Mute** (`⌖`) | A chosen opponent's card is treated as `0`-value, non-cancel, this turn. Wipes their score, removes their `0` cancel if they played one, and breaks any tie they would have caused on their card's face. |
-| **Trade** (`↻`) | Everyone's score this turn slides one seat clockwise — your score goes to the next player; you receive the previous player's score. Whether you "win" depends on who's behind you in seat order. |
+| **Switch** (`↻`) | Everyone's score this turn slides one seat. Your score goes to the next player, and you receive the previous player's score. Whether you "win" depends on who's behind you in seat order. |
 | **Equalize** (`≈`) | Every player who scored above zero this turn receives the *average* of those positive scores. High earners come down, low earners come up. Cancelled and tied players are unaffected. |
-| **Sabotage** (`✖`) | Pick an opponent AND choose which card from their visible hand they'll play this turn. Their submitted pick is overridden — they don't find out until the reveal. Their original choice stays in their hand for a future turn. |
-| **Reverse** (`⇋`) | All face values flip within the card range — a `0` becomes the highest card and the highest card becomes `0`. Tie checks, scoring, and the cancel effect all use the flipped values. |
-| **Snipe** (`↳`) | Pick an opponent. If they would score points this turn, you steal those points and they score 0 instead. |
+| **Sabotage** (`✖`) | Pick an opponent AND choose which card from their visible hand they'll play this turn. Their submitted pick is overridden and they don't find out until the reveal. Their original choice stays in their hand for a future turn. |
+| **Reverse** (`⇋`) | All face values flip within the card range, so a `0` becomes the highest card and the highest card becomes `0`. Tie checks, scoring, and the cancel effect all use the flipped values. |
+| **Drain** (`↧`) | Pick an opponent. You gain 1 point and they lose 1 point this turn. The transfer is flat and unconditional, applying even if your own card was cancelled or tied, and it can push the target's score negative. |
+| **Nothingburger** (`∅`) | Does nothing at all. Your card scores exactly as if you'd played no power-up. It exists so the picker can deliberately decline to use the turn's power slot. |
 
-The pool is drawn from this 14-card master list — random subset each round. (In 2-player games, **Peek** and **Sabotage** are excluded as they're too dominant 1-on-1.)
+The pool is drawn from this 15-card master list, a random subset each round. (In 2-player games, **Peek** and **Sabotage** are excluded as they're too dominant 1-on-1.)
 
 ## Project layout
 

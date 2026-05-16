@@ -1,18 +1,19 @@
 export type PowerUpId =
   | "double"
-  | "shield"
+  | "tie_die"
   | "negate_zero"
   | "plus_two"
   | "free_three"
-  | "negate"
-  | "steal_two"
+  | "make_negative"
+  | "minus_two"
   | "peek"
   | "mute"
-  | "trade"
+  | "switch"
   | "equalize"
   | "sabotage"
   | "reverse"
-  | "snipe";
+  | "drain"
+  | "nothingburger";
 
 export interface PowerUpDef {
   id: PowerUpId;
@@ -113,86 +114,95 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
   double: {
     id: "double",
     name: "Double",
-    description: "(Universal) All scored points this turn are multiplied x2.",
+    description: "(Everyone) All scored points this turn are multiplied x2.",
     needsTarget: false,
   },
-  shield: {
-    id: "shield",
-    name: "Shield",
-    description: "Your card scores even if tied with another player.",
+  tie_die: {
+    id: "tie_die",
+    name: "Tie Die",
+    description:
+      "(Just you) Your card still scores even if tied with another player. Your 0 still cancels everyone even if another player also plays 0.",
     needsTarget: false,
   },
   negate_zero: {
     id: "negate_zero",
     name: "Negate Zero",
-    description: "(Universal) All 0 cards are inert this turn — no cancel effect.",
+    description: "(Everyone) All 0 cards are inert this turn, so they have no cancel effect.",
     needsTarget: false,
   },
   plus_two: {
     id: "plus_two",
     name: "Plus Two",
-    description: "Your card's face value is bumped up by 2 (so a 0 becomes a 2 and no longer cancels; a 3 becomes a 5). Tie checks use the bumped value.",
+    description: "(Just you) Your card's face value is bumped up by 2 (so a 0 becomes a 2 and no longer cancels, a 3 becomes a 5). Tie checks use the bumped value.",
     needsTarget: false,
   },
   free_three: {
     id: "free_three",
     name: "Free Three",
-    description: "Adds a virtual 3 to your play. If nobody plays a 3, you score +3. If anyone — including you — plays a 3, that 3 cancels with the virtual 3 and the bonus is lost.",
+    description: "(Just you) Adds a virtual 3 to your play. If nobody plays a 3, you score +3. If anyone (including you) plays a 3, that 3 cancels with the virtual 3 and the bonus is lost.",
     needsTarget: false,
   },
-  negate: {
-    id: "negate",
+  make_negative: {
+    id: "make_negative",
     name: "Make Negative",
-    description: "(Universal) All scored points this turn are flipped negative.",
+    description: "(Everyone) All scored points this turn are flipped negative.",
     needsTarget: false,
   },
-  steal_two: {
-    id: "steal_two",
+  minus_two: {
+    id: "minus_two",
     name: "Minus Two",
-    description: "(Universal) Every opponent who scores >0 loses 2.",
+    description:
+      "(Everyone) Every player's face value drops by 2 (so a 2 becomes a 0 and now cancels everyone, a 5 becomes a 3, a 0 becomes a −2 and no longer cancels). Tie checks, scoring, and the cancel effect all use the lowered value.",
     needsTarget: false,
   },
   peek: {
     id: "peek",
     name: "Peek",
-    description: "After everyone submits, you secretly see one chosen opponent's number and re-pick yours while everyone waits.",
+    description: "(Just you) After everyone submits, you secretly see one chosen opponent's number and re-pick yours while everyone waits.",
     needsTarget: true,
   },
   mute: {
     id: "mute",
     name: "Mute",
-    description: "Chosen opponent's card loses all value and effect this turn.",
+    description: "(Opponents) Chosen opponent's card loses all value and effect this turn.",
     needsTarget: true,
   },
-  trade: {
-    id: "trade",
+  switch: {
+    id: "switch",
     name: "Switch",
-    description: "(Universal) Everyone's score this turn slides one — your score goes to the next player; you receive the previous player's score.",
+    description: "(Everyone) Everyone's score this turn slides one. Your score goes to the next player, and you receive the previous player's score.",
     needsTarget: false,
   },
   equalize: {
     id: "equalize",
     name: "Equalize",
-    description: "(Universal) Every player who scored above zero this turn gets the average of those positive scores. High earners come down; low earners come up.",
+    description: "(Everyone) Every player who scored above zero this turn gets the average of those positive scores. High earners come down, low earners come up.",
     needsTarget: false,
   },
   sabotage: {
     id: "sabotage",
     name: "Sabotage",
-    description: "Choose another player AND pick the number they'll play this turn (from their remaining hand). Whatever they thought they were submitting is overridden.",
+    description: "(Opponents) Choose another player AND pick the number they'll play this turn (from their remaining hand). Whatever they thought they were submitting is overridden.",
     needsTarget: true,
   },
   reverse: {
     id: "reverse",
     name: "Reverse",
-    description: "(Universal) All face values flip within the card range — a 0 becomes the highest card and the highest card becomes 0. Tie checks, scoring, and the cancel effect all use the flipped values.",
+    description: "(Everyone) All face values flip within the card range, so a 0 becomes the highest card and the highest card becomes 0. Tie checks, scoring, and the cancel effect all use the flipped values.",
     needsTarget: false,
   },
-  snipe: {
-    id: "snipe",
-    name: "Snipe",
-    description: "Choose another player. If they would score points this turn, you steal those points and they score 0 instead.",
+  drain: {
+    id: "drain",
+    name: "Drain",
+    description: "(Opponents) Choose another player. You gain 1 point and they lose 1 point this turn.",
     needsTarget: true,
+  },
+  nothingburger: {
+    id: "nothingburger",
+    name: "Nothingburger",
+    description:
+      "(Just you) It's a nothingburger. No effect whatsoever. Your card scores exactly as if you'd played no power-up at all.",
+    needsTarget: false,
   },
 };
 

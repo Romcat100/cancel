@@ -66,7 +66,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
           aria-label="copy room code"
         >
           <span className="font-mono font-bold text-6xl tracking-[0.2em] text-accent">{publicState.roomCode}</span>
-          <span className="text-paper/30 text-sm group-hover:text-paper/60 font-mono">tap to copy</span>
+          <span className="text-paper/30 text-sm group-hover:text-paper/60 font-mono">press to copy</span>
         </button>
       </div>
 

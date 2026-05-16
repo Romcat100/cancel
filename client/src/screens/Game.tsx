@@ -29,8 +29,22 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
   const [showPreview, setShowPreview] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [revealOverlay, setRevealOverlay] = useState<RevealedTurn | null>(null);
+  const [nameChip, setNameChip] = useState<PowerUpId | null>(null);
 
   const lastRevealKey = useRef<number | null>(null);
+  const nameTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function flashPowerName(p: PowerUpId) {
+    if (nameTimer.current) clearTimeout(nameTimer.current);
+    if (nameChip === p) {
+      setNameChip(null);
+      return;
+    }
+    setNameChip(p);
+    nameTimer.current = setTimeout(() => setNameChip(null), 1600);
+  }
+
+  useEffect(() => () => void (nameTimer.current && clearTimeout(nameTimer.current)), []);
 
   useEffect(() => {
     setSelectedNumber(null);
@@ -38,6 +52,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
     setPowerTarget(null);
     setSabotageNumber(null);
     setPreviewingPower(null);
+    setNameChip(null);
     setErr(null);
   }, [publicState.currentTurnIndex, round.index, phase]);
 
@@ -212,6 +227,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
             <Pool
               remaining={round.poolRemaining}
               isPicker={pickerCanSelect}
+              nameFor={pickerCanSelect ? null : nameChip}
               highlighted={pickerCanSelect ? selectedPower : previewingPower}
               onSelect={(p) => {
                 if (pickerCanSelect) {
@@ -221,8 +237,10 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
                     setPowerTarget(null);
                     setSabotageNumber(null);
                   }
-                } else {
+                } else if (isPicker) {
                   setPreviewingPower((cur) => (cur === p ? null : p));
+                } else {
+                  flashPowerName(p);
                 }
               }}
             />
@@ -239,7 +257,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
       <div className="text-xs uppercase tracking-[0.3em] font-mono text-paper/50 mt-1 mb-2">
         {round.poolFull.length > 0 ? (
           <>
-            Players · picker:&nbsp;
+            Players · power picker:&nbsp;
             <span className="text-paper">{picker?.name ?? "—"}</span>
           </>
         ) : (
@@ -355,7 +373,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
             disabled={busy}
             onClick={unlock}
           >
-            {busy ? "Unlocking…" : "Locked in — tap to unlock"}
+            {busy ? "Unlocking…" : "Locked in — press to unlock"}
           </button>
         ) : (
           <button
@@ -445,11 +463,13 @@ function Pool({
   remaining,
   isPicker,
   highlighted,
+  nameFor,
   onSelect,
 }: {
   remaining: PowerUpId[];
   isPicker: boolean;
   highlighted: PowerUpId | null;
+  nameFor?: PowerUpId | null;
   onSelect: (p: PowerUpId) => void;
 }) {
   if (remaining.length === 0) {
@@ -469,6 +489,7 @@ function Pool({
               id={p}
               count={counts.get(p)}
               selected={highlighted === p}
+              showName={nameFor === p}
               onClick={() => onSelect(p)}
             />
           ))}
@@ -480,7 +501,7 @@ function Pool({
   return (
     <div className="rounded-2xl px-2 py-2 bg-gold/10 border border-gold/30">
       <div className="text-[10px] font-mono uppercase tracking-widest text-gold mb-1 text-center">
-        Your turn — tap to select
+        Your turn — press to select
       </div>
       <div className="flex flex-wrap gap-2 justify-center">
         {ordered.map((p) => (
@@ -513,7 +534,7 @@ function PoolPreview({
       <div className="text-center mb-4">
         <div className="font-mono text-xs uppercase tracking-[0.3em] text-paper/50">Round {roundIndex + 1}</div>
         <div className="font-display text-3xl font-bold text-gold mt-2">This round's powers</div>
-        <div className="text-paper/50 text-sm mt-1">Tap any card to read what it does.</div>
+        <div className="text-paper/50 text-sm mt-1">Press any card to read what it does.</div>
       </div>
       <div className="flex flex-wrap gap-2 justify-center max-w-sm">
         {pool.map((p, i) => (
@@ -572,7 +593,7 @@ function RevealView({
       </div>
       {power?.powerUp && (
         <div className="mb-4 flex flex-col items-center">
-          <span className="text-xs font-mono uppercase tracking-widest text-paper/50 mb-1">
+          <span className="text-xs font-mono uppercase tracking-widest text-paper/50 mb-3">
             {playerById.get(power.playerId)?.name} played
           </span>
           <PowerUpCard
@@ -585,14 +606,10 @@ function RevealView({
               → {playerById.get(power.powerUpTarget)?.name}
             </span>
           )}
-          {powerTapped ? (
+          {powerTapped && (
             <div className="mt-3 max-w-sm w-full">
               <PowerDescription id={power.powerUp} />
             </div>
-          ) : (
-            <span className="mt-1 text-[10px] font-mono uppercase tracking-widest text-paper/40">
-              Tap to read what it does
-            </span>
           )}
         </div>
       )}
