@@ -95,11 +95,11 @@ export function createRoom(opts: {
 }
 
 export function addPlayer(room: RoomDoc, playerId: string, name: string): RoomDoc {
-  if (room.phase !== "lobby") throw new Error("game already started");
-  if (room.players.length >= MAX_PLAYERS) throw new Error("room is full");
+  if (room.phase !== "lobby") throw new Error("Game already started");
+  if (room.players.length >= MAX_PLAYERS) throw new Error("Room is full");
   if (room.players.some((p) => p.id === playerId)) return room;
   if (room.players.some((p) => p.name.trim().toLowerCase() === name.trim().toLowerCase())) {
-    throw new Error("name taken");
+    throw new Error("Name taken");
   }
   return {
     ...room,
@@ -147,8 +147,8 @@ function buildRotation(players: PlayerDoc[], handSize: number, roundIndex: numbe
 }
 
 export function startGame(room: RoomDoc): RoomDoc {
-  if (room.phase !== "lobby") throw new Error("not in lobby");
-  if (room.players.length < 2) throw new Error("need at least 2 players");
+  if (room.phase !== "lobby") throw new Error("Not in lobby");
+  if (room.players.length < 2) throw new Error("Need at least 2 players");
   return startRound(room, 0);
 }
 
@@ -156,7 +156,7 @@ export function setRoomConfig(
   room: RoomDoc,
   patch: { powerUps?: boolean },
 ): RoomDoc {
-  if (room.phase !== "lobby") throw new Error("config locked once game starts");
+  if (room.phase !== "lobby") throw new Error("Config locked once game starts");
   return {
     ...room,
     config: {
@@ -203,38 +203,38 @@ export interface SubmitInput {
 
 export function submitTurn(room: RoomDoc, input: SubmitInput): RoomDoc {
   if (room.phase === "turn_peek_review") return submitPeekReview(room, input);
-  if (room.phase !== "turn_submitting") throw new Error("not accepting submissions");
+  if (room.phase !== "turn_submitting") throw new Error("Not accepting submissions");
 
   const round = room.rounds[room.currentRoundIndex];
   const turnIndex = room.currentTurnIndex;
   const pickerId = round.rotation[turnIndex];
 
   const player = room.players.find((p) => p.id === input.playerId);
-  if (!player) throw new Error("not in room");
+  if (!player) throw new Error("Not in room");
 
   const hand = round.hands[input.playerId];
-  if (!hand.includes(input.number)) throw new Error("number not in hand");
+  if (!hand.includes(input.number)) throw new Error("Number not in hand");
 
-  if (room.pendingSubmissions[input.playerId]) throw new Error("already submitted");
+  if (room.pendingSubmissions[input.playerId]) throw new Error("Already submitted");
 
   if (input.powerUp) {
-    if (input.playerId !== pickerId) throw new Error("only picker plays power-up");
-    if (!round.poolRemaining.includes(input.powerUp)) throw new Error("power-up not in pool");
+    if (input.playerId !== pickerId) throw new Error("Only picker plays power-up");
+    if (!round.poolRemaining.includes(input.powerUp)) throw new Error("Power-up not in pool");
     if (room.players.length <= 2 && TWO_PLAYER_EXCLUDED.has(input.powerUp)) {
       throw new Error(`${input.powerUp} is disabled in 2-player games`);
     }
   } else if (input.playerId === pickerId && round.poolRemaining.length > 0) {
-    throw new Error("picker must pick a power-up while pool is non-empty");
+    throw new Error("Picker must pick a power-up while pool is non-empty");
   }
   if (input.powerUp === "peek" || input.powerUp === "mute" || input.powerUp === "sabotage") {
-    if (!input.powerUpTarget) throw new Error("target required");
-    if (input.powerUpTarget === input.playerId) throw new Error("cannot target self");
-    if (!room.players.some((p) => p.id === input.powerUpTarget)) throw new Error("unknown target");
+    if (!input.powerUpTarget) throw new Error("Target required");
+    if (input.powerUpTarget === input.playerId) throw new Error("Cannot target self");
+    if (!room.players.some((p) => p.id === input.powerUpTarget)) throw new Error("Unknown target");
   }
   if (input.powerUp === "sabotage") {
-    if (input.sabotageNumber == null) throw new Error("sabotage number required");
+    if (input.sabotageNumber == null) throw new Error("Sabotage number required");
     const targetHand = round.hands[input.powerUpTarget!];
-    if (!targetHand.includes(input.sabotageNumber)) throw new Error("sabotage number not in target's hand");
+    if (!targetHand.includes(input.sabotageNumber)) throw new Error("Sabotage number not in target's hand");
   }
 
   const submission: SubmissionDoc = {
@@ -279,11 +279,11 @@ export function submitTurn(room: RoomDoc, input: SubmitInput): RoomDoc {
 }
 
 function submitPeekReview(room: RoomDoc, input: SubmitInput): RoomDoc {
-  if (!room.peekReview) throw new Error("no peek review pending");
-  if (input.playerId !== room.peekReview.peekerId) throw new Error("only the peeker may submit during peek review");
-  if (input.powerUp) throw new Error("power-up already played this turn");
+  if (!room.peekReview) throw new Error("No peek review pending");
+  if (input.playerId !== room.peekReview.peekerId) throw new Error("Only the peeker may submit during peek review");
+  if (input.powerUp) throw new Error("Power-up already played this turn");
   const round = room.rounds[room.currentRoundIndex];
-  if (!round.hands[input.playerId].includes(input.number)) throw new Error("number not in hand");
+  if (!round.hands[input.playerId].includes(input.number)) throw new Error("Number not in hand");
 
   const submission: SubmissionDoc = {
     playerId: input.playerId,
@@ -410,8 +410,8 @@ function resolveTurn(room: RoomDoc): RoomDoc {
 }
 
 export function unsubmitTurn(room: RoomDoc, playerId: string): RoomDoc {
-  if (room.phase !== "turn_submitting") throw new Error("can only unlock during submission phase");
-  if (!room.pendingSubmissions[playerId]) throw new Error("nothing to unlock");
+  if (room.phase !== "turn_submitting") throw new Error("Can only unlock during submission phase");
+  if (!room.pendingSubmissions[playerId]) throw new Error("Nothing to unlock");
   const remaining = { ...room.pendingSubmissions };
   delete remaining[playerId];
   return {
@@ -440,7 +440,7 @@ export function ackRoundEnd(room: RoomDoc, playerId: string): RoomDoc {
 }
 
 export function forceAdvanceRound(room: RoomDoc, playerId: string): RoomDoc {
-  if (playerId !== room.hostId) throw new Error("only host can force-advance");
+  if (playerId !== room.hostId) throw new Error("Only host can force-advance");
   if (room.phase !== "round_end") return room;
   const nextRoundIdx = room.currentRoundIndex + 1;
   if (nextRoundIdx >= room.config.rounds) return endGame(room);
@@ -469,5 +469,5 @@ export function removePlayer(room: RoomDoc, playerId: string): RoomDoc {
       updatedAt: Date.now(),
     };
   }
-  throw new Error("cannot remove a player mid-game (use force-skip instead)");
+  throw new Error("Cannot remove a player mid-game (use force-skip instead)");
 }

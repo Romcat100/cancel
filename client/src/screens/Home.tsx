@@ -27,7 +27,7 @@ export function Home() {
   }
 
   async function handleCreate() {
-    if (!name.trim()) return setErr("enter a name");
+    if (!name.trim()) return setErr("Enter a name");
     setBusy(true);
     setErr(null);
     try {
@@ -43,8 +43,8 @@ export function Home() {
   }
 
   async function handleJoin() {
-    if (!name.trim()) return setErr("enter a name");
-    if (!code.trim()) return setErr("enter a room code");
+    if (!name.trim()) return setErr("Enter a name");
+    if (!code.trim()) return setErr("Enter a room code");
     setBusy(true);
     setErr(null);
     try {

@@ -12,7 +12,7 @@ export function generateRoomCode(): string {
     const existing = db.prepare("SELECT 1 FROM rooms WHERE code = ?").get(code);
     if (!existing) return code;
   }
-  throw new Error("failed to generate unique room code");
+  throw new Error("Failed to generate unique room code");
 }
 
 export function newPlayerId(): string {

@@ -50,7 +50,7 @@ describe("engine lifecycle", () => {
 
   it("rejects duplicate names case-insensitively", () => {
     const r = createRoom({ code: "ABCD", hostId: "A", hostName: "Alice", rounds: 3, turnDeadlineMs: null });
-    expect(() => addPlayer(r, "B", "alice")).toThrow(/name taken/);
+    expect(() => addPlayer(r, "B", "alice")).toThrow(/Name taken/);
   });
 
   it("startGame deals N+2 cards and N+2 power-ups; first picker is seat 0", () => {
@@ -103,7 +103,7 @@ describe("engine lifecycle", () => {
     let r = startGame(room3p());
     const power = pickSafePower(r.rounds[0].poolRemaining);
     r = submitTurn(r, { playerId: "A", number: 4, powerUp: power });
-    expect(() => submitTurn(r, { playerId: "A", number: 0, powerUp: power })).toThrow(/already submitted/);
+    expect(() => submitTurn(r, { playerId: "A", number: 0, powerUp: power })).toThrow(/Already submitted/);
   });
 
   it("rotation moves picker to seat 1 on turn 2", () => {
@@ -246,10 +246,10 @@ describe("sabotage", () => {
     const r = setup();
     expect(() =>
       submitTurn(r, { playerId: "A", number: 1, powerUp: "sabotage" }),
-    ).toThrow(/target required/);
+    ).toThrow(/Target required/);
     expect(() =>
       submitTurn(r, { playerId: "A", number: 1, powerUp: "sabotage", powerUpTarget: "B" }),
-    ).toThrow(/sabotage number required/);
+    ).toThrow(/Sabotage number required/);
   });
 
   it("sabotage number must be in the target's hand", () => {

@@ -38,7 +38,7 @@ export function projectStateForPlayer(
   onlinePlayerIds: ReadonlySet<string>,
 ): RoomStateForPlayer {
   const me = room.players.find((p) => p.id === playerId);
-  if (!me) throw new Error("not in room");
+  if (!me) throw new Error("Not in room");
 
   const round = room.currentRoundIndex >= 0 ? room.rounds[room.currentRoundIndex] : undefined;
   const pickerId =

@@ -83,13 +83,13 @@ export function attachSocketHandlers(io: Server) {
       try {
         const player = findPlayerByClaim(req.claimToken);
         if (!player || player.roomCode !== req.roomCode) {
-          throw new Error("invalid claim");
+          throw new Error("Invalid claim");
         }
         socket.data = { roomCode: req.roomCode, playerId: player.id };
         socket.join(`room:${req.roomCode}`);
         trackOnline(req.roomCode, player.id, socket.id);
         const room = loadRoom(req.roomCode);
-        if (!room) throw new Error("room gone");
+        if (!room) throw new Error("Room gone");
         ack?.({ ok: true, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)) });
         broadcastRoom(io, room);
       } catch (e) {
@@ -114,7 +114,7 @@ export interface ApiCtx {
 
 function authPlayer(roomCode: string, claimToken: string) {
   const player = findPlayerByClaim(claimToken);
-  if (!player || player.roomCode !== roomCode) throw new Error("invalid claim");
+  if (!player || player.roomCode !== roomCode) throw new Error("Invalid claim");
   return player;
 }
 
@@ -139,7 +139,7 @@ export function apiCreateRoom(req: CreateRoomReq, ctx: ApiCtx) {
 
 export function apiJoinRoom(req: JoinRoomReq, ctx: ApiCtx) {
   let room = loadRoom(req.roomCode);
-  if (!room) throw new Error("room not found");
+  if (!room) throw new Error("Room not found");
 
   if (req.claimToken) {
     const existing = findPlayerByClaim(req.claimToken);
@@ -156,7 +156,7 @@ export function apiJoinRoom(req: JoinRoomReq, ctx: ApiCtx) {
     }
   }
 
-  if (room.phase !== "lobby") throw new Error("game already started — cannot join");
+  if (room.phase !== "lobby") throw new Error("Game already started — cannot join");
   const playerId = newPlayerId();
   const claimToken = newClaimToken();
   const seat = room.players.length;
@@ -175,8 +175,8 @@ export function apiJoinRoom(req: JoinRoomReq, ctx: ApiCtx) {
 export function apiSetRoomConfig(req: SetRoomConfigReq, ctx: ApiCtx) {
   const player = authPlayer(req.roomCode, req.claimToken);
   let room = loadRoom(req.roomCode);
-  if (!room) throw new Error("room not found");
-  if (player.id !== room.hostId) throw new Error("only host can change settings");
+  if (!room) throw new Error("Room not found");
+  if (player.id !== room.hostId) throw new Error("Only host can change settings");
   room = setRoomConfig(room, { powerUps: req.powerUps });
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));
@@ -186,8 +186,8 @@ export function apiSetRoomConfig(req: SetRoomConfigReq, ctx: ApiCtx) {
 export function apiStartGame(req: StartGameReq, ctx: ApiCtx) {
   const player = authPlayer(req.roomCode, req.claimToken);
   let room = loadRoom(req.roomCode);
-  if (!room) throw new Error("room not found");
-  if (player.id !== room.hostId) throw new Error("only host can start");
+  if (!room) throw new Error("Room not found");
+  if (player.id !== room.hostId) throw new Error("Only host can start");
   room = startGame(room);
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));
@@ -197,7 +197,7 @@ export function apiStartGame(req: StartGameReq, ctx: ApiCtx) {
 export function apiAckRoundEnd(req: AckRoundEndReq, ctx: ApiCtx) {
   const player = authPlayer(req.roomCode, req.claimToken);
   let room = loadRoom(req.roomCode);
-  if (!room) throw new Error("room not found");
+  if (!room) throw new Error("Room not found");
   room = ackRoundEnd(room, player.id);
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));
@@ -207,7 +207,7 @@ export function apiAckRoundEnd(req: AckRoundEndReq, ctx: ApiCtx) {
 export function apiForceAdvance(req: AckRoundEndReq, ctx: ApiCtx) {
   const player = authPlayer(req.roomCode, req.claimToken);
   let room = loadRoom(req.roomCode);
-  if (!room) throw new Error("room not found");
+  if (!room) throw new Error("Room not found");
   room = forceAdvanceRound(room, player.id);
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));
@@ -217,7 +217,7 @@ export function apiForceAdvance(req: AckRoundEndReq, ctx: ApiCtx) {
 export function apiSubmitTurn(req: SubmitTurnReq, ctx: ApiCtx) {
   const player = authPlayer(req.roomCode, req.claimToken);
   let room = loadRoom(req.roomCode);
-  if (!room) throw new Error("room not found");
+  if (!room) throw new Error("Room not found");
   room = submitTurn(room, {
     playerId: player.id,
     number: req.number,
@@ -233,7 +233,7 @@ export function apiSubmitTurn(req: SubmitTurnReq, ctx: ApiCtx) {
 export function apiUnsubmitTurn(req: UnsubmitTurnReq, ctx: ApiCtx) {
   const player = authPlayer(req.roomCode, req.claimToken);
   let room = loadRoom(req.roomCode);
-  if (!room) throw new Error("room not found");
+  if (!room) throw new Error("Room not found");
   room = unsubmitTurn(room, player.id);
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));
@@ -243,8 +243,8 @@ export function apiUnsubmitTurn(req: UnsubmitTurnReq, ctx: ApiCtx) {
 export function apiKickPlayer(req: KickPlayerReq, ctx: ApiCtx) {
   const player = authPlayer(req.roomCode, req.claimToken);
   let room = loadRoom(req.roomCode);
-  if (!room) throw new Error("room not found");
-  if (player.id !== room.hostId) throw new Error("only host can kick");
+  if (!room) throw new Error("Room not found");
+  if (player.id !== room.hostId) throw new Error("Only host can kick");
   room = removePlayer(room, req.targetPlayerId);
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));
@@ -254,8 +254,8 @@ export function apiKickPlayer(req: KickPlayerReq, ctx: ApiCtx) {
 export function apiAbandonRoom(req: AbandonRoomReq, ctx: ApiCtx) {
   const player = authPlayer(req.roomCode, req.claimToken);
   const room = loadRoom(req.roomCode);
-  if (!room) throw new Error("room not found");
-  if (player.id !== room.hostId) throw new Error("only host can abandon");
+  if (!room) throw new Error("Room not found");
+  if (player.id !== room.hostId) throw new Error("Only host can abandon");
   archiveRoom(req.roomCode, "archived");
   setImmediate(() => {
     ctx.io.to(`room:${req.roomCode}`).emit(SOCKET_EVENTS.ROOM_ABANDONED, { roomCode: req.roomCode });
@@ -266,6 +266,6 @@ export function apiAbandonRoom(req: AbandonRoomReq, ctx: ApiCtx) {
 export function apiFetchState(roomCode: string, claimToken: string) {
   const player = authPlayer(roomCode, claimToken);
   const room = loadRoom(roomCode);
-  if (!room) throw new Error("room not found");
+  if (!room) throw new Error("Room not found");
   return { ok: true as const, state: projectStateForPlayer(room, player.id, onlineSet(roomCode)) };
 }

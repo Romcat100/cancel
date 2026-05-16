@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Development workflow
+
+Solo developer project. Commit directly to `main` — do not create feature branches or PRs unless explicitly asked. Commit only when asked.
+
 ## Commands
 
 ```bash
