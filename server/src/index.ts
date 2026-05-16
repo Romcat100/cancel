@@ -18,6 +18,7 @@ import {
   apiAckRoundEnd,
   apiForceAdvance,
   apiKickPlayer,
+  apiPlayAgain,
   apiAbandonRoom,
   apiFetchState,
 } from "./handlers.js";
@@ -73,6 +74,9 @@ app.post("/api/rooms/:code/unsubmit", (req, res) =>
 );
 app.post("/api/rooms/:code/kick", (req, res) =>
   safe(res, () => apiKickPlayer({ ...req.body, roomCode: req.params.code }, ctx)),
+);
+app.post("/api/rooms/:code/play-again", (req, res) =>
+  safe(res, () => apiPlayAgain({ ...req.body, roomCode: req.params.code }, ctx)),
 );
 app.post("/api/rooms/:code/abandon", (req, res) =>
   safe(res, () => apiAbandonRoom({ ...req.body, roomCode: req.params.code }, ctx)),

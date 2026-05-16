@@ -64,6 +64,11 @@ export interface KickPlayerReq {
   targetPlayerId: string;
 }
 
+export interface PlayAgainReq {
+  roomCode: string;
+  claimToken: string;
+}
+
 export interface AbandonRoomReq {
   roomCode: string;
   claimToken: string;

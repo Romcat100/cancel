@@ -5,6 +5,7 @@ import {
   createRoom,
   forceAdvanceRound,
   removePlayer,
+  resetToLobby,
   setRoomConfig,
   startGame,
   submitTurn,
@@ -24,6 +25,7 @@ import type {
   UnsubmitTurnReq,
   AckRoundEndReq,
   KickPlayerReq,
+  PlayAgainReq,
 } from "../../shared/protocol.js";
 
 const onlineByRoom = new Map<string, Map<string, Set<string>>>(); // roomCode -> playerId -> Set<socketId>
@@ -246,6 +248,17 @@ export function apiKickPlayer(req: KickPlayerReq, ctx: ApiCtx) {
   if (!room) throw new Error("Room not found");
   if (player.id !== room.hostId) throw new Error("Only host can kick");
   room = removePlayer(room, req.targetPlayerId);
+  saveRoom(room);
+  setImmediate(() => broadcastRoom(ctx.io, room));
+  return { ok: true as const, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)) };
+}
+
+export function apiPlayAgain(req: PlayAgainReq, ctx: ApiCtx) {
+  const player = authPlayer(req.roomCode, req.claimToken);
+  let room = loadRoom(req.roomCode);
+  if (!room) throw new Error("Room not found");
+  if (player.id !== room.hostId) throw new Error("Only host can start a new game");
+  room = resetToLobby(room);
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));
   return { ok: true as const, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)) };

@@ -1,9 +1,31 @@
+import { useState } from "react";
+import { api } from "../api.js";
+import { getIdentity } from "../identity.js";
 import { useAppStore } from "../store.js";
 import { Confetti, SEAT_COLORS, SEAT_TEXT_COLORS } from "../components.js";
 
 export function GameEnd({ onLeave }: { onLeave: () => void }) {
   const state = useAppStore((s) => s.state)!;
+  const setState = useAppStore((s) => s.setState);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   const { publicState, selfPlayerId } = state;
+  const isHost = publicState.hostId === selfPlayerId;
+  const hostName = publicState.players.find((p) => p.id === publicState.hostId)?.name;
+
+  async function playAgain() {
+    const id = getIdentity(publicState.roomCode);
+    if (!id || !isHost) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await api.playAgain(publicState.roomCode, id.claimToken);
+      setState(res.state);
+    } catch (e) {
+      setErr((e as Error).message);
+      setBusy(false);
+    }
+  }
   const ranked = [...publicState.players].sort((a, b) => b.totalScore - a.totalScore);
   const topScore = ranked[0]?.totalScore;
   const leaders = ranked.filter((p) => p.totalScore === topScore);
@@ -72,9 +94,23 @@ export function GameEnd({ onLeave }: { onLeave: () => void }) {
         })}
       </div>
 
-      <button className="btn-primary text-xl py-5 mt-4 shrink-0" onClick={onLeave}>
-        Done
-      </button>
+      <div className="flex flex-col gap-3 mt-4 shrink-0">
+        {isHost ? (
+          <button className="btn-primary text-xl py-5" disabled={busy} onClick={playAgain}>
+            {busy ? "Restarting…" : "Play again"}
+          </button>
+        ) : (
+          <div className="text-center text-paper/50 font-mono text-sm py-4">
+            Waiting for {hostName} to start a new game…
+          </div>
+        )}
+        {err && (
+          <div className="rounded-2xl bg-accent/15 border border-accent/40 text-accent px-4 py-3 text-sm">{err}</div>
+        )}
+        <button className="btn-ghost text-sm py-3" onClick={onLeave}>
+          Leave room
+        </button>
+      </div>
     </div>
   );
 }

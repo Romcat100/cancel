@@ -3,6 +3,7 @@ import {
   ackRoundEnd,
   addPlayer,
   createRoom,
+  resetToLobby,
   startGame,
   submitTurn,
   type RoomDoc,
@@ -171,6 +172,47 @@ describe("engine lifecycle", () => {
     }
     expect(r.phase).toBe("game_end");
     expect(r.winnerId).toBeDefined();
+  });
+
+  it("resetToLobby keeps players/seats/config but wipes game progress", () => {
+    let r = forceSafePool(startGame(room3p()));
+    for (let round = 0; round < 3; round++) {
+      for (let turn = 0; turn < 5; turn++) {
+        const cur = r.rounds[r.currentRoundIndex];
+        const picker = cur.rotation[r.currentTurnIndex];
+        const power = pickSafePower(cur.poolRemaining);
+        const submitFor = (pid: string, isPick: boolean) => {
+          const hand = r.rounds[r.currentRoundIndex].hands[pid];
+          r = submitTurn(r, isPick ? { playerId: pid, number: hand[0], powerUp: power } : { playerId: pid, number: hand[0] });
+        };
+        submitFor(picker, true);
+        for (const p of r.players) if (p.id !== picker) submitFor(p.id, false);
+      }
+      r = ackAll(r);
+      if (round < 2) r = forceSafePool(r);
+    }
+    expect(r.phase).toBe("game_end");
+
+    const lobby = resetToLobby(r);
+    expect(lobby.phase).toBe("lobby");
+    expect(lobby.players.map((p) => p.id)).toEqual(["A", "B", "C"]);
+    expect(lobby.players.map((p) => p.seat)).toEqual([0, 1, 2]);
+    expect(lobby.players.every((p) => p.totalScore === 0)).toBe(true);
+    expect(lobby.hostId).toBe("A");
+    expect(lobby.code).toBe("ABCD");
+    expect(lobby.rounds).toEqual([]);
+    expect(lobby.currentRoundIndex).toBe(-1);
+    expect(lobby.winnerId).toBeUndefined();
+
+    // a fresh game can be started from the recycled lobby
+    const restarted = startGame(lobby);
+    expect(restarted.phase).toBe("turn_submitting");
+    expect(restarted.rounds[0].rotation[0]).toBe("A");
+  });
+
+  it("resetToLobby rejects unless the game is over", () => {
+    const r = startGame(room3p());
+    expect(() => resetToLobby(r)).toThrow(/not over/);
   });
 });
 

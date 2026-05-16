@@ -459,6 +459,26 @@ function endGame(room: RoomDoc): RoomDoc {
   return { ...room, phase: "game_end", winnerId, updatedAt: Date.now() };
 }
 
+// "Play again" — same room, same seats, same claim tokens. Wipes all game
+// progress back to a fresh lobby so the host can re-tweak config and start
+// again. Players who left during game_end linger as offline seats (their
+// claim token is cleared client-side); the host can kick them in the lobby.
+export function resetToLobby(room: RoomDoc): RoomDoc {
+  if (room.phase !== "game_end") throw new Error("Game is not over yet");
+  return {
+    ...room,
+    phase: "lobby",
+    players: room.players.map((p) => ({ ...p, totalScore: 0 })),
+    rounds: [],
+    currentRoundIndex: -1,
+    currentTurnIndex: -1,
+    pendingSubmissions: {},
+    peekReview: undefined,
+    winnerId: undefined,
+    updatedAt: Date.now(),
+  };
+}
+
 export function removePlayer(room: RoomDoc, playerId: string): RoomDoc {
   if (room.phase === "lobby") {
     return {

@@ -20,19 +20,19 @@ export function App() {
       if (recent && Date.now() - recent.lastSeenAt < 1000 * 60 * 60 * 24 * 14) {
         try {
           const res = await api.fetchState(recent.roomCode, recent.claimToken);
-          if (res.state.publicState.phase === "game_end") {
-            clearIdentity(recent.roomCode);
-          } else {
-            setState(res.state);
-            connectSocket(recent.roomCode, recent.claimToken, {
-              onRoomState: setState,
-              onRoomAbandoned: () => {
-                clearIdentity(recent.roomCode);
-                disconnectSocket();
-                reset();
-              },
-            });
-          }
+          // Stay in the room even at game_end: the host's "Play again" recycles
+          // this same room back to the lobby, and a connected socket is what
+          // snaps every returning player there. Leaving is explicit (the Leave
+          // button on GameEnd clears identity via onRoomAbandoned/onAbandoned).
+          setState(res.state);
+          connectSocket(recent.roomCode, recent.claimToken, {
+            onRoomState: setState,
+            onRoomAbandoned: () => {
+              clearIdentity(recent.roomCode);
+              disconnectSocket();
+              reset();
+            },
+          });
         } catch {
           // fall through to home
         }

@@ -53,6 +53,9 @@ export const api = {
       `/api/rooms/${roomCode}/state?claimToken=${encodeURIComponent(claimToken)}`,
     );
   },
+  playAgain(roomCode: string, claimToken: string) {
+    return call<{ ok: true; state: RoomStateForPlayer }>("POST", `/api/rooms/${roomCode}/play-again`, { claimToken });
+  },
   abandonRoom(roomCode: string, claimToken: string) {
     return call<{ ok: true }>("POST", `/api/rooms/${roomCode}/abandon`, { claimToken });
   },
