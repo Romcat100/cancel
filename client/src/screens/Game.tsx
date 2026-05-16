@@ -553,6 +553,7 @@ function RevealView({
   onClose: () => void;
 }) {
   const [phase, setPhase] = useState<"flip" | "score">("flip");
+  const [powerTapped, setPowerTapped] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setPhase("score"), 900);
     return () => clearTimeout(t);
@@ -574,10 +575,23 @@ function RevealView({
           <span className="text-xs font-mono uppercase tracking-widest text-paper/50 mb-1">
             {playerById.get(power.playerId)?.name} played
           </span>
-          <PowerUpCard id={power.powerUp} />
+          <PowerUpCard
+            id={power.powerUp}
+            state={powerTapped ? "selected" : "idle"}
+            onClick={() => setPowerTapped((t) => !t)}
+          />
           {power.powerUpTarget && (
             <span className="mt-1 text-xs font-mono text-paper/50">
               → {playerById.get(power.powerUpTarget)?.name}
+            </span>
+          )}
+          {powerTapped ? (
+            <div className="mt-3 max-w-sm w-full">
+              <PowerDescription id={power.powerUp} />
+            </div>
+          ) : (
+            <span className="mt-1 text-[10px] font-mono uppercase tracking-widest text-paper/40">
+              Tap to read what it does
             </span>
           )}
         </div>
