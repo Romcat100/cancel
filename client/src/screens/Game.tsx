@@ -678,7 +678,9 @@ function RoundEnd({
   alreadyAcked: boolean;
   busy: boolean;
 }) {
-  const ranked = [...players].sort((a, b) => (roundScores[b.id] ?? 0) - (roundScores[a.id] ?? 0));
+  const ranked = [...players].sort(
+    (a, b) => b.totalScore - a.totalScore || (roundScores[b.id] ?? 0) - (roundScores[a.id] ?? 0),
+  );
   const isLast = roundIndex + 1 >= totalRounds;
   return (
     <div className="fixed inset-0 z-50 bg-ink/95 backdrop-blur-md flex flex-col items-center justify-start p-6 overflow-y-auto animate-rise">
