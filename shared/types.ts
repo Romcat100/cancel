@@ -188,7 +188,7 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
   reverse: {
     id: "reverse",
     name: "Reverse",
-    description: "(Everyone) All face values flip within the card range, so a 0 becomes the highest card and the highest card becomes 0. Tie checks, scoring, and the cancel effect all use the flipped values.",
+    description: "(Everyone) Every card's face value is mirrored across the range. For example, a 0 becomes the high card and the high card becomes a 0.",
     needsTarget: false,
   },
   drain: {

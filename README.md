@@ -69,7 +69,7 @@ When on: at the start of each round, `N+2` power-ups are dealt face-up. They sta
 | **Slide** (`↻`) | Everyone's score this turn slides one seat. Your score goes to the next player, and you receive the previous player's score. Whether you "win" depends on who's behind you in seat order. |
 | **Equalize** (`≈`) | Every player who scored above zero this turn receives the *average* of those positive scores. High earners come down, low earners come up. Cancelled and tied players are unaffected. |
 | **Sabotage** (`✖`) | Pick an opponent AND choose which card from their visible hand they'll play this turn. Their submitted pick is overridden and they don't find out until the reveal. Their original choice stays in their hand for a future turn. |
-| **Reverse** (`⇋`) | All face values flip within the card range, so a `0` becomes the highest card and the highest card becomes `0`. Tie checks, scoring, and the cancel effect all use the flipped values. |
+| **Reverse** (`⇋`) | Every card's face value is mirrored across the range, so a `0` becomes the high card and the high card becomes a `0`. Tie checks, scoring, and the cancel effect all use the mirrored values. |
 | **Drain** (`↧`) | Pick an opponent. You gain 1 point and they lose 1 point this turn. The transfer is flat and unconditional, applying even if your own card was cancelled or tied, and it can push the target's score negative. |
 | **Nothingburger** (`∅`) | Does nothing at all. Your card scores exactly as if you'd played no power-up. It exists so the picker can deliberately decline to use the turn's power slot. |
 
