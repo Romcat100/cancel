@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { POWER_UPS, type PowerUpId } from "../../shared/types.js";
+import { POWER_UPS, type PowerUpId, type PowerUpDef } from "../../shared/types.js";
 
 export const SEAT_COLORS = [
   "bg-accent",
@@ -81,6 +81,28 @@ const POWER_VISUAL: Record<PowerUpId, { abbr: string; bg: string; text: string }
   nothingburger: { abbr: "∅", bg: "bg-paper/20", text: "text-paper/70" },
 };
 
+// Defensive fallbacks: a room persisted before a power-up rename can carry an
+// id that's no longer in POWER_VISUAL/POWER_UPS. Indexing those maps would yield
+// undefined and crash the whole tree (white screen). These resolvers degrade a
+// stale id to a neutral "?" card instead. The description keeps a scope prefix
+// so ScopedDescription still parses cleanly.
+const FALLBACK_VISUAL = { abbr: "?", bg: "bg-paper/20", text: "text-paper/60" };
+
+function powerVisual(id: PowerUpId): { abbr: string; bg: string; text: string } {
+  return POWER_VISUAL[id] ?? FALLBACK_VISUAL;
+}
+
+function powerDef(id: PowerUpId): PowerUpDef {
+  return (
+    POWER_UPS[id] ?? {
+      id,
+      name: "Unknown power",
+      description: "(Just you) This power is no longer available.",
+      needsTarget: false,
+    }
+  );
+}
+
 const POWER_CARD_DIM = "w-[68px] h-[88px]";
 const POWER_CARD_DIM_LG = "w-[88px] h-[112px]";
 
@@ -133,7 +155,7 @@ export function PowerUpCard({
   size?: "md" | "lg";
   used?: boolean;
 }) {
-  const v = POWER_VISUAL[id];
+  const v = powerVisual(id);
   const dim = size === "lg" ? POWER_CARD_DIM_LG : POWER_CARD_DIM;
   const ring = state === "selected" ? "ring-4 ring-paper/40 -translate-y-2" : "";
   const dim2 = used ? "opacity-30 grayscale" : "";
@@ -145,12 +167,12 @@ export function PowerUpCard({
       className={`card-face shrink-0 ${dim} ${v.bg} ${v.text} ${ring} ${dim2} ${
         onClick ? "cursor-pointer" : ""
       } transition px-1`}
-      title={POWER_UPS[id].name}
+      title={powerDef(id).name}
     >
       <div className="flex flex-col items-center justify-center gap-1 w-full overflow-hidden">
         <span className="font-mono font-bold leading-none text-xl">{v.abbr}</span>
         <span className="text-[9px] uppercase tracking-tight font-display opacity-80 text-center leading-tight break-words px-0.5">
-          {POWER_UPS[id].name}
+          {powerDef(id).name}
         </span>
       </div>
     </button>
@@ -172,13 +194,13 @@ export function PowerUpChip({
   selected?: boolean;
   showName?: boolean;
 }) {
-  const v = POWER_VISUAL[id];
+  const v = powerVisual(id);
   return (
     <div className="relative">
       {showName && (
         <span className="absolute -top-7 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
           <span className="block whitespace-nowrap bg-paper text-ink text-[10px] font-bold px-2 py-1 rounded-md shadow-[0_3px_0_0_rgba(0,0,0,0.4)] animate-rise">
-            {POWER_UPS[id].name}
+            {powerDef(id).name}
           </span>
         </span>
       )}
@@ -339,8 +361,8 @@ function RulesSection({ title, children }: { title: string; children: ReactNode 
 }
 
 export function PowerDescription({ id }: { id: PowerUpId }) {
-  const def = POWER_UPS[id];
-  const v = POWER_VISUAL[id];
+  const def = powerDef(id);
+  const v = powerVisual(id);
   return (
     <div className="rounded-2xl border border-paper/15 bg-paper/[.04] p-4 animate-rise">
       <div className="flex items-center gap-3 mb-2">
