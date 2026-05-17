@@ -8,7 +8,7 @@ export type PowerUpId =
   | "minus_two"
   | "peek"
   | "mute"
-  | "switch"
+  | "slide"
   | "equalize"
   | "sabotage"
   | "reverse"
@@ -167,9 +167,9 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
     description: "(Opponents) Chosen opponent's card loses all value and effect this turn.",
     needsTarget: true,
   },
-  switch: {
-    id: "switch",
-    name: "Switch",
+  slide: {
+    id: "slide",
+    name: "Slide",
     description: "(Everyone) Everyone's score this turn slides one. Your score goes to the next player, and you receive the previous player's score.",
     needsTarget: false,
   },

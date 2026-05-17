@@ -86,9 +86,9 @@ Three non-obvious flows:
 - **Tie Die** (id `tie_die`) does two things: (1) the user's card still scores even when face-tied with another player (the tie branch pays out `scoreValue` for the power user); (2) if the user's own card is a `0`, that 0 stays *the* canceller even when other players also play `0` — normally multiple 0s suppress each other (`cancelZeros.length === 1` rule), but a shielded 0 sets `cancellerId` to itself, so the other 0s are cancelled by it instead of suppressing it. It does **not** protect the user from being cancelled by *another* player's lone 0 when the user's own card is non-zero.
 - **Sabotage** has no scoring effect of its own; the override happens in `engine.resolveTurn` *before* `scoreTurn` is called. Scoring just sees the forced number on the target's play.
 - **Nothingburger** (id `nothingburger`) is an *intentional* true no-op: no flag, no pipeline stage, no engine branch. `scoreTurn` falls through to standard scoring because no effect checks match the id. It exists so the picker can deliberately decline to use a power slot. Don't "fix" it by adding wiring — the absence of code is the feature; the `scoring.test.ts` no-op test locks this.
-- **Trade** rotates `lines[]` by one seat; the engine guarantees `plays` arrive sorted by seat, so this is just a circular shift.
+- **Slide** rotates `lines[]` by one seat; the engine guarantees `plays` arrive sorted by seat, so this is just a circular shift.
 - **Equalize** only averages players whose `delta > 0`; tied/cancelled/negative players are untouched.
-- Power-ups stack within the function in this order: standard scoring (Plus Two's and Minus Two's face shifts already applied at the eff stage) → Tie Die → Double → Make Negative → Free Three → Trade → Equalize. Adding a new power-up means deciding where in this pipeline it lives — or, like Sabotage, deciding it's an engine-level rewrite that bypasses scoring entirely.
+- Power-ups stack within the function in this order: standard scoring (Plus Two's and Minus Two's face shifts already applied at the eff stage) → Tie Die → Double → Make Negative → Free Three → Slide → Equalize. Adding a new power-up means deciding where in this pipeline it lives — or, like Sabotage, deciding it's an engine-level rewrite that bypasses scoring entirely.
 
 ### Client flow
 

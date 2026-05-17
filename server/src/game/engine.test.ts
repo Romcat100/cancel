@@ -26,7 +26,7 @@ function ackAll(r: RoomDoc): RoomDoc {
   return r;
 }
 
-const SAFE_POOL: PowerUpId[] = ["double", "tie_die", "negate_zero", "plus_two", "free_three", "make_negative", "minus_two", "switch", "equalize", "reverse", "nothingburger"];
+const SAFE_POOL: PowerUpId[] = ["double", "tie_die", "negate_zero", "plus_two", "free_three", "make_negative", "minus_two", "slide", "equalize", "reverse", "nothingburger"];
 
 function forceSafePool(r: RoomDoc): RoomDoc {
   const cur = r.rounds[r.currentRoundIndex];

@@ -161,7 +161,7 @@ export function scoreTurn(plays: PlayInput[]): ScoreResult {
     }
   }
 
-  if (powerUp === "switch" && lines.length >= 2) {
+  if (powerUp === "slide" && lines.length >= 2) {
     // Rotate one seat clockwise: each player receives the previous seat's delta.
     // Lines come in seat order from the engine.
     const lastDelta = lines[lines.length - 1].delta;
@@ -169,7 +169,7 @@ export function scoreTurn(plays: PlayInput[]): ScoreResult {
       lines[i].delta = lines[i - 1].delta;
     }
     lines[0].delta = lastDelta;
-    for (const l of lines) l.notes.push("Traded (received prev seat's score)");
+    for (const l of lines) l.notes.push("Slide: received prev seat's score");
   }
 
   if (powerUp === "equalize") {

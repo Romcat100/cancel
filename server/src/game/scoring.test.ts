@@ -316,20 +316,20 @@ describe("scoreTurn — power-ups", () => {
     expect(points(r)).toEqual({ A: 4, B: 5, C: 3 });
   });
 
-  it("Trade rotates scores one seat: A→B, B→C, C→A", () => {
+  it("Slide rotates scores one seat: A→B, B→C, C→A", () => {
     const r = scoreTurn([
-      { playerId: "A", number: 5, powerUp: "switch" },
+      { playerId: "A", number: 5, powerUp: "slide" },
       { playerId: "B", number: 3 },
       { playerId: "C", number: 2 },
     ]);
-    // Pre-trade: A=5, B=3, C=2. Each seat receives previous seat's score:
+    // Pre-slide: A=5, B=3, C=2. Each seat receives previous seat's score:
     // A gets C's 2; B gets A's 5; C gets B's 3.
     expect(points(r)).toEqual({ A: 2, B: 5, C: 3 });
   });
 
-  it("Trade with cancellation: zero deltas still rotate", () => {
+  it("Slide with cancellation: zero deltas still rotate", () => {
     const r = scoreTurn([
-      { playerId: "A", number: 4, powerUp: "switch" },
+      { playerId: "A", number: 4, powerUp: "slide" },
       { playerId: "B", number: 4 },
       { playerId: "C", number: 5 },
     ]);
