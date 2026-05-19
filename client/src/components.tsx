@@ -253,8 +253,8 @@ export function Rules({
       </div>
       <div className="flex-1 overflow-y-auto px-5 py-5 max-w-md w-full mx-auto">
         <RulesSection title="The goal">
-          Score the most points by the end of the final round. Each round, you'll secretly pick numbers from your hand.
-          The trick is dodging your friends and avoiding the cards they pick at the same time.
+          Score the most points by the end of the final round. Each turn you secretly pick a number from your hand,
+          and that's your score for that turn. The trick is dodging your friends and avoiding the cards they pick at the same time.
         </RulesSection>
 
         <RulesSection title="Setup">
@@ -283,7 +283,7 @@ export function Rules({
               normally.
             </li>
             <li>
-              <b>Ties wipe.</b> If two or more players play the same number, all tied cards score 0. The unique cards
+              <b>Ties cancel each other.</b> If two or more players play the same number, all tied cards score 0. The unique cards
               still score.
             </li>
           </ul>
