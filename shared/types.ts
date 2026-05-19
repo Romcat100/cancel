@@ -109,6 +109,7 @@ export interface PublicState {
     rounds: number;
     turnDeadlineMs: number | null;
     powerUps: boolean;
+    showHands: boolean;
   };
 }
 
@@ -160,7 +161,7 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
     id: "minus_two",
     name: "Minus Two",
     description:
-      "(Everyone) Every player's face value drops by 2 (so a 2 becomes a 0 and now cancels everyone, a 5 becomes a 3, a 0 becomes a −2 and no longer cancels). Tie checks, scoring, and the cancel effect all use the lowered value.",
+      "(Everyone) Every player's face value drops by 2 (so a 2 becomes a 0 and now cancels everyone, a 5 becomes a 3, a 0 becomes a −2 and no longer cancels).",
     needsTarget: false,
   },
   peek: {
@@ -202,7 +203,7 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
   drain: {
     id: "drain",
     name: "Drain",
-    description: "(Opponents) Choose another player. You gain 1 point and they lose 1 point this turn.",
+    description: "(Opponents) Choose another player. Your card's face value goes up by 1 and theirs goes down by 1 for this turn.",
     needsTarget: true,
   },
   wild: {

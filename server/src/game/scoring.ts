@@ -29,6 +29,8 @@ export function scoreTurn(plays: PlayInput[]): ScoreResult {
   const plusTwoUserId = powerUp === "plus_two" ? powerUserId : undefined;
   const minusTwoActive = powerUp === "minus_two"; // "Minus Two" — Universal −2 to every face
   const reverseActive = powerUp === "reverse";
+  const drainUserId = powerUp === "drain" ? powerUserId : undefined;
+  const drainTargetId = powerUp === "drain" ? powerTarget : undefined;
   const maxCard = plays.length + 1; // handSize - 1 (handSize = playerCount + 2)
 
   type Eff = {
@@ -42,8 +44,18 @@ export function scoreTurn(plays: PlayInput[]): ScoreResult {
   const eff: Eff[] = plays.map((p) => {
     const isMuted = mutedId === p.playerId;
     const isPlusTwoUser = plusTwoUserId === p.playerId;
+    const isDrainUser = drainUserId === p.playerId;
+    const isDrainTarget = drainTargetId === p.playerId;
     const flipped = reverseActive ? maxCard - p.number : p.number;
-    const bumped = isPlusTwoUser ? p.number + 2 : minusTwoActive ? p.number - 2 : flipped;
+    const bumped = isPlusTwoUser
+      ? p.number + 2
+      : minusTwoActive
+        ? p.number - 2
+        : isDrainUser
+          ? p.number + 1
+          : isDrainTarget
+            ? p.number - 1
+            : flipped;
     const face = isMuted ? 0 : bumped;
     const isCancel = !isMuted && bumped === 0 && !negateZeroActive;
     const scoreValue = isMuted ? 0 : bumped;
@@ -51,6 +63,8 @@ export function scoreTurn(plays: PlayInput[]): ScoreResult {
     if (isMuted) notes.push("Muted (treated as 0)");
     if (isPlusTwoUser) notes.push(`Plus Two: ${p.number} → ${bumped}`);
     if (minusTwoActive) notes.push(`Minus Two: ${p.number} → ${bumped}`);
+    if (isDrainUser) notes.push(`Drain: ${p.number} → ${bumped}`);
+    if (isDrainTarget) notes.push(`Drained: ${p.number} → ${bumped}`);
     if (reverseActive && flipped !== p.number) notes.push(`Reverse: ${p.number} → ${flipped}`);
     return { playerId: p.playerId, face, scoreValue, isCancel, notes };
   });
@@ -180,19 +194,6 @@ export function scoreTurn(plays: PlayInput[]): ScoreResult {
         l.delta = avg;
         l.notes.push(`Equalized to avg ${avg}`);
       }
-    }
-  }
-
-  // Drain (id "drain"): flat transfer of 1 point — +1 to the user, −1 to the
-  // chosen target, unconditionally. Much weaker than its old steal-everything behaviour.
-  if (powerUp === "drain" && powerUserId && powerTarget) {
-    const drainer = lines.find((l) => l.playerId === powerUserId);
-    const target = lines.find((l) => l.playerId === powerTarget);
-    if (drainer && target) {
-      drainer.delta += 1;
-      drainer.notes.push("Drain: +1 from target");
-      target.delta -= 1;
-      target.notes.push("Drained: −1 to drainer");
     }
   }
 

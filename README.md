@@ -70,7 +70,7 @@ When on: at the start of each round, `N+2` power-ups are dealt face-up. They sta
 | **Equalize** (`≈`) | Every player who scored above zero this turn receives the *average* of those positive scores. High earners come down, low earners come up. Cancelled and tied players are unaffected. |
 | **Sabotage** (`✖`) | Pick an opponent AND choose which card from their visible hand they'll play this turn. Their submitted pick is overridden and they don't find out until the reveal. Their original choice stays in their hand for a future turn. |
 | **Reverse** (`⇋`) | Every card's face value is mirrored across the range, so a `0` becomes the high card and the high card becomes a `0`. Tie checks, scoring, and the cancel effect all use the mirrored values. |
-| **Drain** (`↧`) | Pick an opponent. You gain 1 point and they lose 1 point this turn. The transfer is flat and unconditional, applying even if your own card was cancelled or tied, and it can push the target's score negative. |
+| **Drain** (`↧`) | Pick an opponent. Your card's face value goes up by 1 and theirs goes down by 1 for this turn. The new values flow into scoring, ties, and the cancel effect, so a target who played a `1` becomes a board-cancelling `0`. |
 | **Nothingburger** (`∅`) | Does nothing at all. Your card scores exactly as if you'd played no power-up. It exists so the picker can deliberately decline to use the turn's power slot. |
 
 The pool is drawn from this 15-card master list, a random subset each round. (In 2-player games, **Peek** and **Sabotage** are excluded as they're too dominant 1-on-1.)

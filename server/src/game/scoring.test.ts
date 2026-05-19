@@ -398,33 +398,44 @@ describe("scoreTurn — power-ups", () => {
     expect(points(r)).toEqual({ A: 0, B: 1, C: 0 });
   });
 
-  it("Drain transfers 1 point: +1 to the user, -1 to the target", () => {
+  it("Drain shifts face values: picker +1, target -1, and the new values score", () => {
     const r = scoreTurn([
       { playerId: "A", number: 1, powerUp: "drain", powerUpTarget: "B" },
       { playerId: "B", number: 5 },
       { playerId: "C", number: 3 },
     ]);
+    // A's 1 → 2, B's 5 → 4, C's 3 stays. All unique faces.
     expect(points(r)).toEqual({ A: 2, B: 4, C: 3 });
   });
 
-  it("Drain still takes a point even if the target scored 0 (target goes negative)", () => {
+  it("Drain on a target's 1 makes it a 0, which cancels everyone (including the picker)", () => {
     const r = scoreTurn([
-      { playerId: "A", number: 1, powerUp: "drain", powerUpTarget: "B" },
-      { playerId: "B", number: 3 },
+      { playerId: "A", number: 5, powerUp: "drain", powerUpTarget: "B" },
+      { playerId: "B", number: 1 },
       { playerId: "C", number: 3 },
     ]);
-    // B and C tie on 3 → both 0. Drain still applies: A +1, B -1.
-    expect(points(r)).toEqual({ A: 2, B: -1, C: 0 });
+    // A's 5 → 6, B's 1 → 0 (lone canceller), C's 3 stays. B's 0 cancels A and C.
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
   });
 
-  it("Drain's +1/-1 is unconditional — applies even when the user's own card is cancelled", () => {
+  it("Drain shifts the picker's and target's faces into a tie, zeroing both", () => {
     const r = scoreTurn([
-      { playerId: "A", number: 1, powerUp: "drain", powerUpTarget: "C" },
-      { playerId: "B", number: 0 },
-      { playerId: "C", number: 4 },
+      { playerId: "A", number: 2, powerUp: "drain", powerUpTarget: "B" },
+      { playerId: "B", number: 4 },
+      { playerId: "C", number: 5 },
     ]);
-    // B's single 0 cancels everyone (all 0 from scoring). Drain still: A +1, C -1.
-    expect(points(r)).toEqual({ A: 1, B: 0, C: -1 });
+    // A's 2 → 3, B's 4 → 3 → A and B tie on face 3. C unique on 5.
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 5 });
+  });
+
+  it("Drain on a target's 0 takes it to -1, removing the cancel and scoring -1", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 3, powerUp: "drain", powerUpTarget: "B" },
+      { playerId: "B", number: 0 },
+      { playerId: "C", number: 5 },
+    ]);
+    // A's 3 → 4, B's 0 → -1 (no longer cancels), C's 5 stays. All unique.
+    expect(points(r)).toEqual({ A: 4, B: -1, C: 5 });
   });
 });
 
