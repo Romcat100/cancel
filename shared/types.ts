@@ -80,6 +80,11 @@ export interface RoundState {
   endAcksBy: string[];
 }
 
+export interface RoundHistoryEntry {
+  index: number;
+  scores: { [playerId: string]: number };
+}
+
 export interface PrivateState {
   hand: number[];
   hasSubmittedThisTurn: boolean;
@@ -94,6 +99,7 @@ export interface PublicState {
   players: Player[];
   hostId: string;
   round?: RoundState;
+  roundHistory: RoundHistoryEntry[];
   currentTurnIndex: number;
   currentPickerId?: string;
   currentSubmissions: PublicSubmission[];

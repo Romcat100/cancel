@@ -3,7 +3,7 @@ import { POWER_UPS, type PowerUpId, type RevealedTurn } from "../../../shared/ty
 import { api } from "../api.js";
 import { getIdentity, hasSeenPreviewLocal, markPreviewSeenLocal } from "../identity.js";
 import { useAppStore } from "../store.js";
-import { NumberCard, PlayerChip, PowerDescription, PowerUpCard, PowerUpChip, Rules, SEAT_COLORS } from "../components.js";
+import { NumberCard, PlayerChip, PowerDescription, PowerUpCard, PowerUpChip, RoundScoreTable, Rules, SEAT_COLORS } from "../components.js";
 import { GameEnd } from "./GameEnd.js";
 
 export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandoned: () => void }) {
@@ -421,7 +421,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
           selfId={selfPlayerId}
           roundIndex={round.index}
           totalRounds={publicState.config.rounds}
-          roundScores={round.roundScores}
+          roundHistory={publicState.roundHistory}
           acks={round.endAcksBy}
           onAck={ackRound}
           alreadyAcked={round.endAcksBy.includes(selfPlayerId)}
@@ -709,7 +709,7 @@ function RoundEnd({
   selfId,
   roundIndex,
   totalRounds,
-  roundScores,
+  roundHistory,
   acks,
   onAck,
   alreadyAcked,
@@ -719,14 +719,16 @@ function RoundEnd({
   selfId: string;
   roundIndex: number;
   totalRounds: number;
-  roundScores: { [playerId: string]: number };
+  roundHistory: { index: number; scores: { [playerId: string]: number } }[];
   acks: string[];
   onAck: () => void;
   alreadyAcked: boolean;
   busy: boolean;
 }) {
+  const currentRound = roundHistory.find((r) => r.index === roundIndex);
+  const currentScores = currentRound?.scores ?? {};
   const ranked = [...players].sort(
-    (a, b) => b.totalScore - a.totalScore || (roundScores[b.id] ?? 0) - (roundScores[a.id] ?? 0),
+    (a, b) => b.totalScore - a.totalScore || (currentScores[b.id] ?? 0) - (currentScores[a.id] ?? 0),
   );
   const isLast = roundIndex + 1 >= totalRounds;
   return (
@@ -740,37 +742,12 @@ function RoundEnd({
         </div>
       </div>
       <div className="w-full max-w-sm flex flex-col gap-2">
-        {ranked.map((p, i) => {
-          const round = roundScores[p.id] ?? 0;
-          return (
-            <div
-              key={p.id}
-              className={`rounded-2xl px-4 py-3 flex items-center gap-3 ${
-                i === 0 ? "bg-gold/15 border border-gold/40" : "bg-paper/5 border border-paper/10"
-              }`}
-            >
-              <span className="font-mono text-paper/40 w-5 text-right text-sm">{i + 1}</span>
-              <span className={`${SEAT_COLORS[p.seat % SEAT_COLORS.length]} w-3 h-3 rounded-full`} />
-              <span className="font-bold flex-1 text-sm">
-                {p.name}
-                {p.id === selfId && <span className="ml-1 text-paper/40 font-mono text-[10px]">(you)</span>}
-              </span>
-              <span
-                className={`font-mono text-base font-bold ${
-                  round > 0 ? "text-emerald-300" : round < 0 ? "text-rose-300" : "text-paper/40"
-                }`}
-              >
-                {round > 0 ? "+" : ""}
-                {round}
-              </span>
-              <span className="font-mono text-xl font-bold text-paper w-10 text-right">{p.totalScore}</span>
-            </div>
-          );
-        })}
-        <div className="grid grid-cols-2 gap-2 text-[10px] uppercase tracking-widest font-mono text-paper/40 mt-1 px-4">
-          <span>this round</span>
-          <span className="text-right">total</span>
-        </div>
+        <RoundScoreTable
+          ranked={ranked}
+          selfId={selfId}
+          roundHistory={roundHistory}
+          currentRoundIndex={roundIndex}
+        />
       </div>
 
       <div className="w-full max-w-sm mt-6">
@@ -802,3 +779,4 @@ function RoundEnd({
     </div>
   );
 }
+

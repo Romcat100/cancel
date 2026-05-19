@@ -467,6 +467,77 @@ export function Confetti() {
   );
 }
 
+export function RoundScoreTable({
+  ranked,
+  selfId,
+  roundHistory,
+  currentRoundIndex,
+}: {
+  ranked: { id: string; name: string; seat: number; totalScore: number }[];
+  selfId: string;
+  roundHistory: { index: number; scores: { [playerId: string]: number } }[];
+  currentRoundIndex?: number;
+}) {
+  const rounds = [...roundHistory].sort((a, b) => a.index - b.index);
+  return (
+    <div className="w-full flex flex-col gap-2">
+      <div className="flex items-center gap-2 px-3 text-[10px] uppercase tracking-widest font-mono text-paper/40">
+        <span className="w-5" />
+        <span className="w-3" />
+        <span className="flex-1" />
+        {rounds.map((r) => (
+          <span
+            key={r.index}
+            className={`w-8 text-center ${r.index === currentRoundIndex ? "text-paper/70" : ""}`}
+          >
+            R{r.index + 1}
+          </span>
+        ))}
+        <span className="w-9 text-right">total</span>
+      </div>
+      {ranked.map((p, i) => (
+        <div
+          key={p.id}
+          className={`rounded-2xl px-3 py-3 flex items-center gap-2 ${
+            i === 0 ? "bg-gold/15 border border-gold/40" : "bg-paper/5 border border-paper/10"
+          }`}
+        >
+          <span className="font-mono text-paper/40 w-5 text-right text-sm">{i + 1}</span>
+          <span className={`${SEAT_COLORS[p.seat % SEAT_COLORS.length]} w-3 h-3 rounded-full`} />
+          <span className="font-bold flex-1 text-sm truncate">
+            {p.name}
+            {p.id === selfId && <span className="ml-1 text-paper/40 font-mono text-[10px]">(you)</span>}
+          </span>
+          {rounds.map((r) => {
+            const score = r.scores[p.id] ?? 0;
+            const isCurrent = r.index === currentRoundIndex;
+            return (
+              <span
+                key={r.index}
+                className={`w-8 text-center font-mono text-sm ${
+                  score > 0
+                    ? isCurrent
+                      ? "text-emerald-300 font-bold"
+                      : "text-emerald-300/70"
+                    : score < 0
+                      ? isCurrent
+                        ? "text-rose-300 font-bold"
+                        : "text-rose-300/70"
+                      : "text-paper/30"
+                }`}
+              >
+                {score > 0 ? "+" : ""}
+                {score}
+              </span>
+            );
+          })}
+          <span className="font-mono text-xl font-bold text-paper w-9 text-right">{p.totalScore}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function useFlash(value: unknown) {
   const [flash, setFlash] = useState(false);
   useEffect(() => {

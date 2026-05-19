@@ -4,6 +4,7 @@ import type {
   PublicSubmission,
   RevealedTurn,
   RoomStateForPlayer,
+  RoundHistoryEntry,
   RoundState,
   ScoreLine,
 } from "../../shared/types.js";
@@ -85,12 +86,18 @@ export function projectStateForPlayer(
       }
     : undefined;
 
+  const roundHistory: RoundHistoryEntry[] = room.rounds.map((r) => ({
+    index: r.index,
+    scores: { ...r.perPlayerRoundScore },
+  }));
+
   const publicState: PublicState = {
     roomCode: room.code,
     phase: room.phase,
     players,
     hostId: room.hostId,
     round: roundState,
+    roundHistory,
     currentTurnIndex: room.currentTurnIndex,
     currentPickerId: pickerId,
     currentSubmissions,

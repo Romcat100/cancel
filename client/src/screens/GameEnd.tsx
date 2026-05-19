@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api } from "../api.js";
 import { getIdentity } from "../identity.js";
 import { useAppStore } from "../store.js";
-import { Confetti, SEAT_COLORS, SEAT_TEXT_COLORS } from "../components.js";
+import { Confetti, RoundScoreTable, SEAT_TEXT_COLORS } from "../components.js";
 
 export function GameEnd({ onLeave }: { onLeave: () => void }) {
   const state = useAppStore((s) => s.state)!;
@@ -74,24 +74,8 @@ export function GameEnd({ onLeave }: { onLeave: () => void }) {
         )}
       </div>
 
-      <div className="flex flex-col gap-2 flex-1 overflow-y-auto min-h-0 -mx-1 px-1">
-        {ranked.map((p) => {
-          const rank = 1 + ranked.filter((other) => other.totalScore > p.totalScore).length;
-          const isLeader = p.totalScore === topScore;
-          return (
-            <div
-              key={p.id}
-              className={`rounded-2xl px-4 py-4 flex items-center gap-3 ${
-                isLeader ? "bg-gold/15 border border-gold/40" : "bg-paper/5"
-              }`}
-            >
-              <span className="font-mono text-paper/50 w-6 text-right">{rank}</span>
-              <span className={`${SEAT_COLORS[p.seat % SEAT_COLORS.length]} w-3 h-3 rounded-full`} />
-              <span className="font-bold flex-1">{p.name}</span>
-              <span className="font-mono text-2xl font-bold">{p.totalScore}</span>
-            </div>
-          );
-        })}
+      <div className="flex-1 overflow-y-auto min-h-0 -mx-1 px-1">
+        <RoundScoreTable ranked={ranked} selfId={selfPlayerId} roundHistory={publicState.roundHistory} />
       </div>
 
       <div className="flex flex-col gap-3 mt-4 shrink-0">
