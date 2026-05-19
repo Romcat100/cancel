@@ -40,6 +40,7 @@ export function loadRoom(code: string): RoomDoc | null {
   if (!row) return null;
   const doc = JSON.parse(row.state) as RoomDoc;
   if (doc.config.powerUps === undefined) doc.config.powerUps = true;
+  if (doc.config.showHands === undefined) doc.config.showHands = true;
   return doc;
 }
 

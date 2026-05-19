@@ -319,7 +319,19 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
           </div>
           {needsSabotageNumber && powerTarget && (() => {
             const target = playerById.get(powerTarget);
-            const targetHand = target?.hand ?? [];
+            // When hands are hidden by config, target.hand is empty for non-self players.
+            // Derive the remaining hand from this round's reveals (every play is publicly
+            // recorded with the actual number that left the player's hand, post-overrides).
+            const playedByTarget = new Set<number>();
+            for (const rv of round.reveals) {
+              for (const s of rv.submissions) {
+                if (s.playerId === powerTarget) playedByTarget.add(s.number);
+              }
+            }
+            const targetHand =
+              target && target.hand.length > 0
+                ? target.hand
+                : Array.from({ length: handSize }, (_, i) => i).filter((n) => !playedByTarget.has(n));
             return (
               <div className="mt-3 pt-3 border-t border-paper/10">
                 <div className="text-xs uppercase tracking-widest font-mono text-paper/50 mb-2">

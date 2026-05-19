@@ -18,12 +18,14 @@ export interface CreateRoomReq {
   rounds?: number;
   turnDeadlineMs?: number | null;
   powerUps?: boolean;
+  showHands?: boolean;
 }
 
 export interface SetRoomConfigReq {
   roomCode: string;
   claimToken: string;
   powerUps?: boolean;
+  showHands?: boolean;
 }
 
 export interface CreateRoomRes {

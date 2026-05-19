@@ -18,12 +18,24 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
   const isHost = publicState.hostId === selfPlayerId;
   const id = getIdentity(publicState.roomCode);
   const powerUpsOn = publicState.config.powerUps !== false;
+  const showHandsOn = publicState.config.showHands !== false;
 
   async function togglePowerUps() {
     if (!id || !isHost) return;
     setErr(null);
     try {
       const res = await api.setConfig(publicState.roomCode, id.claimToken, { powerUps: !powerUpsOn });
+      setState(res.state);
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+  }
+
+  async function toggleShowHands() {
+    if (!id || !isHost) return;
+    setErr(null);
+    try {
+      const res = await api.setConfig(publicState.roomCode, id.claimToken, { showHands: !showHandsOn });
       setState(res.state);
     } catch (e) {
       setErr((e as Error).message);
@@ -119,6 +131,33 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
           ) : (
             <span className={`chip ${powerUpsOn ? "bg-accent/20 text-accent" : "bg-paper/15 text-paper/60"}`}>
               {powerUpsOn ? "on" : "off"}
+            </span>
+          )}
+        </div>
+        <div className="rounded-2xl bg-paper/5 px-4 py-3 flex items-center justify-between">
+          <div className="flex flex-col">
+            <span className="font-bold text-sm">Show hands</span>
+            <span className="text-paper/50 text-xs font-mono">
+              {showHandsOn ? "everyone sees remaining cards" : "hands are hidden"}
+            </span>
+          </div>
+          {isHost ? (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={showHandsOn}
+              onClick={toggleShowHands}
+              className={`relative w-12 h-7 rounded-full transition shrink-0 ${
+                showHandsOn ? "bg-accent" : "bg-paper/20"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 ${showHandsOn ? "left-[22px]" : "left-0.5"} w-6 h-6 rounded-full bg-paper transition-all`}
+              />
+            </button>
+          ) : (
+            <span className={`chip ${showHandsOn ? "bg-accent/20 text-accent" : "bg-paper/15 text-paper/60"}`}>
+              {showHandsOn ? "on" : "off"}
             </span>
           )}
         </div>

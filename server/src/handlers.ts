@@ -127,7 +127,8 @@ export function apiCreateRoom(req: CreateRoomReq, ctx: ApiCtx) {
   const rounds = req.rounds ?? 3;
   const turnDeadlineMs = req.turnDeadlineMs ?? null;
   const powerUps = req.powerUps ?? true;
-  const room = createRoom({ code, hostId, hostName: req.name.trim(), rounds, turnDeadlineMs, powerUps });
+  const showHands = req.showHands ?? true;
+  const room = createRoom({ code, hostId, hostName: req.name.trim(), rounds, turnDeadlineMs, powerUps, showHands });
   saveRoom(room);
   recordPlayer({ id: hostId, roomCode: code, name: req.name.trim(), seat: 0, claimToken });
   return {
@@ -179,7 +180,7 @@ export function apiSetRoomConfig(req: SetRoomConfigReq, ctx: ApiCtx) {
   let room = loadRoom(req.roomCode);
   if (!room) throw new Error("Room not found");
   if (player.id !== room.hostId) throw new Error("Only host can change settings");
-  room = setRoomConfig(room, { powerUps: req.powerUps });
+  room = setRoomConfig(room, { powerUps: req.powerUps, showHands: req.showHands });
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));
   return { ok: true as const, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)) };

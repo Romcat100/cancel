@@ -22,7 +22,7 @@ export const api = {
   startGame(roomCode: string, claimToken: string) {
     return call<{ ok: true; state: RoomStateForPlayer }>("POST", `/api/rooms/${roomCode}/start`, { claimToken });
   },
-  setConfig(roomCode: string, claimToken: string, patch: { powerUps?: boolean }) {
+  setConfig(roomCode: string, claimToken: string, patch: { powerUps?: boolean; showHands?: boolean }) {
     return call<{ ok: true; state: RoomStateForPlayer }>("POST", `/api/rooms/${roomCode}/config`, {
       claimToken,
       ...patch,

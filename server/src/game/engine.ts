@@ -55,7 +55,7 @@ export interface PeekReviewDoc {
 export interface RoomDoc {
   code: string;
   hostId: string;
-  config: { rounds: number; turnDeadlineMs: number | null; powerUps: boolean };
+  config: { rounds: number; turnDeadlineMs: number | null; powerUps: boolean; showHands: boolean };
   phase: RoomPhaseDoc;
   players: PlayerDoc[];
   rounds: RoundDoc[];
@@ -78,12 +78,18 @@ export function createRoom(opts: {
   rounds: number;
   turnDeadlineMs: number | null;
   powerUps?: boolean;
+  showHands?: boolean;
 }): RoomDoc {
   const now = Date.now();
   return {
     code: opts.code,
     hostId: opts.hostId,
-    config: { rounds: opts.rounds, turnDeadlineMs: opts.turnDeadlineMs, powerUps: opts.powerUps ?? true },
+    config: {
+      rounds: opts.rounds,
+      turnDeadlineMs: opts.turnDeadlineMs,
+      powerUps: opts.powerUps ?? true,
+      showHands: opts.showHands ?? true,
+    },
     phase: "lobby",
     players: [{ id: opts.hostId, name: opts.hostName, seat: HOST_SEAT, totalScore: 0 }],
     rounds: [],
@@ -165,7 +171,7 @@ export function startGame(room: RoomDoc): RoomDoc {
 
 export function setRoomConfig(
   room: RoomDoc,
-  patch: { powerUps?: boolean },
+  patch: { powerUps?: boolean; showHands?: boolean },
 ): RoomDoc {
   if (room.phase !== "lobby") throw new Error("Config locked once game starts");
   return {
@@ -173,6 +179,7 @@ export function setRoomConfig(
     config: {
       ...room.config,
       powerUps: patch.powerUps ?? room.config.powerUps,
+      showHands: patch.showHands ?? room.config.showHands,
     },
     updatedAt: Date.now(),
   };

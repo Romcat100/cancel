@@ -49,14 +49,20 @@ export function projectStateForPlayer(
       : undefined;
   const isPicker = pickerId === playerId;
 
-  const players: Player[] = room.players.map((p) => ({
-    id: p.id,
-    name: p.name,
-    seat: p.seat,
-    online: onlinePlayerIds.has(p.id),
-    totalScore: p.totalScore,
-    hand: round ? [...(round.hands[p.id] ?? [])].sort((a, b) => a - b) : [],
-  }));
+  const hideHands = room.config.showHands === false;
+  const players: Player[] = room.players.map((p) => {
+    const isSelf = p.id === playerId;
+    const hand =
+      round && (isSelf || !hideHands) ? [...(round.hands[p.id] ?? [])].sort((a, b) => a - b) : [];
+    return {
+      id: p.id,
+      name: p.name,
+      seat: p.seat,
+      online: onlinePlayerIds.has(p.id),
+      totalScore: p.totalScore,
+      hand,
+    };
+  });
 
   const isPeekerReviewing = room.phase === "turn_peek_review" && room.peekReview?.peekerId === playerId;
 
