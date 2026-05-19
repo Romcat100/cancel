@@ -123,7 +123,7 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
     id: "tie_die",
     name: "Tie Die",
     description:
-      "(Just you) Your card still scores even if tied with another player. Your 0 still cancels everyone even if another player also plays 0.",
+      "(Just you) Ties don't affect you this turn. But you can still be cancelled by a 0.",
     needsTarget: false,
   },
   negate_zero: {

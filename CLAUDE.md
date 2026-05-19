@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Solo developer project. Commit directly to `main` — do not create feature branches or PRs unless explicitly asked.
 
+## Copy style
+
+No em-dashes (`—`) in user-facing text — power-up descriptions, rules copy, UI strings, button labels, error messages. Use a period, a comma, or "but"/"and" instead. Em-dashes in code comments and these dev docs are fine.
+
 ## Commands
 
 ```bash
