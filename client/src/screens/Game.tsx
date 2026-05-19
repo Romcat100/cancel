@@ -596,11 +596,23 @@ function RevealView({
           <span className="text-xs font-mono uppercase tracking-widest text-paper/50 mb-3">
             {playerById.get(power.playerId)?.name} played
           </span>
-          <PowerUpCard
-            id={power.powerUp}
-            state={powerTapped ? "selected" : "idle"}
-            onClick={() => setPowerTapped((t) => !t)}
-          />
+          <div className="flex items-center gap-3">
+            <PowerUpCard
+              id={power.powerUp}
+              state={powerTapped ? "selected" : "idle"}
+              onClick={() => setPowerTapped((t) => !t)}
+            />
+            {power.resolvedPowerUp && (
+              <>
+                <span className="font-mono text-paper/60 text-xl">→</span>
+                <PowerUpCard
+                  id={power.resolvedPowerUp}
+                  state={powerTapped ? "selected" : "idle"}
+                  onClick={() => setPowerTapped((t) => !t)}
+                />
+              </>
+            )}
+          </div>
           {power.powerUpTarget && (
             <span className="mt-1 text-xs font-mono text-paper/50">
               → {playerById.get(power.powerUpTarget)?.name}
@@ -608,7 +620,7 @@ function RevealView({
           )}
           {powerTapped && (
             <div className="mt-3 max-w-sm w-full">
-              <PowerDescription id={power.powerUp} />
+              <PowerDescription id={power.resolvedPowerUp ?? power.powerUp} />
             </div>
           )}
         </div>

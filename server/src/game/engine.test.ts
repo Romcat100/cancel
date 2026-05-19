@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ackRoundEnd,
   addPlayer,
@@ -26,7 +26,7 @@ function ackAll(r: RoomDoc): RoomDoc {
   return r;
 }
 
-const SAFE_POOL: PowerUpId[] = ["double", "tie_die", "negate_zero", "plus_two", "free_three", "make_negative", "minus_two", "slide", "equalize", "reverse", "nothingburger"];
+const SAFE_POOL: PowerUpId[] = ["double", "tie_die", "negate_zero", "plus_two", "free_three", "make_negative", "minus_two", "slide", "equalize", "reverse", "wild", "nothingburger"];
 
 function forceSafePool(r: RoomDoc): RoomDoc {
   const cur = r.rounds[r.currentRoundIndex];
@@ -337,5 +337,63 @@ describe("sabotage", () => {
     expect(scoreFor("A")).toBe(0);
     expect(scoreFor("B")).toBe(0);
     expect(scoreFor("C")).toBe(2);
+  });
+});
+
+describe("wild", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  function setupWild(): RoomDoc {
+    let r = startGame(room3p());
+    r = forceSafePool(r);
+    const round = r.rounds[r.currentRoundIndex];
+    if (!round.poolRemaining.includes("wild")) {
+      round.poolFull = ["wild", ...round.poolFull.slice(1)];
+      round.poolRemaining = ["wild", ...round.poolRemaining.slice(1)];
+    }
+    return r;
+  }
+
+  it("rolls a non-target power, scores via the resolved power, and consumes the wild slot", () => {
+    // Force Math.random to land on "double" — the first entry in the wild pool.
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    let r = setupWild();
+    const poolBefore = [...r.rounds[0].poolRemaining];
+    expect(poolBefore).toContain("wild");
+
+    r = submitTurn(r, { playerId: "A", number: 4, powerUp: "wild" });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+
+    const reveal = r.rounds[0].reveals[0];
+    const aSub = reveal.submissions.find((s) => s.playerId === "A")!;
+    expect(aSub.powerUp).toBe("wild");
+    expect(aSub.resolvedPowerUp).toBe("double");
+
+    // Double => 4, 3, 2 all doubled.
+    const scoreFor = (id: string) => reveal.scoreLines.find((l) => l.playerId === id)?.delta;
+    expect(scoreFor("A")).toBe(8);
+    expect(scoreFor("B")).toBe(6);
+    expect(scoreFor("C")).toBe(4);
+
+    // Wild itself was removed from the pool; double was not in the pool to begin with.
+    expect(r.rounds[0].poolRemaining).not.toContain("wild");
+    expect(r.rounds[0].poolRemaining.length).toBe(poolBefore.length - 1);
+  });
+
+  it("never rolls a target-required or wild power, across the full random range", () => {
+    // Sweep Math.random over the full [0,1) interval to enumerate every roll the pool can produce.
+    const seen = new Set<string>();
+    for (let i = 0; i < 40; i++) {
+      vi.spyOn(Math, "random").mockReturnValueOnce(i / 40);
+      const r = setupWild();
+      const next = submitTurn(r, { playerId: "A", number: 0, powerUp: "wild" });
+      const sub = next.pendingSubmissions["A"];
+      if (sub?.resolvedPowerUp) seen.add(sub.resolvedPowerUp);
+    }
+    for (const id of seen) {
+      expect(["peek", "mute", "sabotage", "drain", "wild"]).not.toContain(id);
+    }
+    expect(seen.size).toBeGreaterThan(1);
   });
 });

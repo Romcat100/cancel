@@ -1,4 +1,4 @@
-import { POWER_UP_IDS, type PowerUpId } from "../../../shared/types.js";
+import { POWER_UP_IDS, POWER_UPS, type PowerUpId } from "../../../shared/types.js";
 import { scoreTurn } from "./scoring.js";
 
 export type RoomPhaseDoc =
@@ -21,6 +21,7 @@ export interface SubmissionDoc {
   powerUp?: PowerUpId;
   powerUpTarget?: string;
   sabotageNumber?: number;
+  resolvedPowerUp?: PowerUpId;
 }
 
 export interface RevealDoc {
@@ -121,6 +122,16 @@ function shuffle<T>(arr: T[], rng: () => number = Math.random): T[] {
 // a game has 2 players. Sabotage gives perfect lock-in on the opponent's only card; Peek
 // gives free information with nothing to disambiguate.
 const TWO_PLAYER_EXCLUDED: ReadonlySet<PowerUpId> = new Set(["peek", "sabotage"]);
+
+// Wild rolls a random power from the full set, but excludes powers that need a target
+// (the picker submits wild with no target, so we can't resolve to those) and itself.
+const WILD_ROLL_POOL: PowerUpId[] = POWER_UP_IDS.filter(
+  (id) => id !== "wild" && !POWER_UPS[id].needsTarget,
+);
+
+function rollWildPower(rng: () => number = Math.random): PowerUpId {
+  return WILD_ROLL_POOL[Math.floor(rng() * WILD_ROLL_POOL.length)];
+}
 
 function dealPool(handSize: number, playerCount: number, rng = Math.random): PowerUpId[] {
   let ids: PowerUpId[] = [...POWER_UP_IDS];
@@ -243,6 +254,7 @@ export function submitTurn(room: RoomDoc, input: SubmitInput): RoomDoc {
     powerUp: input.powerUp,
     powerUpTarget: input.powerUpTarget,
     sabotageNumber: input.powerUp === "sabotage" ? input.sabotageNumber : undefined,
+    resolvedPowerUp: input.powerUp === "wild" ? rollWildPower() : undefined,
   };
 
   let next: RoomDoc = {
@@ -324,7 +336,9 @@ function resolveTurn(room: RoomDoc): RoomDoc {
   }
 
   const playsBySeat = [...room.players].sort((a, b) => a.seat - b.seat);
-  const plays = playsBySeat.map((p) => {
+  // What gets recorded in the reveal: keeps the picker's submitted power (e.g. "wild")
+  // and the resolved roll so the UI can show "wild → plus_two".
+  const revealSubmissions = playsBySeat.map((p) => {
     const s = room.pendingSubmissions[p.id];
     const number = overrides[p.id] ?? s.number;
     return {
@@ -333,8 +347,17 @@ function resolveTurn(room: RoomDoc): RoomDoc {
       powerUp: s.powerUp,
       powerUpTarget: s.powerUpTarget,
       sabotageNumber: s.sabotageNumber,
+      resolvedPowerUp: s.resolvedPowerUp,
     };
   });
+  // What the scoring engine actually scores: a wild submission swaps in the rolled power.
+  const plays = revealSubmissions.map((s) => ({
+    playerId: s.playerId,
+    number: s.number,
+    powerUp: s.resolvedPowerUp ?? s.powerUp,
+    powerUpTarget: s.powerUpTarget,
+    sabotageNumber: s.sabotageNumber,
+  }));
 
   const result = scoreTurn(plays);
 
@@ -357,7 +380,9 @@ function resolveTurn(room: RoomDoc): RoomDoc {
     updatedRoundScores[l.playerId] = (updatedRoundScores[l.playerId] ?? 0) + l.delta;
   }
 
-  const playedPower = plays.find((pl) => pl.powerUp)?.powerUp;
+  // Pool removal uses the *submitted* power slot (so playing "wild" removes wild from
+  // the pool, not the rolled power — which may not even be in the pool).
+  const playedPower = revealSubmissions.find((s) => s.powerUp)?.powerUp;
   const newPoolRemaining = playedPower
     ? (() => {
         const idx = round.poolRemaining.indexOf(playedPower);
@@ -373,7 +398,7 @@ function resolveTurn(room: RoomDoc): RoomDoc {
   const reveal: RevealDoc = {
     turnIndex,
     pickerId,
-    submissions: plays,
+    submissions: revealSubmissions,
     scoreLines: result.lines,
     peekUsed,
     sabotageUsed,

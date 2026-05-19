@@ -20,6 +20,7 @@ function toRevealedTurn(rv: RevealDoc, roundIndex: number): RevealedTurn {
       powerUp: s.powerUp,
       powerUpTarget: s.powerUpTarget,
       sabotageNumber: s.sabotageNumber,
+      resolvedPowerUp: s.resolvedPowerUp,
     })),
     scoring: rv.scoreLines.map<ScoreLine>((l) => ({
       playerId: l.playerId,

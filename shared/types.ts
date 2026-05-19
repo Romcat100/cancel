@@ -13,6 +13,7 @@ export type PowerUpId =
   | "sabotage"
   | "reverse"
   | "drain"
+  | "wild"
   | "nothingburger";
 
 export interface PowerUpDef {
@@ -49,6 +50,7 @@ export interface RevealedSubmission {
   powerUp?: PowerUpId;
   powerUpTarget?: string;
   sabotageNumber?: number;
+  resolvedPowerUp?: PowerUpId;
 }
 
 export interface ScoreLine {
@@ -196,6 +198,13 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
     name: "Drain",
     description: "(Opponents) Choose another player. You gain 1 point and they lose 1 point this turn.",
     needsTarget: true,
+  },
+  wild: {
+    id: "wild",
+    name: "Wild",
+    description:
+      "(Just you) Roll the dice! This becomes a randomly chosen power, drawn from the full set.",
+    needsTarget: false,
   },
   nothingburger: {
     id: "nothingburger",
