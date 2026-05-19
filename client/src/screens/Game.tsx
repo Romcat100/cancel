@@ -587,7 +587,8 @@ function RevealView({
     return sa - sb;
   });
   return (
-    <div className="fixed inset-0 z-40 bg-ink/95 backdrop-blur-md flex flex-col items-center justify-center p-4">
+    <div className="fixed inset-0 z-40 bg-ink/95 backdrop-blur-md overflow-y-auto">
+      <div className="min-h-full flex flex-col items-center justify-center p-4">
       <div className="font-mono text-xs uppercase tracking-[0.3em] text-paper/50 mb-3">
         Turn {reveal.turnIndex + 1} reveal
       </div>
@@ -700,6 +701,7 @@ function RevealView({
       <button className="btn-primary mt-6 px-8 py-3" onClick={onClose}>
         Continue
       </button>
+      </div>
     </div>
   );
 }
