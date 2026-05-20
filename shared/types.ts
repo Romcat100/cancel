@@ -215,7 +215,7 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
   },
   nothingburger: {
     id: "nothingburger",
-    name: "Nothingburger",
+    name: "Nothing Burger",
     description:
       "(Just you) It's a nothingburger. No effect whatsoever. Your card scores exactly as if you'd played no power-up at all.",
     needsTarget: false,
