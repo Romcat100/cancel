@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 const MUSIC_URL = "/cancel_with_leslie_backing.mp3";
 const STORAGE_KEY = "cancel:musicMuted";
-const VOLUME = 0.35;
+const VOLUME = 0.3;
 
 let audio: HTMLAudioElement | null = null;
 let started = false;
