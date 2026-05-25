@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { POWER_UPS, type PowerUpId, type PowerUpDef } from "../../shared/types.js";
+import { useMusicMuted, useMusicUnlocked } from "./music.js";
 
 export const SEAT_COLORS = [
   "bg-accent",
@@ -57,7 +58,7 @@ export function NumberCard({
     onClick ? "cursor-pointer" : ""
   } ${state === "selected" ? "-translate-y-2" : ""} transition`;
   return (
-    <button type="button" disabled={!onClick} onClick={onClick} className={cx}>
+    <button type="button" disabled={!onClick} onClick={onClick} className={cx} data-sfx="tap">
       {isZero ? <span className="font-display font-bold">Ø</span> : n}
     </button>
   );
@@ -169,6 +170,7 @@ export function PowerUpCard({
         onClick ? "cursor-pointer" : ""
       } transition px-1`}
       title={powerDef(id).name}
+      data-sfx="tap"
     >
       <div className="flex flex-col items-center justify-center gap-1 w-full overflow-hidden">
         <span className="font-mono font-bold leading-none text-xl">{v.abbr}</span>
@@ -212,6 +214,7 @@ export function PowerUpChip({
           used ? "opacity-25 grayscale" : ""
         } ${selected ? "ring-2 ring-paper/70 -translate-y-0.5" : ""} transition`}
         title={POWER_UPS[id].name}
+        data-sfx="tap"
       >
         {v.abbr}
       </button>
@@ -221,6 +224,50 @@ export function PowerUpChip({
         </span>
       )}
     </div>
+  );
+}
+
+export function MusicToggle({ compact = false }: { compact?: boolean }) {
+  const unlocked = useMusicUnlocked();
+  const [muted, toggle] = useMusicMuted();
+  if (!unlocked) return null;
+  const aria = muted ? "Unmute music" : "Mute music";
+  const note = (
+    <span className="relative inline-block">
+      <span>♪</span>
+      {muted && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-1/2 h-[1.5px] w-[0.9em] -translate-x-1/2 -translate-y-1/2 rotate-[45deg] bg-current"
+        />
+      )}
+    </span>
+  );
+  if (compact) {
+    return (
+      <button
+        type="button"
+        onClick={toggle}
+        className="text-sm leading-none font-mono text-paper/60 hover:text-paper border border-paper/15 hover:border-paper/40 rounded-lg px-2 py-1 transition"
+        title={aria}
+        aria-label={aria}
+        data-sfx="none"
+      >
+        {note}
+      </button>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      className="btn-ghost text-sm leading-none px-3 py-2"
+      title={aria}
+      aria-label={aria}
+      data-sfx="none"
+    >
+      {note}
+    </button>
   );
 }
 
@@ -344,7 +391,7 @@ export function Rules({
         )}
       </div>
       <div className="px-5 pb-5 pt-3 border-t border-paper/10 max-w-md w-full mx-auto shrink-0">
-        <button className="btn-primary w-full text-lg py-4" onClick={onClose}>
+        <button className="btn-primary w-full text-lg py-4" onClick={onClose} data-sfx="confirm">
           Got it
         </button>
       </div>
@@ -380,6 +427,8 @@ export function PowerDescription({ id }: { id: PowerUpId }) {
   );
 }
 
+export type PingKind = "target" | "sender" | "bystander";
+
 export function PlayerChip({
   name,
   seat,
@@ -390,6 +439,9 @@ export function PlayerChip({
   isPicker,
   small,
   hand,
+  onClick,
+  pingKind,
+  pingNonce,
 }: {
   name: string;
   seat: number;
@@ -400,28 +452,59 @@ export function PlayerChip({
   isPicker?: boolean;
   small?: boolean;
   hand?: number[];
+  onClick?: () => void;
+  pingKind?: PingKind | null;
+  pingNonce?: number;
 }) {
   const color = SEAT_COLORS[seat % SEAT_COLORS.length];
   const sz = small ? "w-8 h-8 text-sm" : "w-10 h-10";
+  const pingClass =
+    pingKind === "target"
+      ? "animate-ping-target"
+      : pingKind === "sender"
+      ? "animate-ping-sender"
+      : pingKind === "bystander"
+      ? "animate-ping-wiggle"
+      : "";
+  const interactive = !!onClick;
+  const avatarClass = `${color} ${sz} rounded-xl flex items-center justify-center text-ink font-bold font-display relative ${pingClass} ${
+    interactive ? "cursor-pointer hover:scale-105 active:scale-95 transition" : ""
+  }`;
+  const avatarInner = (
+    <>
+      {name.slice(0, 1).toUpperCase()}
+      {isPicker && (
+        <span className="absolute -top-1 -right-1 bg-gold text-ink text-[9px] font-bold rounded-full px-1.5 py-0.5">
+          POWER
+        </span>
+      )}
+      {online !== undefined && (
+        <span
+          className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-ink ${
+            online ? "bg-emerald-400" : "bg-paper/30"
+          }`}
+        />
+      )}
+    </>
+  );
   return (
     <div className={`flex items-center gap-2 ${active === false ? "opacity-60" : ""}`}>
-      <div
-        className={`${color} ${sz} rounded-xl flex items-center justify-center text-ink font-bold font-display relative`}
-      >
-        {name.slice(0, 1).toUpperCase()}
-        {isPicker && (
-          <span className="absolute -top-1 -right-1 bg-gold text-ink text-[9px] font-bold rounded-full px-1.5 py-0.5">
-            POWER
-          </span>
-        )}
-        {online !== undefined && (
-          <span
-            className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-ink ${
-              online ? "bg-emerald-400" : "bg-paper/30"
-            }`}
-          />
-        )}
-      </div>
+      {interactive ? (
+        <button
+          key={pingNonce ?? 0}
+          type="button"
+          onClick={onClick}
+          className={avatarClass}
+          title={`Ping ${name}`}
+          aria-label={`Ping ${name}`}
+        >
+          {avatarInner}
+        </button>
+      ) : (
+        <div key={pingNonce ?? 0} className={avatarClass}>
+          {avatarInner}
+        </div>
+      )}
       <div className="flex flex-col leading-tight min-w-0">
         <span className="font-bold text-sm truncate">
           {name}

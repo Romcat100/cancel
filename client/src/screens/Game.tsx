@@ -3,7 +3,9 @@ import { POWER_UPS, type PowerUpId, type RevealedTurn } from "../../../shared/ty
 import { api } from "../api.js";
 import { getIdentity, hasSeenPreviewLocal, markPreviewSeenLocal } from "../identity.js";
 import { useAppStore } from "../store.js";
-import { NumberCard, PlayerChip, PowerDescription, PowerUpCard, PowerUpChip, RoundScoreTable, Rules, SEAT_COLORS } from "../components.js";
+import { MusicToggle, NumberCard, PlayerChip, PowerDescription, PowerUpCard, PowerUpChip, RoundScoreTable, Rules, SEAT_COLORS, type PingKind } from "../components.js";
+import { emitPing, onPing } from "../socket.js";
+import { playSfx } from "../sfx.js";
 import { GameEnd } from "./GameEnd.js";
 
 export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandoned: () => void }) {
@@ -30,6 +32,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
   const [showRules, setShowRules] = useState(false);
   const [revealOverlay, setRevealOverlay] = useState<RevealedTurn | null>(null);
   const [nameChip, setNameChip] = useState<PowerUpId | null>(null);
+  const [pingedByPlayer, setPingedByPlayer] = useState<Record<string, { kind: PingKind; nonce: number }>>({});
 
   const lastRevealKey = useRef<number | null>(null);
   const nameTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -45,6 +48,39 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
   }
 
   useEffect(() => () => void (nameTimer.current && clearTimeout(nameTimer.current)), []);
+
+  useEffect(() => {
+    const timers: Record<string, ReturnType<typeof setTimeout>> = {};
+    let nonce = 0;
+    const flash = (playerId: string, kind: PingKind) => {
+      nonce += 1;
+      const n = nonce;
+      setPingedByPlayer((prev) => ({ ...prev, [playerId]: { kind, nonce: n } }));
+      if (timers[playerId]) clearTimeout(timers[playerId]);
+      timers[playerId] = setTimeout(() => {
+        setPingedByPlayer((prev) => {
+          const next = { ...prev };
+          delete next[playerId];
+          return next;
+        });
+        delete timers[playerId];
+      }, 850);
+    };
+    const unsub = onPing(({ fromPlayerId, toPlayerId }) => {
+      if (toPlayerId === selfPlayerId) {
+        flash(selfPlayerId, "target");
+        playSfx("ping");
+      } else if (fromPlayerId === selfPlayerId) {
+        flash(toPlayerId, "sender");
+      } else {
+        flash(toPlayerId, "bystander");
+      }
+    });
+    return () => {
+      unsub();
+      for (const t of Object.values(timers)) clearTimeout(t);
+    };
+  }, [selfPlayerId]);
 
   useEffect(() => {
     setSelectedNumber(null);
@@ -182,6 +218,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
         </div>
         <div className="flex items-center gap-2">
           <span className="font-mono text-paper/60 text-sm tracking-widest">{publicState.roomCode}</span>
+          <MusicToggle compact />
           <button
             onClick={() => setShowRules(true)}
             className="text-[10px] uppercase tracking-widest font-mono text-paper/50 hover:text-paper border border-paper/15 hover:border-paper/40 rounded-lg px-2 py-1 transition"
@@ -265,19 +302,25 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
         )}
       </div>
       <div className="grid grid-cols-2 gap-2 mb-3">
-        {publicState.players.map((p) => (
-          <PlayerChip
-            key={p.id}
-            name={p.name}
-            seat={p.seat}
-            online={p.online}
-            isSelf={p.id === selfPlayerId}
-            isPicker={round.poolFull.length > 0 && p.id === publicState.currentPickerId}
-            submitted={publicState.currentSubmissions.find((s) => s.playerId === p.id)?.submitted}
-            hand={p.hand}
-            small
-          />
-        ))}
+        {publicState.players.map((p) => {
+          const ping = pingedByPlayer[p.id];
+          return (
+            <PlayerChip
+              key={p.id}
+              name={p.name}
+              seat={p.seat}
+              online={p.online}
+              isSelf={p.id === selfPlayerId}
+              isPicker={round.poolFull.length > 0 && p.id === publicState.currentPickerId}
+              submitted={publicState.currentSubmissions.find((s) => s.playerId === p.id)?.submitted}
+              hand={p.hand}
+              small
+              onClick={p.id === selfPlayerId ? undefined : () => emitPing(p.id)}
+              pingKind={ping?.kind ?? null}
+              pingNonce={ping?.nonce}
+            />
+          );
+        })}
       </div>
 
       {isPeekReview && privateState.peekReveal && (
@@ -384,6 +427,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
             className="btn-ghost w-full text-base py-4 mt-4 border border-paper/20"
             disabled={busy}
             onClick={unlock}
+            data-sfx="confirm"
           >
             {busy ? "Unlocking…" : "Locked in — press to unlock"}
           </button>
@@ -392,6 +436,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
             className={`btn-primary w-full text-xl py-5 mt-4 ${canSubmit ? "" : "opacity-40 cursor-not-allowed shadow-none"}`}
             disabled={!canSubmit || busy}
             onClick={submit}
+            data-sfx="confirm"
           >
             {phase === "turn_peek_review" && !isPeekReview
               ? "Waiting on the peeker…"
@@ -563,7 +608,7 @@ function PoolPreview({
           <PowerDescription id={tapped} />
         </div>
       )}
-      <button className="btn-primary mt-6 px-8 py-4 text-lg" onClick={onDismiss}>
+      <button className="btn-primary mt-6 px-8 py-4 text-lg" onClick={onDismiss} data-sfx="confirm">
         Let's play
       </button>
     </div>
@@ -710,7 +755,7 @@ function RevealView({
           )}
         </div>
       )}
-      <button className="btn-primary mt-6 px-8 py-3" onClick={onClose}>
+      <button className="btn-primary mt-6 px-8 py-3" onClick={onClose} data-sfx="confirm">
         Continue
       </button>
       </div>
@@ -786,6 +831,7 @@ function RoundEnd({
           className={`btn-primary w-full text-lg py-4 ${alreadyAcked ? "opacity-50 cursor-not-allowed shadow-none" : ""}`}
           disabled={alreadyAcked || busy}
           onClick={onAck}
+          data-sfx="confirm"
         >
           {alreadyAcked ? "Ready — waiting for others" : busy ? "…" : isLast ? "See the winner" : "Next round"}
         </button>

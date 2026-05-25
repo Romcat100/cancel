@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api } from "../api.js";
 import { getIdentity } from "../identity.js";
 import { useAppStore } from "../store.js";
-import { Confetti, RoundScoreTable, SEAT_TEXT_COLORS } from "../components.js";
+import { Confetti, MusicToggle, RoundScoreTable, SEAT_TEXT_COLORS } from "../components.js";
 
 export function GameEnd({ onLeave }: { onLeave: () => void }) {
   const state = useAppStore((s) => s.state)!;
@@ -35,6 +35,9 @@ export function GameEnd({ onLeave }: { onLeave: () => void }) {
   return (
     <div className="h-[100dvh] flex flex-col px-6 pt-10 pb-6 max-w-md mx-auto relative overflow-hidden">
       {!isTie && selfIsLeader && <Confetti />}
+      <div className="absolute top-3 right-3 z-10">
+        <MusicToggle />
+      </div>
       <div className="text-center mb-6 animate-rise shrink-0">
         <div className="font-mono text-xs uppercase tracking-[0.3em] text-paper/50">Game over</div>
         <div className="font-display text-5xl font-bold mt-2">
@@ -80,7 +83,7 @@ export function GameEnd({ onLeave }: { onLeave: () => void }) {
 
       <div className="flex flex-col gap-3 mt-4 shrink-0">
         {isHost ? (
-          <button className="btn-primary text-xl py-5" disabled={busy} onClick={playAgain}>
+          <button className="btn-primary text-xl py-5" disabled={busy} onClick={playAgain} data-sfx="confirm">
             {busy ? "Restarting…" : "Play again"}
           </button>
         ) : (

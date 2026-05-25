@@ -3,6 +3,7 @@ import { api } from "../api.js";
 import { connectSocket, disconnectSocket } from "../socket.js";
 import { clearIdentity, getIdentity, saveIdentity } from "../identity.js";
 import { useAppStore } from "../store.js";
+import { MusicToggle } from "../components.js";
 
 type Mode = "menu" | "create" | "join";
 
@@ -66,7 +67,10 @@ export function Home() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-stretch px-6 pt-12 pb-8 max-w-md mx-auto">
+    <div className="min-h-screen flex flex-col items-stretch px-6 pt-12 pb-8 max-w-md mx-auto relative">
+      <div className="absolute top-3 right-3">
+        <MusicToggle />
+      </div>
       <header className="mb-12 text-center select-none animate-rise">
         <div className="font-display text-7xl tracking-tighter leading-none">
           <span className="text-paper">CAN</span>
@@ -97,7 +101,7 @@ export function Home() {
             placeholder="e.g. Taylor"
             maxLength={16}
           />
-          <button className="btn-primary text-xl py-5 mt-4" disabled={busy} onClick={handleCreate}>
+          <button className="btn-primary text-xl py-5 mt-4" disabled={busy} onClick={handleCreate} data-sfx="confirm">
             {busy ? "Creating…" : "Create room"}
           </button>
           <button className="btn-ghost mt-2" onClick={() => setMode("menu")}>
@@ -125,7 +129,7 @@ export function Home() {
             placeholder="e.g. Sam"
             maxLength={16}
           />
-          <button className="btn-primary text-xl py-5 mt-4" disabled={busy} onClick={handleJoin}>
+          <button className="btn-primary text-xl py-5 mt-4" disabled={busy} onClick={handleJoin} data-sfx="confirm">
             {busy ? "Joining…" : "Join"}
           </button>
           <button className="btn-ghost mt-2" onClick={() => setMode("menu")}>

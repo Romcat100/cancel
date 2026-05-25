@@ -26,7 +26,11 @@ import type {
   AckRoundEndReq,
   KickPlayerReq,
   PlayAgainReq,
+  PingPlayerReq,
 } from "../../shared/protocol.js";
+
+const PING_COOLDOWN_MS = 3000;
+const pingLastAt = new Map<string, number>();
 
 const onlineByRoom = new Map<string, Map<string, Set<string>>>(); // roomCode -> playerId -> Set<socketId>
 
@@ -96,6 +100,36 @@ export function attachSocketHandlers(io: Server) {
         broadcastRoom(io, room);
       } catch (e) {
         ack?.({ ok: false, error: (e as Error).message });
+      }
+    });
+
+    socket.on(SOCKET_EVENTS.PING_PLAYER, (req: PingPlayerReq) => {
+      try {
+        const data = socket.data as { roomCode?: string; playerId?: string };
+        if (!data?.roomCode || !data?.playerId) return;
+        const targetId = req?.targetPlayerId;
+        if (!targetId || targetId === data.playerId) return;
+
+        const room = loadRoom(data.roomCode);
+        if (!room) return;
+        // Pings only during active play. Lobby/game_end are quiet.
+        if (room.phase === "lobby" || room.phase === "game_end") return;
+        if (!room.players.some((p) => p.id === targetId)) return;
+
+        const key = `${data.roomCode}:${data.playerId}:${targetId}`;
+        const now = Date.now();
+        const last = pingLastAt.get(key);
+        if (last !== undefined && now - last < PING_COOLDOWN_MS) return;
+        pingLastAt.set(key, now);
+        // Self-expire so the Map doesn't grow unboundedly over many rooms.
+        setTimeout(() => pingLastAt.delete(key), PING_COOLDOWN_MS).unref?.();
+
+        io.to(`room:${data.roomCode}`).emit(SOCKET_EVENTS.PING_PLAYER, {
+          fromPlayerId: data.playerId,
+          toPlayerId: targetId,
+        });
+      } catch {
+        // best-effort; pings are ephemeral
       }
     });
 

@@ -6,12 +6,19 @@ import { Game } from "./screens/Game.js";
 import { connectSocket, disconnectSocket } from "./socket.js";
 import { clearIdentity, listIdentities } from "./identity.js";
 import { api } from "./api.js";
+import { initMusic } from "./music.js";
+import { initSfx } from "./sfx.js";
 
 export function App() {
   const state = useAppStore((s) => s.state);
   const setState = useAppStore((s) => s.setState);
   const reset = useAppStore((s) => s.reset);
   const [bootstrap, setBootstrap] = useState<"loading" | "ready">("loading");
+
+  useEffect(() => {
+    initMusic();
+    initSfx();
+  }, []);
 
   useEffect(() => {
     (async () => {

@@ -89,8 +89,18 @@ export const SOCKET_EVENTS = {
   ROUND_END: "round_end",
   GAME_END: "game_end",
   ROOM_ABANDONED: "room_abandoned",
+  PING_PLAYER: "ping_player",
   ERROR: "server_error",
 } as const;
+
+export interface PingPlayerReq {
+  targetPlayerId: string;
+}
+
+export interface PlayerPingedEvent {
+  fromPlayerId: string;
+  toPlayerId: string;
+}
 
 export interface SocketAuthQuery {
   roomCode: string;

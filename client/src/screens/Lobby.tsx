@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api } from "../api.js";
 import { useAppStore } from "../store.js";
 import { getIdentity } from "../identity.js";
-import { Rules } from "../components.js";
+import { MusicToggle, Rules } from "../components.js";
 
 const SEAT_COLORS = ["bg-accent", "bg-cool", "bg-gold", "bg-emerald-500", "bg-fuchsia-500", "bg-cyan-400", "bg-orange-300", "bg-rose-400"];
 
@@ -65,9 +65,12 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
         <button className="btn-ghost text-xs px-3 py-2" onClick={onLeave}>
           ← Leave
         </button>
-        <button className="btn-ghost text-xs px-3 py-2" onClick={() => setShowRules(true)}>
-          Rules
-        </button>
+        <div className="flex items-center gap-2">
+          <MusicToggle />
+          <button className="btn-ghost text-xs px-3 py-2" onClick={() => setShowRules(true)}>
+            Rules
+          </button>
+        </div>
       </div>
 
       <div className="mb-6 text-center">
@@ -167,6 +170,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
               className="btn-primary text-xl py-5"
               disabled={busy || publicState.players.length < 2}
               onClick={start}
+              data-sfx="confirm"
             >
               {publicState.players.length < 2 ? "Waiting for players…" : busy ? "Starting…" : "Start game"}
             </button>
