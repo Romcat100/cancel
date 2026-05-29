@@ -196,7 +196,7 @@ function dealHand(handSize: number, customNumbers?: number[]): number[] {
 
 // The full sorted set of number cards in play for this game. Custom games use
 // [0, ...host's picks]; default games use the contiguous 0..handSize-1. Scoring needs
-// this for Reverse (which mirrors a card to its positional opposite within the set).
+// this for Flip (which mirrors a card to its positional opposite within the set).
 function gameNumbers(room: RoomDoc): number[] {
   const handSize = room.players.length + 2;
   return dealHand(handSize, room.config.numberMode === "custom" ? room.config.customNumbers : undefined);

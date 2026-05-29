@@ -11,7 +11,7 @@ export type PowerUpId =
   | "slide"
   | "equalize"
   | "sabotage"
-  | "reverse"
+  | "flip"
   | "drain"
   | "jinx"
   | "wild"
@@ -209,9 +209,9 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
     description: "(Opponents) Choose another player AND pick the number they'll play this turn (from their remaining hand). Whatever they thought they were submitting is overridden.",
     needsTarget: true,
   },
-  reverse: {
-    id: "reverse",
-    name: "Reverse",
+  flip: {
+    id: "flip",
+    name: "Flip",
     description: "(Everyone) Every card's face value is mirrored across the range. For example, a 0 becomes the high card and the high card becomes a 0.",
     needsTarget: false,
   },

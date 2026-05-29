@@ -368,43 +368,43 @@ describe("scoreTurn — power-ups", () => {
     expect(points(r)).toEqual({ A: 0, B: 0, C: 1 });
   });
 
-  it("Reverse flips face values; a max-card flips to 0 and now cancels everyone", () => {
+  it("Flip flips face values; a max-card flips to 0 and now cancels everyone", () => {
     // 3 players → max card = 4. B's 4 flips to 0, which cancels the whole turn.
     const r = scoreTurn([
-      { playerId: "A", number: 0, powerUp: "reverse" },
+      { playerId: "A", number: 0, powerUp: "flip" },
       { playerId: "B", number: 4 },
       { playerId: "C", number: 2 },
     ]);
     expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
   });
 
-  it("Reverse with no flipped 0s — every face is just inverted and scored", () => {
+  it("Flip with no flipped 0s — every face is just inverted and scored", () => {
     // 3 players → max = 4. Plays 1, 2, 3 → flipped 3, 2, 1.
     const r = scoreTurn([
-      { playerId: "A", number: 1, powerUp: "reverse" },
+      { playerId: "A", number: 1, powerUp: "flip" },
       { playerId: "B", number: 2 },
       { playerId: "C", number: 3 },
     ]);
     expect(points(r)).toEqual({ A: 3, B: 2, C: 1 });
   });
 
-  it("Reverse can create ties on flipped values", () => {
+  it("Flip can create ties on flipped values", () => {
     // 3 players → max = 4. A=1→3, B=3→1, C=1→3 → A and C now tie on 3.
     const r = scoreTurn([
-      { playerId: "A", number: 1, powerUp: "reverse" },
+      { playerId: "A", number: 1, powerUp: "flip" },
       { playerId: "B", number: 3 },
       { playerId: "C", number: 1 },
     ]);
     expect(points(r)).toEqual({ A: 0, B: 1, C: 0 });
   });
 
-  it("Reverse on a custom set mirrors positionally, not arithmetically", () => {
+  it("Flip on a custom set mirrors positionally, not arithmetically", () => {
     // Game numbers {0,3,8,9}. Positional mirror: 0↔9, 3↔8. So A's 3 → 8, B's 8 → 3,
     // C's 9 → 0 (the lone 0 now cancels everyone). Arithmetic (max-n) would give different
     // off-set values, so this proves positional behavior.
     const r = scoreTurn(
       [
-        { playerId: "A", number: 3, powerUp: "reverse" },
+        { playerId: "A", number: 3, powerUp: "flip" },
         { playerId: "B", number: 8 },
         { playerId: "C", number: 9 },
       ],
@@ -413,11 +413,11 @@ describe("scoreTurn — power-ups", () => {
     expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
   });
 
-  it("Reverse on a custom set with no flipped 0 just scores the mirrored faces", () => {
+  it("Flip on a custom set with no flipped 0 just scores the mirrored faces", () => {
     // Game numbers {0,3,8,9}. A's 8 → 3, B's 3 → 8, C's 0 → 9. All unique.
     const r = scoreTurn(
       [
-        { playerId: "A", number: 8, powerUp: "reverse" },
+        { playerId: "A", number: 8, powerUp: "flip" },
         { playerId: "B", number: 3 },
         { playerId: "C", number: 0 },
       ],

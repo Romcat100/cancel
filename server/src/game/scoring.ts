@@ -28,20 +28,20 @@ export function scoreTurn(plays: PlayInput[], gameNumbers?: number[]): ScoreResu
   const freeThreeActive = powerUp === "free_three";
   const plusTwoUserId = powerUp === "plus_two" ? powerUserId : undefined;
   const minusTwoActive = powerUp === "minus_two"; // "Minus Two" — Universal −2 to every face
-  const reverseActive = powerUp === "reverse";
+  const flipActive = powerUp === "flip";
   const drainUserId = powerUp === "drain" ? powerUserId : undefined;
   const drainTargetId = powerUp === "drain" ? powerTarget : undefined;
   const jinxUserId = powerUp === "jinx" ? powerUserId : undefined;
-  // Reverse mirrors each card to its positional opposite within the game's sorted number
+  // Flip mirrors each card to its positional opposite within the game's sorted number
   // set (0 ↔ highest, etc.). For a contiguous default set this equals maxCard - n, so the
   // fallback below reproduces the old behavior when no explicit set is supplied.
   const sortedNums = (gameNumbers ?? Array.from({ length: plays.length + 2 }, (_, i) => i))
     .slice()
     .sort((a, b) => a - b);
-  const reverseMirror = new Map<number, number>();
-  if (reverseActive) {
+  const flipMirror = new Map<number, number>();
+  if (flipActive) {
     const n = sortedNums.length;
-    for (let i = 0; i < n; i++) reverseMirror.set(sortedNums[i], sortedNums[n - 1 - i]);
+    for (let i = 0; i < n; i++) flipMirror.set(sortedNums[i], sortedNums[n - 1 - i]);
   }
 
   type Eff = {
@@ -57,7 +57,7 @@ export function scoreTurn(plays: PlayInput[], gameNumbers?: number[]): ScoreResu
     const isPlusTwoUser = plusTwoUserId === p.playerId;
     const isDrainUser = drainUserId === p.playerId;
     const isDrainTarget = drainTargetId === p.playerId;
-    const flipped = reverseActive ? (reverseMirror.get(p.number) ?? p.number) : p.number;
+    const flipped = flipActive ? (flipMirror.get(p.number) ?? p.number) : p.number;
     const bumped = isPlusTwoUser
       ? p.number + 2
       : minusTwoActive
@@ -76,7 +76,7 @@ export function scoreTurn(plays: PlayInput[], gameNumbers?: number[]): ScoreResu
     if (minusTwoActive) notes.push(`Minus Two: ${p.number} → ${bumped}`);
     if (isDrainUser) notes.push(`Drain: ${p.number} → ${bumped}`);
     if (isDrainTarget) notes.push(`Drained: ${p.number} → ${bumped}`);
-    if (reverseActive && flipped !== p.number) notes.push(`Reverse: ${p.number} → ${flipped}`);
+    if (flipActive && flipped !== p.number) notes.push(`Flip: ${p.number} → ${flipped}`);
     return { playerId: p.playerId, face, scoreValue, isCancel, notes };
   });
 

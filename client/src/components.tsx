@@ -77,7 +77,7 @@ const POWER_VISUAL: Record<PowerUpId, { abbr: string; bg: string; text: string }
   slide: { abbr: "↻", bg: "bg-fuchsia-500", text: "text-paper" },
   equalize: { abbr: "≈", bg: "bg-cyan-300", text: "text-ink" },
   sabotage: { abbr: "✖", bg: "bg-rose-600", text: "text-paper" },
-  reverse: { abbr: "⇋", bg: "bg-indigo-400", text: "text-ink" },
+  flip: { abbr: "⇋", bg: "bg-indigo-400", text: "text-ink" },
   drain: { abbr: "↧", bg: "bg-amber-500", text: "text-ink" },
   jinx: { abbr: "=", bg: "bg-pink-400", text: "text-ink" },
   wild: { abbr: "?", bg: "bg-violet-400", text: "text-ink" },

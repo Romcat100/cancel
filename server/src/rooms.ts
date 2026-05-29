@@ -63,6 +63,8 @@ export function loadRoom(code: string): RoomDoc | null {
   if (cfg.rounds === undefined) cfg.rounds = 3;
   if (cfg.powerUpMode === undefined) cfg.powerUpMode = cfg.powerUps === false ? "off" : "random";
   if (cfg.selectedPowerUps === undefined) cfg.selectedPowerUps = [];
+  // "reverse" was renamed to "flip" — remap any legacy id a saved lobby still carries.
+  cfg.selectedPowerUps = cfg.selectedPowerUps.map((id) => ((id as string) === "reverse" ? "flip" : id));
   delete cfg.powerUps;
   if (cfg.showHands === undefined) cfg.showHands = true;
   if (cfg.numberMode === undefined) cfg.numberMode = "default";
