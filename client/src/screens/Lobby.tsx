@@ -45,6 +45,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
 
   const playerCount = publicState.players.length;
   const handSize = playerCount + 2;
+  const rounds = publicState.config.rounds ?? 3;
   const powerUpMode: PowerUpMode = publicState.config.powerUpMode ?? "random";
   const selectedPowerUps = publicState.config.selectedPowerUps ?? [];
   const showHandsOn = publicState.config.showHands !== false;
@@ -127,6 +128,19 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
       setErr((e as Error).message);
     } finally {
       setSavingNumbers(false);
+    }
+  }
+
+  async function pickRounds(n: number) {
+    if (!id || !isHost) return;
+    const next = Math.max(1, Math.min(5, n));
+    if (next === rounds) return;
+    setErr(null);
+    try {
+      const res = await api.setConfig(publicState.roomCode, id.claimToken, { rounds: next });
+      setState(res.state);
+    } catch (e) {
+      setErr((e as Error).message);
     }
   }
 
@@ -235,6 +249,39 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
       </div>
 
       <div className="mt-auto pt-10 flex flex-col gap-3">
+        <div className="rounded-2xl bg-paper/5 px-4 py-3 flex items-center justify-between">
+          <div className="flex flex-col">
+            <span className="font-bold text-sm">Rounds</span>
+            <span className="text-paper/50 text-xs font-mono">{rounds === 1 ? "1 round" : `${rounds} rounds`}</span>
+          </div>
+          {isHost ? (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-label="Fewer rounds"
+                onClick={() => pickRounds(rounds - 1)}
+                disabled={rounds <= 1}
+                className="w-9 h-9 rounded-lg bg-paper/10 text-paper font-bold text-lg leading-none transition hover:bg-paper/20 disabled:opacity-30 disabled:hover:bg-paper/10"
+                data-sfx="tap"
+              >
+                &#8722;
+              </button>
+              <span className="w-6 text-center font-bold text-lg tabular-nums">{rounds}</span>
+              <button
+                type="button"
+                aria-label="More rounds"
+                onClick={() => pickRounds(rounds + 1)}
+                disabled={rounds >= 5}
+                className="w-9 h-9 rounded-lg bg-paper/10 text-paper font-bold text-lg leading-none transition hover:bg-paper/20 disabled:opacity-30 disabled:hover:bg-paper/10"
+                data-sfx="tap"
+              >
+                +
+              </button>
+            </div>
+          ) : (
+            <span className="chip bg-accent/20 text-accent">{rounds}</span>
+          )}
+        </div>
         {isHost ? (
           <div className="rounded-2xl bg-paper/5 px-4 py-3">
             <span className="font-bold text-sm">Power-ups</span>

@@ -27,6 +27,7 @@ export interface CreateRoomReq {
 export interface SetRoomConfigReq {
   roomCode: string;
   claimToken: string;
+  rounds?: number;
   powerUpMode?: PowerUpMode;
   selectedPowerUps?: PowerUpId[];
   showHands?: boolean;

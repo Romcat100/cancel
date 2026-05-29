@@ -232,6 +232,7 @@ export function startGame(room: RoomDoc): RoomDoc {
 export function setRoomConfig(
   room: RoomDoc,
   patch: {
+    rounds?: number;
     powerUpMode?: PowerUpMode;
     selectedPowerUps?: PowerUpId[];
     showHands?: boolean;
@@ -244,6 +245,10 @@ export function setRoomConfig(
     ...room,
     config: {
       ...room.config,
+      rounds:
+        patch.rounds !== undefined
+          ? Math.max(1, Math.min(5, Math.round(patch.rounds)))
+          : room.config.rounds,
       powerUpMode: patch.powerUpMode ?? room.config.powerUpMode,
       selectedPowerUps: patch.selectedPowerUps ?? room.config.selectedPowerUps,
       showHands: patch.showHands ?? room.config.showHands,

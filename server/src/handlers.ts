@@ -229,6 +229,7 @@ export function apiSetRoomConfig(req: SetRoomConfigReq, ctx: ApiCtx) {
   if (!room) throw new Error("Room not found");
   if (player.id !== room.hostId) throw new Error("Only host can change settings");
   room = setRoomConfig(room, {
+    rounds: req.rounds,
     powerUpMode: req.powerUpMode,
     selectedPowerUps: req.selectedPowerUps,
     showHands: req.showHands,

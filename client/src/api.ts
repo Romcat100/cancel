@@ -26,6 +26,7 @@ export const api = {
     roomCode: string,
     claimToken: string,
     patch: {
+      rounds?: number;
       powerUpMode?: PowerUpMode;
       selectedPowerUps?: PowerUpId[];
       showHands?: boolean;
