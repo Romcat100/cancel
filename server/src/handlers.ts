@@ -163,6 +163,8 @@ export function apiCreateRoom(req: CreateRoomReq, ctx: ApiCtx) {
   const powerUpMode = req.powerUpMode ?? "random";
   const selectedPowerUps = req.selectedPowerUps ?? [];
   const showHands = req.showHands ?? true;
+  const numberMode = req.numberMode ?? "default";
+  const customNumbers = req.customNumbers ?? [];
   const room = createRoom({
     code,
     hostId,
@@ -172,6 +174,8 @@ export function apiCreateRoom(req: CreateRoomReq, ctx: ApiCtx) {
     powerUpMode,
     selectedPowerUps,
     showHands,
+    numberMode,
+    customNumbers,
   });
   saveRoom(room);
   recordPlayer({ id: hostId, roomCode: code, name: req.name.trim(), seat: 0, claimToken });
@@ -228,6 +232,8 @@ export function apiSetRoomConfig(req: SetRoomConfigReq, ctx: ApiCtx) {
     powerUpMode: req.powerUpMode,
     selectedPowerUps: req.selectedPowerUps,
     showHands: req.showHands,
+    numberMode: req.numberMode,
+    customNumbers: req.customNumbers,
   });
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));

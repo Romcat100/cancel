@@ -19,6 +19,13 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
   const me = publicState.players.find((p) => p.id === selfPlayerId)!;
   const picker = publicState.players.find((p) => p.id === publicState.currentPickerId);
   const handSize = publicState.players.length + 2;
+  // The full set of cards dealt this game: a custom pool is [0, ...host's picks]; otherwise
+  // the contiguous 0..handSize-1. Used to render ghosts for played cards and to rebuild a
+  // sabotage target's remaining hand when hands are hidden.
+  const fullHand =
+    publicState.config.numberMode === "custom"
+      ? [0, ...(publicState.config.customNumbers ?? [])].sort((a, b) => a - b)
+      : Array.from({ length: handSize }, (_, i) => i);
 
   const [selectedNumber, setSelectedNumber] = useState<number | null>(null);
   const [selectedPower, setSelectedPower] = useState<PowerUpId | null>(null);
@@ -374,7 +381,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
             const targetHand =
               target && target.hand.length > 0
                 ? target.hand
-                : Array.from({ length: handSize }, (_, i) => i).filter((n) => !playedByTarget.has(n));
+                : fullHand.filter((n) => !playedByTarget.has(n));
             return (
               <div className="mt-3 pt-3 border-t border-paper/10">
                 <div className="text-xs uppercase tracking-widest font-mono text-paper/50 mb-2">
@@ -400,7 +407,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
       <div className="mt-auto pt-2">
         <div className="text-xs uppercase tracking-[0.3em] font-mono text-paper/50 mb-4">Your hand</div>
         <div className="flex flex-wrap gap-2 justify-center">
-          {Array.from({ length: handSize }, (_, i) => i).map((n) => {
+          {fullHand.map((n) => {
             const inHand = privateState.hand.includes(n);
             if (!inHand) return <NumberCard key={n} n={n} state="ghost" />;
             return (

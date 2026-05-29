@@ -17,7 +17,7 @@ export interface ScoreResult {
   lines: ScoreLineInternal[];
 }
 
-export function scoreTurn(plays: PlayInput[]): ScoreResult {
+export function scoreTurn(plays: PlayInput[], gameNumbers?: number[]): ScoreResult {
   const powerPlay = plays.find((p) => p.powerUp);
   const powerUp = powerPlay?.powerUp;
   const powerUserId = powerPlay?.playerId;
@@ -32,7 +32,17 @@ export function scoreTurn(plays: PlayInput[]): ScoreResult {
   const drainUserId = powerUp === "drain" ? powerUserId : undefined;
   const drainTargetId = powerUp === "drain" ? powerTarget : undefined;
   const jinxUserId = powerUp === "jinx" ? powerUserId : undefined;
-  const maxCard = plays.length + 1; // handSize - 1 (handSize = playerCount + 2)
+  // Reverse mirrors each card to its positional opposite within the game's sorted number
+  // set (0 ↔ highest, etc.). For a contiguous default set this equals maxCard - n, so the
+  // fallback below reproduces the old behavior when no explicit set is supplied.
+  const sortedNums = (gameNumbers ?? Array.from({ length: plays.length + 2 }, (_, i) => i))
+    .slice()
+    .sort((a, b) => a - b);
+  const reverseMirror = new Map<number, number>();
+  if (reverseActive) {
+    const n = sortedNums.length;
+    for (let i = 0; i < n; i++) reverseMirror.set(sortedNums[i], sortedNums[n - 1 - i]);
+  }
 
   type Eff = {
     playerId: string;
@@ -47,7 +57,7 @@ export function scoreTurn(plays: PlayInput[]): ScoreResult {
     const isPlusTwoUser = plusTwoUserId === p.playerId;
     const isDrainUser = drainUserId === p.playerId;
     const isDrainTarget = drainTargetId === p.playerId;
-    const flipped = reverseActive ? maxCard - p.number : p.number;
+    const flipped = reverseActive ? (reverseMirror.get(p.number) ?? p.number) : p.number;
     const bumped = isPlusTwoUser
       ? p.number + 2
       : minusTwoActive

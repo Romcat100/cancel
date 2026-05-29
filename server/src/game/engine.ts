@@ -2,6 +2,7 @@ import {
   POWER_UP_IDS,
   POWER_UPS,
   TWO_PLAYER_EXCLUDED_POWERS,
+  type NumberMode,
   type PowerUpId,
   type PowerUpMode,
 } from "../../../shared/types.js";
@@ -67,6 +68,8 @@ export interface RoomDoc {
     powerUpMode: PowerUpMode;
     selectedPowerUps: PowerUpId[];
     showHands: boolean;
+    numberMode: NumberMode;
+    customNumbers: number[];
   };
   phase: RoomPhaseDoc;
   players: PlayerDoc[];
@@ -94,6 +97,8 @@ export function createRoom(opts: {
   powerUpMode?: PowerUpMode;
   selectedPowerUps?: PowerUpId[];
   showHands?: boolean;
+  numberMode?: NumberMode;
+  customNumbers?: number[];
 }): RoomDoc {
   const now = Date.now();
   return {
@@ -105,6 +110,8 @@ export function createRoom(opts: {
       powerUpMode: opts.powerUpMode ?? "random",
       selectedPowerUps: opts.selectedPowerUps ?? [],
       showHands: opts.showHands ?? true,
+      numberMode: opts.numberMode ?? "default",
+      customNumbers: opts.customNumbers ?? [],
     },
     phase: "lobby",
     players: [{ id: opts.hostId, name: opts.hostName, seat: HOST_SEAT, totalScore: 0 }],
@@ -182,8 +189,17 @@ function dealPool(
   return out;
 }
 
-function dealHand(handSize: number): number[] {
+function dealHand(handSize: number, customNumbers?: number[]): number[] {
+  if (customNumbers && customNumbers.length) return [0, ...customNumbers].sort((a, b) => a - b);
   return Array.from({ length: handSize }, (_, i) => i);
+}
+
+// The full sorted set of number cards in play for this game. Custom games use
+// [0, ...host's picks]; default games use the contiguous 0..handSize-1. Scoring needs
+// this for Reverse (which mirrors a card to its positional opposite within the set).
+function gameNumbers(room: RoomDoc): number[] {
+  const handSize = room.players.length + 2;
+  return dealHand(handSize, room.config.numberMode === "custom" ? room.config.customNumbers : undefined);
 }
 
 function buildRotation(players: PlayerDoc[], handSize: number, roundIndex: number): string[] {
@@ -204,12 +220,24 @@ export function startGame(room: RoomDoc): RoomDoc {
   ) {
     throw new Error("Pick at least one power-up, or switch power-ups off");
   }
+  if (
+    room.config.numberMode === "custom" &&
+    room.config.customNumbers.length !== room.players.length + 1
+  ) {
+    throw new Error(`Pick exactly ${room.players.length + 1} numbers for ${room.players.length} players`);
+  }
   return startRound(room, 0);
 }
 
 export function setRoomConfig(
   room: RoomDoc,
-  patch: { powerUpMode?: PowerUpMode; selectedPowerUps?: PowerUpId[]; showHands?: boolean },
+  patch: {
+    powerUpMode?: PowerUpMode;
+    selectedPowerUps?: PowerUpId[];
+    showHands?: boolean;
+    numberMode?: NumberMode;
+    customNumbers?: number[];
+  },
 ): RoomDoc {
   if (room.phase !== "lobby") throw new Error("Config locked once game starts");
   return {
@@ -219,6 +247,8 @@ export function setRoomConfig(
       powerUpMode: patch.powerUpMode ?? room.config.powerUpMode,
       selectedPowerUps: patch.selectedPowerUps ?? room.config.selectedPowerUps,
       showHands: patch.showHands ?? room.config.showHands,
+      numberMode: patch.numberMode ?? room.config.numberMode,
+      customNumbers: patch.customNumbers ?? room.config.customNumbers,
     },
     updatedAt: Date.now(),
   };
@@ -238,7 +268,12 @@ function startRound(room: RoomDoc, roundIndex: number): RoomDoc {
     poolRemaining: [],
     rotation: buildRotation(room.players, handSize, roundIndex),
     reveals: [],
-    hands: Object.fromEntries(room.players.map((p) => [p.id, dealHand(handSize)])),
+    hands: Object.fromEntries(
+      room.players.map((p) => [
+        p.id,
+        dealHand(handSize, room.config.numberMode === "custom" ? room.config.customNumbers : undefined),
+      ]),
+    ),
     endAcksBy: [],
     perPlayerRoundScore: Object.fromEntries(room.players.map((p) => [p.id, 0])),
   };
@@ -410,7 +445,7 @@ function resolveTurn(room: RoomDoc): RoomDoc {
     sabotageNumber: s.sabotageNumber,
   }));
 
-  const result = scoreTurn(plays);
+  const result = scoreTurn(plays, gameNumbers(room));
 
   let peekUsed: RevealDoc["peekUsed"];
   if (room.peekReview) {

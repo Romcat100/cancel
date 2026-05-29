@@ -64,6 +64,8 @@ export function loadRoom(code: string): RoomDoc | null {
   if (cfg.selectedPowerUps === undefined) cfg.selectedPowerUps = [];
   delete cfg.powerUps;
   if (cfg.showHands === undefined) cfg.showHands = true;
+  if (cfg.numberMode === undefined) cfg.numberMode = "default";
+  if (cfg.customNumbers === undefined) cfg.customNumbers = [];
   if (typeof doc.rev !== "number") doc.rev = 0;
   return doc;
 }

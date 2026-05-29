@@ -115,6 +115,31 @@ describe("engine lifecycle", () => {
     expect(() => startGame(r)).toThrow(/at least one power-up/);
   });
 
+  it("custom number mode deals [0, ...customNumbers] sorted to every player", () => {
+    let r = createRoom({ code: "NUM1", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, numberMode: "custom", customNumbers: [9, 3, 8, 1] });
+    r = addPlayer(r, "B", "Bob");
+    r = addPlayer(r, "C", "Carol");
+    r = startGame(r);
+    const round = r.rounds[0];
+    expect(round.hands["A"]).toEqual([0, 1, 3, 8, 9]);
+    expect(round.hands["B"]).toEqual([0, 1, 3, 8, 9]);
+    expect(round.hands["C"]).toEqual([0, 1, 3, 8, 9]);
+  });
+
+  it("rejects starting a custom game when the number count != players + 1", () => {
+    let r = createRoom({ code: "NUM2", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, numberMode: "custom", customNumbers: [3, 8] });
+    r = addPlayer(r, "B", "Bob");
+    r = addPlayer(r, "C", "Carol"); // 3 players → needs 4 custom numbers
+    expect(() => startGame(r)).toThrow(/exactly 4 numbers/);
+  });
+
+  it("default number mode still deals the contiguous hand", () => {
+    let r = createRoom({ code: "NUM3", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null });
+    r = addPlayer(r, "B", "Bob");
+    r = startGame(r);
+    expect(r.rounds[0].hands["A"]).toEqual([0, 1, 2, 3]);
+  });
+
   it("submitting a number locks it in; turn auto-resolves when everyone has submitted", () => {
     let r = startGame(room3p());
     const picker = r.rounds[0].rotation[0];

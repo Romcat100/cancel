@@ -2,11 +2,12 @@ import { useState } from "react";
 import { api } from "../api.js";
 import { useAppStore } from "../store.js";
 import { getIdentity } from "../identity.js";
-import { MusicToggle, PowerGlyph, Rules, ScopedDescription } from "../components.js";
+import { MusicToggle, NumberCard, PowerGlyph, Rules, ScopedDescription } from "../components.js";
 import {
   POWER_UPS,
   POWER_UP_IDS,
   TWO_PLAYER_EXCLUDED_POWERS,
+  type NumberMode,
   type PowerUpId,
   type PowerUpMode,
 } from "../../../shared/types.js";
@@ -19,6 +20,14 @@ const MODES: { mode: PowerUpMode; label: string }[] = [
   { mode: "selected", label: "Choose" },
 ];
 
+const NUMBER_MODES: { mode: NumberMode; label: string }[] = [
+  { mode: "default", label: "Default" },
+  { mode: "custom", label: "Custom" },
+];
+
+// The numbers the host can pick from (0 is always dealt and not selectable).
+const NUMBER_PALETTE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
 export function Lobby({ onLeave }: { onLeave: () => void }) {
   const state = useAppStore((s) => s.state)!;
   const setState = useAppStore((s) => s.setState);
@@ -27,6 +36,8 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
   const [showRules, setShowRules] = useState(false);
   const [showPowerModal, setShowPowerModal] = useState(false);
   const [savingPowers, setSavingPowers] = useState(false);
+  const [showNumberModal, setShowNumberModal] = useState(false);
+  const [savingNumbers, setSavingNumbers] = useState(false);
 
   const { publicState, selfPlayerId } = state;
   const isHost = publicState.hostId === selfPlayerId;
@@ -37,13 +48,18 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
   const powerUpMode: PowerUpMode = publicState.config.powerUpMode ?? "random";
   const selectedPowerUps = publicState.config.selectedPowerUps ?? [];
   const showHandsOn = publicState.config.showHands !== false;
+  const numberMode: NumberMode = publicState.config.numberMode ?? "default";
+  const customNumbers = publicState.config.customNumbers ?? [];
+  // 0 is always dealt, so a custom set needs one fewer than the hand size.
+  const numbersNeeded = handSize - 1;
 
   // Powers actually in play after the 2-player exclusion (Peek/Sabotage need 3+).
   const usableSelected = selectedPowerUps.filter(
     (pid) => playerCount > 2 || !TWO_PLAYER_EXCLUDED_POWERS.includes(pid),
   );
   const selectedEmpty = powerUpMode === "selected" && usableSelected.length === 0;
-  const canStart = playerCount >= 2 && !selectedEmpty;
+  const customCountOk = numberMode === "default" || customNumbers.length === numbersNeeded;
+  const canStart = playerCount >= 2 && !selectedEmpty && customCountOk;
 
   async function pickMode(mode: PowerUpMode) {
     if (!id || !isHost) return;
@@ -75,6 +91,42 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
       setErr((e as Error).message);
     } finally {
       setSavingPowers(false);
+    }
+  }
+
+  async function pickNumberMode(mode: NumberMode) {
+    if (!id || !isHost) return;
+    setErr(null);
+    try {
+      const patch: { numberMode: NumberMode; customNumbers?: number[] } = { numberMode: mode };
+      // First time into Custom, seed the default set (1..numbersNeeded) so it's a valid
+      // starting point the host can swap numbers out of.
+      if (mode === "custom" && customNumbers.length === 0) {
+        patch.customNumbers = Array.from({ length: numbersNeeded }, (_, i) => i + 1);
+      }
+      const res = await api.setConfig(publicState.roomCode, id.claimToken, patch);
+      setState(res.state);
+      if (mode === "custom") setShowNumberModal(true);
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+  }
+
+  async function saveNumbers(nums: number[]) {
+    if (!id || !isHost) return;
+    setSavingNumbers(true);
+    setErr(null);
+    try {
+      const res = await api.setConfig(publicState.roomCode, id.claimToken, {
+        numberMode: "custom",
+        customNumbers: nums,
+      });
+      setState(res.state);
+      setShowNumberModal(false);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setSavingNumbers(false);
     }
   }
 
@@ -114,14 +166,23 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
         ? "random pool each round"
         : `${usableSelected.length} powers chosen`;
 
+  const numberModeText =
+    numberMode === "default"
+      ? "0 up to the standard top card"
+      : customNumbers.length > 0
+        ? `0 and ${[...customNumbers].sort((a, b) => a - b).join(", ")}`
+        : "no numbers picked yet";
+
   const startLabel =
     playerCount < 2
       ? "Waiting for players…"
       : selectedEmpty
         ? "Pick a power-up first"
-        : busy
-          ? "Starting…"
-          : "Start game";
+        : !customCountOk
+          ? `Pick ${numbersNeeded} numbers first`
+          : busy
+            ? "Starting…"
+            : "Start game";
 
   return (
     <div className="min-h-[100dvh] flex flex-col px-6 pt-10 pb-8 max-w-md mx-auto">
@@ -231,6 +292,65 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
           </div>
         )}
 
+        {isHost ? (
+          <div className="rounded-2xl bg-paper/5 px-4 py-3">
+            <span className="font-bold text-sm">Number pool</span>
+            <div className="mt-2 grid grid-cols-2 gap-1 rounded-xl bg-paper/10 p-1">
+              {NUMBER_MODES.map(({ mode, label }) => {
+                const active = numberMode === mode;
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => pickNumberMode(mode)}
+                    className={`rounded-lg py-2 text-sm font-bold transition ${
+                      active
+                        ? "bg-accent text-ink shadow-[0_2px_0_0_rgba(0,0,0,0.4)]"
+                        : "text-paper/70 hover:text-paper"
+                    }`}
+                    data-sfx="tap"
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            {numberMode === "custom" ? (
+              <div className="mt-3 flex flex-col gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setShowNumberModal(true)}
+                  className="btn-ghost text-sm py-2.5 flex items-center justify-between"
+                  data-sfx="tap"
+                >
+                  <span>Select numbers</span>
+                  <span className="font-mono text-paper/70">
+                    {customNumbers.length}/{numbersNeeded} chosen →
+                  </span>
+                </button>
+                <p className={`text-xs font-mono ${customCountOk ? "text-paper/40" : "text-accent"}`}>
+                  {customCountOk
+                    ? `Plus a 0, that's ${handSize} cards, one per turn.`
+                    : `Pick exactly ${numbersNeeded} numbers for ${playerCount} players.`}
+                </p>
+              </div>
+            ) : (
+              <p className="mt-2 text-xs font-mono text-paper/40">
+                Cards run 0 up to 1 more than the player count.
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="rounded-2xl bg-paper/5 px-4 py-3 flex items-center justify-between">
+            <div className="flex flex-col">
+              <span className="font-bold text-sm">Number pool</span>
+              <span className="text-paper/50 text-xs font-mono">{numberModeText}</span>
+            </div>
+            <span className="chip bg-accent/20 text-accent">{numberMode === "custom" ? "custom" : "default"}</span>
+          </div>
+        )}
+
         <div className="rounded-2xl bg-paper/5 px-4 py-3 flex items-center justify-between">
           <div className="flex flex-col">
             <span className="font-bold text-sm">Show hands</span>
@@ -292,6 +412,97 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
           onSave={savePowers}
         />
       )}
+      {showNumberModal && isHost && (
+        <NumberSelectModal
+          needed={numbersNeeded}
+          players={playerCount}
+          initial={customNumbers}
+          busy={savingNumbers}
+          onCancel={() => setShowNumberModal(false)}
+          onSave={saveNumbers}
+        />
+      )}
+    </div>
+  );
+}
+
+function NumberSelectModal({
+  needed,
+  players,
+  initial,
+  busy,
+  onCancel,
+  onSave,
+}: {
+  needed: number;
+  players: number;
+  initial: number[];
+  busy: boolean;
+  onCancel: () => void;
+  onSave: (nums: number[]) => void;
+}) {
+  const [draft, setDraft] = useState<Set<number>>(() => new Set(initial));
+
+  function toggle(n: number) {
+    setDraft((prev) => {
+      const next = new Set(prev);
+      if (next.has(n)) next.delete(n);
+      else next.add(n);
+      return next;
+    });
+  }
+
+  const count = draft.size;
+  const exact = count === needed;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-ink/95 backdrop-blur-md flex flex-col animate-rise">
+      <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0 border-b border-paper/10">
+        <div>
+          <div className="font-mono text-xs uppercase tracking-[0.3em] text-paper/50">Number pool</div>
+          <div className="font-display text-2xl font-bold text-paper">Choose the numbers</div>
+        </div>
+        <button className="btn-ghost text-xs px-3 py-2" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+
+      <div className="px-5 pt-3 pb-2 max-w-md w-full mx-auto shrink-0">
+        <p className="text-paper/60 text-xs leading-snug">
+          A 0 is always dealt. Pick as many cards as you have players, plus one.
+          <br />
+          E.g. {needed} needed for {players} players.
+        </p>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 pt-4 pb-3 max-w-md w-full mx-auto">
+        <div className="flex flex-wrap gap-3 justify-center">
+          <NumberCard n={0} size="sm" state="played" />
+          {NUMBER_PALETTE.map((n) => (
+            <NumberCard
+              key={n}
+              n={n}
+              size="sm"
+              state={draft.has(n) ? "selected" : "idle"}
+              onClick={() => toggle(n)}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="px-5 pb-5 pt-3 border-t border-paper/10 max-w-md w-full mx-auto shrink-0 flex items-center gap-3">
+        <span className={`font-mono text-sm flex-1 ${exact ? "text-paper/60" : "text-accent"}`}>
+          {count}/{needed} selected
+        </span>
+        <button
+          className="btn-primary text-lg py-3 px-6 disabled:opacity-40"
+          disabled={count === 0 || busy}
+          onClick={() => onSave([...draft].sort((a, b) => a - b))}
+          data-sfx="confirm"
+        >
+          {busy ? "Saving…" : "Save"}
+        </button>
+      </div>
     </div>
   );
 }

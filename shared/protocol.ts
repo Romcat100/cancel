@@ -1,4 +1,4 @@
-import type { PowerUpId, PowerUpMode, RoomStateForPlayer } from "./types";
+import type { NumberMode, PowerUpId, PowerUpMode, RoomStateForPlayer } from "./types";
 
 export interface JoinRoomReq {
   roomCode: string;
@@ -20,6 +20,8 @@ export interface CreateRoomReq {
   powerUpMode?: PowerUpMode;
   selectedPowerUps?: PowerUpId[];
   showHands?: boolean;
+  numberMode?: NumberMode;
+  customNumbers?: number[];
 }
 
 export interface SetRoomConfigReq {
@@ -28,6 +30,8 @@ export interface SetRoomConfigReq {
   powerUpMode?: PowerUpMode;
   selectedPowerUps?: PowerUpId[];
   showHands?: boolean;
+  numberMode?: NumberMode;
+  customNumbers?: number[];
 }
 
 export interface CreateRoomRes {

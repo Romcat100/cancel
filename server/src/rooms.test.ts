@@ -53,6 +53,19 @@ describe("rev versioning", () => {
     expect((loaded.config as Record<string, unknown>).powerUps).toBeUndefined();
   });
 
+  it("loadRoom defaults numberMode/customNumbers for rows saved before the fields existed", () => {
+    const r = createRoom({ code: "OLDN", hostId: "A", hostName: "Alice", rounds: 2, turnDeadlineMs: null });
+    const legacy = JSON.parse(JSON.stringify(r)) as { config: Record<string, unknown> };
+    delete legacy.config.numberMode;
+    delete legacy.config.customNumbers;
+    getDb()
+      .prepare(`INSERT INTO rooms (code, state, status, created_at, updated_at) VALUES (?, ?, 'active', ?, ?)`)
+      .run("OLDN", JSON.stringify(legacy), r.createdAt, r.updatedAt);
+    const loaded = loadRoom("OLDN")!;
+    expect(loaded.config.numberMode).toBe("default");
+    expect(loaded.config.customNumbers).toEqual([]);
+  });
+
   it("loadRoom maps a legacy powerUps:true (or missing) to random mode", () => {
     const r = createRoom({ code: "OLD3", hostId: "A", hostName: "Alice", rounds: 2, turnDeadlineMs: null });
     const legacy = JSON.parse(JSON.stringify(r)) as { config: Record<string, unknown> };

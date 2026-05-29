@@ -398,6 +398,34 @@ describe("scoreTurn — power-ups", () => {
     expect(points(r)).toEqual({ A: 0, B: 1, C: 0 });
   });
 
+  it("Reverse on a custom set mirrors positionally, not arithmetically", () => {
+    // Game numbers {0,3,8,9}. Positional mirror: 0↔9, 3↔8. So A's 3 → 8, B's 8 → 3,
+    // C's 9 → 0 (the lone 0 now cancels everyone). Arithmetic (max-n) would give different
+    // off-set values, so this proves positional behavior.
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 3, powerUp: "reverse" },
+        { playerId: "B", number: 8 },
+        { playerId: "C", number: 9 },
+      ],
+      [0, 3, 8, 9],
+    );
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
+  });
+
+  it("Reverse on a custom set with no flipped 0 just scores the mirrored faces", () => {
+    // Game numbers {0,3,8,9}. A's 8 → 3, B's 3 → 8, C's 0 → 9. All unique.
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 8, powerUp: "reverse" },
+        { playerId: "B", number: 3 },
+        { playerId: "C", number: 0 },
+      ],
+      [0, 3, 8, 9],
+    );
+    expect(points(r)).toEqual({ A: 3, B: 8, C: 9 });
+  });
+
   it("Drain shifts face values: picker +1, target -1, and the new values score", () => {
     const r = scoreTurn([
       { playerId: "A", number: 1, powerUp: "drain", powerUpTarget: "B" },

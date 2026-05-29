@@ -320,8 +320,9 @@ export function Rules({
         </RulesSection>
 
         <RulesSection title="Setup">
-          You'll play 3 rounds. Each round, every player gets a fresh hand of cards numbered <b>0</b> up
-          to 1 more than the number of players. So 3 players each get 0–4, 4 players get 0–5, and so on.
+          You'll play 3 rounds. Each round, every player gets a fresh hand of cards. By default they're
+          numbered <b>0</b> up to 1 more than the number of players, so 3 players each get 0 to 4, 4 players
+          get 0 to 5, and so on. The host can instead pick a custom set of numbers (a 0 is always included).
           A round has one turn per card.
         </RulesSection>
 
