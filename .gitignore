@@ -29,6 +29,9 @@ Thumbs.db
 # Vite cache
 .vite/
 
+# Browser verification screenshots
+scripts/shots/
+
 # Test/coverage
 coverage/
 .nyc_output/

@@ -219,7 +219,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
           className="mt-2 group inline-flex items-baseline gap-3 active:scale-[.97] transition"
           aria-label="copy room code"
         >
-          <span className="font-mono font-bold text-6xl tracking-[0.2em] text-accent">{publicState.roomCode}</span>
+          <span data-testid="room-code" className="font-mono font-bold text-6xl tracking-[0.2em] text-accent">{publicState.roomCode}</span>
           <span className="text-paper/30 text-sm group-hover:text-paper/60 font-mono">press to copy</span>
         </button>
       </div>
@@ -266,7 +266,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
               >
                 &#8722;
               </button>
-              <span className="w-6 text-center font-bold text-lg tabular-nums">{rounds}</span>
+              <span data-testid="rounds-value" className="w-6 text-center font-bold text-lg tabular-nums">{rounds}</span>
               <button
                 type="button"
                 aria-label="More rounds"
@@ -279,7 +279,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
               </button>
             </div>
           ) : (
-            <span className="chip bg-accent/20 text-accent">{rounds}</span>
+            <span data-testid="rounds-chip" className="chip bg-accent/20 text-accent">{rounds}</span>
           )}
         </div>
         {isHost ? (
