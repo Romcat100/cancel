@@ -119,3 +119,16 @@ It activates automatically when the `RENDER_EXTERNAL_URL` env var is set (Render
 - `PUBLIC_URL` — alternative to `RENDER_EXTERNAL_URL` if you're hosting elsewhere.
 
 Once the last active room ends or is archived, the pings stop and Render is free to spin the instance down.
+
+### Durable persistence (optional)
+
+Room state lives in local SQLite, and on Render's free tier the filesystem is ephemeral: a cold start, redeploy, or platform restart wipes it. The keep-alive above only delays a spin-down, it doesn't survive a redeploy. To make async games genuinely durable, point the app at a free [Upstash](https://upstash.com) Redis database via two env vars:
+
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
+
+Setup (one-time, ~10 min): create a free Upstash account, click **Create database**, open it, and copy the **REST API** URL + token into Render's Environment tab (and into a local `.env` if you want to test it locally — see `.env.example`).
+
+How it works: SQLite stays the synchronous source of truth for every request. On each save the room and its seats are mirrored to Upstash in the background (fire-and-forget, so a KV hiccup can never slow or break gameplay), and on boot the server reads them back once to rehydrate. Rooms refresh a 7-day TTL on every save, so abandoned rooms self-expire while live ones stay alive.
+
+**Without these vars set, the app runs exactly as before** (local SQLite only) — they're purely additive, so it's safe to deploy first and enable later.

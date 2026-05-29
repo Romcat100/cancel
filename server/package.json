@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@upstash/redis": "^1.38.0",
     "better-sqlite3": "^12.10.0",
     "express": "^4.21.0",
     "socket.io": "^4.8.0",

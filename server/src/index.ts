@@ -6,7 +6,8 @@ import fs from "node:fs";
 import os from "node:os";
 import { Server as SocketServer } from "socket.io";
 import { getDb } from "./db.js";
-import { countActiveGames, gcAbandoned } from "./rooms.js";
+import { countActiveGames, gcAbandoned, restoreRoom, restorePlayer } from "./rooms.js";
+import { hydrateActiveRooms } from "./kv.js";
 import {
   attachSocketHandlers,
   apiCreateRoom,
@@ -102,13 +103,31 @@ function lanUrl() {
   return null;
 }
 
-server.listen(PORT, () => {
-  console.log(`Cancel server listening on http://localhost:${PORT}`);
-  const lan = lanUrl();
-  if (lan) console.log(`LAN access: ${lan}`);
-  startKeepAlive();
-  startRoomGc();
-});
+// Read the durable KV exactly once, before accepting traffic, so a cold-started instance comes
+// back with all active rooms and seats. No-op (returns empty) when KV is unconfigured.
+async function hydrateFromKv() {
+  try {
+    const { rooms, players } = await hydrateActiveRooms();
+    for (const doc of rooms) restoreRoom(doc);
+    for (const p of players) restorePlayer(p);
+    if (rooms.length > 0) console.log(`[kv] hydrated ${rooms.length} room(s), ${players.length} player(s) from durable store`);
+  } catch (e) {
+    console.warn(`[kv] boot hydrate failed, continuing with local state only: ${(e as Error).message}`);
+  }
+}
+
+async function bootstrap() {
+  await hydrateFromKv();
+  server.listen(PORT, () => {
+    console.log(`Cancel server listening on http://localhost:${PORT}`);
+    const lan = lanUrl();
+    if (lan) console.log(`LAN access: ${lan}`);
+    startKeepAlive();
+    startRoomGc();
+  });
+}
+
+void bootstrap();
 
 // Render's free tier spins down after ~15 min of no inbound traffic. While async
 // games are still in progress, ping our own public URL on a slow interval so the

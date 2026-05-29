@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { getDb } from "./db.js";
+import * as kv from "./kv.js";
 import type { RoomDoc } from "./game/engine.js";
 
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRTUVWXYZ23456789";
@@ -33,6 +34,20 @@ export function saveRoom(room: RoomDoc): void {
      VALUES (?, ?, 'active', ?, ?)
      ON CONFLICT(code) DO UPDATE SET state = excluded.state, updated_at = excluded.updated_at, status = excluded.status`,
   ).run(room.code, JSON.stringify(room), room.createdAt, room.updatedAt);
+  // Fire-and-forget mirror to the durable KV (no-op when unconfigured). Never awaited so it
+  // can't slow or break the live path.
+  void kv.mirrorRoom(room);
+}
+
+// Raw upsert of a room blob restored from KV at boot: does NOT bump rev (the durable rev is
+// authoritative) and does NOT re-mirror to KV (avoids a hydrate→mirror loop).
+export function restoreRoom(room: RoomDoc): void {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO rooms (code, state, status, created_at, updated_at)
+     VALUES (?, ?, 'active', ?, ?)
+     ON CONFLICT(code) DO UPDATE SET state = excluded.state, updated_at = excluded.updated_at, status = excluded.status`,
+  ).run(room.code, JSON.stringify(room), room.createdAt, room.updatedAt);
 }
 
 export function loadRoom(code: string): RoomDoc | null {
@@ -51,6 +66,7 @@ export function loadRoom(code: string): RoomDoc | null {
 export function archiveRoom(code: string, status: "complete" | "archived" = "complete"): void {
   const db = getDb();
   db.prepare("UPDATE rooms SET status = ?, updated_at = ? WHERE code = ?").run(status, Date.now(), code);
+  void kv.dropRoom(code);
 }
 
 export interface PlayerRow {
@@ -66,6 +82,18 @@ export function recordPlayer(p: { id: string; roomCode: string; name: string; se
   db.prepare(
     `INSERT INTO players (id, room_code, name, seat, claim_token, created_at)
      VALUES (?, ?, ?, ?, ?, ?)`,
+  ).run(p.id, p.roomCode, p.name, p.seat, p.claimToken, Date.now());
+  void kv.mirrorPlayer({ id: p.id, roomCode: p.roomCode, name: p.name, seat: p.seat, claimToken: p.claimToken });
+}
+
+// Restore a player seat from KV at boot. Tolerates conflicts (idempotent re-hydrate) and does
+// NOT re-mirror to KV. Rooms must be restored first — the FK references rooms(code).
+export function restorePlayer(p: PlayerRow): void {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO players (id, room_code, name, seat, claim_token, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT DO NOTHING`,
   ).run(p.id, p.roomCode, p.name, p.seat, p.claimToken, Date.now());
 }
 
