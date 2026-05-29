@@ -1,13 +1,17 @@
-# Optional Render Blueprint. The service is currently configured via the Render dashboard, so
-# this file is inert unless you adopt Blueprints. It documents the durable-persistence secrets:
-# both are sync:false so Render prompts for the values instead of committing them to the repo.
+# Render Blueprint, matched to the existing "cancel" web service (srv-d7n3qvi8qa3s73a12f70,
+# Oregon, deploys from main). Adopting this links that service rather than creating a duplicate
+# (Render matches by name). The two Upstash secrets are sync:false so Render prompts for the
+# values instead of committing them to the repo.
 services:
   - type: web
     name: cancel
     runtime: node
     plan: free
+    region: oregon
+    branch: main
     buildCommand: npm install && npm run build
     startCommand: npm start
+    healthCheckPath: /api/health
     envVars:
       - key: UPSTASH_REDIS_REST_URL
         sync: false
