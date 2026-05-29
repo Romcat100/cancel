@@ -439,6 +439,79 @@ describe("scoreTurn — power-ups", () => {
   });
 });
 
+describe("scoreTurn — Jinx", () => {
+  it("Jinx pays the user's card value +2 for matching one opponent; the opponent still wipes", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 5, powerUp: "jinx" },
+      { playerId: "B", number: 5 },
+      { playerId: "C", number: 3 },
+    ]);
+    // A matches B on 5: scores 5 + 2 = 7. B is tied → wiped. C unique.
+    expect(points(r)).toEqual({ A: 7, B: 0, C: 3 });
+  });
+
+  it("Jinx pays +2 for each matching opponent", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 5, powerUp: "jinx" },
+      { playerId: "B", number: 5 },
+      { playerId: "C", number: 5 },
+      { playerId: "D", number: 2 },
+    ]);
+    // A matches two 5s: 5 + 2 + 2 = 9. B and C tied → wiped. D unique.
+    expect(points(r)).toEqual({ A: 9, B: 0, C: 0, D: 2 });
+  });
+
+  it("Jinx with no match scores the card normally (no penalty)", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 5, powerUp: "jinx" },
+      { playerId: "B", number: 4 },
+      { playerId: "C", number: 3 },
+    ]);
+    expect(points(r)).toEqual({ A: 5, B: 4, C: 3 });
+  });
+
+  it("Jinx does not protect from another player's lone 0, even when the user matched someone", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 5, powerUp: "jinx" },
+      { playerId: "B", number: 5 },
+      { playerId: "C", number: 0 },
+    ]);
+    // A matched B on 5, but C's lone 0 cancels the whole board (mirrors Tie Die).
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
+  });
+
+  it("Jinx on a 0 cashes in +2 for a matching 0 instead of mutual suppression", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 0, powerUp: "jinx" },
+      { playerId: "B", number: 0 },
+      { playerId: "C", number: 5 },
+    ]);
+    // Two 0s normally suppress each other (C would score 5). A's Jinx matches B's 0:
+    // scoreValue 0 + 2 = 2. B suppressed → 0. C still scores its unique 5.
+    expect(points(r)).toEqual({ A: 2, B: 0, C: 5 });
+  });
+
+  it("Jinx on a 0 scales +2 per matching 0", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 0, powerUp: "jinx" },
+      { playerId: "B", number: 0 },
+      { playerId: "C", number: 0 },
+      { playerId: "D", number: 7 },
+    ]);
+    // A matches two other 0s: 0 + 4 = 4. B and C suppressed → 0. D unique.
+    expect(points(r)).toEqual({ A: 4, B: 0, C: 0, D: 7 });
+  });
+
+  it("Jinx as the lone 0 just cancels everyone (no match, no bonus)", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 0, powerUp: "jinx" },
+      { playerId: "B", number: 5 },
+      { playerId: "C", number: 3 },
+    ]);
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
+  });
+});
+
 describe("scoreTurn — combinations", () => {
   it("Double × Negate cancels out (negative doubled)", () => {
     // Only one power-up plays per turn, so this is impossible — sanity check Negate alone.

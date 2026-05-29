@@ -31,6 +31,7 @@ export function scoreTurn(plays: PlayInput[]): ScoreResult {
   const reverseActive = powerUp === "reverse";
   const drainUserId = powerUp === "drain" ? powerUserId : undefined;
   const drainTargetId = powerUp === "drain" ? powerTarget : undefined;
+  const jinxUserId = powerUp === "jinx" ? powerUserId : undefined;
   const maxCard = plays.length + 1; // handSize - 1 (handSize = playerCount + 2)
 
   type Eff = {
@@ -109,8 +110,16 @@ export function scoreTurn(plays: PlayInput[]): ScoreResult {
           : "Played 0 (cancelled all others)",
       );
     } else if (e.isCancel && !cancelActive) {
-      delta = 0;
-      notes.push("Played 0 (multiple zeros — cancel suppressed)");
+      if (e.playerId === jinxUserId) {
+        // Jinx baited a matching 0: 0s normally suppress each other, but a Jinx
+        // user instead cashes in +2 per other 0 (its scoreValue of 0 stays).
+        const matches = (faceCount.get(e.face) ?? 1) - 1;
+        delta = e.scoreValue + 2 * matches;
+        notes.push(`Jinx: matched ${matches} → +${2 * matches}`);
+      } else {
+        delta = 0;
+        notes.push("Played 0 (multiple zeros — cancel suppressed)");
+      }
     } else if (cancelActive) {
       delta = 0;
       notes.push("Cancelled by 0");
@@ -120,6 +129,12 @@ export function scoreTurn(plays: PlayInput[]): ScoreResult {
         if (powerUp === "tie_die" && e.playerId === powerUserId) {
           delta = e.scoreValue;
           notes.push(`Tie Die: scored ${e.scoreValue} despite tie on ${e.face}`);
+        } else if (e.playerId === jinxUserId) {
+          // Matching is normally a wipe; Jinx flips it into the user's card value
+          // plus +2 for every opponent sharing the face. The opponents still tie out.
+          const matches = (faceCount.get(e.face) ?? 1) - 1;
+          delta = e.scoreValue + 2 * matches;
+          notes.push(`Jinx: matched ${matches} on ${e.face} → ${e.scoreValue} +${2 * matches}`);
         } else {
           delta = 0;
           if (e.face === 3 && phantomThreeIsContested) {

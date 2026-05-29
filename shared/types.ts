@@ -13,6 +13,7 @@ export type PowerUpId =
   | "sabotage"
   | "reverse"
   | "drain"
+  | "jinx"
   | "wild"
   | "nothingburger";
 
@@ -208,6 +209,13 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
     name: "Drain",
     description: "(Opponents) Choose another player. Your card's face value goes up by 1 and theirs goes down by 1 for this turn.",
     needsTarget: true,
+  },
+  jinx: {
+    id: "jinx",
+    name: "Jinx",
+    description:
+      "(Just you) Tying pays off instead of wiping you out. Each opponent who plays your number adds +2 to your score, on top of your card's value. If nobody ties, your card just scores as normal.",
+    needsTarget: false,
   },
   wild: {
     id: "wild",

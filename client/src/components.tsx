@@ -79,6 +79,7 @@ const POWER_VISUAL: Record<PowerUpId, { abbr: string; bg: string; text: string }
   sabotage: { abbr: "✖", bg: "bg-rose-600", text: "text-paper" },
   reverse: { abbr: "⇋", bg: "bg-indigo-400", text: "text-ink" },
   drain: { abbr: "↧", bg: "bg-amber-500", text: "text-ink" },
+  jinx: { abbr: "=", bg: "bg-pink-400", text: "text-ink" },
   wild: { abbr: "?", bg: "bg-violet-400", text: "text-ink" },
   nothingburger: { abbr: "∅", bg: "bg-paper/20", text: "text-paper/70" },
 };
