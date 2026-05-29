@@ -40,7 +40,7 @@ export function GameEnd({ onLeave }: { onLeave: () => void }) {
       </div>
       <div className="text-center mb-6 animate-rise shrink-0">
         <div className="font-mono text-xs uppercase tracking-[0.3em] text-paper/50">Game over</div>
-        <div className="font-display text-5xl font-bold mt-2">
+        <div className="font-display text-5xl font-bold mt-2" data-testid="game-end-winner">
           {isTie ? (
             selfIsLeader ? (
               <>
@@ -83,7 +83,7 @@ export function GameEnd({ onLeave }: { onLeave: () => void }) {
 
       <div className="flex flex-col gap-3 mt-4 shrink-0">
         {isHost ? (
-          <button className="btn-primary text-xl py-5" disabled={busy} onClick={playAgain} data-sfx="confirm">
+          <button className="btn-primary text-xl py-5" disabled={busy} onClick={playAgain} data-sfx="confirm" data-testid="game-end-play-again">
             {busy ? "Restarting…" : "Play again"}
           </button>
         ) : (
@@ -92,9 +92,9 @@ export function GameEnd({ onLeave }: { onLeave: () => void }) {
           </div>
         )}
         {err && (
-          <div className="rounded-2xl bg-accent/15 border border-accent/40 text-accent px-4 py-3 text-sm">{err}</div>
+          <div className="rounded-2xl bg-accent/15 border border-accent/40 text-accent px-4 py-3 text-sm" data-testid="game-end-error">{err}</div>
         )}
-        <button className="btn-ghost text-sm py-3" onClick={onLeave}>
+        <button className="btn-ghost text-sm py-3" onClick={onLeave} data-testid="game-end-leave">
           Leave room
         </button>
       </div>

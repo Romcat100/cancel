@@ -213,23 +213,24 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
     <div className="min-h-[100dvh] flex flex-col px-4 pt-4 pb-6 max-w-md mx-auto relative">
       <header className="flex items-center justify-between mb-3 gap-2">
         <div className="flex items-baseline gap-3">
-          <span className="font-mono font-bold text-paper">
+          <span className="font-mono font-bold text-paper" data-testid="game-round">
             R{round.index + 1}
             <span className="text-paper/30">/{publicState.config.rounds}</span>
           </span>
           <span className="text-paper/30 font-mono">·</span>
-          <span className="font-mono font-bold text-paper/70">
+          <span className="font-mono font-bold text-paper/70" data-testid="game-turn">
             T{Math.min(publicState.currentTurnIndex, handSize - 1) + 1}
             <span className="text-paper/30">/{handSize}</span>
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="font-mono text-paper/60 text-sm tracking-widest">{publicState.roomCode}</span>
+          <span className="font-mono text-paper/60 text-sm tracking-widest" data-testid="game-room-code">{publicState.roomCode}</span>
           <MusicToggle compact />
           <button
             onClick={() => setShowRules(true)}
             className="text-[10px] uppercase tracking-widest font-mono text-paper/50 hover:text-paper border border-paper/15 hover:border-paper/40 rounded-lg px-2 py-1 transition"
             title="How to play"
+            data-testid="game-rules"
           >
             Rules
           </button>
@@ -238,6 +239,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
               onClick={leave}
               className="text-[10px] uppercase tracking-widest font-mono text-paper/50 hover:text-paper border border-paper/15 hover:border-paper/40 rounded-lg px-2 py-1 transition"
               title="The game continues; you can rejoin from this device"
+              data-testid="game-leave"
             >
               Leave
             </button>
@@ -248,6 +250,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
               disabled={busy}
               className="text-[10px] uppercase tracking-widest font-mono text-paper/50 hover:text-accent border border-paper/15 hover:border-accent/50 rounded-lg px-2 py-1 transition"
               title="End the game for everyone"
+              data-testid="game-end-game"
             >
               End game
             </button>
@@ -261,7 +264,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
       <div className="mt-4 mb-3">
         <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] font-mono text-paper/50 mb-2">
           <span>Power-ups remaining</span>
-          <span>
+          <span data-testid="game-pool-remaining">
             {round.poolRemaining.length} / {round.poolFull.length}
           </span>
         </div>
@@ -291,7 +294,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
           );
         })()}
         {previewingPower && (
-          <div className="mt-2">
+          <div className="mt-2" data-testid="game-power-description">
             <PowerDescription id={previewingPower} />
           </div>
         )}
@@ -325,20 +328,21 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
               onClick={p.id === selfPlayerId ? undefined : () => emitPing(p.id)}
               pingKind={ping?.kind ?? null}
               pingNonce={ping?.nonce}
+              testId={`game-player-${p.seat}`}
             />
           );
         })}
       </div>
 
       {isPeekReview && privateState.peekReveal && (
-        <div className="rounded-2xl bg-cyan-400/15 border border-cyan-400/40 px-4 py-3 text-cyan-200 text-sm font-mono mb-3 animate-rise">
+        <div className="rounded-2xl bg-cyan-400/15 border border-cyan-400/40 px-4 py-3 text-cyan-200 text-sm font-mono mb-3 animate-rise" data-testid="game-peek-review">
           ◎ {playerById.get(privateState.peekReveal.targetPlayerId)?.name} played a{" "}
           <span className="font-bold text-cyan-50 text-base">{privateState.peekReveal.revealedNumber}</span>.
           You first chose <span className="text-paper">{privateState.peekReveal.originalNumber}</span> — pick again now.
         </div>
       )}
       {blockedByPeek && (
-        <div className="rounded-2xl bg-cyan-400/10 border border-cyan-400/30 px-4 py-3 text-cyan-200 text-sm font-mono mb-3 animate-rise">
+        <div className="rounded-2xl bg-cyan-400/10 border border-cyan-400/30 px-4 py-3 text-cyan-200 text-sm font-mono mb-3 animate-rise" data-testid="game-peek-blocked">
           ◎ Peek played. Waiting for {playerById.get(publicState.currentPickerId ?? "")?.name ?? "the picker"} to choose
           again…
         </div>
@@ -362,6 +366,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
                     setPowerTarget(p.id);
                     setSabotageNumber(null);
                   }}
+                  data-testid={`game-target-${p.seat}`}
                 >
                   {p.name}
                 </button>
@@ -395,6 +400,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
                       size="sm"
                       state={sabotageNumber === n ? "selected" : "idle"}
                       onClick={() => setSabotageNumber(n === sabotageNumber ? null : n)}
+                      testId={`game-sabotage-${n}`}
                     />
                   ))}
                 </div>
@@ -409,7 +415,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
         <div className="flex flex-wrap gap-2 justify-center">
           {fullHand.map((n) => {
             const inHand = privateState.hand.includes(n);
-            if (!inHand) return <NumberCard key={n} n={n} state="ghost" />;
+            if (!inHand) return <NumberCard key={n} n={n} state="ghost" testId={`game-hand-card-${n}`} />;
             return (
               <NumberCard
                 key={n}
@@ -420,12 +426,13 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
                     ? undefined
                     : () => setSelectedNumber(n === selectedNumber ? null : n)
                 }
+                testId={`game-hand-card-${n}`}
               />
             );
           })}
         </div>
         {err && (
-          <div className="mt-3 rounded-2xl bg-accent/15 border border-accent/40 text-accent px-4 py-2 text-sm">
+          <div className="mt-3 rounded-2xl bg-accent/15 border border-accent/40 text-accent px-4 py-2 text-sm" data-testid="game-error">
             {err}
           </div>
         )}
@@ -435,6 +442,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
             disabled={busy}
             onClick={unlock}
             data-sfx="confirm"
+            data-testid="game-unlock"
           >
             {busy ? "Unlocking…" : "Locked in — press to unlock"}
           </button>
@@ -444,6 +452,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
             disabled={!canSubmit || busy}
             onClick={submit}
             data-sfx="confirm"
+            data-testid="game-submit"
           >
             {phase === "turn_peek_review" && !isPeekReview
               ? "Waiting on the peeker…"
@@ -508,6 +517,7 @@ function Scoreboard({
       {players.map((p) => (
         <div
           key={p.id}
+          data-testid={`game-score-${p.seat}`}
           className={`rounded-2xl px-3 py-2 flex items-center justify-between ${
             p.id === selfId ? "bg-paper/15" : "bg-paper/5"
           }`}
@@ -555,6 +565,7 @@ function Pool({
               selected={highlighted === p}
               showName={nameFor === p}
               onClick={() => onSelect(p)}
+              testId={`game-pool-chip-${p}`}
             />
           ))}
         </div>
@@ -570,7 +581,7 @@ function Pool({
       <div className="flex flex-wrap gap-2 justify-center">
         {ordered.map((p) => (
           <div key={p} className="relative">
-            <PowerUpCard id={p} state={highlighted === p ? "selected" : "idle"} onClick={() => onSelect(p)} />
+            <PowerUpCard id={p} state={highlighted === p ? "selected" : "idle"} onClick={() => onSelect(p)} testId={`game-pool-card-${p}`} />
             {(counts.get(p) ?? 0) > 1 && (
               <span className="absolute -top-1 -right-1 bg-paper text-ink text-[10px] font-bold rounded-full px-1.5 py-0.5">
                 ×{counts.get(p)}
@@ -594,7 +605,7 @@ function PoolPreview({
 }) {
   const [tapped, setTapped] = useState<PowerUpId | null>(null);
   return (
-    <div className="fixed inset-0 z-50 bg-ink/95 backdrop-blur-md flex flex-col items-center justify-center p-4 animate-rise overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-ink/95 backdrop-blur-md flex flex-col items-center justify-center p-4 animate-rise overflow-y-auto" data-testid="pool-preview-modal">
       <div className="text-center mb-4">
         <div className="font-mono text-xs uppercase tracking-[0.3em] text-paper/50">Round {roundIndex + 1}</div>
         <div className="font-display text-3xl font-bold text-gold mt-2">This round's powers</div>
@@ -607,6 +618,7 @@ function PoolPreview({
             id={p}
             state={tapped === p ? "selected" : "idle"}
             onClick={() => setTapped(tapped === p ? null : p)}
+            testId={`pool-preview-card-${i}`}
           />
         ))}
       </div>
@@ -615,7 +627,7 @@ function PoolPreview({
           <PowerDescription id={tapped} />
         </div>
       )}
-      <button className="btn-primary mt-6 px-8 py-4 text-lg" onClick={onDismiss} data-sfx="confirm">
+      <button className="btn-primary mt-6 px-8 py-4 text-lg" onClick={onDismiss} data-sfx="confirm" data-testid="pool-preview-play">
         Let's play
       </button>
     </div>
@@ -651,9 +663,9 @@ function RevealView({
     return sa - sb;
   });
   return (
-    <div className="fixed inset-0 z-40 bg-ink/95 backdrop-blur-md overflow-y-auto">
+    <div className="fixed inset-0 z-40 bg-ink/95 backdrop-blur-md overflow-y-auto" data-testid="reveal-modal">
       <div className="min-h-full flex flex-col items-center justify-center p-4">
-      <div className="font-mono text-xs uppercase tracking-[0.3em] text-paper/50 mb-3">
+      <div className="font-mono text-xs uppercase tracking-[0.3em] text-paper/50 mb-3" data-testid="reveal-turn">
         Turn {reveal.turnIndex + 1} reveal
       </div>
       {power?.powerUp && (
@@ -697,12 +709,13 @@ function RevealView({
           return (
             <div
               key={s.playerId}
+              data-testid={`reveal-sub-${player.seat}`}
               className="flex flex-col items-center gap-1"
               style={{ animationDelay: `${i * 80}ms` }}
             >
               <div className="text-[10px] font-mono uppercase tracking-widest text-paper/50">{player.name}</div>
               <div className={phase === "flip" ? "animate-flip" : ""}>
-                <NumberCard n={s.number} state="played" />
+                <NumberCard n={s.number} state="played" testId={`reveal-card-${player.seat}`} />
               </div>
               {(() => {
                 const delta = score?.delta ?? 0;
@@ -762,7 +775,7 @@ function RevealView({
           )}
         </div>
       )}
-      <button className="btn-primary mt-6 px-8 py-3" onClick={onClose} data-sfx="confirm">
+      <button className="btn-primary mt-6 px-8 py-3" onClick={onClose} data-sfx="confirm" data-testid="reveal-continue">
         Continue
       </button>
       </div>
@@ -798,12 +811,12 @@ function RoundEnd({
   );
   const isLast = roundIndex + 1 >= totalRounds;
   return (
-    <div className="fixed inset-0 z-50 bg-ink/95 backdrop-blur-md flex flex-col items-center justify-start p-6 overflow-y-auto animate-rise">
+    <div className="fixed inset-0 z-50 bg-ink/95 backdrop-blur-md flex flex-col items-center justify-start p-6 overflow-y-auto animate-rise" data-testid="round-end-modal">
       <div className="text-center mb-4 mt-4">
         <div className="font-mono text-xs uppercase tracking-[0.3em] text-paper/50">
           Round {roundIndex + 1} / {totalRounds} complete
         </div>
-        <div className="font-display text-4xl font-bold text-paper mt-2">
+        <div className="font-display text-4xl font-bold text-paper mt-2" data-testid="round-end-title">
           {isLast ? "Final tally" : "Round results"}
         </div>
       </div>
@@ -817,13 +830,14 @@ function RoundEnd({
       </div>
 
       <div className="w-full max-w-sm mt-6">
-        <div className="text-xs font-mono uppercase tracking-widest text-paper/50 mb-2 text-center">
+        <div className="text-xs font-mono uppercase tracking-widest text-paper/50 mb-2 text-center" data-testid="round-end-ready">
           {acks.length} of {players.length} ready
         </div>
         <div className="flex flex-wrap gap-2 justify-center mb-4">
           {players.map((p) => (
             <span
               key={p.id}
+              data-testid={`round-end-ready-${p.seat}`}
               className={`text-xs px-3 py-1 rounded-full font-mono ${
                 acks.includes(p.id)
                   ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
@@ -839,6 +853,7 @@ function RoundEnd({
           disabled={alreadyAcked || busy}
           onClick={onAck}
           data-sfx="confirm"
+          data-testid="round-end-ack"
         >
           {alreadyAcked ? "Ready — waiting for others" : busy ? "…" : isLast ? "See the winner" : "Next round"}
         </button>

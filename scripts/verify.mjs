@@ -116,6 +116,15 @@ async function clickByAria(page, label) {
   if (!clicked) throw new Error(`no element with aria-label: ${label}`);
 }
 
+// Stable testid selector helper. Prefer this over clickByText for anything the
+// app exposes a data-testid for — copy tweaks then can't break the flow.
+const tid = (id) => `[data-testid="${id}"]`;
+
+async function clickTestId(page, id) {
+  await page.waitForSelector(tid(id), { timeout: 10_000 });
+  await page.click(tid(id));
+}
+
 async function typeInto(page, selector, value) {
   await page.waitForSelector(selector, { timeout: 10_000 });
   await page.click(selector, { clickCount: 3 });
@@ -147,13 +156,13 @@ async function newPlayer(browser, name) {
 async function setRounds(page, target) {
   for (let guard = 0; guard < 12; guard++) {
     const cur = Number(
-      await page.$eval('[data-testid="rounds-value"]', (e) => e.textContent.trim()),
+      await page.$eval('[data-testid="lobby-rounds-value"]', (e) => e.textContent.trim()),
     );
     if (cur === target) return;
     const want = cur < target ? cur + 1 : cur - 1;
-    await clickByAria(page, cur < target ? "More rounds" : "Fewer rounds");
+    await clickTestId(page, cur < target ? "lobby-rounds-plus" : "lobby-rounds-minus");
     await page.waitForFunction(
-      (v) => document.querySelector('[data-testid="rounds-value"]')?.textContent.trim() === String(v),
+      (v) => document.querySelector('[data-testid="lobby-rounds-value"]')?.textContent.trim() === String(v),
       { timeout: 10_000 },
       want,
     );
@@ -164,7 +173,7 @@ async function setRounds(page, target) {
 // Wait for the non-host read-only chip to show a specific value (broadcast).
 async function waitForRoundsChip(page, n) {
   await page.waitForFunction(
-    (v) => document.querySelector('[data-testid="rounds-chip"]')?.textContent.trim() === String(v),
+    (v) => document.querySelector('[data-testid="lobby-rounds-chip"]')?.textContent.trim() === String(v),
     { timeout: 10_000 },
     n,
   );
@@ -177,30 +186,27 @@ async function lobbyRoundsFlow(browser) {
   // Host creates a room.
   const host = await newPlayer(browser, "Host");
   await waitForText(host, "CANCEL");
-  await clickByText(host, "New game");
-  await typeInto(host, "input", "Host");
-  await clickByText(host, "Create room");
+  await clickTestId(host, "home-new-game");
+  await typeInto(host, tid("home-name-input"), "Host");
+  await clickTestId(host, "home-create-room");
   await waitForText(host, "Rounds");
-  const code = await host.$eval('[data-testid="room-code"]', (el) => el.innerText.trim());
+  const code = await host.$eval(tid("lobby-room-code"), (el) => el.innerText.trim());
   console.log(`[verify] room code: ${code}`);
   await shot(host, "host-lobby-default"); // expect Rounds = 3
 
   // Host bumps rounds to the max; + must disable at 5.
   await setRounds(host, 5);
-  const plusDisabled = await host.$eval('[aria-label="More rounds"]', (b) => b.disabled);
+  const plusDisabled = await host.$eval(tid("lobby-rounds-plus"), (b) => b.disabled);
   console.log(`[verify] at rounds=5, "+" disabled = ${plusDisabled}`);
   await shot(host, "host-rounds-5-max");
 
   // Joiner joins the room; sees a read-only chip mirroring the host's 5.
   const joiner = await newPlayer(browser, "Joiner");
   await waitForText(joiner, "CANCEL");
-  await clickByText(joiner, "Join with code");
-  const inputs = await joiner.$$("input");
-  await inputs[0].click({ clickCount: 3 });
-  await inputs[0].type(code);
-  await inputs[1].click({ clickCount: 3 });
-  await inputs[1].type("Joiner");
-  await clickByText(joiner, "Join");
+  await clickTestId(joiner, "home-join-with-code");
+  await typeInto(joiner, tid("home-code-input"), code);
+  await typeInto(joiner, tid("home-name-input"), "Joiner");
+  await clickTestId(joiner, "home-join");
   await waitForRoundsChip(joiner, 5);
   await shot(joiner, "joiner-rounds-5");
 
@@ -212,8 +218,8 @@ async function lobbyRoundsFlow(browser) {
 
   // Host starts the 2-round game. The room-code element only exists in the
   // lobby, so its disappearance is a reliable "we're in-game" signal.
-  await clickByText(host, "Start game");
-  await host.waitForFunction(() => !document.querySelector('[data-testid="room-code"]'), {
+  await clickTestId(host, "lobby-start-game");
+  await host.waitForFunction(() => !document.querySelector('[data-testid="lobby-room-code"]'), {
     timeout: 10_000,
   });
   await shot(host, "host-game");

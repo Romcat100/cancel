@@ -201,12 +201,12 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
   return (
     <div className="min-h-[100dvh] flex flex-col px-6 pt-10 pb-8 max-w-md mx-auto">
       <div className="flex items-center justify-between mb-4">
-        <button className="btn-ghost text-xs px-3 py-2" onClick={onLeave}>
+        <button className="btn-ghost text-xs px-3 py-2" onClick={onLeave} data-testid="lobby-leave">
           ← Leave
         </button>
         <div className="flex items-center gap-2">
           <MusicToggle />
-          <button className="btn-ghost text-xs px-3 py-2" onClick={() => setShowRules(true)}>
+          <button className="btn-ghost text-xs px-3 py-2" onClick={() => setShowRules(true)} data-testid="lobby-rules">
             Rules
           </button>
         </div>
@@ -219,7 +219,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
           className="mt-2 group inline-flex items-baseline gap-3 active:scale-[.97] transition"
           aria-label="copy room code"
         >
-          <span data-testid="room-code" className="font-mono font-bold text-6xl tracking-[0.2em] text-accent">{publicState.roomCode}</span>
+          <span data-testid="lobby-room-code" className="font-mono font-bold text-6xl tracking-[0.2em] text-accent">{publicState.roomCode}</span>
           <span className="text-paper/30 text-sm group-hover:text-paper/60 font-mono">press to copy</span>
         </button>
       </div>
@@ -231,6 +231,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
         {publicState.players.map((p) => (
           <div
             key={p.id}
+            data-testid={`lobby-player-${p.seat}`}
             className="flex items-center gap-3 rounded-2xl bg-paper/5 px-3 py-2 animate-rise"
           >
             <div
@@ -263,10 +264,11 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
                 disabled={rounds <= 1}
                 className="w-9 h-9 rounded-lg bg-paper/10 text-paper font-bold text-lg leading-none transition hover:bg-paper/20 disabled:opacity-30 disabled:hover:bg-paper/10"
                 data-sfx="tap"
+                data-testid="lobby-rounds-minus"
               >
                 &#8722;
               </button>
-              <span data-testid="rounds-value" className="w-6 text-center font-bold text-lg tabular-nums">{rounds}</span>
+              <span data-testid="lobby-rounds-value" className="w-6 text-center font-bold text-lg tabular-nums">{rounds}</span>
               <button
                 type="button"
                 aria-label="More rounds"
@@ -274,12 +276,13 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
                 disabled={rounds >= 5}
                 className="w-9 h-9 rounded-lg bg-paper/10 text-paper font-bold text-lg leading-none transition hover:bg-paper/20 disabled:opacity-30 disabled:hover:bg-paper/10"
                 data-sfx="tap"
+                data-testid="lobby-rounds-plus"
               >
                 +
               </button>
             </div>
           ) : (
-            <span data-testid="rounds-chip" className="chip bg-accent/20 text-accent">{rounds}</span>
+            <span data-testid="lobby-rounds-chip" className="chip bg-accent/20 text-accent">{rounds}</span>
           )}
         </div>
         {isHost ? (
@@ -300,6 +303,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
                         : "text-paper/70 hover:text-paper"
                     }`}
                     data-sfx="tap"
+                    data-testid={`lobby-powerup-${mode}`}
                   >
                     {label}
                   </button>
@@ -313,6 +317,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
                   onClick={() => setShowPowerModal(true)}
                   className="btn-ghost text-sm py-2.5 flex items-center justify-between"
                   data-sfx="tap"
+                  data-testid="lobby-select-powers"
                 >
                   <span>Select powers</span>
                   <span className="font-mono text-paper/70">{usableSelected.length} chosen →</span>
@@ -335,7 +340,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
               <span className="font-bold text-sm">Power-ups</span>
               <span className="text-paper/50 text-xs font-mono">{modeText}</span>
             </div>
-            <span className="chip bg-accent/20 text-accent">{modeChip}</span>
+            <span data-testid="lobby-powerup-chip" className="chip bg-accent/20 text-accent">{modeChip}</span>
           </div>
         )}
 
@@ -357,6 +362,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
                         : "text-paper/70 hover:text-paper"
                     }`}
                     data-sfx="tap"
+                    data-testid={`lobby-number-${mode}`}
                   >
                     {label}
                   </button>
@@ -370,6 +376,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
                   onClick={() => setShowNumberModal(true)}
                   className="btn-ghost text-sm py-2.5 flex items-center justify-between"
                   data-sfx="tap"
+                  data-testid="lobby-select-numbers"
                 >
                   <span>Select numbers</span>
                   <span className="font-mono text-paper/70">
@@ -394,7 +401,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
               <span className="font-bold text-sm">Number pool</span>
               <span className="text-paper/50 text-xs font-mono">{numberModeText}</span>
             </div>
-            <span className="chip bg-accent/20 text-accent">{numberMode === "custom" ? "custom" : "default"}</span>
+            <span data-testid="lobby-number-chip" className="chip bg-accent/20 text-accent">{numberMode === "custom" ? "custom" : "default"}</span>
           </div>
         )}
 
@@ -414,13 +421,14 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
               className={`relative w-12 h-7 rounded-full transition shrink-0 ${
                 showHandsOn ? "bg-accent" : "bg-paper/20"
               }`}
+              data-testid="lobby-show-hands-toggle"
             >
               <span
                 className={`absolute top-0.5 ${showHandsOn ? "left-[22px]" : "left-0.5"} w-6 h-6 rounded-full bg-paper transition-all`}
               />
             </button>
           ) : (
-            <span className={`chip ${showHandsOn ? "bg-accent/20 text-accent" : "bg-paper/15 text-paper/60"}`}>
+            <span data-testid="lobby-show-hands-chip" className={`chip ${showHandsOn ? "bg-accent/20 text-accent" : "bg-paper/15 text-paper/60"}`}>
               {showHandsOn ? "on" : "off"}
             </span>
           )}
@@ -432,6 +440,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
               disabled={busy || !canStart}
               onClick={start}
               data-sfx="confirm"
+              data-testid="lobby-start-game"
             >
               {startLabel}
             </button>
@@ -445,7 +454,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
           </div>
         )}
         {err && (
-          <div className="rounded-2xl bg-accent/15 border border-accent/40 text-accent px-4 py-3 text-sm">{err}</div>
+          <div className="rounded-2xl bg-accent/15 border border-accent/40 text-accent px-4 py-3 text-sm" data-testid="lobby-error">{err}</div>
         )}
       </div>
 
@@ -503,13 +512,13 @@ function NumberSelectModal({
   const exact = count === needed;
 
   return (
-    <div className="fixed inset-0 z-50 bg-ink/95 backdrop-blur-md flex flex-col animate-rise">
+    <div className="fixed inset-0 z-50 bg-ink/95 backdrop-blur-md flex flex-col animate-rise" data-testid="number-select-modal">
       <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0 border-b border-paper/10">
         <div>
           <div className="font-mono text-xs uppercase tracking-[0.3em] text-paper/50">Number pool</div>
           <div className="font-display text-2xl font-bold text-paper">Choose the numbers</div>
         </div>
-        <button className="btn-ghost text-xs px-3 py-2" onClick={onCancel}>
+        <button className="btn-ghost text-xs px-3 py-2" onClick={onCancel} data-testid="number-select-cancel">
           Cancel
         </button>
       </div>
@@ -524,7 +533,7 @@ function NumberSelectModal({
 
       <div className="flex-1 overflow-y-auto px-5 pt-4 pb-3 max-w-md w-full mx-auto">
         <div className="flex flex-wrap gap-3 justify-center">
-          <NumberCard n={0} size="sm" state="played" />
+          <NumberCard n={0} size="sm" state="played" testId="number-select-card-0" />
           {NUMBER_PALETTE.map((n) => (
             <NumberCard
               key={n}
@@ -532,13 +541,14 @@ function NumberSelectModal({
               size="sm"
               state={draft.has(n) ? "selected" : "idle"}
               onClick={() => toggle(n)}
+              testId={`number-select-card-${n}`}
             />
           ))}
         </div>
       </div>
 
       <div className="px-5 pb-5 pt-3 border-t border-paper/10 max-w-md w-full mx-auto shrink-0 flex items-center gap-3">
-        <span className={`font-mono text-sm flex-1 ${exact ? "text-paper/60" : "text-accent"}`}>
+        <span data-testid="number-select-count" className={`font-mono text-sm flex-1 ${exact ? "text-paper/60" : "text-accent"}`}>
           {count}/{needed} selected
         </span>
         <button
@@ -546,6 +556,7 @@ function NumberSelectModal({
           disabled={count === 0 || busy}
           onClick={() => onSave([...draft].sort((a, b) => a - b))}
           data-sfx="confirm"
+          data-testid="number-select-save"
         >
           {busy ? "Saving…" : "Save"}
         </button>
@@ -587,13 +598,13 @@ function PowerSelectModal({
   ).length;
 
   return (
-    <div className="fixed inset-0 z-50 bg-ink/95 backdrop-blur-md flex flex-col animate-rise">
+    <div className="fixed inset-0 z-50 bg-ink/95 backdrop-blur-md flex flex-col animate-rise" data-testid="power-select-modal">
       <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0 border-b border-paper/10">
         <div>
           <div className="font-mono text-xs uppercase tracking-[0.3em] text-paper/50">Power-ups</div>
           <div className="font-display text-2xl font-bold text-paper">Choose the pool</div>
         </div>
-        <button className="btn-ghost text-xs px-3 py-2" onClick={onCancel}>
+        <button className="btn-ghost text-xs px-3 py-2" onClick={onCancel} data-testid="power-select-cancel">
           Cancel
         </button>
       </div>
@@ -609,6 +620,7 @@ function PowerSelectModal({
               type="button"
               className="btn-ghost text-[11px] px-2.5 py-1.5"
               onClick={() => setDraft(new Set(POWER_UP_IDS))}
+              data-testid="power-select-all"
             >
               All
             </button>
@@ -616,6 +628,7 @@ function PowerSelectModal({
               type="button"
               className="btn-ghost text-[11px] px-2.5 py-1.5"
               onClick={() => setDraft(new Set())}
+              data-testid="power-select-none"
             >
               None
             </button>
@@ -643,6 +656,7 @@ function PowerSelectModal({
                         : "border-paper/10 bg-paper/5 hover:border-paper/25"
                   }`}
                   data-sfx="tap"
+                  data-testid={`power-select-option-${pid}`}
                 >
                   <PowerGlyph id={pid} />
                   <div className="flex-1 min-w-0">
@@ -671,12 +685,13 @@ function PowerSelectModal({
       </div>
 
       <div className="px-5 pb-5 pt-3 border-t border-paper/10 max-w-md w-full mx-auto shrink-0 flex items-center gap-3">
-        <span className="font-mono text-sm text-paper/60 flex-1">{usableCount} selected</span>
+        <span data-testid="power-select-count" className="font-mono text-sm text-paper/60 flex-1">{usableCount} selected</span>
         <button
           className="btn-primary text-lg py-3 px-6 disabled:opacity-40"
           disabled={usableCount === 0 || busy}
           onClick={() => onSave([...draft])}
           data-sfx="confirm"
+          data-testid="power-select-save"
         >
           {busy ? "Saving…" : "Save"}
         </button>

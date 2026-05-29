@@ -35,11 +35,13 @@ export function NumberCard({
   state = "idle",
   onClick,
   size = "md",
+  testId,
 }: {
   n: number;
   state?: "idle" | "selected" | "played" | "ghost" | "muted";
   onClick?: () => void;
   size?: "sm" | "md" | "lg";
+  testId?: string;
 }) {
   const isZero = n === 0;
   const base =
@@ -58,7 +60,7 @@ export function NumberCard({
     onClick ? "cursor-pointer" : ""
   } ${state === "selected" ? "-translate-y-2" : ""} transition`;
   return (
-    <button type="button" disabled={!onClick} onClick={onClick} className={cx} data-sfx="tap">
+    <button type="button" disabled={!onClick} onClick={onClick} className={cx} data-sfx="tap" data-testid={testId}>
       {isZero ? <span className="font-display font-bold">Ø</span> : n}
     </button>
   );
@@ -165,12 +167,14 @@ export function PowerUpCard({
   onClick,
   size = "md",
   used,
+  testId,
 }: {
   id: PowerUpId;
   state?: "idle" | "selected";
   onClick?: () => void;
   size?: "md" | "lg";
   used?: boolean;
+  testId?: string;
 }) {
   const v = powerVisual(id);
   const dim = size === "lg" ? POWER_CARD_DIM_LG : POWER_CARD_DIM;
@@ -186,6 +190,7 @@ export function PowerUpCard({
       } transition px-1`}
       title={powerDef(id).name}
       data-sfx="tap"
+      data-testid={testId}
     >
       <div className="flex flex-col items-center justify-center gap-1 w-full overflow-hidden">
         <span className="font-mono font-bold leading-none text-xl">{v.abbr}</span>
@@ -204,6 +209,7 @@ export function PowerUpChip({
   onClick,
   selected,
   showName,
+  testId,
 }: {
   id: PowerUpId;
   used?: boolean;
@@ -211,6 +217,7 @@ export function PowerUpChip({
   onClick?: () => void;
   selected?: boolean;
   showName?: boolean;
+  testId?: string;
 }) {
   const v = powerVisual(id);
   return (
@@ -230,6 +237,7 @@ export function PowerUpChip({
         } ${selected ? "ring-2 ring-paper/70 -translate-y-0.5" : ""} transition`}
         title={POWER_UPS[id].name}
         data-sfx="tap"
+        data-testid={testId}
       >
         {v.abbr}
       </button>
@@ -458,6 +466,7 @@ export function PlayerChip({
   onClick,
   pingKind,
   pingNonce,
+  testId,
 }: {
   name: string;
   seat: number;
@@ -471,6 +480,7 @@ export function PlayerChip({
   onClick?: () => void;
   pingKind?: PingKind | null;
   pingNonce?: number;
+  testId?: string;
 }) {
   const color = SEAT_COLORS[seat % SEAT_COLORS.length];
   const sz = small ? "w-8 h-8 text-sm" : "w-10 h-10";
@@ -504,7 +514,7 @@ export function PlayerChip({
     </>
   );
   return (
-    <div className={`flex items-center gap-2 ${active === false ? "opacity-60" : ""}`}>
+    <div className={`flex items-center gap-2 ${active === false ? "opacity-60" : ""}`} data-testid={testId}>
       {interactive ? (
         <button
           key={pingNonce ?? 0}
@@ -597,6 +607,7 @@ export function RoundScoreTable({
       {ranked.map((p, i) => (
         <div
           key={p.id}
+          data-testid={`score-row-${p.seat}`}
           className={`rounded-2xl px-3 py-3 flex items-center gap-2 ${
             i === 0 ? "bg-gold/15 border border-gold/40" : "bg-paper/5 border border-paper/10"
           }`}

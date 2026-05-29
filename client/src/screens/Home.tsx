@@ -81,10 +81,10 @@ export function Home() {
 
       {mode === "menu" && (
         <div className="flex flex-col gap-3 animate-rise">
-          <button className="btn-primary text-xl py-5" onClick={() => setMode("create")}>
+          <button className="btn-primary text-xl py-5" onClick={() => setMode("create")} data-testid="home-new-game">
             New game
           </button>
-          <button className="btn-ghost text-xl py-5" onClick={() => setMode("join")}>
+          <button className="btn-ghost text-xl py-5" onClick={() => setMode("join")} data-testid="home-join-with-code">
             Join with code
           </button>
         </div>
@@ -100,11 +100,12 @@ export function Home() {
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Taylor"
             maxLength={16}
+            data-testid="home-name-input"
           />
-          <button className="btn-primary text-xl py-5 mt-4" disabled={busy} onClick={handleCreate} data-sfx="confirm">
+          <button className="btn-primary text-xl py-5 mt-4" disabled={busy} onClick={handleCreate} data-sfx="confirm" data-testid="home-create-room">
             {busy ? "Creating…" : "Create room"}
           </button>
-          <button className="btn-ghost mt-2" onClick={() => setMode("menu")}>
+          <button className="btn-ghost mt-2" onClick={() => setMode("menu")} data-testid="home-back">
             Back
           </button>
         </div>
@@ -120,6 +121,7 @@ export function Home() {
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             placeholder="ABCD"
             maxLength={4}
+            data-testid="home-code-input"
           />
           <label className="text-paper/60 text-xs uppercase tracking-widest font-mono mt-2">Your name</label>
           <input
@@ -128,18 +130,19 @@ export function Home() {
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Sam"
             maxLength={16}
+            data-testid="home-name-input"
           />
-          <button className="btn-primary text-xl py-5 mt-4" disabled={busy} onClick={handleJoin} data-sfx="confirm">
+          <button className="btn-primary text-xl py-5 mt-4" disabled={busy} onClick={handleJoin} data-sfx="confirm" data-testid="home-join">
             {busy ? "Joining…" : "Join"}
           </button>
-          <button className="btn-ghost mt-2" onClick={() => setMode("menu")}>
+          <button className="btn-ghost mt-2" onClick={() => setMode("menu")} data-testid="home-back">
             Back
           </button>
         </div>
       )}
 
       {err && (
-        <div className="mt-4 rounded-2xl bg-accent/15 border border-accent/40 text-accent px-4 py-3 text-sm">
+        <div className="mt-4 rounded-2xl bg-accent/15 border border-accent/40 text-accent px-4 py-3 text-sm" data-testid="home-error">
           {err}
         </div>
       )}
