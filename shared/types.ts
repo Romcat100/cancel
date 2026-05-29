@@ -117,6 +117,9 @@ export interface RoomStateForPlayer {
   publicState: PublicState;
   privateState: PrivateState;
   selfPlayerId: string;
+  // Monotonic per-room version (bumped in saveRoom); the client drops projections
+  // with an older rev to ignore out-of-order HTTP/socket updates.
+  rev: number;
 }
 
 export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {

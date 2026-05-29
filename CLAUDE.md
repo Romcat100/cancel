@@ -52,6 +52,7 @@ Each room's *entire* state lives as a JSON blob in a single `rooms.state` row in
 - Adding fields to `RoomDoc` requires no migration; just default them defensively when reading old rows. `rooms.ts:loadRoom` is the single chokepoint for those defaults — e.g. it fills `config.powerUps = true` for rooms saved before that flag existed. Add new defaults there.
 - The DB is purely durable cache for the in-memory state; recomputing from scratch is cheap.
 - `players` and `push_subscriptions` are separate tables only because they're queried independently (claim-token lookup, push fan-out).
+- **`RoomDoc.rev`** is a monotonic per-room version bumped in `saveRoom` (kept out of the pure engine; carried by the `{ ...room }` spread) and projected onto `RoomStateForPlayer.rev`. `store.ts:setState` drops any projection with an older `rev` for the same room, because a player's state arrives over two unordered channels — the HTTP reply to their own intent *and* the socket broadcast — so a stale one must not clobber newer state. **Keep equal `rev`**: `auth`/`disconnect` presence broadcasts re-emit without saving, so they reuse the last mutation's `rev` and still need to apply.
 
 Identity is via a per-room **claim token** (UUID, in localStorage on the client). The same token reused on reconnect reclaims the seat — survives tab close, browser restart, even days later. This is what makes async play work; treat it as the auth primitive everywhere.
 

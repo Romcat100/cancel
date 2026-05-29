@@ -129,6 +129,7 @@ export function projectStateForPlayer(
 
   return {
     selfPlayerId: playerId,
+    rev: room.rev ?? 0,
     publicState,
     privateState: {
       hand,

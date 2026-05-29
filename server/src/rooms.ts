@@ -25,6 +25,9 @@ export function newClaimToken(): string {
 
 export function saveRoom(room: RoomDoc): void {
   const db = getDb();
+  // Bump on every save so clients can drop out-of-order projections. In place so the
+  // same object projected for the REST reply and the broadcast carry the same rev.
+  room.rev = (room.rev ?? 0) + 1;
   db.prepare(
     `INSERT INTO rooms (code, state, status, created_at, updated_at)
      VALUES (?, ?, 'active', ?, ?)
@@ -41,6 +44,7 @@ export function loadRoom(code: string): RoomDoc | null {
   const doc = JSON.parse(row.state) as RoomDoc;
   if (doc.config.powerUps === undefined) doc.config.powerUps = true;
   if (doc.config.showHands === undefined) doc.config.showHands = true;
+  if (typeof doc.rev !== "number") doc.rev = 0;
   return doc;
 }
 

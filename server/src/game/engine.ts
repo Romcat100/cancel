@@ -66,6 +66,8 @@ export interface RoomDoc {
   winnerId?: string;
   createdAt: number;
   updatedAt: number;
+  // Version stamped by saveRoom (not the engine); carried through mutations by the `...room` spread.
+  rev: number;
 }
 
 const HOST_SEAT = 0;
@@ -98,6 +100,7 @@ export function createRoom(opts: {
     pendingSubmissions: {},
     createdAt: now,
     updatedAt: now,
+    rev: 0,
   };
 }
 
