@@ -2,9 +2,22 @@ import { useState } from "react";
 import { api } from "../api.js";
 import { useAppStore } from "../store.js";
 import { getIdentity } from "../identity.js";
-import { MusicToggle, Rules } from "../components.js";
+import { MusicToggle, PowerGlyph, Rules, ScopedDescription } from "../components.js";
+import {
+  POWER_UPS,
+  POWER_UP_IDS,
+  TWO_PLAYER_EXCLUDED_POWERS,
+  type PowerUpId,
+  type PowerUpMode,
+} from "../../../shared/types.js";
 
 const SEAT_COLORS = ["bg-accent", "bg-cool", "bg-gold", "bg-emerald-500", "bg-fuchsia-500", "bg-cyan-400", "bg-orange-300", "bg-rose-400"];
+
+const MODES: { mode: PowerUpMode; label: string }[] = [
+  { mode: "off", label: "None" },
+  { mode: "random", label: "Random" },
+  { mode: "selected", label: "Choose" },
+];
 
 export function Lobby({ onLeave }: { onLeave: () => void }) {
   const state = useAppStore((s) => s.state)!;
@@ -12,22 +25,56 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [showRules, setShowRules] = useState(false);
+  const [showPowerModal, setShowPowerModal] = useState(false);
+  const [savingPowers, setSavingPowers] = useState(false);
 
   const { publicState, selfPlayerId } = state;
-  const me = publicState.players.find((p) => p.id === selfPlayerId);
   const isHost = publicState.hostId === selfPlayerId;
   const id = getIdentity(publicState.roomCode);
-  const powerUpsOn = publicState.config.powerUps !== false;
+
+  const playerCount = publicState.players.length;
+  const handSize = playerCount + 2;
+  const powerUpMode: PowerUpMode = publicState.config.powerUpMode ?? "random";
+  const selectedPowerUps = publicState.config.selectedPowerUps ?? [];
   const showHandsOn = publicState.config.showHands !== false;
 
-  async function togglePowerUps() {
+  // Powers actually in play after the 2-player exclusion (Peek/Sabotage need 3+).
+  const usableSelected = selectedPowerUps.filter(
+    (pid) => playerCount > 2 || !TWO_PLAYER_EXCLUDED_POWERS.includes(pid),
+  );
+  const selectedEmpty = powerUpMode === "selected" && usableSelected.length === 0;
+  const canStart = playerCount >= 2 && !selectedEmpty;
+
+  async function pickMode(mode: PowerUpMode) {
     if (!id || !isHost) return;
     setErr(null);
     try {
-      const res = await api.setConfig(publicState.roomCode, id.claimToken, { powerUps: !powerUpsOn });
+      const patch: { powerUpMode: PowerUpMode; selectedPowerUps?: PowerUpId[] } = { powerUpMode: mode };
+      // First time into Choose, seed the full set so it starts as a valid pool to trim down.
+      if (mode === "selected" && selectedPowerUps.length === 0) patch.selectedPowerUps = [...POWER_UP_IDS];
+      const res = await api.setConfig(publicState.roomCode, id.claimToken, patch);
       setState(res.state);
+      if (mode === "selected") setShowPowerModal(true);
     } catch (e) {
       setErr((e as Error).message);
+    }
+  }
+
+  async function savePowers(ids: PowerUpId[]) {
+    if (!id || !isHost) return;
+    setSavingPowers(true);
+    setErr(null);
+    try {
+      const res = await api.setConfig(publicState.roomCode, id.claimToken, {
+        powerUpMode: "selected",
+        selectedPowerUps: ids,
+      });
+      setState(res.state);
+      setShowPowerModal(false);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setSavingPowers(false);
     }
   }
 
@@ -58,6 +105,23 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
   function copyCode() {
     navigator.clipboard?.writeText(publicState.roomCode);
   }
+
+  const modeChip = powerUpMode === "off" ? "off" : powerUpMode === "random" ? "random" : "custom";
+  const modeText =
+    powerUpMode === "off"
+      ? "no power-ups"
+      : powerUpMode === "random"
+        ? "random pool each round"
+        : `${usableSelected.length} powers chosen`;
+
+  const startLabel =
+    playerCount < 2
+      ? "Waiting for players…"
+      : selectedEmpty
+        ? "Pick a power-up first"
+        : busy
+          ? "Starting…"
+          : "Start game";
 
   return (
     <div className="min-h-[100dvh] flex flex-col px-6 pt-10 pb-8 max-w-md mx-auto">
@@ -110,33 +174,63 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
       </div>
 
       <div className="mt-auto pt-10 flex flex-col gap-3">
-        <div className="rounded-2xl bg-paper/5 px-4 py-3 flex items-center justify-between">
-          <div className="flex flex-col">
+        {isHost ? (
+          <div className="rounded-2xl bg-paper/5 px-4 py-3">
             <span className="font-bold text-sm">Power-ups</span>
-            <span className="text-paper/50 text-xs font-mono">
-              {powerUpsOn ? "on" : "off"}
-            </span>
+            <div className="mt-2 grid grid-cols-3 gap-1 rounded-xl bg-paper/10 p-1">
+              {MODES.map(({ mode, label }) => {
+                const active = powerUpMode === mode;
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => pickMode(mode)}
+                    className={`rounded-lg py-2 text-sm font-bold transition ${
+                      active
+                        ? "bg-accent text-ink shadow-[0_2px_0_0_rgba(0,0,0,0.4)]"
+                        : "text-paper/70 hover:text-paper"
+                    }`}
+                    data-sfx="tap"
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            {powerUpMode === "selected" ? (
+              <div className="mt-3 flex flex-col gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setShowPowerModal(true)}
+                  className="btn-ghost text-sm py-2.5 flex items-center justify-between"
+                  data-sfx="tap"
+                >
+                  <span>Select powers</span>
+                  <span className="font-mono text-paper/70">{usableSelected.length} chosen →</span>
+                </button>
+                <p className={`text-xs font-mono ${selectedEmpty ? "text-accent" : "text-paper/40"}`}>
+                  {selectedEmpty
+                    ? "Pick at least one power-up to start."
+                    : `Around ${handSize} is one per turn. Fewer repeat, more adds variety.`}
+                </p>
+              </div>
+            ) : (
+              <p className="mt-2 text-xs font-mono text-paper/40">
+                {powerUpMode === "off" ? "Pure number picks, no twists." : "A fresh random pool each round."}
+              </p>
+            )}
           </div>
-          {isHost ? (
-            <button
-              type="button"
-              role="switch"
-              aria-checked={powerUpsOn}
-              onClick={togglePowerUps}
-              className={`relative w-12 h-7 rounded-full transition shrink-0 ${
-                powerUpsOn ? "bg-accent" : "bg-paper/20"
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 ${powerUpsOn ? "left-[22px]" : "left-0.5"} w-6 h-6 rounded-full bg-paper transition-all`}
-              />
-            </button>
-          ) : (
-            <span className={`chip ${powerUpsOn ? "bg-accent/20 text-accent" : "bg-paper/15 text-paper/60"}`}>
-              {powerUpsOn ? "on" : "off"}
-            </span>
-          )}
-        </div>
+        ) : (
+          <div className="rounded-2xl bg-paper/5 px-4 py-3 flex items-center justify-between">
+            <div className="flex flex-col">
+              <span className="font-bold text-sm">Power-ups</span>
+              <span className="text-paper/50 text-xs font-mono">{modeText}</span>
+            </div>
+            <span className="chip bg-accent/20 text-accent">{modeChip}</span>
+          </div>
+        )}
+
         <div className="rounded-2xl bg-paper/5 px-4 py-3 flex items-center justify-between">
           <div className="flex flex-col">
             <span className="font-bold text-sm">Show hands</span>
@@ -168,11 +262,11 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
           <>
             <button
               className="btn-primary text-xl py-5"
-              disabled={busy || publicState.players.length < 2}
+              disabled={busy || !canStart}
               onClick={start}
               data-sfx="confirm"
             >
-              {publicState.players.length < 2 ? "Waiting for players…" : busy ? "Starting…" : "Start game"}
+              {startLabel}
             </button>
             <p className="text-paper/40 text-xs text-center font-mono">
               {publicState.players.length + 2} cards each · {publicState.config.rounds} rounds
@@ -188,7 +282,147 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
         )}
       </div>
 
-      {showRules && <Rules onClose={() => setShowRules(false)} includePowerUps={powerUpsOn} />}
+      {showRules && <Rules onClose={() => setShowRules(false)} includePowerUps={powerUpMode !== "off"} />}
+      {showPowerModal && isHost && (
+        <PowerSelectModal
+          players={playerCount}
+          initial={selectedPowerUps}
+          busy={savingPowers}
+          onCancel={() => setShowPowerModal(false)}
+          onSave={savePowers}
+        />
+      )}
+    </div>
+  );
+}
+
+function PowerSelectModal({
+  players,
+  initial,
+  busy,
+  onCancel,
+  onSave,
+}: {
+  players: number;
+  initial: PowerUpId[];
+  busy: boolean;
+  onCancel: () => void;
+  onSave: (ids: PowerUpId[]) => void;
+}) {
+  const handSize = players + 2;
+  const [draft, setDraft] = useState<Set<PowerUpId>>(
+    () => new Set(initial.length ? initial : POWER_UP_IDS),
+  );
+
+  function toggle(id: PowerUpId, disabled: boolean) {
+    if (disabled) return;
+    setDraft((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const usableCount = [...draft].filter(
+    (id) => players > 2 || !TWO_PLAYER_EXCLUDED_POWERS.includes(id),
+  ).length;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-ink/95 backdrop-blur-md flex flex-col animate-rise">
+      <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0 border-b border-paper/10">
+        <div>
+          <div className="font-mono text-xs uppercase tracking-[0.3em] text-paper/50">Power-ups</div>
+          <div className="font-display text-2xl font-bold text-paper">Choose the pool</div>
+        </div>
+        <button className="btn-ghost text-xs px-3 py-2" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+
+      <div className="px-5 pt-3 pb-2 max-w-md w-full mx-auto shrink-0">
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-paper/60 text-xs leading-snug">
+            {handSize} turns per round. Around {handSize} powers is one per turn. Pick fewer and they
+            repeat, pick more for variety.
+          </p>
+          <div className="flex gap-1.5 shrink-0">
+            <button
+              type="button"
+              className="btn-ghost text-[11px] px-2.5 py-1.5"
+              onClick={() => setDraft(new Set(POWER_UP_IDS))}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              className="btn-ghost text-[11px] px-2.5 py-1.5"
+              onClick={() => setDraft(new Set())}
+            >
+              None
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 pb-3 max-w-md w-full mx-auto">
+        <ul className="flex flex-col gap-2">
+          {POWER_UP_IDS.map((pid) => {
+            const def = POWER_UPS[pid];
+            const disabled = players <= 2 && TWO_PLAYER_EXCLUDED_POWERS.includes(pid);
+            const checked = draft.has(pid) && !disabled;
+            return (
+              <li key={pid}>
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => toggle(pid, disabled)}
+                  className={`w-full text-left flex gap-3 items-start rounded-2xl border px-3 py-2.5 transition ${
+                    disabled
+                      ? "opacity-40 border-paper/10 bg-paper/[.02] cursor-not-allowed"
+                      : checked
+                        ? "border-accent/60 bg-accent/10"
+                        : "border-paper/10 bg-paper/5 hover:border-paper/25"
+                  }`}
+                  data-sfx="tap"
+                >
+                  <PowerGlyph id={pid} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-display font-bold text-paper">{def.name}</span>
+                      {disabled && <span className="chip bg-paper/15 text-paper/60 text-[10px]">needs 3+</span>}
+                    </div>
+                    <ScopedDescription
+                      description={def.description}
+                      className="text-paper/70 text-xs leading-snug mt-0.5"
+                    />
+                  </div>
+                  <span
+                    className={`shrink-0 mt-0.5 w-6 h-6 rounded-md border flex items-center justify-center text-sm font-bold ${
+                      checked ? "bg-accent border-accent text-ink" : "border-paper/30 text-transparent"
+                    }`}
+                    aria-hidden
+                  >
+                    ✓
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      <div className="px-5 pb-5 pt-3 border-t border-paper/10 max-w-md w-full mx-auto shrink-0 flex items-center gap-3">
+        <span className="font-mono text-sm text-paper/60 flex-1">{usableCount} selected</span>
+        <button
+          className="btn-primary text-lg py-3 px-6 disabled:opacity-40"
+          disabled={usableCount === 0 || busy}
+          onClick={() => onSave([...draft])}
+          data-sfx="confirm"
+        >
+          {busy ? "Saving…" : "Save"}
+        </button>
+      </div>
     </div>
   );
 }

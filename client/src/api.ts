@@ -1,5 +1,5 @@
 import type { CreateRoomRes, JoinRoomRes } from "../../shared/protocol.js";
-import type { PowerUpId, RoomStateForPlayer } from "../../shared/types.js";
+import type { PowerUpId, PowerUpMode, RoomStateForPlayer } from "../../shared/types.js";
 
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, {
@@ -22,7 +22,11 @@ export const api = {
   startGame(roomCode: string, claimToken: string) {
     return call<{ ok: true; state: RoomStateForPlayer }>("POST", `/api/rooms/${roomCode}/start`, { claimToken });
   },
-  setConfig(roomCode: string, claimToken: string, patch: { powerUps?: boolean; showHands?: boolean }) {
+  setConfig(
+    roomCode: string,
+    claimToken: string,
+    patch: { powerUpMode?: PowerUpMode; selectedPowerUps?: PowerUpId[]; showHands?: boolean },
+  ) {
     return call<{ ok: true; state: RoomStateForPlayer }>("POST", `/api/rooms/${roomCode}/config`, {
       claimToken,
       ...patch,

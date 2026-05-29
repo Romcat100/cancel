@@ -160,9 +160,19 @@ export function apiCreateRoom(req: CreateRoomReq, ctx: ApiCtx) {
   const claimToken = newClaimToken();
   const rounds = req.rounds ?? 3;
   const turnDeadlineMs = req.turnDeadlineMs ?? null;
-  const powerUps = req.powerUps ?? true;
+  const powerUpMode = req.powerUpMode ?? "random";
+  const selectedPowerUps = req.selectedPowerUps ?? [];
   const showHands = req.showHands ?? true;
-  const room = createRoom({ code, hostId, hostName: req.name.trim(), rounds, turnDeadlineMs, powerUps, showHands });
+  const room = createRoom({
+    code,
+    hostId,
+    hostName: req.name.trim(),
+    rounds,
+    turnDeadlineMs,
+    powerUpMode,
+    selectedPowerUps,
+    showHands,
+  });
   saveRoom(room);
   recordPlayer({ id: hostId, roomCode: code, name: req.name.trim(), seat: 0, claimToken });
   return {
@@ -214,7 +224,11 @@ export function apiSetRoomConfig(req: SetRoomConfigReq, ctx: ApiCtx) {
   let room = loadRoom(req.roomCode);
   if (!room) throw new Error("Room not found");
   if (player.id !== room.hostId) throw new Error("Only host can change settings");
-  room = setRoomConfig(room, { powerUps: req.powerUps, showHands: req.showHands });
+  room = setRoomConfig(room, {
+    powerUpMode: req.powerUpMode,
+    selectedPowerUps: req.selectedPowerUps,
+    showHands: req.showHands,
+  });
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));
   return { ok: true as const, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)) };

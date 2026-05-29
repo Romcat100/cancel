@@ -17,6 +17,12 @@ export type PowerUpId =
   | "wild"
   | "nothingburger";
 
+export type PowerUpMode = "off" | "random" | "selected";
+
+// Powers excluded from the dealt pool in 2-player games (too oppressive 1v1).
+// Shared so the engine and the lobby selection UI agree on what to filter.
+export const TWO_PLAYER_EXCLUDED_POWERS: PowerUpId[] = ["peek", "sabotage"];
+
 export interface PowerUpDef {
   id: PowerUpId;
   name: string;
@@ -109,7 +115,8 @@ export interface PublicState {
   config: {
     rounds: number;
     turnDeadlineMs: number | null;
-    powerUps: boolean;
+    powerUpMode: PowerUpMode;
+    selectedPowerUps: PowerUpId[];
     showHands: boolean;
   };
 }

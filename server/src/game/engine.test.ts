@@ -70,6 +70,51 @@ describe("engine lifecycle", () => {
     expect(() => startGame(r)).toThrow(/2 players/);
   });
 
+  it("off mode deals an empty pool", () => {
+    let r = createRoom({ code: "OFF1", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, powerUpMode: "off" });
+    r = addPlayer(r, "B", "Bob");
+    r = addPlayer(r, "C", "Carol");
+    r = startGame(r);
+    expect(r.rounds[0].poolFull).toEqual([]);
+  });
+
+  it("selected mode draws only from the chosen allow-list (repeating to fill)", () => {
+    const allow: PowerUpId[] = ["double", "plus_two"];
+    let r = createRoom({ code: "SEL1", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, powerUpMode: "selected", selectedPowerUps: allow });
+    r = addPlayer(r, "B", "Bob");
+    r = addPlayer(r, "C", "Carol");
+    r = startGame(r);
+    const pool = r.rounds[0].poolFull;
+    expect(pool).toHaveLength(5); // handSize 5, repeats the 2 chosen powers
+    expect(pool.every((p) => allow.includes(p))).toBe(true);
+    expect(new Set(pool)).toEqual(new Set(allow));
+  });
+
+  it("2-player selected mode filters out Peek and Sabotage", () => {
+    const allow: PowerUpId[] = ["peek", "sabotage", "double"];
+    let r = createRoom({ code: "SEL2", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, powerUpMode: "selected", selectedPowerUps: allow });
+    r = addPlayer(r, "B", "Bob");
+    r = startGame(r);
+    const pool = r.rounds[0].poolFull;
+    expect(pool).not.toContain("peek");
+    expect(pool).not.toContain("sabotage");
+    expect(pool.every((p) => p === "double")).toBe(true);
+  });
+
+  it("rejects starting when a selected pool is effectively empty", () => {
+    // Only Peek+Sabotage chosen in a 2-player game leaves nothing to deal.
+    let r = createRoom({ code: "SEL3", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, powerUpMode: "selected", selectedPowerUps: ["peek", "sabotage"] });
+    r = addPlayer(r, "B", "Bob");
+    expect(() => startGame(r)).toThrow(/at least one power-up/);
+  });
+
+  it("rejects starting when selected mode has no powers chosen", () => {
+    let r = createRoom({ code: "SEL4", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, powerUpMode: "selected", selectedPowerUps: [] });
+    r = addPlayer(r, "B", "Bob");
+    r = addPlayer(r, "C", "Carol");
+    expect(() => startGame(r)).toThrow(/at least one power-up/);
+  });
+
   it("submitting a number locks it in; turn auto-resolves when everyone has submitted", () => {
     let r = startGame(room3p());
     const picker = r.rounds[0].rotation[0];

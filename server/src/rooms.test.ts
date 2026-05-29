@@ -38,6 +38,33 @@ describe("rev versioning", () => {
     expect(loadRoom("OLD1")!.rev).toBe(0);
   });
 
+  it("loadRoom migrates the legacy powerUps boolean to powerUpMode", () => {
+    const r = createRoom({ code: "OLD2", hostId: "A", hostName: "Alice", rounds: 2, turnDeadlineMs: null });
+    const legacy = JSON.parse(JSON.stringify(r)) as { config: Record<string, unknown> };
+    delete legacy.config.powerUpMode;
+    delete legacy.config.selectedPowerUps;
+    legacy.config.powerUps = false;
+    getDb()
+      .prepare(`INSERT INTO rooms (code, state, status, created_at, updated_at) VALUES (?, ?, 'active', ?, ?)`)
+      .run("OLD2", JSON.stringify(legacy), r.createdAt, r.updatedAt);
+    const loaded = loadRoom("OLD2")!;
+    expect(loaded.config.powerUpMode).toBe("off");
+    expect(loaded.config.selectedPowerUps).toEqual([]);
+    expect((loaded.config as Record<string, unknown>).powerUps).toBeUndefined();
+  });
+
+  it("loadRoom maps a legacy powerUps:true (or missing) to random mode", () => {
+    const r = createRoom({ code: "OLD3", hostId: "A", hostName: "Alice", rounds: 2, turnDeadlineMs: null });
+    const legacy = JSON.parse(JSON.stringify(r)) as { config: Record<string, unknown> };
+    delete legacy.config.powerUpMode;
+    delete legacy.config.selectedPowerUps;
+    legacy.config.powerUps = true;
+    getDb()
+      .prepare(`INSERT INTO rooms (code, state, status, created_at, updated_at) VALUES (?, ?, 'active', ?, ?)`)
+      .run("OLD3", JSON.stringify(legacy), r.createdAt, r.updatedAt);
+    expect(loadRoom("OLD3")!.config.powerUpMode).toBe("random");
+  });
+
   it("rev strictly increases across every save through round_end and game_end", () => {
     // One save per step, mirroring the handler's load→mutate→saveRoom chokepoint.
     const revs: number[] = [];
@@ -46,7 +73,7 @@ describe("rev versioning", () => {
       revs.push(room.rev);
     };
 
-    let r = createRoom({ code: "GAME", hostId: "A", hostName: "Alice", rounds: 2, turnDeadlineMs: null, powerUps: false });
+    let r = createRoom({ code: "GAME", hostId: "A", hostName: "Alice", rounds: 2, turnDeadlineMs: null, powerUpMode: "off" });
     save(r);
     r = addPlayer(r, "B", "Bob");
     save(r);

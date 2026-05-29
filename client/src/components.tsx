@@ -109,6 +109,20 @@ function powerDef(id: PowerUpId): PowerUpDef {
 const POWER_CARD_DIM = "w-[68px] h-[88px]";
 const POWER_CARD_DIM_LG = "w-[88px] h-[112px]";
 
+// Non-interactive colored abbr badge. Used in lists (e.g. the lobby power picker)
+// where the whole row is the button, so a nested <button> would be invalid markup.
+export function PowerGlyph({ id, size = "md" }: { id: PowerUpId; size?: "sm" | "md" }) {
+  const v = powerVisual(id);
+  const dim = size === "sm" ? "w-8 h-8 text-xs" : "w-9 h-9 text-sm";
+  return (
+    <span
+      className={`shrink-0 ${dim} ${v.bg} ${v.text} rounded-lg flex items-center justify-center font-mono font-bold`}
+    >
+      {v.abbr}
+    </span>
+  );
+}
+
 // Scope prefix tags live at the start of every POWER_UPS description as
 // "(Everyone|Opponents|Just you) …". Parsed out here and rendered as a chip.
 // Class strings are literals so Tailwind's JIT actually emits them (see SEAT_COLORS note).

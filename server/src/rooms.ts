@@ -57,8 +57,13 @@ export function loadRoom(code: string): RoomDoc | null {
     | undefined;
   if (!row) return null;
   const doc = JSON.parse(row.state) as RoomDoc;
-  if (doc.config.powerUps === undefined) doc.config.powerUps = true;
-  if (doc.config.showHands === undefined) doc.config.showHands = true;
+  // Migrate rooms saved before the three-way power mode: the old boolean `powerUps`
+  // maps to "off"/"random". Drop the stale field so it can't leak through the projection.
+  const cfg = doc.config as RoomDoc["config"] & { powerUps?: boolean };
+  if (cfg.powerUpMode === undefined) cfg.powerUpMode = cfg.powerUps === false ? "off" : "random";
+  if (cfg.selectedPowerUps === undefined) cfg.selectedPowerUps = [];
+  delete cfg.powerUps;
+  if (cfg.showHands === undefined) cfg.showHands = true;
   if (typeof doc.rev !== "number") doc.rev = 0;
   return doc;
 }

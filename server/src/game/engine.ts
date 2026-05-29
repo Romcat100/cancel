@@ -1,4 +1,10 @@
-import { POWER_UP_IDS, POWER_UPS, type PowerUpId } from "../../../shared/types.js";
+import {
+  POWER_UP_IDS,
+  POWER_UPS,
+  TWO_PLAYER_EXCLUDED_POWERS,
+  type PowerUpId,
+  type PowerUpMode,
+} from "../../../shared/types.js";
 import { scoreTurn } from "./scoring.js";
 
 export type RoomPhaseDoc =
@@ -55,7 +61,13 @@ export interface PeekReviewDoc {
 export interface RoomDoc {
   code: string;
   hostId: string;
-  config: { rounds: number; turnDeadlineMs: number | null; powerUps: boolean; showHands: boolean };
+  config: {
+    rounds: number;
+    turnDeadlineMs: number | null;
+    powerUpMode: PowerUpMode;
+    selectedPowerUps: PowerUpId[];
+    showHands: boolean;
+  };
   phase: RoomPhaseDoc;
   players: PlayerDoc[];
   rounds: RoundDoc[];
@@ -79,7 +91,8 @@ export function createRoom(opts: {
   hostName: string;
   rounds: number;
   turnDeadlineMs: number | null;
-  powerUps?: boolean;
+  powerUpMode?: PowerUpMode;
+  selectedPowerUps?: PowerUpId[];
   showHands?: boolean;
 }): RoomDoc {
   const now = Date.now();
@@ -89,7 +102,8 @@ export function createRoom(opts: {
     config: {
       rounds: opts.rounds,
       turnDeadlineMs: opts.turnDeadlineMs,
-      powerUps: opts.powerUps ?? true,
+      powerUpMode: opts.powerUpMode ?? "random",
+      selectedPowerUps: opts.selectedPowerUps ?? [],
       showHands: opts.showHands ?? true,
     },
     phase: "lobby",
@@ -129,8 +143,15 @@ function shuffle<T>(arr: T[], rng: () => number = Math.random): T[] {
 
 // Powers that are too oppressive in a 1v1 — we exclude them from the dealt pool whenever
 // a game has 2 players. Sabotage gives perfect lock-in on the opponent's only card; Peek
-// gives free information with nothing to disambiguate.
-const TWO_PLAYER_EXCLUDED: ReadonlySet<PowerUpId> = new Set(["peek", "sabotage"]);
+// gives free information with nothing to disambiguate. Sourced from shared so the lobby
+// selection UI filters the same set.
+const TWO_PLAYER_EXCLUDED: ReadonlySet<PowerUpId> = new Set(TWO_PLAYER_EXCLUDED_POWERS);
+
+// The eligible ids after applying the 2-player exclusion. Used both for dealing and for
+// validating that a "selected" pool isn't effectively empty before the game starts.
+function effectiveAllowed(allowed: PowerUpId[], playerCount: number): PowerUpId[] {
+  return playerCount <= 2 ? allowed.filter((id) => !TWO_PLAYER_EXCLUDED.has(id)) : [...allowed];
+}
 
 // Wild rolls a random power from the full set, but excludes powers that need a target
 // (the picker submits wild with no target, so we can't resolve to those) and itself.
@@ -142,9 +163,17 @@ function rollWildPower(rng: () => number = Math.random): PowerUpId {
   return WILD_ROLL_POOL[Math.floor(rng() * WILD_ROLL_POOL.length)];
 }
 
-function dealPool(handSize: number, playerCount: number, rng = Math.random): PowerUpId[] {
-  let ids: PowerUpId[] = [...POWER_UP_IDS];
-  if (playerCount <= 2) ids = ids.filter((id) => !TWO_PLAYER_EXCLUDED.has(id));
+// `allowed` narrows the eligible powers (the host's "selected" allow-list). When omitted,
+// the full set is used (the "random" mode). Repeats to fill when the pool is larger than
+// the eligible set, so a small selection still produces one power per turn.
+function dealPool(
+  handSize: number,
+  playerCount: number,
+  allowed?: PowerUpId[],
+  rng = Math.random,
+): PowerUpId[] {
+  const ids: PowerUpId[] = effectiveAllowed(allowed ?? [...POWER_UP_IDS], playerCount);
+  if (ids.length === 0) return [];
   if (handSize <= ids.length) return shuffle(ids, rng).slice(0, handSize);
   const out: PowerUpId[] = [];
   while (out.length < handSize) {
@@ -169,19 +198,26 @@ function buildRotation(players: PlayerDoc[], handSize: number, roundIndex: numbe
 export function startGame(room: RoomDoc): RoomDoc {
   if (room.phase !== "lobby") throw new Error("Not in lobby");
   if (room.players.length < 2) throw new Error("Need at least 2 players");
+  if (
+    room.config.powerUpMode === "selected" &&
+    effectiveAllowed(room.config.selectedPowerUps, room.players.length).length === 0
+  ) {
+    throw new Error("Pick at least one power-up, or switch power-ups off");
+  }
   return startRound(room, 0);
 }
 
 export function setRoomConfig(
   room: RoomDoc,
-  patch: { powerUps?: boolean; showHands?: boolean },
+  patch: { powerUpMode?: PowerUpMode; selectedPowerUps?: PowerUpId[]; showHands?: boolean },
 ): RoomDoc {
   if (room.phase !== "lobby") throw new Error("Config locked once game starts");
   return {
     ...room,
     config: {
       ...room.config,
-      powerUps: patch.powerUps ?? room.config.powerUps,
+      powerUpMode: patch.powerUpMode ?? room.config.powerUpMode,
+      selectedPowerUps: patch.selectedPowerUps ?? room.config.selectedPowerUps,
       showHands: patch.showHands ?? room.config.showHands,
     },
     updatedAt: Date.now(),
@@ -190,7 +226,12 @@ export function setRoomConfig(
 
 function startRound(room: RoomDoc, roundIndex: number): RoomDoc {
   const handSize = room.players.length + 2;
-  const poolFull = room.config.powerUps === false ? [] : dealPool(handSize, room.players.length);
+  const poolFull =
+    room.config.powerUpMode === "off"
+      ? []
+      : room.config.powerUpMode === "selected"
+        ? dealPool(handSize, room.players.length, room.config.selectedPowerUps)
+        : dealPool(handSize, room.players.length);
   const round: RoundDoc = {
     index: roundIndex,
     poolFull,

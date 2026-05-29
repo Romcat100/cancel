@@ -465,7 +465,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
       {showRules && (
         <Rules
           onClose={() => setShowRules(false)}
-          includePowerUps={publicState.config.powerUps !== false}
+          includePowerUps={publicState.config.powerUpMode !== "off"}
           pool={round.poolFull}
         />
       )}
