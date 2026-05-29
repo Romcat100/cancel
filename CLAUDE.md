@@ -30,6 +30,14 @@ cd server && npm run test:watch                                # watch mode
 
 Type-check without building: `cd client && npx tsc --noEmit` or `cd server && npx tsc --noEmit`. The server's `npm run build` is just `tsc --noEmit` — there's no JS emit step because the server runs via `tsx` in both dev and production.
 
+### Browser verification (`npm run verify`)
+
+`scripts/verify.mjs` drives the real app headlessly to verify UI changes visually — use it instead of guessing whether a frontend change works. It uses `puppeteer-core` pointed at the **system** Chrome/Edge (no bundled Chromium download); set `CHROME_PATH` if auto-discovery (Windows Program Files / LocalAppData paths) misses it. It reuses the dev server on `:5173` if up, else spawns `npm run dev` and tears it down (taskkill the whole tree on Windows) on exit. Each step screenshots to `scripts/shots/NN-name.png` and prints the paths — **Read those PNGs to inspect the result** (Claude Code renders them visually).
+
+- Run a named flow: `npm run verify <flow>` (default `lobby-rounds`). Flows live in the `flows` map at the bottom of the script; add a new `async function fooFlow(browser)` and register it there.
+- Multiplayer flows give each "player" its own `browser.createBrowserContext()` so localStorage + socket are isolated — that's how host/joiner share a room without colliding on the claim token.
+- Helpers wait on **state, never fixed sleeps**: `waitForText`, `clickByText`/`clickByAria`, and `data-testid` hooks (`room-code`, `rounds-value`, `rounds-chip`). Host stepper clicks go one at a time, waiting for each re-render, so they don't out-race the server round-trip and re-read a stale value. When adding UI you want to verify, add a stable `data-testid` rather than matching on visible copy that may change.
+
 ## Architecture
 
 This is a **server-authoritative real-time multiplayer game** that also supports **async play** with the same engine. The same code path runs whether everyone is connected at once or playing across days.
@@ -89,11 +97,13 @@ Three non-obvious flows:
 - **Minus Two** (id `minus_two`) is the **Universal** mirror of Plus Two: it subtracts 2 from *every* player's face value at the `eff` stage (`minusTwoActive`), so scoring, tie detection, and `isCancel` all use the lowered value for everyone (including the picker). A played `2` becomes `0` and now cancels the board; a true `0` becomes `-2` and no longer cancels; faces/scores can go negative. It is no longer a late-pipeline delta subtraction.
 - **Free Three** is suppressed by a single-zero cancel (Plus Two is not — its bonus is baked into the face value before scoring).
 - **Tie Die** (id `tie_die`) does two things: (1) the user's card still scores even when face-tied with another player (the tie branch pays out `scoreValue` for the power user); (2) if the user's own card is a `0`, that 0 stays *the* canceller even when other players also play `0` — normally multiple 0s suppress each other (`cancelZeros.length === 1` rule), but a shielded 0 sets `cancellerId` to itself, so the other 0s are cancelled by it instead of suppressing it. It does **not** protect the user from being cancelled by *another* player's lone 0 when the user's own card is non-zero.
+- **Jinx** (id `jinx`) inverts the tie penalty *for the user only*: instead of being wiped by a face-tie, the user's card pays out `scoreValue` plus `+2` per opponent who matched their number. If the user's card is a `0` and another player also plays `0`, Jinx keeps the user's 0 as a real canceller (same self-canceller trick as Tie Die) while still banking the `+2` per match. It does nothing when nobody ties.
+- **Wild** (id `wild`) is resolved in `engine.ts`, not scoring: `rollWildPower` picks a random non-target power (excluding `wild` itself and anything with `needsTarget`, since Wild is submitted without a target) into `resolvedPowerUp`. The reveal records `wild → <rolled>`, pool removal keys off the *submitted* `wild` slot, and `scoreTurn` only ever sees the rolled power. Don't add a `wild` branch to `scoring.ts`.
 - **Sabotage** has no scoring effect of its own; the override happens in `engine.resolveTurn` *before* `scoreTurn` is called. Scoring just sees the forced number on the target's play.
 - **Nothingburger** (id `nothingburger`) is an *intentional* true no-op: no flag, no pipeline stage, no engine branch. `scoreTurn` falls through to standard scoring because no effect checks match the id. It exists so the picker can deliberately decline to use a power slot. Don't "fix" it by adding wiring — the absence of code is the feature; the `scoring.test.ts` no-op test locks this.
 - **Slide** rotates `lines[]` by one seat; the engine guarantees `plays` arrive sorted by seat, so this is just a circular shift.
 - **Equalize** only averages players whose `delta > 0`; tied/cancelled/negative players are untouched.
-- Power-ups stack within the function in this order: standard scoring (Plus Two's and Minus Two's face shifts already applied at the eff stage) → Tie Die → Double → Make Negative → Free Three → Slide → Equalize. Adding a new power-up means deciding where in this pipeline it lives — or, like Sabotage, deciding it's an engine-level rewrite that bypasses scoring entirely.
+- Power-ups stack within the function in this order: standard scoring (Plus Two's, Minus Two's, Drain's, and Flip's face shifts already applied at the eff stage) → Tie Die → Jinx → Double → Make Negative → Free Three → Slide → Equalize. Adding a new power-up means deciding where in this pipeline it lives — or, like Sabotage, deciding it's an engine-level rewrite that bypasses scoring entirely.
 
 ### Client flow
 
