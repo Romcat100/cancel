@@ -175,9 +175,9 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
   const modeChip = powerUpMode === "off" ? "off" : powerUpMode === "random" ? "random" : "custom";
   const modeText =
     powerUpMode === "off"
-      ? "no power-ups"
+      ? "No power-ups"
       : powerUpMode === "random"
-        ? "random pool each round"
+        ? "Random pool each round"
         : `${usableSelected.length} powers chosen`;
 
   const numberModeText =
@@ -185,7 +185,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
       ? "0 up to the standard top card"
       : customNumbers.length > 0
         ? `0 and ${[...customNumbers].sort((a, b) => a - b).join(", ")}`
-        : "no numbers picked yet";
+        : "No numbers picked yet";
 
   const startLabel =
     playerCount < 2
@@ -409,7 +409,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
           <div className="flex flex-col">
             <span className="font-bold text-sm">Show hands</span>
             <span className="text-paper/50 text-xs font-mono">
-              {showHandsOn ? "everyone sees remaining cards" : "hands are hidden"}
+              {showHandsOn ? "Everyone sees remaining cards" : "Hands are hidden"}
             </span>
           </div>
           {isHost ? (
