@@ -29,6 +29,8 @@ npm test          # runs the scoring engine + state machine tests
 
 ## Play it
 
+You can play **solo against AI** from the Home screen (tap **Single player**), or create a multiplayer room and invite friends. Multiplayer lobbies can also add AI players to fill out a small group, capped so humans + AIs stay at or below 8.
+
 1. **Create a room** → you get a 4-character code.
 2. **Share the code** with friends; they tap "Join with code" on the same site.
 3. In the lobby, the **Rules** button opens a full how-to-play overlay. The host sets the round count (1-5, default 3), picks the number pool (the standard set or a host-chosen custom set), and chooses a power-up mode: **None** (pure numbers, no powers dealt), **Random** (a random pool each round), or **Choose** (hand-pick which powers can appear). The same Rules button is in the in-game header so anyone can re-read the rules mid-match.
@@ -73,9 +75,13 @@ When on: at the start of each round, `N+2` power-ups are dealt face-up. They sta
 | **Drain** (`↧`) | Pick an opponent. Your card's face value goes up by 1 and theirs goes down by 1 for this turn. The new values flow into scoring, ties, and the cancel effect, so a target who played a `1` becomes a board-cancelling `0`. |
 | **Jinx** (`=`) | Tying pays off instead of wiping you out. Each opponent who plays your number adds `+2` to your score, on top of your card's value. If nobody ties, your card scores as normal. |
 | **Wild** (`?`) | Rolls a random power from the rest of the set and plays that instead. Targeted powers (Peek, Mute, Sabotage, Drain) are excluded from the roll, since Wild is submitted without a target. |
+| **Swap hands** (`⇄`) | Pick an opponent. After this turn's cards are played, swap your remaining hand with theirs for the rest of the round. |
+| **Switch cards** (`⇌`) | Pick an opponent. This turn you score the number they chose and they score yours. Each of you still discards your own original card. |
+| **Sacrifice** (`†`) | Your card scores 0. Every other player loses your card's face value from their score this turn. Martyr a high card to drag the table down. |
+| **Random Ray** (`↯`) | Pick any target, yourself included. Their score this turn becomes a random draw from the game's full number pool. Their original card still leaves their hand. |
 | **Nothing Burger** (`∅`) | Does nothing at all. Your card scores exactly as if you'd played no power-up. It exists so the picker can deliberately decline to use the turn's power slot. |
 
-The pool is drawn from this 17-card master list, a random subset each round (or the host's chosen subset in **Choose** mode). (In 2-player games, **Peek** and **Sabotage** are excluded as they're too dominant 1-on-1.)
+The pool is drawn from this 21-card master list, a random subset each round (or the host's chosen subset in **Choose** mode). (In 2-player games, **Peek** and **Sabotage** are excluded as they're too dominant 1-on-1.)
 
 ## Project layout
 
@@ -83,6 +89,7 @@ The pool is drawn from this 17-card master list, a random subset each round (or 
 shared/         types and protocol shared between client and server
 server/         Express + Socket.IO + better-sqlite3 (durable game state)
   src/game/     scoring.ts (pure scoring) + engine.ts (state machine)
+                bots.ts (AI brain) + bot-names.ts
   src/db.ts     SQLite tables + WAL mode
   src/handlers.ts REST + socket handlers
 client/         Vite + React + Tailwind PWA
