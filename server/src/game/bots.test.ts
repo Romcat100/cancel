@@ -7,7 +7,8 @@ import {
   submitTurn,
   type RoomDoc,
 } from "./engine.js";
-import { chooseNumber, decideBotMove, decideBotPeekRepick, driveBots } from "./bots.js";
+import { decideBotMove, decideBotPeekRepick, driveBots } from "./bots.js";
+import { chooseNumber } from "./heuristics.js";
 import { POWER_UPS, POWER_UP_IDS } from "../../../shared/types.js";
 
 // A solo room: one human "H" plus `bots` AI players. rounds defaults low for fast tests.

@@ -8,6 +8,7 @@ import {
 } from "../../../shared/types.js";
 import { scoreTurn } from "./scoring.js";
 import { BOT_NAMES } from "./bot-names.js";
+import { chooseNumber } from "./heuristics.js";
 
 export type RoomPhaseDoc =
   | "lobby"
@@ -751,40 +752,41 @@ export function claimHost(room: RoomDoc, requesterId: string, onlineIds: Readonl
 
 // Host "Skip waiting": push a stalled turn past players who haven't submitted
 // (whether they've left, disconnected, or are just AFK). Each missing player is
-// auto-played their lowest remaining card with no power-up — an absent picker
-// forfeits the power slot, so the pool rolls untouched to the next picker. Then
-// the normal resolveTurn runs. Keyed on who hasn't submitted, not on presence,
-// so the host can also push past someone who's online but idle.
-export function forceResolveTurn(room: RoomDoc): RoomDoc {
+// auto-played a number sampled by the shared bot heuristic (chooseNumber) with no
+// power-up — picked from their remaining hand, weighted toward sensible cards but
+// varied, so multiple absentees (or repeated skips) don't all dump the same lowest
+// card and tie. An absent picker still forfeits the power slot, so the pool rolls
+// untouched to the next picker. Then the normal resolveTurn runs. Keyed on who
+// hasn't submitted, not on presence, so the host can also push past an idle online
+// player. rng is injectable for deterministic tests (defaults to Math.random).
+export function forceResolveTurn(room: RoomDoc, rng: () => number = Math.random): RoomDoc {
+  const round = room.rounds[room.currentRoundIndex];
+  const handsExcept = (playerId: string) =>
+    room.players.filter((p) => p.id !== playerId).map((p) => round.hands[p.id] ?? []);
+
   if (room.phase === "turn_peek_review") {
     // The peeker is the lone outstanding submitter (everyone else already
-    // submitted before peek review began). Auto-submit their lowest card with
-    // the recorded peek target; keep peekReview so resolveTurn records peekUsed.
+    // submitted before peek review began). Auto-submit a sampled card with the
+    // recorded peek target; the revealed opponent number is fed as a known play so
+    // the pick avoids it. Keep peekReview so resolveTurn records peekUsed.
     if (!room.peekReview) throw new Error("Nothing to skip");
-    const round = room.rounds[room.currentRoundIndex];
-    const peekerHand = round.hands[room.peekReview.peekerId];
-    const lowest = [...peekerHand].sort((a, b) => a - b)[0];
-    const submission: SubmissionDoc = {
-      playerId: room.peekReview.peekerId,
-      number: lowest,
-      powerUp: "peek",
-      powerUpTarget: room.peekReview.targetId,
-    };
+    const { peekerId, targetId, revealedNumber } = room.peekReview;
+    const number = chooseNumber(round.hands[peekerId] ?? [], handsExcept(peekerId), [revealedNumber], rng);
+    const submission: SubmissionDoc = { playerId: peekerId, number, powerUp: "peek", powerUpTarget: targetId };
     return resolveTurn({
       ...room,
       phase: "turn_submitting",
-      pendingSubmissions: { ...room.pendingSubmissions, [room.peekReview.peekerId]: submission },
+      pendingSubmissions: { ...room.pendingSubmissions, [peekerId]: submission },
       updatedAt: Date.now(),
     });
   }
   if (room.phase !== "turn_submitting") throw new Error("Nothing to skip");
-  const round = room.rounds[room.currentRoundIndex];
   const missing = room.players.filter((p) => !room.pendingSubmissions[p.id]);
   if (missing.length === 0) return room;
   const filled = { ...room.pendingSubmissions };
   for (const p of missing) {
-    const lowest = [...round.hands[p.id]].sort((a, b) => a - b)[0];
-    filled[p.id] = { playerId: p.id, number: lowest };
+    const number = chooseNumber(round.hands[p.id] ?? [], handsExcept(p.id), [], rng);
+    filled[p.id] = { playerId: p.id, number };
   }
   return resolveTurn({ ...room, pendingSubmissions: filled, updatedAt: Date.now() });
 }

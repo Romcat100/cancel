@@ -567,17 +567,18 @@ describe("mid-game continuation & host succession", () => {
   });
 
   describe("forceResolveTurn (turn_submitting)", () => {
-    it("auto-plays an absent picker's lowest card with no power, leaving the pool intact", () => {
+    it("auto-plays an absent picker a card from its hand with no power, leaving the pool intact", () => {
       let r = forceSafePool(startGame(room3p()));
       expect(r.rounds[0].rotation[0]).toBe("A"); // A is picker
       const poolBefore = r.rounds[0].poolRemaining.length;
+      const aHand = [...r.rounds[0].hands["A"]];
       r = submitTurn(r, { playerId: "B", number: 3 });
       r = submitTurn(r, { playerId: "C", number: 2 });
       r = forceResolveTurn(r); // A (picker) never submitted
 
       const reveal = r.rounds[0].reveals[0];
       const aSub = reveal.submissions.find((s) => s.playerId === "A")!;
-      expect(aSub.number).toBe(0); // lowest card
+      expect(aHand).toContain(aSub.number); // sampled from A's remaining hand
       expect(aSub.powerUp).toBeUndefined(); // power forfeited
       expect(r.rounds[0].poolRemaining.length).toBe(poolBefore); // pool untouched
       expect(r.currentTurnIndex).toBe(1);
@@ -587,12 +588,13 @@ describe("mid-game continuation & host succession", () => {
       let r = forceSafePool(startGame(room3p()));
       const power = pickSafePower(r.rounds[0].poolRemaining);
       const poolBefore = r.rounds[0].poolRemaining.length;
+      const cHand = [...r.rounds[0].hands["C"]];
       r = submitTurn(r, { playerId: "A", number: 4, powerUp: power });
       r = submitTurn(r, { playerId: "B", number: 3 });
       r = forceResolveTurn(r); // C absent
 
       const reveal = r.rounds[0].reveals[0];
-      expect(reveal.submissions.find((s) => s.playerId === "C")!.number).toBe(0);
+      expect(cHand).toContain(reveal.submissions.find((s) => s.playerId === "C")!.number);
       expect(r.rounds[0].poolRemaining.length).toBe(poolBefore - 1);
     });
 
@@ -605,14 +607,14 @@ describe("mid-game continuation & host succession", () => {
       expect(r.currentTurnIndex).toBe(1);
     });
 
-    it("auto-plays the lowest REMAINING card, not a hardcoded 0", () => {
+    it("auto-plays from the REMAINING hand, never a hardcoded 0", () => {
       let r = forceSafePool(startGame(room3p()));
       const power = pickSafePower(r.rounds[0].poolRemaining);
       r.rounds[0].hands["C"] = [3, 8, 9]; // 0 already gone
       r = submitTurn(r, { playerId: "A", number: 4, powerUp: power });
       r = submitTurn(r, { playerId: "B", number: 1 });
       r = forceResolveTurn(r); // C absent
-      expect(r.rounds[0].reveals[0].submissions.find((s) => s.playerId === "C")!.number).toBe(3);
+      expect([3, 8, 9]).toContain(r.rounds[0].reveals[0].submissions.find((s) => s.playerId === "C")!.number);
     });
 
     it("is a no-op when nobody is missing", () => {
@@ -650,7 +652,7 @@ describe("mid-game continuation & host succession", () => {
   });
 
   describe("forceResolveTurn (turn_peek_review)", () => {
-    it("auto-submits the absent peeker's lowest card and still records peekUsed", () => {
+    it("auto-submits a card from the absent peeker's hand and still records peekUsed", () => {
       let r = startGame(room3p());
       const round = r.rounds[r.currentRoundIndex];
       if (!round.poolRemaining.includes("peek")) {
@@ -661,11 +663,12 @@ describe("mid-game continuation & host succession", () => {
       r = submitTurn(r, { playerId: "B", number: 3 });
       r = submitTurn(r, { playerId: "C", number: 2 });
       expect(r.phase).toBe("turn_peek_review");
+      const aHand = [...r.rounds[0].hands["A"]];
 
       r = forceResolveTurn(r); // peeker A vanished mid-review
       expect(r.phase).toBe("turn_submitting");
       const reveal = r.rounds[0].reveals[0];
-      expect(reveal.submissions.find((s) => s.playerId === "A")!.number).toBe(0); // lowest
+      expect(aHand).toContain(reveal.submissions.find((s) => s.playerId === "A")!.number);
       expect(reveal.peekUsed).toEqual({ peekerId: "A", targetId: "B", revealedNumber: 3, originalNumber: 4 });
     });
   });
