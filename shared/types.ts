@@ -16,6 +16,7 @@ export type PowerUpId =
   | "jinx"
   | "wild"
   | "swap_hands"
+  | "switch_cards"
   | "nothingburger";
 
 export type PowerUpMode = "off" | "random" | "selected";
@@ -79,6 +80,7 @@ export interface RevealedTurn {
   peekUsed?: { peekerId: string; targetId: string; revealedNumber: number; originalNumber: number };
   sabotageUsed?: { sabotagerId: string; targetId: string; forcedNumber: number; originalNumber: number };
   swapUsed?: { swapperId: string; targetId: string };
+  switchUsed?: { switcherId: string; targetId: string; switcherOriginal: number; targetOriginal: number };
 }
 
 export interface RoundState {
@@ -242,6 +244,13 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
     name: "Swap hands",
     description:
       "(Opponents) Choose another player. After this turn's cards are played, swap your remaining hand with theirs for the rest of the round.",
+    needsTarget: true,
+  },
+  switch_cards: {
+    id: "switch_cards",
+    name: "Switch cards",
+    description:
+      "(Opponents) Choose another player. This turn, you play the number they chose and they play yours.",
     needsTarget: true,
   },
   nothingburger: {

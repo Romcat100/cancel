@@ -878,6 +878,17 @@ function RevealView({
           {playerById.get(reveal.swapUsed.targetId)?.name}
         </div>
       )}
+      {reveal.switchUsed && (
+        <div
+          data-testid="reveal-switch"
+          className="mt-4 text-sky-200 text-sm font-mono text-center"
+        >
+          ⇌ {playerById.get(reveal.switchUsed.switcherId)?.name} switched cards with{" "}
+          {playerById.get(reveal.switchUsed.targetId)?.name}: played their{" "}
+          <span className="text-paper">{reveal.switchUsed.targetOriginal}</span>, they played{" "}
+          <span className="text-paper">{reveal.switchUsed.switcherOriginal}</span>
+        </div>
+      )}
       <button className="btn-primary mt-6 px-8 py-3" onClick={onClose} data-sfx="confirm" data-testid="reveal-continue">
         Continue
       </button>

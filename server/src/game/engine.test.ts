@@ -693,9 +693,140 @@ describe("wild", () => {
       if (sub?.resolvedPowerUp) seen.add(sub.resolvedPowerUp);
     }
     for (const id of seen) {
-      expect(["peek", "mute", "sabotage", "drain", "swap_hands", "wild"]).not.toContain(id);
+      expect(["peek", "mute", "sabotage", "drain", "swap_hands", "switch_cards", "wild"]).not.toContain(id);
     }
     expect(seen.size).toBeGreaterThan(1);
+  });
+});
+
+describe("switch_cards", () => {
+  function setup(): RoomDoc {
+    let r = startGame(room3p());
+    const round = r.rounds[r.currentRoundIndex];
+    if (!round.poolRemaining.includes("switch_cards")) {
+      round.poolFull = ["switch_cards", ...round.poolFull.slice(1)];
+      round.poolRemaining = ["switch_cards", ...round.poolRemaining.slice(1)];
+    }
+    return r;
+  }
+
+  it("swaps the picker's and target's numbers in the reveal", () => {
+    let r = setup();
+    r = submitTurn(r, { playerId: "A", number: 4, powerUp: "switch_cards", powerUpTarget: "B" });
+    r = submitTurn(r, { playerId: "B", number: 1 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+
+    const reveal = r.rounds[0].reveals[0];
+    expect(reveal.submissions.find((s) => s.playerId === "A")!.number).toBe(1);
+    expect(reveal.submissions.find((s) => s.playerId === "B")!.number).toBe(4);
+    expect(reveal.submissions.find((s) => s.playerId === "C")!.number).toBe(2);
+  });
+
+  it("each player's hand loses their OWN original number, not the swapped one", () => {
+    let r = setup();
+    r = submitTurn(r, { playerId: "A", number: 4, powerUp: "switch_cards", powerUpTarget: "B" });
+    r = submitTurn(r, { playerId: "B", number: 1 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+
+    // A picked 4, so 4 is gone from A's hand (NOT 1, which was never in A's hand to remove).
+    expect(r.rounds[0].hands["A"]).not.toContain(4);
+    expect(r.rounds[0].hands["A"]).toContain(1);
+    // B picked 1, so 1 is gone from B's hand (NOT 4).
+    expect(r.rounds[0].hands["B"]).not.toContain(1);
+    expect(r.rounds[0].hands["B"]).toContain(4);
+    expect(r.rounds[0].hands["C"]).not.toContain(2);
+  });
+
+  it("scoring uses the swapped numbers", () => {
+    let r = setup();
+    r = submitTurn(r, { playerId: "A", number: 4, powerUp: "switch_cards", powerUpTarget: "B" });
+    r = submitTurn(r, { playerId: "B", number: 1 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+
+    const reveal = r.rounds[0].reveals[0];
+    const scoreFor = (id: string) => reveal.scoreLines.find((l) => l.playerId === id)?.delta;
+    // A effectively played 1, B effectively played 4, C played 2. No ties or zeros.
+    expect(scoreFor("A")).toBe(1);
+    expect(scoreFor("B")).toBe(4);
+    expect(scoreFor("C")).toBe(2);
+  });
+
+  it("picker playing 0 transfers the cancel to the target's effective play", () => {
+    let r = setup();
+    // A plays 0 with switch on B. After swap: A scores 1 (B's number), B scores 0 (canceller).
+    // A single 0 played cancels everyone else → C also scores 0; the 0 itself (B) scores 0.
+    // A's 1 gets cancelled by B's effective 0.
+    r = submitTurn(r, { playerId: "A", number: 0, powerUp: "switch_cards", powerUpTarget: "B" });
+    r = submitTurn(r, { playerId: "B", number: 1 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+
+    const reveal = r.rounds[0].reveals[0];
+    const scoreFor = (id: string) => reveal.scoreLines.find((l) => l.playerId === id)?.delta;
+    expect(scoreFor("A")).toBe(0);
+    expect(scoreFor("B")).toBe(0);
+    expect(scoreFor("C")).toBe(0);
+  });
+
+  it("records switchUsed with both original numbers", () => {
+    let r = setup();
+    r = submitTurn(r, { playerId: "A", number: 3, powerUp: "switch_cards", powerUpTarget: "C" });
+    r = submitTurn(r, { playerId: "B", number: 1 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+
+    expect(r.rounds[0].reveals[0].switchUsed).toEqual({
+      switcherId: "A",
+      targetId: "C",
+      switcherOriginal: 3,
+      targetOriginal: 2,
+    });
+  });
+
+  it("works in a 2-player game", () => {
+    let r = createRoom({
+      code: "SC2P",
+      hostId: "A",
+      hostName: "Alice",
+      rounds: 1,
+      turnDeadlineMs: null,
+      powerUpMode: "selected",
+      selectedPowerUps: ["switch_cards", "double"],
+    });
+    r = addPlayer(r, "B", "Bob");
+    r = startGame(r);
+    expect(r.rounds[0].poolFull).toContain("switch_cards");
+
+    r = submitTurn(r, { playerId: "A", number: 3, powerUp: "switch_cards", powerUpTarget: "B" });
+    r = submitTurn(r, { playerId: "B", number: 1 });
+
+    const reveal = r.rounds[0].reveals[0];
+    expect(reveal.submissions.find((s) => s.playerId === "A")!.number).toBe(1);
+    expect(reveal.submissions.find((s) => s.playerId === "B")!.number).toBe(3);
+    expect(r.rounds[0].hands["A"]).not.toContain(3);
+    expect(r.rounds[0].hands["B"]).not.toContain(1);
+  });
+
+  it("last-turn switch still resolves cleanly into round_end", () => {
+    let r = setup();
+    r.currentTurnIndex = 4;
+    r.rounds[0].hands["A"] = [4];
+    r.rounds[0].hands["B"] = [3];
+    r.rounds[0].hands["C"] = [2];
+    expect(r.rounds[0].rotation[4]).toBe("B");
+    r.rounds[0].poolRemaining = ["switch_cards"];
+
+    r = submitTurn(r, { playerId: "B", number: 3, powerUp: "switch_cards", powerUpTarget: "A" });
+    r = submitTurn(r, { playerId: "A", number: 4 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+
+    expect(r.rounds[0].hands["A"]).toEqual([]);
+    expect(r.rounds[0].hands["B"]).toEqual([]);
+    expect(r.rounds[0].reveals[0].switchUsed).toEqual({
+      switcherId: "B",
+      targetId: "A",
+      switcherOriginal: 3,
+      targetOriginal: 4,
+    });
+    expect(r.phase).toBe("round_end");
   });
 });
 

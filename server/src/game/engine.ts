@@ -39,6 +39,7 @@ export interface RevealDoc {
   peekUsed?: { peekerId: string; targetId: string; revealedNumber: number; originalNumber: number };
   sabotageUsed?: { sabotagerId: string; targetId: string; forcedNumber: number; originalNumber: number };
   swapUsed?: { swapperId: string; targetId: string };
+  switchUsed?: { switcherId: string; targetId: string; switcherOriginal: number; targetOriginal: number };
   revealedAt: number;
 }
 
@@ -411,13 +412,16 @@ function resolveTurn(room: RoomDoc): RoomDoc {
   const turnIndex = room.currentTurnIndex;
   const pickerId = round.rotation[turnIndex];
 
+  // Sabotage override affects BOTH scoring and hand removal: the target plays the
+  // forced card (so it's scored as such, and discarded from their hand instead of
+  // their original pick).
   const sabotageSub = Object.values(room.pendingSubmissions).find((s) => s.powerUp === "sabotage");
   let sabotageUsed: RevealDoc["sabotageUsed"];
-  const overrides: { [playerId: string]: number } = {};
+  const sabotageOverrides: { [playerId: string]: number } = {};
   if (sabotageSub && sabotageSub.powerUpTarget && sabotageSub.sabotageNumber != null) {
     const original = room.pendingSubmissions[sabotageSub.powerUpTarget];
     if (original) {
-      overrides[sabotageSub.powerUpTarget] = sabotageSub.sabotageNumber;
+      sabotageOverrides[sabotageSub.powerUpTarget] = sabotageSub.sabotageNumber;
       sabotageUsed = {
         sabotagerId: sabotageSub.playerId,
         targetId: sabotageSub.powerUpTarget,
@@ -427,12 +431,37 @@ function resolveTurn(room: RoomDoc): RoomDoc {
     }
   }
 
+  // Switch Cards override affects scoring ONLY (not hand removal): the two players
+  // score each other's picked number, but each player still discards their *own*
+  // original choice from their hand (the target's number may not even be in the
+  // picker's hand). Layered on top of any sabotage override so both could in
+  // principle compose, even though only the picker plays a power in practice.
+  const switchSub = Object.values(room.pendingSubmissions).find(
+    (s) => (s.resolvedPowerUp ?? s.powerUp) === "switch_cards",
+  );
+  let switchUsed: RevealDoc["switchUsed"];
+  const switchOverrides: { [playerId: string]: number } = {};
+  if (switchSub && switchSub.powerUpTarget && room.pendingSubmissions[switchSub.powerUpTarget]) {
+    const a = switchSub.playerId;
+    const b = switchSub.powerUpTarget;
+    const aNum = sabotageOverrides[a] ?? room.pendingSubmissions[a].number;
+    const bNum = sabotageOverrides[b] ?? room.pendingSubmissions[b].number;
+    switchOverrides[a] = bNum;
+    switchOverrides[b] = aNum;
+    switchUsed = {
+      switcherId: a,
+      targetId: b,
+      switcherOriginal: room.pendingSubmissions[a].number,
+      targetOriginal: room.pendingSubmissions[b].number,
+    };
+  }
+
   const playsBySeat = [...room.players].sort((a, b) => a.seat - b.seat);
   // What gets recorded in the reveal: keeps the picker's submitted power (e.g. "wild")
   // and the resolved roll so the UI can show "wild → plus_two".
   const revealSubmissions = playsBySeat.map((p) => {
     const s = room.pendingSubmissions[p.id];
-    const number = overrides[p.id] ?? s.number;
+    const number = switchOverrides[p.id] ?? sabotageOverrides[p.id] ?? s.number;
     return {
       playerId: p.id,
       number,
@@ -484,8 +513,15 @@ function resolveTurn(room: RoomDoc): RoomDoc {
       })()
     : round.poolRemaining;
 
+  // Hand removal uses sabotage override but NOT switch override: each player
+  // discards their own original pick (which is what's actually in their hand);
+  // sabotage's forced number is the exception (the target loses the forced card,
+  // not their original).
   const newHands = { ...round.hands };
-  for (const pl of plays) newHands[pl.playerId] = newHands[pl.playerId].filter((n) => n !== pl.number);
+  for (const playerId of Object.keys(room.pendingSubmissions)) {
+    const removed = sabotageOverrides[playerId] ?? room.pendingSubmissions[playerId].number;
+    newHands[playerId] = newHands[playerId].filter((n) => n !== removed);
+  }
 
   // Swap hands runs *after* played cards are removed, so each player keeps their
   // own played card off the swapped remainder. Persists for the rest of the round
@@ -507,6 +543,7 @@ function resolveTurn(room: RoomDoc): RoomDoc {
     peekUsed,
     sabotageUsed,
     swapUsed,
+    switchUsed,
     revealedAt: Date.now(),
   };
 
