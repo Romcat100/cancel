@@ -222,5 +222,21 @@ export function scoreTurn(plays: PlayInput[], gameNumbers?: number[]): ScoreResu
     }
   }
 
+  // Sacrifice: picker's card scores 0 and every other player loses the picker's face
+  // value. The penalty is "damage done" — it lands even if the picker's own card was
+  // cancelled or tied out, so the picker can martyr themselves to drag opponents down.
+  if (powerUp === "sacrifice" && powerUserId) {
+    const penalty = powerPlay!.number;
+    for (const l of lines) {
+      if (l.playerId === powerUserId) {
+        l.delta = 0;
+        l.notes.push("Sacrifice: card scores 0");
+      } else if (penalty !== 0) {
+        l.delta -= penalty;
+        l.notes.push(`Sacrifice: ${penalty > 0 ? "−" : "+"}${Math.abs(penalty)}`);
+      }
+    }
+  }
+
   return { lines };
 }

@@ -622,3 +622,52 @@ describe("scoreTurn — combinations", () => {
     expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
   });
 });
+
+describe("scoreTurn — Sacrifice", () => {
+  it("picker's card scores 0 and every other player loses the picker's face value", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 5, powerUp: "sacrifice" },
+      { playerId: "B", number: 3 },
+      { playerId: "C", number: 4 },
+    ]);
+    expect(points(r)).toEqual({ A: 0, B: -2, C: -1 });
+  });
+
+  it("penalty still applies even when the picker's card was cancelled by another player's 0", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 5, powerUp: "sacrifice" },
+      { playerId: "B", number: 0 },
+      { playerId: "C", number: 3 },
+    ]);
+    // B's 0 cancels everyone to 0 first; then Sacrifice deducts 5 from B and C.
+    expect(points(r)).toEqual({ A: 0, B: -5, C: -5 });
+  });
+
+  it("penalty still applies on top of a tie wipe", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 5, powerUp: "sacrifice" },
+      { playerId: "B", number: 5 },
+      { playerId: "C", number: 3 },
+    ]);
+    // A and B tie on 5 → both wipe to 0; then Sacrifice deducts 5 from B and C.
+    expect(points(r)).toEqual({ A: 0, B: -5, C: -2 });
+  });
+
+  it("sacrificing a 0 is a no-op penalty (lone 0 still cancels via standard rules)", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 0, powerUp: "sacrifice" },
+      { playerId: "B", number: 3 },
+      { playerId: "C", number: 4 },
+    ]);
+    // A's 0 cancels everyone to 0; Sacrifice's penalty is 0 so no further deduction.
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
+  });
+
+  it("works in a 2-player game", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 4, powerUp: "sacrifice" },
+      { playerId: "B", number: 3 },
+    ]);
+    expect(points(r)).toEqual({ A: 0, B: -1 });
+  });
+});

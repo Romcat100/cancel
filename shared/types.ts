@@ -17,6 +17,7 @@ export type PowerUpId =
   | "wild"
   | "swap_hands"
   | "switch_cards"
+  | "sacrifice"
   | "nothingburger";
 
 export type PowerUpMode = "off" | "random" | "selected";
@@ -252,6 +253,13 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
     description:
       "(Opponents) Choose another player. This turn, you play the number they chose and they play yours.",
     needsTarget: true,
+  },
+  sacrifice: {
+    id: "sacrifice",
+    name: "Sacrifice",
+    description:
+      "(Opponents) Your card scores 0. Every other player loses your card's value from their score this turn.",
+    needsTarget: false,
   },
   nothingburger: {
     id: "nothingburger",
