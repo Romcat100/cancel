@@ -11,7 +11,24 @@ export function GameEnd({ onLeave }: { onLeave: () => void }) {
   const [err, setErr] = useState<string | null>(null);
   const { publicState, selfPlayerId } = state;
   const isHost = publicState.hostId === selfPlayerId;
-  const hostName = publicState.players.find((p) => p.id === publicState.hostId)?.name;
+  const hostPlayer = publicState.players.find((p) => p.id === publicState.hostId);
+  const hostName = hostPlayer?.name;
+  const hostOffline = !!hostPlayer && hostPlayer.online === false;
+
+  async function claimHost() {
+    const id = getIdentity(publicState.roomCode);
+    if (!id) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await api.claimHost(publicState.roomCode, id.claimToken);
+      setState(res.state);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function playAgain() {
     const id = getIdentity(publicState.roomCode);
@@ -85,6 +102,10 @@ export function GameEnd({ onLeave }: { onLeave: () => void }) {
         {isHost ? (
           <button className="btn-primary text-xl py-5" disabled={busy} onClick={playAgain} data-sfx="confirm" data-testid="game-end-play-again">
             {busy ? "Restarting…" : "Play again"}
+          </button>
+        ) : hostOffline ? (
+          <button className="btn-primary text-xl py-5" disabled={busy} onClick={claimHost} data-sfx="confirm" data-testid="game-end-claim-host">
+            {busy ? "…" : "Claim host to start a new game"}
           </button>
         ) : (
           <div className="text-center text-paper/50 font-mono text-sm py-4">

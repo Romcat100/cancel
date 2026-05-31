@@ -83,6 +83,21 @@ export interface AbandonRoomReq {
   claimToken: string;
 }
 
+export interface StepDownHostReq {
+  roomCode: string;
+  claimToken: string;
+}
+
+export interface ClaimHostReq {
+  roomCode: string;
+  claimToken: string;
+}
+
+export interface SkipWaitingReq {
+  roomCode: string;
+  claimToken: string;
+}
+
 export interface ErrorRes {
   ok: false;
   error: string;

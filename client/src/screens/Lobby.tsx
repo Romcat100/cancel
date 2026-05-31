@@ -41,6 +41,8 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
 
   const { publicState, selfPlayerId } = state;
   const isHost = publicState.hostId === selfPlayerId;
+  const hostPlayer = publicState.players.find((p) => p.id === publicState.hostId);
+  const hostOffline = !!hostPlayer && hostPlayer.online === false;
   const id = getIdentity(publicState.roomCode);
 
   const playerCount = publicState.players.length;
@@ -160,6 +162,20 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
     setBusy(true);
     try {
       const res = await api.startGame(publicState.roomCode, id.claimToken);
+      setState(res.state);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function claimHost() {
+    if (!id) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await api.claimHost(publicState.roomCode, id.claimToken);
       setState(res.state);
     } catch (e) {
       setErr((e as Error).message);
@@ -448,9 +464,19 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
               {publicState.players.length + 2} cards each · {publicState.config.rounds} rounds
             </p>
           </>
+        ) : hostOffline ? (
+          <button
+            className="btn-primary text-xl py-5"
+            disabled={busy}
+            onClick={claimHost}
+            data-sfx="confirm"
+            data-testid="lobby-claim-host"
+          >
+            {busy ? "…" : "Claim host"}
+          </button>
         ) : (
           <div className="text-center text-paper/50 font-mono text-sm py-4">
-            Waiting for {publicState.players.find((p) => p.id === publicState.hostId)?.name} to start the game…
+            Waiting for {hostPlayer?.name} to start the game…
           </div>
         )}
         {err && (

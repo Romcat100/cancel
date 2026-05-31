@@ -2,9 +2,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ackRoundEnd,
   addPlayer,
+  claimHost,
   createRoom,
+  forceResolveTurn,
+  removePlayer,
   resetToLobby,
   startGame,
+  stepDownHost,
   submitTurn,
   type RoomDoc,
 } from "./engine.js";
@@ -407,6 +411,233 @@ describe("sabotage", () => {
     expect(scoreFor("A")).toBe(0);
     expect(scoreFor("B")).toBe(0);
     expect(scoreFor("C")).toBe(2);
+  });
+});
+
+describe("mid-game continuation & host succession", () => {
+  const ALL = new Set(["A", "B", "C"]);
+
+  // Play one full round of safe (no-target) power plays, leaving the room at round_end.
+  function playRound(r: RoomDoc): RoomDoc {
+    const handSize = r.players.length + 2;
+    for (let turn = 0; turn < handSize; turn++) {
+      const cur = r.rounds[r.currentRoundIndex];
+      const picker = cur.rotation[r.currentTurnIndex];
+      const power = pickSafePower(cur.poolRemaining);
+      const submitFor = (pid: string, isPick: boolean) => {
+        const hand = r.rounds[r.currentRoundIndex].hands[pid];
+        r = submitTurn(r, isPick ? { playerId: pid, number: hand[0], powerUp: power } : { playerId: pid, number: hand[0] });
+      };
+      submitFor(picker, true);
+      for (const p of r.players) if (p.id !== picker) submitFor(p.id, false);
+    }
+    return r;
+  }
+
+  describe("stepDownHost / pickNewHost", () => {
+    it("moves host to the lowest-seat online player and keeps the leaver seated", () => {
+      const r = stepDownHost(room3p(), "A", ALL);
+      expect(r.hostId).toBe("B");
+      expect(r.players.map((p) => p.id)).toEqual(["A", "B", "C"]); // A still seated
+    });
+
+    it("prefers an online player over a lower-seat offline one", () => {
+      const r = stepDownHost(room3p(), "A", new Set(["A", "C"])); // B offline
+      expect(r.hostId).toBe("C");
+    });
+
+    it("falls back to the lowest-seat remaining player when nobody is online", () => {
+      const r = stepDownHost(room3p(), "A", new Set());
+      expect(r.hostId).toBe("B");
+    });
+
+    it("is a no-op when the caller isn't the host", () => {
+      const r = stepDownHost(room3p(), "B", ALL);
+      expect(r.hostId).toBe("A");
+    });
+
+    it("is a no-op for a solo room (host keeps the seat for rejoin)", () => {
+      const solo = createRoom({ code: "SOLO", hostId: "A", hostName: "Alice", rounds: 3, turnDeadlineMs: null });
+      const r = stepDownHost(solo, "A", new Set(["A"]));
+      expect(r.hostId).toBe("A");
+    });
+  });
+
+  describe("claimHost", () => {
+    it("succeeds when the current host is offline", () => {
+      const r = claimHost(room3p(), "B", new Set(["B", "C"])); // A (host) offline
+      expect(r.hostId).toBe("B");
+    });
+
+    it("throws when the host is still online", () => {
+      expect(() => claimHost(room3p(), "B", ALL)).toThrow(/still here/);
+    });
+
+    it("is a no-op when the requester is already host", () => {
+      const r = claimHost(room3p(), "A", new Set(["A"]));
+      expect(r.hostId).toBe("A");
+    });
+
+    it("throws for a non-player", () => {
+      expect(() => claimHost(room3p(), "Z", new Set(["B", "C"]))).toThrow(/Not in room/);
+    });
+
+    it("throws when the requester is offline", () => {
+      expect(() => claimHost(room3p(), "B", new Set(["C"]))).toThrow(/offline/);
+    });
+  });
+
+  describe("forceResolveTurn (turn_submitting)", () => {
+    it("auto-plays an absent picker's lowest card with no power, leaving the pool intact", () => {
+      let r = forceSafePool(startGame(room3p()));
+      expect(r.rounds[0].rotation[0]).toBe("A"); // A is picker
+      const poolBefore = r.rounds[0].poolRemaining.length;
+      r = submitTurn(r, { playerId: "B", number: 3 });
+      r = submitTurn(r, { playerId: "C", number: 2 });
+      r = forceResolveTurn(r); // A (picker) never submitted
+
+      const reveal = r.rounds[0].reveals[0];
+      const aSub = reveal.submissions.find((s) => s.playerId === "A")!;
+      expect(aSub.number).toBe(0); // lowest card
+      expect(aSub.powerUp).toBeUndefined(); // power forfeited
+      expect(r.rounds[0].poolRemaining.length).toBe(poolBefore); // pool untouched
+      expect(r.currentTurnIndex).toBe(1);
+    });
+
+    it("auto-plays an absent non-picker; pool drops only by the picker's power", () => {
+      let r = forceSafePool(startGame(room3p()));
+      const power = pickSafePower(r.rounds[0].poolRemaining);
+      const poolBefore = r.rounds[0].poolRemaining.length;
+      r = submitTurn(r, { playerId: "A", number: 4, powerUp: power });
+      r = submitTurn(r, { playerId: "B", number: 3 });
+      r = forceResolveTurn(r); // C absent
+
+      const reveal = r.rounds[0].reveals[0];
+      expect(reveal.submissions.find((s) => s.playerId === "C")!.number).toBe(0);
+      expect(r.rounds[0].poolRemaining.length).toBe(poolBefore - 1);
+    });
+
+    it("fills multiple absentees in one shot", () => {
+      let r = forceSafePool(startGame(room3p()));
+      const power = pickSafePower(r.rounds[0].poolRemaining);
+      r = submitTurn(r, { playerId: "A", number: 4, powerUp: power }); // only picker submitted
+      r = forceResolveTurn(r); // B and C absent
+      expect(r.rounds[0].reveals).toHaveLength(1);
+      expect(r.currentTurnIndex).toBe(1);
+    });
+
+    it("auto-plays the lowest REMAINING card, not a hardcoded 0", () => {
+      let r = forceSafePool(startGame(room3p()));
+      const power = pickSafePower(r.rounds[0].poolRemaining);
+      r.rounds[0].hands["C"] = [3, 8, 9]; // 0 already gone
+      r = submitTurn(r, { playerId: "A", number: 4, powerUp: power });
+      r = submitTurn(r, { playerId: "B", number: 1 });
+      r = forceResolveTurn(r); // C absent
+      expect(r.rounds[0].reveals[0].submissions.find((s) => s.playerId === "C")!.number).toBe(3);
+    });
+
+    it("is a no-op when nobody is missing", () => {
+      let r = forceSafePool(startGame(room3p()));
+      const power = pickSafePower(r.rounds[0].poolRemaining);
+      // Hand-craft a fully-submitted pending map (never happens naturally, but guards the branch).
+      r = { ...r, pendingSubmissions: {
+        A: { playerId: "A", number: 4, powerUp: power },
+        B: { playerId: "B", number: 3 },
+        C: { playerId: "C", number: 2 },
+      } };
+      const out = forceResolveTurn(r);
+      expect(out.rounds[0].reveals).toHaveLength(0);
+      expect(out.phase).toBe("turn_submitting");
+    });
+
+    it("advances to round_end when the last turn is force-resolved", () => {
+      let r = forceSafePool(startGame(room3p()));
+      // Resolve the first four turns normally, force-resolve the fifth (last).
+      for (let turn = 0; turn < 4; turn++) {
+        const cur = r.rounds[r.currentRoundIndex];
+        const picker = cur.rotation[r.currentTurnIndex];
+        const power = pickSafePower(cur.poolRemaining);
+        const submitFor = (pid: string, isPick: boolean) => {
+          const hand = r.rounds[r.currentRoundIndex].hands[pid];
+          r = submitTurn(r, isPick ? { playerId: pid, number: hand[0], powerUp: power } : { playerId: pid, number: hand[0] });
+        };
+        submitFor(picker, true);
+        for (const p of r.players) if (p.id !== picker) submitFor(p.id, false);
+      }
+      expect(r.currentTurnIndex).toBe(4);
+      r = forceResolveTurn(r); // nobody submitted the last turn
+      expect(r.phase).toBe("round_end");
+    });
+  });
+
+  describe("forceResolveTurn (turn_peek_review)", () => {
+    it("auto-submits the absent peeker's lowest card and still records peekUsed", () => {
+      let r = startGame(room3p());
+      const round = r.rounds[r.currentRoundIndex];
+      if (!round.poolRemaining.includes("peek")) {
+        round.poolFull = ["peek", ...round.poolFull.slice(1)];
+        round.poolRemaining = ["peek", ...round.poolRemaining.slice(1)];
+      }
+      r = submitTurn(r, { playerId: "A", number: 4, powerUp: "peek", powerUpTarget: "B" });
+      r = submitTurn(r, { playerId: "B", number: 3 });
+      r = submitTurn(r, { playerId: "C", number: 2 });
+      expect(r.phase).toBe("turn_peek_review");
+
+      r = forceResolveTurn(r); // peeker A vanished mid-review
+      expect(r.phase).toBe("turn_submitting");
+      const reveal = r.rounds[0].reveals[0];
+      expect(reveal.submissions.find((s) => s.playerId === "A")!.number).toBe(0); // lowest
+      expect(reveal.peekUsed).toEqual({ peekerId: "A", targetId: "B", revealedNumber: 3, originalNumber: 4 });
+    });
+  });
+
+  describe("forceResolveTurn phase guard", () => {
+    it("throws at round_end", () => {
+      const r = playRound(forceSafePool(startGame(room3p())));
+      expect(r.phase).toBe("round_end");
+      expect(() => forceResolveTurn(r)).toThrow(/Nothing to skip/);
+    });
+
+    it("throws in the lobby", () => {
+      expect(() => forceResolveTurn(room3p())).toThrow(/Nothing to skip/);
+    });
+  });
+
+  describe("removePlayer mid-game", () => {
+    it("removes a player at round_end, reseats survivors, and keeps finished-round history", () => {
+      let r = playRound(forceSafePool(startGame(room3p())));
+      expect(r.phase).toBe("round_end");
+      r = removePlayer(r, "C", ALL);
+      expect(r.players.map((p) => p.id)).toEqual(["A", "B"]);
+      expect(r.players.map((p) => p.seat)).toEqual([0, 1]);
+      expect(r.hostId).toBe("A");
+      expect(r.rounds[0].perPlayerRoundScore["C"]).toBeDefined(); // history intact
+    });
+
+    it("reassigns host when the removed player was the host", () => {
+      let r = playRound(forceSafePool(startGame(room3p())));
+      r = removePlayer(r, "A", new Set(["B", "C"]));
+      expect(r.hostId).toBe("B");
+      expect(r.players.map((p) => p.id)).toEqual(["B", "C"]);
+    });
+
+    it("re-deals the next round for the smaller set after a round_end removal", () => {
+      let r = playRound(forceSafePool(startGame(room3p())));
+      r = removePlayer(r, "C", ALL);
+      r = ackRoundEnd(r, "A");
+      r = ackRoundEnd(r, "B");
+      expect(r.phase).toBe("turn_submitting");
+      expect(r.currentRoundIndex).toBe(1);
+      const round1 = r.rounds[1];
+      expect(round1.hands["C"]).toBeUndefined();
+      expect(round1.rotation.every((id) => id === "A" || id === "B")).toBe(true);
+      expect(round1.hands["A"]).toEqual([0, 1, 2, 3]); // handSize now 4
+    });
+
+    it("still throws when removing mid-turn", () => {
+      const r = forceSafePool(startGame(room3p()));
+      expect(() => removePlayer(r, "C", ALL)).toThrow(/Skip waiting/);
+    });
   });
 });
 

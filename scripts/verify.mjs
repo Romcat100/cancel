@@ -225,8 +225,87 @@ async function lobbyRoundsFlow(browser) {
   await shot(host, "host-game");
 }
 
+// Host leaves mid-game, authority floats to a present player, the host skips a
+// turn stalled on the (now-offline) picker, and a present player claims host
+// when the holder vanishes ungracefully.
+async function hostLeaveFlow(browser) {
+  const host = await newPlayer(browser, "Host");
+  host.on("dialog", (d) => d.accept()); // accept the "Leave this game?" confirm
+  await waitForText(host, "CANCEL");
+  await clickTestId(host, "home-new-game");
+  await typeInto(host, tid("home-name-input"), "Host");
+  await clickTestId(host, "home-create-room");
+  await waitForText(host, "Rounds");
+  const code = await host.$eval(tid("lobby-room-code"), (el) => el.innerText.trim());
+  console.log(`[verify] room code: ${code}`);
+  // Power-ups off keeps submissions to a plain number (no pool/preview/power pick).
+  await clickTestId(host, "lobby-powerup-off");
+
+  // Two joiners.
+  const join = async (name) => {
+    const p = await newPlayer(browser, name);
+    await waitForText(p, "CANCEL");
+    await clickTestId(p, "home-join-with-code");
+    await typeInto(p, tid("home-code-input"), code);
+    await typeInto(p, tid("home-name-input"), name);
+    await clickTestId(p, "home-join");
+    await waitForText(p, "Rounds");
+    return p;
+  };
+  const j1 = await join("Joiner1");
+  const j2 = await join("Joiner2");
+
+  // Host starts; everyone lands in the game (room-code element is lobby-only).
+  await clickTestId(host, "lobby-start-game");
+  await host.waitForFunction(() => !document.querySelector('[data-testid="lobby-room-code"]'), { timeout: 10_000 });
+  await host.waitForSelector(tid("game-host-leave"), { timeout: 10_000 });
+  await shot(host, "host-in-game"); // host sees Leave + End game
+
+  // Host leaves. Authority should float to Joiner1 (lowest-seat present player).
+  await clickTestId(host, "game-host-leave");
+  await waitForText(host, "CANCEL"); // host bounced to Home
+  await j1.waitForSelector(tid("game-end-game"), { timeout: 10_000 }); // J1 is now host
+  await shot(j1, "joiner1-now-host");
+
+  // The picker for turn 1 is the (now offline) ex-host, so the turn stalls.
+  // The two present players submit; only the offline picker remains.
+  const submitAny = async (page) => {
+    await page.waitForSelector(tid("game-submit"), { timeout: 10_000 });
+    await clickTestId(page, "game-hand-card-1");
+    await page.waitForFunction(() => {
+      const b = document.querySelector('[data-testid="game-submit"]');
+      return b && !b.disabled;
+    }, { timeout: 10_000 });
+    await clickTestId(page, "game-submit");
+    await page.waitForSelector(tid("game-unlock"), { timeout: 10_000 });
+  };
+  await submitAny(j1);
+  await submitAny(j2);
+
+  // J1 (host) can now skip waiting on the absent picker.
+  await j1.waitForSelector(tid("game-skip-waiting"), { timeout: 10_000 });
+  await shot(j1, "host-skip-waiting-available");
+  await clickTestId(j1, "game-skip-waiting");
+  await j1.waitForSelector(tid("reveal-continue"), { timeout: 10_000 }); // turn resolved
+  await shot(j1, "turn-resolved-after-skip");
+  await clickTestId(j1, "reveal-continue");
+  // Every player sees the reveal; dismiss J2's too so its header isn't covered.
+  await j2.waitForSelector(tid("reveal-continue"), { timeout: 10_000 });
+  await clickTestId(j2, "reveal-continue");
+
+  // Now J1 (current host) vanishes ungracefully — close its context, no step-down.
+  // The host role stays on the offline J1, so J2 sees a "Claim host" button.
+  await j1.browserContext().close();
+  await j2.waitForSelector(tid("game-claim-host"), { timeout: 10_000 });
+  await shot(j2, "joiner2-can-claim-host");
+  await clickTestId(j2, "game-claim-host");
+  await j2.waitForSelector(tid("game-end-game"), { timeout: 10_000 }); // J2 is now host
+  await shot(j2, "joiner2-now-host");
+}
+
 const flows = {
   "lobby-rounds": lobbyRoundsFlow,
+  "host-leave": hostLeaveFlow,
 };
 
 // ---------------------------------------------------------------------------

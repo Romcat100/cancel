@@ -21,6 +21,9 @@ import {
   apiKickPlayer,
   apiPlayAgain,
   apiAbandonRoom,
+  apiStepDownHost,
+  apiClaimHost,
+  apiSkipWaiting,
   apiFetchState,
 } from "./handlers.js";
 
@@ -81,6 +84,15 @@ app.post("/api/rooms/:code/play-again", (req, res) =>
 );
 app.post("/api/rooms/:code/abandon", (req, res) =>
   safe(res, () => apiAbandonRoom({ ...req.body, roomCode: req.params.code }, ctx)),
+);
+app.post("/api/rooms/:code/step-down-host", (req, res) =>
+  safe(res, () => apiStepDownHost({ ...req.body, roomCode: req.params.code }, ctx)),
+);
+app.post("/api/rooms/:code/claim-host", (req, res) =>
+  safe(res, () => apiClaimHost({ ...req.body, roomCode: req.params.code }, ctx)),
+);
+app.post("/api/rooms/:code/skip-waiting", (req, res) =>
+  safe(res, () => apiSkipWaiting({ ...req.body, roomCode: req.params.code }, ctx)),
 );
 app.get("/api/rooms/:code/state", (req, res) =>
   safe(res, () => apiFetchState(req.params.code, String(req.query.claimToken))),

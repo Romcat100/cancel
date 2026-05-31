@@ -2,12 +2,15 @@ import type { Server, Socket } from "socket.io";
 import {
   ackRoundEnd,
   addPlayer,
+  claimHost,
   createRoom,
   forceAdvanceRound,
+  forceResolveTurn,
   removePlayer,
   resetToLobby,
   setRoomConfig,
   startGame,
+  stepDownHost,
   submitTurn,
   unsubmitTurn,
   type RoomDoc,
@@ -27,6 +30,9 @@ import type {
   KickPlayerReq,
   PlayAgainReq,
   PingPlayerReq,
+  StepDownHostReq,
+  ClaimHostReq,
+  SkipWaitingReq,
 } from "../../shared/protocol.js";
 
 const PING_COOLDOWN_MS = 3000;
@@ -303,7 +309,38 @@ export function apiKickPlayer(req: KickPlayerReq, ctx: ApiCtx) {
   let room = loadRoom(req.roomCode);
   if (!room) throw new Error("Room not found");
   if (player.id !== room.hostId) throw new Error("Only host can kick");
-  room = removePlayer(room, req.targetPlayerId);
+  room = removePlayer(room, req.targetPlayerId, onlineSet(req.roomCode));
+  saveRoom(room);
+  setImmediate(() => broadcastRoom(ctx.io, room));
+  return { ok: true as const, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)) };
+}
+
+export function apiStepDownHost(req: StepDownHostReq, ctx: ApiCtx) {
+  const player = authPlayer(req.roomCode, req.claimToken);
+  let room = loadRoom(req.roomCode);
+  if (!room) throw new Error("Room not found");
+  room = stepDownHost(room, player.id, onlineSet(req.roomCode));
+  saveRoom(room);
+  setImmediate(() => broadcastRoom(ctx.io, room));
+  return { ok: true as const, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)) };
+}
+
+export function apiClaimHost(req: ClaimHostReq, ctx: ApiCtx) {
+  const player = authPlayer(req.roomCode, req.claimToken);
+  let room = loadRoom(req.roomCode);
+  if (!room) throw new Error("Room not found");
+  room = claimHost(room, player.id, onlineSet(req.roomCode));
+  saveRoom(room);
+  setImmediate(() => broadcastRoom(ctx.io, room));
+  return { ok: true as const, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)) };
+}
+
+export function apiSkipWaiting(req: SkipWaitingReq, ctx: ApiCtx) {
+  const player = authPlayer(req.roomCode, req.claimToken);
+  let room = loadRoom(req.roomCode);
+  if (!room) throw new Error("Room not found");
+  if (player.id !== room.hostId) throw new Error("Only host can skip waiting");
+  room = forceResolveTurn(room);
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));
   return { ok: true as const, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)) };

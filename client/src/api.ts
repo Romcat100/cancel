@@ -70,4 +70,13 @@ export const api = {
   abandonRoom(roomCode: string, claimToken: string) {
     return call<{ ok: true }>("POST", `/api/rooms/${roomCode}/abandon`, { claimToken });
   },
+  stepDownHost(roomCode: string, claimToken: string) {
+    return call<{ ok: true; state: RoomStateForPlayer }>("POST", `/api/rooms/${roomCode}/step-down-host`, { claimToken });
+  },
+  claimHost(roomCode: string, claimToken: string) {
+    return call<{ ok: true; state: RoomStateForPlayer }>("POST", `/api/rooms/${roomCode}/claim-host`, { claimToken });
+  },
+  skipWaiting(roomCode: string, claimToken: string) {
+    return call<{ ok: true; state: RoomStateForPlayer }>("POST", `/api/rooms/${roomCode}/skip-waiting`, { claimToken });
+  },
 };

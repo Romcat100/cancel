@@ -150,6 +150,60 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
     }
   }
 
+  async function hostLeave() {
+    if (!id) return;
+    if (!window.confirm("Leave this game? Host passes to the next player and the game keeps running. You can rejoin from this device."))
+      return;
+    try {
+      await api.stepDownHost(publicState.roomCode, id.claimToken);
+    } catch {
+      // Leave anyway — worst case the role stays put and another player can claim it.
+    }
+    onLeave();
+  }
+
+  async function claimHost() {
+    if (!id) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await api.claimHost(publicState.roomCode, id.claimToken);
+      setState(res.state);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function skipWaiting() {
+    if (!id) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await api.skipWaiting(publicState.roomCode, id.claimToken);
+      setState(res.state);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function forceAdvance() {
+    if (!id) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await api.forceAdvance(publicState.roomCode, id.claimToken);
+      setState(res.state);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function submit() {
     if (!id || selectedNumber == null) return;
     setBusy(true);
@@ -204,6 +258,9 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
 
   const playerById = useMemo(() => new Map(publicState.players.map((p) => [p.id, p])), [publicState.players]);
   const isHost = publicState.hostId === selfPlayerId;
+  const hostPlayer = playerById.get(publicState.hostId);
+  const hostOffline = !!hostPlayer && hostPlayer.online === false;
+  const someoneMissing = publicState.currentSubmissions.some((s) => !s.submitted);
 
   if (phase === "game_end" && !revealOverlay) {
     return <GameEnd onLeave={onAbandoned} />;
@@ -234,12 +291,33 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
           >
             Rules
           </button>
+          {!isHost && hostOffline && (
+            <button
+              onClick={claimHost}
+              disabled={busy}
+              className="text-[10px] uppercase tracking-widest font-mono text-gold hover:text-gold border border-gold/30 hover:border-gold/60 rounded-lg px-2 py-1 transition"
+              title="The host is offline. Take over so you can keep the game moving."
+              data-testid="game-claim-host"
+            >
+              Claim host
+            </button>
+          )}
           {!isHost && (
             <button
               onClick={leave}
               className="text-[10px] uppercase tracking-widest font-mono text-paper/50 hover:text-paper border border-paper/15 hover:border-paper/40 rounded-lg px-2 py-1 transition"
               title="The game continues; you can rejoin from this device"
               data-testid="game-leave"
+            >
+              Leave
+            </button>
+          )}
+          {isHost && (
+            <button
+              onClick={hostLeave}
+              className="text-[10px] uppercase tracking-widest font-mono text-paper/50 hover:text-paper border border-paper/15 hover:border-paper/40 rounded-lg px-2 py-1 transition"
+              title="Pass host to the next player and leave. The game keeps running; you can rejoin."
+              data-testid="game-host-leave"
             >
               Leave
             </button>
@@ -333,6 +411,18 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
           );
         })}
       </div>
+
+      {isHost && (phase === "turn_submitting" || phase === "turn_peek_review") && someoneMissing && (
+        <button
+          onClick={skipWaiting}
+          disabled={busy}
+          className="w-full mb-3 text-[11px] uppercase tracking-widest font-mono text-paper/60 hover:text-paper border border-paper/15 hover:border-paper/40 rounded-xl px-3 py-2 transition disabled:opacity-40"
+          title="Resolve this turn now. Anyone who hasn't played gets their lowest card auto-played."
+          data-testid="game-skip-waiting"
+        >
+          {busy ? "Skipping…" : "Skip waiting — auto-play who's left"}
+        </button>
+      )}
 
       {isPeekReview && privateState.peekReveal && (
         <div className="rounded-2xl bg-cyan-400/15 border border-cyan-400/40 px-4 py-3 text-cyan-200 text-sm font-mono mb-3 animate-rise" data-testid="game-peek-review">
@@ -499,6 +589,10 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
           onAck={ackRound}
           alreadyAcked={round.endAcksBy.includes(selfPlayerId)}
           busy={busy}
+          isHost={isHost}
+          hostOffline={hostOffline}
+          onForceAdvance={forceAdvance}
+          onClaimHost={claimHost}
         />
       )}
     </div>
@@ -793,6 +887,10 @@ function RoundEnd({
   onAck,
   alreadyAcked,
   busy,
+  isHost,
+  hostOffline,
+  onForceAdvance,
+  onClaimHost,
 }: {
   players: { id: string; name: string; seat: number; totalScore: number }[];
   selfId: string;
@@ -803,6 +901,10 @@ function RoundEnd({
   onAck: () => void;
   alreadyAcked: boolean;
   busy: boolean;
+  isHost: boolean;
+  hostOffline: boolean;
+  onForceAdvance: () => void;
+  onClaimHost: () => void;
 }) {
   const currentRound = roundHistory.find((r) => r.index === roundIndex);
   const currentScores = currentRound?.scores ?? {};
@@ -857,6 +959,28 @@ function RoundEnd({
         >
           {alreadyAcked ? "Ready — waiting for others" : busy ? "…" : isLast ? "See the winner" : "Next round"}
         </button>
+        {isHost && acks.length < players.length && (
+          <button
+            className="w-full mt-3 text-[11px] uppercase tracking-widest font-mono text-paper/60 hover:text-paper border border-paper/15 hover:border-paper/40 rounded-xl px-3 py-2 transition disabled:opacity-40"
+            disabled={busy}
+            onClick={onForceAdvance}
+            title="Don't wait for everyone. Advance now."
+            data-testid="round-end-force-advance"
+          >
+            {busy ? "Advancing…" : isLast ? "Skip waiting — see the winner" : "Skip waiting — next round"}
+          </button>
+        )}
+        {!isHost && hostOffline && (
+          <button
+            className="w-full mt-3 text-[11px] uppercase tracking-widest font-mono text-gold hover:text-gold border border-gold/30 hover:border-gold/60 rounded-xl px-3 py-2 transition disabled:opacity-40"
+            disabled={busy}
+            onClick={onClaimHost}
+            title="The host is offline. Take over so you can keep the game moving."
+            data-testid="round-end-claim-host"
+          >
+            Claim host
+          </button>
+        )}
       </div>
     </div>
   );

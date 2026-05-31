@@ -595,15 +595,94 @@ export function resetToLobby(room: RoomDoc): RoomDoc {
   };
 }
 
-export function removePlayer(room: RoomDoc, playerId: string): RoomDoc {
-  if (room.phase === "lobby") {
-    return {
-      ...room,
-      players: room.players.filter((p) => p.id !== playerId).map((p, i) => ({ ...p, seat: i })),
-      hostId:
-        room.hostId === playerId && room.players.length > 1 ? room.players.find((p) => p.id !== playerId)!.id : room.hostId,
-      updatedAt: Date.now(),
+// Pick the next host from a player list: lowest-seat player still in the room,
+// preferring one who's currently online so the role lands on someone who can
+// actually drive the game. Falls back to the lowest-seat offline player so a
+// room is never left hostless. Returns undefined only when there are no players.
+function pickNewHost(
+  players: PlayerDoc[],
+  opts: { excludePlayerId?: string; onlineIds: ReadonlySet<string> },
+): string | undefined {
+  const candidates = players.filter((p) => p.id !== opts.excludePlayerId);
+  if (candidates.length === 0) return undefined;
+  const online = candidates.filter((p) => opts.onlineIds.has(p.id));
+  const pool = online.length > 0 ? online : candidates;
+  return [...pool].sort((a, b) => a.seat - b.seat)[0].id;
+}
+
+// Host steps away gracefully (the "Leave" button). The leaver keeps their seat
+// and claim token so they can rejoin as a normal player; only the host role
+// moves on, to the lowest-seat online player. No-op if the caller isn't the
+// host or is the only player (they stay host; the seat is kept for rejoin).
+export function stepDownHost(room: RoomDoc, leaverId: string, onlineIds: ReadonlySet<string>): RoomDoc {
+  if (room.hostId !== leaverId) return room;
+  const newHost = pickNewHost(room.players, { excludePlayerId: leaverId, onlineIds });
+  if (!newHost) return room;
+  return { ...room, hostId: newHost, updatedAt: Date.now() };
+}
+
+// A present player grabs the host role, but only when the current host is
+// offline (e.g. their tab crashed, or they're returning days later in an async
+// game). The host-offline guard stops anyone yanking the role from an active host.
+export function claimHost(room: RoomDoc, requesterId: string, onlineIds: ReadonlySet<string>): RoomDoc {
+  if (!room.players.some((p) => p.id === requesterId)) throw new Error("Not in room");
+  if (room.hostId === requesterId) return room;
+  if (onlineIds.has(room.hostId)) throw new Error("Host is still here");
+  if (!onlineIds.has(requesterId)) throw new Error("You're offline");
+  return { ...room, hostId: requesterId, updatedAt: Date.now() };
+}
+
+// Host "Skip waiting": push a stalled turn past players who haven't submitted
+// (whether they've left, disconnected, or are just AFK). Each missing player is
+// auto-played their lowest remaining card with no power-up — an absent picker
+// forfeits the power slot, so the pool rolls untouched to the next picker. Then
+// the normal resolveTurn runs. Keyed on who hasn't submitted, not on presence,
+// so the host can also push past someone who's online but idle.
+export function forceResolveTurn(room: RoomDoc): RoomDoc {
+  if (room.phase === "turn_peek_review") {
+    // The peeker is the lone outstanding submitter (everyone else already
+    // submitted before peek review began). Auto-submit their lowest card with
+    // the recorded peek target; keep peekReview so resolveTurn records peekUsed.
+    if (!room.peekReview) throw new Error("Nothing to skip");
+    const round = room.rounds[room.currentRoundIndex];
+    const peekerHand = round.hands[room.peekReview.peekerId];
+    const lowest = [...peekerHand].sort((a, b) => a - b)[0];
+    const submission: SubmissionDoc = {
+      playerId: room.peekReview.peekerId,
+      number: lowest,
+      powerUp: "peek",
+      powerUpTarget: room.peekReview.targetId,
     };
+    return resolveTurn({
+      ...room,
+      phase: "turn_submitting",
+      pendingSubmissions: { ...room.pendingSubmissions, [room.peekReview.peekerId]: submission },
+      updatedAt: Date.now(),
+    });
   }
-  throw new Error("Cannot remove a player mid-game (use force-skip instead)");
+  if (room.phase !== "turn_submitting") throw new Error("Nothing to skip");
+  const round = room.rounds[room.currentRoundIndex];
+  const missing = room.players.filter((p) => !room.pendingSubmissions[p.id]);
+  if (missing.length === 0) return room;
+  const filled = { ...room.pendingSubmissions };
+  for (const p of missing) {
+    const lowest = [...round.hands[p.id]].sort((a, b) => a - b)[0];
+    filled[p.id] = { playerId: p.id, number: lowest };
+  }
+  return resolveTurn({ ...room, pendingSubmissions: filled, updatedAt: Date.now() });
+}
+
+// Remove a player from the room. Clean at a round boundary (or lobby) because the
+// next startRound re-deals hands/rotation/pool for the smaller set; finished-round
+// history that still references the removed id is left intact (it's correct
+// history, and the client renders names from the current player list). Mid-turn
+// removal would desync the in-flight round, so it throws — use forceResolveTurn there.
+export function removePlayer(room: RoomDoc, playerId: string, onlineIds: ReadonlySet<string> = new Set()): RoomDoc {
+  if (room.phase === "lobby" || room.phase === "round_end" || room.phase === "game_end") {
+    const players = room.players.filter((p) => p.id !== playerId).map((p, i) => ({ ...p, seat: i }));
+    const hostId =
+      room.hostId === playerId ? (pickNewHost(players, { onlineIds }) ?? room.hostId) : room.hostId;
+    return { ...room, players, hostId, updatedAt: Date.now() };
+  }
+  throw new Error("Cannot remove a player mid-turn (use Skip waiting instead)");
 }
