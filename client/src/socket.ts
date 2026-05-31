@@ -1,6 +1,7 @@
 import { io, type Socket } from "socket.io-client";
 import type { RoomStateForPlayer } from "../../shared/types.js";
-import { SOCKET_EVENTS, type PlayerPingedEvent } from "../../shared/protocol.js";
+import { SOCKET_EVENTS, type PlayerPingedEvent, type SocketAuthRes } from "../../shared/protocol.js";
+import { checkBuildId } from "./version.js";
 
 let socket: Socket | null = null;
 const pingListeners = new Set<(ev: PlayerPingedEvent) => void>();
@@ -18,7 +19,10 @@ export function connectSocket(roomCode: string, claimToken: string, handlers: So
   socket = io({ transports: ["websocket"], autoConnect: true });
   socket.on("connect", () => {
     socket!.emit("auth", { roomCode, claimToken }, (res: unknown) => {
-      const r = res as { ok: boolean; state?: RoomStateForPlayer; error?: string };
+      const r = res as SocketAuthRes;
+      // The socket reconnects whenever the server restarts (e.g. a redeploy), so the auth ack is the
+      // primary place we notice a newer build is live for a foreground tab.
+      checkBuildId(r.buildId);
       if (r.ok && r.state) handlers.onRoomState(r.state);
     });
   });

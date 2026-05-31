@@ -6,6 +6,7 @@ import fs from "node:fs";
 import os from "node:os";
 import { Server as SocketServer } from "socket.io";
 import { getDb } from "./db.js";
+import { BUILD_ID } from "./version.js";
 import { countActiveGames, gcAbandoned, restoreRoom, restorePlayer } from "./rooms.js";
 import { hydrateActiveRooms } from "./kv.js";
 import {
@@ -53,7 +54,7 @@ function safe<T>(res: Response, fn: () => T) {
   }
 }
 
-app.get("/api/health", (_req, res) => res.json({ ok: true }));
+app.get("/api/health", (_req, res) => res.json({ ok: true, buildId: BUILD_ID }));
 
 app.post("/api/rooms", (req, res) => safe(res, () => apiCreateRoom(req.body, ctx)));
 app.post("/api/rooms/:code/join", (req, res) =>
@@ -104,8 +105,33 @@ app.get("/api/rooms/:code/state", (req, res) =>
 
 const clientDist = path.resolve(__dirname, "../../client/dist");
 if (fs.existsSync(clientDist)) {
-  app.use(express.static(clientDist));
-  app.get(/^(?!\/api|\/socket\.io).*/, (_req, res) => res.sendFile(path.join(clientDist, "index.html")));
+  // Inject the build id into the served index.html so each loaded tab knows exactly which build it's
+  // running. That's the race-free baseline for the client's stale-version check. Done once at startup
+  // against the same file version.ts hashed for BUILD_ID.
+  const rawIndexHtml = fs.readFileSync(path.join(clientDist, "index.html"), "utf8");
+  const indexHtml = rawIndexHtml.replace(
+    "</head>",
+    `<script>window.__BUILD_ID__=${JSON.stringify(BUILD_ID)};</script></head>`,
+  );
+  app.use(
+    express.static(clientDist, {
+      // Serve the injected index.html ourselves (below) instead of letting static serve the raw file.
+      index: false,
+      setHeaders(res, filePath) {
+        if (filePath.endsWith("index.html")) {
+          // Always revalidate the entry point so a new deploy's hashed assets are picked up on reload.
+          res.setHeader("Cache-Control", "no-cache");
+        } else if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+          // Content-hashed bundles are safe to cache forever.
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        }
+      },
+    }),
+  );
+  app.get(/^(?!\/api|\/socket\.io).*/, (_req, res) => {
+    res.setHeader("Cache-Control", "no-cache");
+    res.type("html").send(indexHtml);
+  });
 }
 
 function lanUrl() {

@@ -112,6 +112,19 @@ export interface ErrorRes {
   error: string;
 }
 
+export interface HealthRes {
+  ok: boolean;
+  // Short id of the build the server is currently serving. Absent only on very old servers.
+  buildId?: string;
+}
+
+export interface SocketAuthRes {
+  ok: boolean;
+  state?: RoomStateForPlayer;
+  buildId?: string;
+  error?: string;
+}
+
 export type ApiResponse<T> = T | ErrorRes;
 
 export const SOCKET_EVENTS = {

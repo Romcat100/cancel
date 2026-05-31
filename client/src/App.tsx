@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import { useAppStore } from "./store.js";
 import { Home } from "./screens/Home.js";
 import { Lobby } from "./screens/Lobby.js";
@@ -8,16 +8,36 @@ import { clearIdentity, listIdentities } from "./identity.js";
 import { api } from "./api.js";
 import { initMusic } from "./music.js";
 import { initSfx } from "./sfx.js";
+import { pollHealth, setStaleHandler } from "./version.js";
 
 export function App() {
   const state = useAppStore((s) => s.state);
   const setState = useAppStore((s) => s.setState);
   const reset = useAppStore((s) => s.reset);
   const [bootstrap, setBootstrap] = useState<"loading" | "ready">("loading");
+  const [stale, setStale] = useState(false);
 
   useEffect(() => {
     initMusic();
     initSfx();
+  }, []);
+
+  // Watch for a newer client build deploying while this tab is open. The socket auth ack catches a
+  // redeploy on reconnect (a server restart drops every socket); these polls catch backgrounded and
+  // bfcache-restored tabs that may not have reconnected. On a mismatch we surface a refresh banner.
+  useEffect(() => {
+    setStaleHandler(() => setStale(true));
+    void pollHealth();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void pollHealth();
+    };
+    const onPageShow = () => void pollHealth();
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pageshow", onPageShow);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", onPageShow);
+    };
   }, []);
 
   useEffect(() => {
@@ -49,13 +69,20 @@ export function App() {
     return () => disconnectSocket();
   }, [setState, reset]);
 
+  const withBanner = (content: ReactElement) => (
+    <>
+      {stale && <UpdateBanner />}
+      {content}
+    </>
+  );
+
   if (bootstrap === "loading") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-ink text-paper/50 font-mono">loading…</div>
+    return withBanner(
+      <div className="flex min-h-screen items-center justify-center bg-ink text-paper/50 font-mono">loading…</div>,
     );
   }
 
-  if (!state) return <Home />;
+  if (!state) return withBanner(<Home />);
 
   const leaveRoom = () => {
     disconnectSocket();
@@ -69,7 +96,25 @@ export function App() {
 
   const phase = state.publicState.phase;
   if (phase === "lobby") {
-    return <Lobby onLeave={leaveRoom} />;
+    return withBanner(<Lobby onLeave={leaveRoom} />);
   }
-  return <Game onLeave={leaveRoom} onAbandoned={abandonLocal} />;
+  return withBanner(<Game onLeave={leaveRoom} onAbandoned={abandonLocal} />);
+}
+
+function UpdateBanner() {
+  return (
+    <div
+      data-testid="version-refresh-banner"
+      className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-3 bg-gold px-4 py-2 font-mono text-sm text-ink shadow-lg"
+    >
+      <span>A new version is available.</span>
+      <button
+        data-testid="version-refresh-button"
+        onClick={() => location.reload()}
+        className="rounded bg-ink px-3 py-1 font-bold text-paper"
+      >
+        Refresh
+      </button>
+    </div>
+  );
 }

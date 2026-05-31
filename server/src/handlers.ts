@@ -19,6 +19,7 @@ import {
 import { driveBots } from "./game/bots.js";
 import { archiveRoom, findPlayerByClaim, generateRoomCode, loadRoom, newClaimToken, newPlayerId, recordPlayer, saveRoom } from "./rooms.js";
 import { projectStateForPlayer } from "./projection.js";
+import { BUILD_ID } from "./version.js";
 import { SOCKET_EVENTS } from "../../shared/protocol.js";
 import type {
   AbandonRoomReq,
@@ -105,7 +106,7 @@ export function attachSocketHandlers(io: Server) {
         trackOnline(req.roomCode, player.id, socket.id);
         const room = loadRoom(req.roomCode);
         if (!room) throw new Error("Room gone");
-        ack?.({ ok: true, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)) });
+        ack?.({ ok: true, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)), buildId: BUILD_ID });
         broadcastRoom(io, room);
       } catch (e) {
         ack?.({ ok: false, error: (e as Error).message });
