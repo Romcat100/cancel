@@ -26,7 +26,10 @@ const NUMBER_MODES: { mode: NumberMode; label: string }[] = [
 ];
 
 // The numbers the host can pick from (0 is always dealt and not selectable).
-const NUMBER_PALETTE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const NUMBER_PALETTE = [
+  -10, -9, -8, -7, -6, -5, -4, -3, -2, -1,
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+];
 
 export function Lobby({ onLeave }: { onLeave: () => void }) {
   const state = useAppStore((s) => s.state)!;

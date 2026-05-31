@@ -198,6 +198,17 @@ describe("engine lifecycle", () => {
     expect(round.hands["C"]).toEqual([0, 1, 3, 8, 9]);
   });
 
+  it("custom number mode accepts negative numbers", () => {
+    let r = createRoom({ code: "NEG1", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, numberMode: "custom", customNumbers: [-5, -2, 3, 7] });
+    r = addPlayer(r, "B", "Bob");
+    r = addPlayer(r, "C", "Carol");
+    r = startGame(r);
+    const round = r.rounds[0];
+    expect(round.hands["A"]).toEqual([-5, -2, 0, 3, 7]);
+    expect(round.hands["B"]).toEqual([-5, -2, 0, 3, 7]);
+    expect(round.hands["C"]).toEqual([-5, -2, 0, 3, 7]);
+  });
+
   it("rejects starting a custom game when the number count != players + 1", () => {
     let r = createRoom({ code: "NUM2", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, numberMode: "custom", customNumbers: [3, 8] });
     r = addPlayer(r, "B", "Bob");
