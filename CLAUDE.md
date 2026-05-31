@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Solo developer project. Commit directly to `main` — do not create feature branches or PRs unless explicitly asked.
 
+Windows machine: for multi-line commit messages use the **PowerShell** tool with a single-quoted here-string (`git commit -m @'` … `'@`), or pipe a bash heredoc through the **Bash** tool (`git commit -F - <<'EOF'`). Don't use PowerShell `@'…'@` syntax inside the Bash tool — bash treats the `@` markers as literal text and they leak into the message.
+
 When a feature or behavior change is complete, before committing check whether the docs still match. Update **CLAUDE.md** if the change touched anything it describes (architecture, a scoring/engine rule, a flow, a convention, a file that's named here) — only if needed, skip it for pure refactors or bug fixes that don't change documented behavior. Update **README.md** too when the change is user-facing or alters setup/run instructions. Stale docs here are worse than none, so keep them honest as part of the same change.
 
 ## Copy style
