@@ -38,6 +38,7 @@ export interface RevealDoc {
   scoreLines: { playerId: string; delta: number; notes: string[] }[];
   peekUsed?: { peekerId: string; targetId: string; revealedNumber: number; originalNumber: number };
   sabotageUsed?: { sabotagerId: string; targetId: string; forcedNumber: number; originalNumber: number };
+  swapUsed?: { swapperId: string; targetId: string };
   revealedAt: number;
 }
 
@@ -328,7 +329,7 @@ export function submitTurn(room: RoomDoc, input: SubmitInput): RoomDoc {
   } else if (input.playerId === pickerId && round.poolRemaining.length > 0) {
     throw new Error("Picker must pick a power-up while pool is non-empty");
   }
-  if (input.powerUp === "peek" || input.powerUp === "mute" || input.powerUp === "sabotage") {
+  if (input.powerUp && POWER_UPS[input.powerUp].needsTarget) {
     if (!input.powerUpTarget) throw new Error("Target required");
     if (input.powerUpTarget === input.playerId) throw new Error("Cannot target self");
     if (!room.players.some((p) => p.id === input.powerUpTarget)) throw new Error("Unknown target");
@@ -486,6 +487,18 @@ function resolveTurn(room: RoomDoc): RoomDoc {
   const newHands = { ...round.hands };
   for (const pl of plays) newHands[pl.playerId] = newHands[pl.playerId].filter((n) => n !== pl.number);
 
+  // Swap hands runs *after* played cards are removed, so each player keeps their
+  // own played card off the swapped remainder. Persists for the rest of the round
+  // simply by reassigning the arrays; subsequent turns play from the new hands.
+  const swapSub = revealSubmissions.find((s) => (s.resolvedPowerUp ?? s.powerUp) === "swap_hands");
+  let swapUsed: RevealDoc["swapUsed"];
+  if (swapSub && swapSub.powerUpTarget && newHands[swapSub.powerUpTarget]) {
+    const a = swapSub.playerId;
+    const b = swapSub.powerUpTarget;
+    [newHands[a], newHands[b]] = [newHands[b], newHands[a]];
+    swapUsed = { swapperId: a, targetId: b };
+  }
+
   const reveal: RevealDoc = {
     turnIndex,
     pickerId,
@@ -493,6 +506,7 @@ function resolveTurn(room: RoomDoc): RoomDoc {
     scoreLines: result.lines,
     peekUsed,
     sabotageUsed,
+    swapUsed,
     revealedAt: Date.now(),
   };
 

@@ -12,7 +12,7 @@ import {
   submitTurn,
   type RoomDoc,
 } from "./engine.js";
-import type { PowerUpId } from "../../../shared/types.js";
+import { POWER_UPS, type PowerUpId } from "../../../shared/types.js";
 
 function room3p(): RoomDoc {
   let r = createRoom({ code: "ABCD", hostId: "A", hostName: "Alice", rounds: 3, turnDeadlineMs: null });
@@ -22,7 +22,7 @@ function room3p(): RoomDoc {
 }
 
 function pickSafePower(pool: PowerUpId[]): PowerUpId {
-  return pool.find((p) => p !== "peek" && p !== "mute" && p !== "sabotage") ?? pool[0];
+  return pool.find((p) => !POWER_UPS[p].needsTarget) ?? pool[0];
 }
 
 function ackAll(r: RoomDoc): RoomDoc {
@@ -693,8 +693,121 @@ describe("wild", () => {
       if (sub?.resolvedPowerUp) seen.add(sub.resolvedPowerUp);
     }
     for (const id of seen) {
-      expect(["peek", "mute", "sabotage", "drain", "wild"]).not.toContain(id);
+      expect(["peek", "mute", "sabotage", "drain", "swap_hands", "wild"]).not.toContain(id);
     }
     expect(seen.size).toBeGreaterThan(1);
+  });
+});
+
+describe("swap_hands", () => {
+  function setup(): RoomDoc {
+    let r = startGame(room3p());
+    const round = r.rounds[r.currentRoundIndex];
+    if (!round.poolRemaining.includes("swap_hands")) {
+      round.poolFull = ["swap_hands", ...round.poolFull.slice(1)];
+      round.poolRemaining = ["swap_hands", ...round.poolRemaining.slice(1)];
+    }
+    return r;
+  }
+
+  it("requires a target and rejects self-target", () => {
+    const r = setup();
+    expect(() =>
+      submitTurn(r, { playerId: "A", number: 1, powerUp: "swap_hands" }),
+    ).toThrow(/Target required/);
+    expect(() =>
+      submitTurn(r, { playerId: "A", number: 1, powerUp: "swap_hands", powerUpTarget: "A" }),
+    ).toThrow(/Cannot target self/);
+  });
+
+  it("exchanges remaining hands after each player's played card is removed", () => {
+    let r = setup();
+    // Force known hands so the swap result is unambiguous.
+    r.rounds[0].hands["A"] = [0, 1, 4];
+    r.rounds[0].hands["B"] = [2, 3, 5];
+    r.rounds[0].hands["C"] = [6, 7, 8];
+
+    r = submitTurn(r, { playerId: "A", number: 4, powerUp: "swap_hands", powerUpTarget: "B" });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 6 });
+
+    // A keeps B's pre-swap remainder (minus B's played 3); B keeps A's pre-swap remainder (minus A's played 4).
+    expect(r.rounds[0].hands["A"]).toEqual([2, 5]);
+    expect(r.rounds[0].hands["B"]).toEqual([0, 1]);
+    expect(r.rounds[0].hands["C"]).toEqual([7, 8]);
+  });
+
+  it("records swapUsed in the reveal", () => {
+    let r = setup();
+    r = submitTurn(r, { playerId: "A", number: 4, powerUp: "swap_hands", powerUpTarget: "B" });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+    expect(r.rounds[0].reveals[0].swapUsed).toEqual({ swapperId: "A", targetId: "B" });
+  });
+
+  it("next turn the swapped player can submit from their new hand, not their old one", () => {
+    let r = setup();
+    r.rounds[0].hands["A"] = [0, 1, 4];
+    r.rounds[0].hands["B"] = [2, 3, 5];
+    r.rounds[0].hands["C"] = [6, 7, 8];
+
+    r = submitTurn(r, { playerId: "A", number: 4, powerUp: "swap_hands", powerUpTarget: "B" });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 6 });
+
+    // Turn 2: picker is B; B should now be holding A's pre-swap remainder [0, 1].
+    // Make sure B's old card (5) is rejected and a swapped card (0) is accepted.
+    expect(r.rounds[0].rotation[1]).toBe("B");
+    expect(() => submitTurn(r, { playerId: "B", number: 5 })).toThrow(/not in hand/i);
+
+    const power = pickSafePower(r.rounds[0].poolRemaining);
+    r = submitTurn(r, { playerId: "B", number: 0, powerUp: power });
+    expect(r.pendingSubmissions["B"]?.number).toBe(0);
+  });
+
+  it("works in a 2-player game (not in TWO_PLAYER_EXCLUDED)", () => {
+    let r = createRoom({
+      code: "SW2P",
+      hostId: "A",
+      hostName: "Alice",
+      rounds: 1,
+      turnDeadlineMs: null,
+      powerUpMode: "selected",
+      selectedPowerUps: ["swap_hands", "double"],
+    });
+    r = addPlayer(r, "B", "Bob");
+    r = startGame(r);
+    expect(r.rounds[0].poolFull).toContain("swap_hands");
+
+    r.rounds[0].hands["A"] = [0, 2, 3];
+    r.rounds[0].hands["B"] = [1, 4, 5];
+    r.rounds[0].poolFull = ["swap_hands", "swap_hands", "swap_hands"];
+    r.rounds[0].poolRemaining = ["swap_hands", "swap_hands", "swap_hands"];
+
+    r = submitTurn(r, { playerId: "A", number: 3, powerUp: "swap_hands", powerUpTarget: "B" });
+    r = submitTurn(r, { playerId: "B", number: 1 });
+    expect(r.rounds[0].hands["A"]).toEqual([4, 5]);
+    expect(r.rounds[0].hands["B"]).toEqual([0, 2]);
+  });
+
+  it("last-turn swap is a harmless no-op (both hands end empty)", () => {
+    let r = setup();
+    // Telescope to the last turn (turn index 4 of a 3-player handSize 5 round).
+    r.currentTurnIndex = 4;
+    r.rounds[0].hands["A"] = [4];
+    r.rounds[0].hands["B"] = [3];
+    r.rounds[0].hands["C"] = [2];
+    // Picker for turn 4 in a 3-player rotation is seat 4 % 3 = seat 1 (B).
+    expect(r.rounds[0].rotation[4]).toBe("B");
+    r.rounds[0].poolRemaining = ["swap_hands"];
+
+    r = submitTurn(r, { playerId: "B", number: 3, powerUp: "swap_hands", powerUpTarget: "A" });
+    r = submitTurn(r, { playerId: "A", number: 4 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+
+    expect(r.rounds[0].hands["A"]).toEqual([]);
+    expect(r.rounds[0].hands["B"]).toEqual([]);
+    expect(r.rounds[0].reveals[0].swapUsed).toEqual({ swapperId: "B", targetId: "A" });
+    expect(r.phase).toBe("round_end");
   });
 });

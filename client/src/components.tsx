@@ -83,6 +83,7 @@ const POWER_VISUAL: Record<PowerUpId, { abbr: string; bg: string; text: string }
   drain: { abbr: "↧", bg: "bg-amber-500", text: "text-ink" },
   jinx: { abbr: "=", bg: "bg-pink-400", text: "text-ink" },
   wild: { abbr: "?", bg: "bg-violet-400", text: "text-ink" },
+  swap_hands: { abbr: "⇄", bg: "bg-teal-400", text: "text-ink" },
   nothingburger: { abbr: "∅", bg: "bg-paper/20", text: "text-paper/70" },
 };
 
