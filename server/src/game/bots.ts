@@ -181,6 +181,15 @@ function choosePower(available: PowerUpId[], intended: number, ctx: PowerCtx): P
           score = 1; // modest info value
         }
         break;
+      case "random_ray":
+        // Re-roll the strongest opponent's score to a random pool number — usually drags a high
+        // scorer toward the pool average. (allowSelfTarget exists, but hitting the best opponent
+        // is the sensible play.)
+        if (topTarget) {
+          target = topTarget.id;
+          score = Math.max(0, mean(topTarget.hand) - maxCard / 2) + 0.5;
+        }
+        break;
       case "slide":
         score = 0.3;
         break;
