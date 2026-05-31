@@ -46,6 +46,11 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
   const id = getIdentity(publicState.roomCode);
 
   const playerCount = publicState.players.length;
+  const solo = publicState.config.solo === true;
+  const botCount = publicState.players.filter((p) => p.isBot).length;
+  const humanCount = playerCount - botCount;
+  const maxBots = 8 - humanCount;
+  const minBots = solo ? 1 : 0;
   const handSize = playerCount + 2;
   const rounds = publicState.config.rounds ?? 3;
   const powerUpMode: PowerUpMode = publicState.config.powerUpMode ?? "random";
@@ -146,6 +151,19 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
     }
   }
 
+  async function pickBotCount(n: number) {
+    if (!id || !isHost) return;
+    const next = Math.max(minBots, Math.min(maxBots, n));
+    if (next === botCount) return;
+    setErr(null);
+    try {
+      const res = await api.setBotCount(publicState.roomCode, id.claimToken, next);
+      setState(res.state);
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+  }
+
   async function toggleShowHands() {
     if (!id || !isHost) return;
     setErr(null);
@@ -228,17 +246,24 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
         </div>
       </div>
 
-      <div className="mb-6 text-center">
-        <div className="text-paper/50 text-xs uppercase tracking-[0.3em] font-mono">Room code</div>
-        <button
-          onClick={copyCode}
-          className="mt-2 group inline-flex items-baseline gap-3 active:scale-[.97] transition"
-          aria-label="copy room code"
-        >
-          <span data-testid="lobby-room-code" className="font-mono font-bold text-6xl tracking-[0.2em] text-accent">{publicState.roomCode}</span>
-          <span className="text-paper/30 text-sm group-hover:text-paper/60 font-mono">press to copy</span>
-        </button>
-      </div>
+      {solo ? (
+        <div className="mb-6 text-center" data-testid="lobby-solo-header">
+          <div className="text-paper/50 text-xs uppercase tracking-[0.3em] font-mono">Single player</div>
+          <div className="mt-2 font-display font-bold text-5xl tracking-tight text-accent">vs. AI</div>
+        </div>
+      ) : (
+        <div className="mb-6 text-center">
+          <div className="text-paper/50 text-xs uppercase tracking-[0.3em] font-mono">Room code</div>
+          <button
+            onClick={copyCode}
+            className="mt-2 group inline-flex items-baseline gap-3 active:scale-[.97] transition"
+            aria-label="copy room code"
+          >
+            <span data-testid="lobby-room-code" className="font-mono font-bold text-6xl tracking-[0.2em] text-accent">{publicState.roomCode}</span>
+            <span className="text-paper/30 text-sm group-hover:text-paper/60 font-mono">press to copy</span>
+          </button>
+        </div>
+      )}
 
       <div className="text-paper/50 text-xs uppercase tracking-[0.3em] font-mono mb-3">
         Players · {publicState.players.length}
@@ -257,6 +282,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
             </div>
             <div className="flex-1 font-bold">{p.name}</div>
             <div className="flex items-center gap-2 text-xs">
+              {p.isBot && <span className="chip bg-cool/20 text-cool">bot</span>}
               {p.id === publicState.hostId && <span className="chip bg-gold/20 text-gold">host</span>}
               {p.id === selfPlayerId && <span className="chip">you</span>}
               <span className={`w-2 h-2 rounded-full ${p.online ? "bg-emerald-400" : "bg-paper/20"}`} />
@@ -299,6 +325,49 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
             </div>
           ) : (
             <span data-testid="lobby-rounds-chip" className="chip bg-accent/20 text-accent">{rounds}</span>
+          )}
+        </div>
+        <div className="rounded-2xl bg-paper/5 px-4 py-3 flex items-center justify-between">
+          <div className="flex flex-col">
+            <span className="font-bold text-sm">{solo ? "Opponents" : "AI players"}</span>
+            <span className="text-paper/50 text-xs font-mono">
+              {botCount === 0
+                ? solo
+                  ? "Add at least one opponent"
+                  : "No AI players"
+                : solo
+                  ? `${botCount} opponent${botCount === 1 ? "" : "s"}`
+                  : `${botCount} AI ${botCount === 1 ? "player" : "players"}`}
+            </span>
+          </div>
+          {isHost ? (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-label="Fewer AI players"
+                onClick={() => pickBotCount(botCount - 1)}
+                disabled={botCount <= minBots}
+                className="w-9 h-9 rounded-lg bg-paper/10 text-paper font-bold text-lg leading-none transition hover:bg-paper/20 disabled:opacity-30 disabled:hover:bg-paper/10"
+                data-sfx="tap"
+                data-testid="lobby-ai-minus"
+              >
+                &#8722;
+              </button>
+              <span data-testid="lobby-ai-value" className="w-6 text-center font-bold text-lg tabular-nums">{botCount}</span>
+              <button
+                type="button"
+                aria-label="More AI players"
+                onClick={() => pickBotCount(botCount + 1)}
+                disabled={botCount >= maxBots}
+                className="w-9 h-9 rounded-lg bg-paper/10 text-paper font-bold text-lg leading-none transition hover:bg-paper/20 disabled:opacity-30 disabled:hover:bg-paper/10"
+                data-sfx="tap"
+                data-testid="lobby-ai-plus"
+              >
+                +
+              </button>
+            </div>
+          ) : (
+            <span data-testid="lobby-ai-chip" className="chip bg-accent/20 text-accent">{botCount}</span>
           )}
         </div>
         {isHost ? (

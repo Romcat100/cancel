@@ -466,6 +466,7 @@ export function PlayerChip({
   submitted,
   isSelf,
   isPicker,
+  isBot,
   small,
   hand,
   onClick,
@@ -480,6 +481,7 @@ export function PlayerChip({
   submitted?: boolean;
   isSelf?: boolean;
   isPicker?: boolean;
+  isBot?: boolean;
   small?: boolean;
   hand?: number[];
   onClick?: () => void;
@@ -504,6 +506,11 @@ export function PlayerChip({
   const avatarInner = (
     <>
       {name.slice(0, 1).toUpperCase()}
+      {isBot && (
+        <span className="absolute -top-1 -left-1 bg-cool text-ink text-[8px] font-bold rounded-full px-1 py-0.5 leading-none">
+          AI
+        </span>
+      )}
       {isPicker && (
         <span className="absolute -top-1 -right-1 bg-gold text-ink text-[9px] font-bold rounded-full px-1.5 py-0.5">
           POWER

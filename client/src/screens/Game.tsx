@@ -400,6 +400,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
               online={p.online}
               isSelf={p.id === selfPlayerId}
               isPicker={round.poolFull.length > 0 && p.id === publicState.currentPickerId}
+              isBot={p.isBot}
               submitted={publicState.currentSubmissions.find((s) => s.playerId === p.id)?.submitted}
               hand={p.hand}
               small

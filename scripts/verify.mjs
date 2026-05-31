@@ -179,6 +179,24 @@ async function waitForRoundsChip(page, n) {
   );
 }
 
+// Generic host stepper driver (e.g. prefix "lobby-ai" → -minus/-value/-plus), one click at a
+// time, waiting for each re-render so we never out-race the server round-trip.
+async function setStepper(page, prefix, target) {
+  for (let guard = 0; guard < 12; guard++) {
+    const cur = Number(await page.$eval(`[data-testid="${prefix}-value"]`, (e) => e.textContent.trim()));
+    if (cur === target) return;
+    const want = cur < target ? cur + 1 : cur - 1;
+    await clickTestId(page, cur < target ? `${prefix}-plus` : `${prefix}-minus`);
+    await page.waitForFunction(
+      (sel, v) => document.querySelector(sel)?.textContent.trim() === String(v),
+      { timeout: 10_000 },
+      `[data-testid="${prefix}-value"]`,
+      want,
+    );
+  }
+  throw new Error(`could not reach ${prefix}=${target}`);
+}
+
 // ---------------------------------------------------------------------------
 // Flows
 // ---------------------------------------------------------------------------
@@ -303,9 +321,55 @@ async function hostLeaveFlow(browser) {
   await shot(j2, "joiner2-now-host");
 }
 
+// Single player: one human taps "Single player", names themselves, lands in a solo lobby with an
+// Opponents stepper, then plays a turn where the AIs have already submitted (no delay).
+async function singlePlayerFlow(browser) {
+  const solo = await newPlayer(browser, "Solo");
+  await waitForText(solo, "CANCEL");
+  await clickTestId(solo, "home-single-player");
+  await typeInto(solo, tid("home-name-input"), "Solo");
+  await clickTestId(solo, "home-start-single");
+
+  // Solo lobby: shows the "vs. AI" header and an Opponents stepper (seeded at 3 bots).
+  await solo.waitForSelector(tid("lobby-solo-header"), { timeout: 10_000 });
+  await waitForText(solo, "Opponents");
+  await shot(solo, "solo-lobby"); // expect You + 3 AI players in the list
+
+  // Exercise the stepper: 3 opponents -> 2.
+  await setStepper(solo, "lobby-ai", 2);
+  await shot(solo, "solo-opponents-2");
+
+  // Power-ups off keeps the human's submission a plain number (no power-pick UI to drive).
+  await clickTestId(solo, "lobby-powerup-off");
+
+  // Start; the submit button appearing is our "we're in-game" signal.
+  await clickTestId(solo, "lobby-start-game");
+  await solo.waitForSelector(tid("game-submit"), { timeout: 10_000 });
+  // Bots pre-submit instantly — they read "submitted" while the human is still "thinking".
+  // (Status copy is CSS-uppercased, so match case-insensitively.)
+  await solo.waitForFunction(() => /submitted/i.test(document.body.innerText), { timeout: 10_000 });
+  await shot(solo, "solo-game-start");
+
+  // Play a card; with the AIs already in, the turn resolves immediately to a reveal.
+  await clickTestId(solo, "game-hand-card-1");
+  await solo.waitForFunction(
+    () => {
+      const b = document.querySelector('[data-testid="game-submit"]');
+      return b && !b.disabled;
+    },
+    { timeout: 10_000 },
+  );
+  await clickTestId(solo, "game-submit");
+  await solo.waitForSelector(tid("reveal-continue"), { timeout: 10_000 });
+  await shot(solo, "solo-reveal"); // you + 2 AI cards flip
+  await clickTestId(solo, "reveal-continue");
+  await shot(solo, "solo-after-reveal");
+}
+
 const flows = {
   "lobby-rounds": lobbyRoundsFlow,
   "host-leave": hostLeaveFlow,
+  "single-player": singlePlayerFlow,
 };
 
 // ---------------------------------------------------------------------------

@@ -7,6 +7,7 @@ import {
   type PowerUpMode,
 } from "../../../shared/types.js";
 import { scoreTurn } from "./scoring.js";
+import { BOT_NAMES } from "./bot-names.js";
 
 export type RoomPhaseDoc =
   | "lobby"
@@ -20,6 +21,9 @@ export interface PlayerDoc {
   name: string;
   seat: number;
   totalScore: number;
+  // AI player. Bots have no claim token / players row; they're driven by the bot
+  // engine (see bots.ts) and never hold the host role.
+  isBot?: boolean;
 }
 
 export interface SubmissionDoc {
@@ -73,6 +77,7 @@ export interface RoomDoc {
     showHands: boolean;
     numberMode: NumberMode;
     customNumbers: number[];
+    solo: boolean;
   };
   phase: RoomPhaseDoc;
   players: PlayerDoc[];
@@ -102,6 +107,7 @@ export function createRoom(opts: {
   showHands?: boolean;
   numberMode?: NumberMode;
   customNumbers?: number[];
+  solo?: boolean;
 }): RoomDoc {
   const now = Date.now();
   return {
@@ -115,6 +121,7 @@ export function createRoom(opts: {
       showHands: opts.showHands ?? true,
       numberMode: opts.numberMode ?? "default",
       customNumbers: opts.customNumbers ?? [],
+      solo: opts.solo ?? false,
     },
     phase: "lobby",
     players: [{ id: opts.hostId, name: opts.hostName, seat: HOST_SEAT, totalScore: 0 }],
@@ -140,6 +147,40 @@ export function addPlayer(room: RoomDoc, playerId: string, name: string): RoomDo
     players: [...room.players, { id: playerId, name, seat: room.players.length, totalScore: 0 }],
     updatedAt: Date.now(),
   };
+}
+
+function newBotId(): string {
+  return `bot-${Math.random().toString(36).slice(2, 10)}${Math.random().toString(36).slice(2, 6)}`;
+}
+
+// Add or remove AI players so the room ends up with exactly `count` bots (clamped so the
+// total never exceeds MAX_PLAYERS). Lobby-only. Humans keep their relative order and sit
+// first; bots fill the seats after them and are reindexed. New bots draw an unused name
+// from BOT_NAMES (falling back to "Bot N" if the pool is exhausted); shrinking drops the
+// most recently added bots.
+export function setBotCount(room: RoomDoc, count: number): RoomDoc {
+  if (room.phase !== "lobby") throw new Error("Can only change AI players in the lobby");
+  const humans = room.players.filter((p) => !p.isBot);
+  const bots = room.players.filter((p) => p.isBot);
+  const maxBots = MAX_PLAYERS - humans.length;
+  const want = Math.max(0, Math.min(maxBots, Math.round(count)));
+
+  let nextBots: PlayerDoc[];
+  if (want <= bots.length) {
+    nextBots = bots.slice(0, want);
+  } else {
+    const used = new Set(room.players.map((p) => p.name.trim().toLowerCase()));
+    const pool = shuffle(BOT_NAMES.filter((n) => !used.has(n.toLowerCase())));
+    const additions: PlayerDoc[] = [];
+    for (let i = 0; i < want - bots.length; i++) {
+      const name = pool[i] ?? `Bot ${bots.length + i + 1}`;
+      additions.push({ id: newBotId(), name, seat: 0, totalScore: 0, isBot: true });
+    }
+    nextBots = [...bots, ...additions];
+  }
+
+  const players = [...humans, ...nextBots].map((p, i) => ({ ...p, seat: i }));
+  return { ...room, players, updatedAt: Date.now() };
 }
 
 function shuffle<T>(arr: T[], rng: () => number = Math.random): T[] {
@@ -678,7 +719,8 @@ function pickNewHost(
   players: PlayerDoc[],
   opts: { excludePlayerId?: string; onlineIds: ReadonlySet<string> },
 ): string | undefined {
-  const candidates = players.filter((p) => p.id !== opts.excludePlayerId);
+  // Bots never hold the host role — they can't drive lobby/round decisions.
+  const candidates = players.filter((p) => p.id !== opts.excludePlayerId && !p.isBot);
   if (candidates.length === 0) return undefined;
   const online = candidates.filter((p) => opts.onlineIds.has(p.id));
   const pool = online.length > 0 ? online : candidates;

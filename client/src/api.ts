@@ -13,8 +13,8 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
 }
 
 export const api = {
-  createRoom(name: string) {
-    return call<CreateRoomRes>("POST", "/api/rooms", { name });
+  createRoom(name: string, opts?: { solo?: boolean; bots?: number }) {
+    return call<CreateRoomRes>("POST", "/api/rooms", { name, ...opts });
   },
   joinRoom(roomCode: string, name: string, claimToken?: string) {
     return call<JoinRoomRes>("POST", `/api/rooms/${roomCode}/join`, { name, claimToken });
@@ -37,6 +37,12 @@ export const api = {
     return call<{ ok: true; state: RoomStateForPlayer }>("POST", `/api/rooms/${roomCode}/config`, {
       claimToken,
       ...patch,
+    });
+  },
+  setBotCount(roomCode: string, claimToken: string, count: number) {
+    return call<{ ok: true; state: RoomStateForPlayer }>("POST", `/api/rooms/${roomCode}/bots`, {
+      claimToken,
+      count,
     });
   },
   ackRoundEnd(roomCode: string, claimToken: string) {

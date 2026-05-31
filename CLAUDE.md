@@ -122,6 +122,28 @@ Three non-obvious flows:
 - **Leaving & rejoining mid-game**: `Game.tsx`'s **Leave** routes through `onLeave`, which *keeps* the claim token — not `onAbandoned` — so the game continues for others and the player can return. Both non-hosts and the host get a Leave button; the host's variant (`game-host-leave`) first calls `api.stepDownHost` (engine `stepDownHost`) to pass the role on, *then* `onLeave`. The host still also has the destructive **End game** (`apiAbandonRoom`, host-only). Rejoin works because `Home.tsx:handleJoin` passes `getIdentity(roomCode)?.claimToken`, so `apiJoinRoom` reclaims the seat regardless of phase — the "game already started" error only fires when no token is sent. Don't switch Leave to clear identity or drop the token from the join call — each silently breaks this.
 - **Floating host / continuation past absent players**: the host role is not pinned to one person. `stepDownHost(room, leaverId, onlineIds)` (the host Leave button) and `claimHost(room, requesterId, onlineIds)` (a gold **Claim host** button shown in `Lobby`/`Game`/`GameEnd` only when the projected `hostId` player is `online === false`) move `hostId` to the lowest-seat **online** player via the `pickNewHost` helper. `claimHost` is gated on the current host being offline so it can't yank the role from an active host. **Disconnect does NOT auto-reassign** (handlers' `disconnect` stays presence-only) — deliberately, so the role doesn't flap on a refresh. Because the engine waits for *every* seated player each turn, an absent player otherwise wedges the game: `forceResolveTurn` (host **Skip waiting** button, `apiSkipWaiting`, host-only) auto-plays each non-submitter their lowest remaining card with **no** power (an absent picker forfeits the slot; the pool rolls untouched) and handles both `turn_submitting` and a stalled `turn_peek_review`; `forceAdvanceRound` (host **Skip waiting → next round** in the RoundEnd modal) pushes a stuck `round_end`. `removePlayer` now also runs at `round_end`/`game_end` (not just lobby) so an absent player can be dropped at a round boundary where the next `startRound` re-deals cleanly — it still throws mid-turn (use Skip there). See `engine.test.ts` → "mid-game continuation & host succession" and the `host-leave` verify flow.
 
+### Single-player & AI opponents
+
+AIs are ordinary **seated players** flagged `isBot` (no claim token, no `players` row, always
+projected `online: true`, never eligible for host via `pickNewHost`). They're created in the lobby by
+`setBotCount(room, n)` (engine, lobby-only, clamped to `[0, 8 - humans]`, names drawn from
+`server/src/game/bot-names.ts`). Single-player is just a room created with `config.solo: true` and a
+few pre-seated bots (`apiCreateRoom` calls `setBotCount`); the client reuses `<Lobby>` (hiding the
+room code, showing an **Opponents** stepper) and `<Game>` unchanged — phase routing does the rest.
+Multiplayer lobbies get the same stepper labelled **AI players** (`lobby-ai-*` testids → `api.setBotCount`).
+
+The brain lives in **`server/src/game/bots.ts`** — pure, imports only the engine's intents. `driveBots(room)`
+loops applying bot moves through the *same* `submitTurn` / `ackRoundEnd` a human uses (so bots are
+validated identically), and handlers call it right after the engine mutation in `apiStartGame`,
+`apiSubmitTurn`, `apiAckRoundEnd`, `apiForceAdvance`, `apiSkipWaiting` (folded into one save/broadcast).
+Bots **pre-submit** the instant a turn opens, so the human always submits last and sees the reveal
+immediately — there is intentionally **no move delay**. At `round_end` `driveBots` acks only the bots
+and returns, so the human still gets to read the round summary before acking. `decideBotMove`/`choosePower`
+are a single "medium" heuristic (value × P(unique) for numbers; per-power scoring for the picker);
+**any power id not explicitly cased falls through to a positive default + auto-target**, so a newly
+added power never stalls or crashes the bot. Locked by `bots.test.ts` (+ `setBotCount` cases in
+`engine.test.ts`) and the `single-player` verify flow.
+
 ### Module conventions
 
 - Root `package.json` has `"type": "module"`. **All imports use explicit `.js` extensions** even when sourcing `.ts` (`from "./scoring.js"`). `tsx` rewrites `.js` → `.ts` at runtime; Node's ESM loader otherwise refuses extensionless or `.ts` paths. Don't change this.

@@ -46,6 +46,7 @@ export interface Player {
   online: boolean;
   totalScore: number;
   hand: number[];
+  isBot: boolean;
 }
 
 export type RoomPhase =
@@ -132,6 +133,7 @@ export interface PublicState {
     showHands: boolean;
     numberMode: NumberMode;
     customNumbers: number[];
+    solo: boolean;
   };
 }
 

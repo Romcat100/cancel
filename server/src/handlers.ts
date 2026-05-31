@@ -8,6 +8,7 @@ import {
   forceResolveTurn,
   removePlayer,
   resetToLobby,
+  setBotCount,
   setRoomConfig,
   startGame,
   stepDownHost,
@@ -15,6 +16,7 @@ import {
   unsubmitTurn,
   type RoomDoc,
 } from "./game/engine.js";
+import { driveBots } from "./game/bots.js";
 import { archiveRoom, findPlayerByClaim, generateRoomCode, loadRoom, newClaimToken, newPlayerId, recordPlayer, saveRoom } from "./rooms.js";
 import { projectStateForPlayer } from "./projection.js";
 import { SOCKET_EVENTS } from "../../shared/protocol.js";
@@ -23,6 +25,7 @@ import type {
   CreateRoomReq,
   JoinRoomReq,
   SetRoomConfigReq,
+  SetBotCountReq,
   StartGameReq,
   SubmitTurnReq,
   UnsubmitTurnReq,
@@ -171,7 +174,7 @@ export function apiCreateRoom(req: CreateRoomReq, ctx: ApiCtx) {
   const showHands = req.showHands ?? true;
   const numberMode = req.numberMode ?? "default";
   const customNumbers = req.customNumbers ?? [];
-  const room = createRoom({
+  let room = createRoom({
     code,
     hostId,
     hostName: req.name.trim(),
@@ -182,7 +185,10 @@ export function apiCreateRoom(req: CreateRoomReq, ctx: ApiCtx) {
     showHands,
     numberMode,
     customNumbers,
+    solo: req.solo ?? false,
   });
+  // Single-player: pre-seat the requested AI opponents so the host lands in a ready-to-start lobby.
+  if (req.bots && req.bots > 0) room = setBotCount(room, req.bots);
   saveRoom(room);
   recordPlayer({ id: hostId, roomCode: code, name: req.name.trim(), seat: 0, claimToken });
   return {
@@ -192,6 +198,17 @@ export function apiCreateRoom(req: CreateRoomReq, ctx: ApiCtx) {
     playerId: hostId,
     state: projectStateForPlayer(room, hostId, new Set()),
   };
+}
+
+export function apiSetBotCount(req: SetBotCountReq, ctx: ApiCtx) {
+  const player = authPlayer(req.roomCode, req.claimToken);
+  let room = loadRoom(req.roomCode);
+  if (!room) throw new Error("Room not found");
+  if (player.id !== room.hostId) throw new Error("Only host can change AI players");
+  room = setBotCount(room, req.count);
+  saveRoom(room);
+  setImmediate(() => broadcastRoom(ctx.io, room));
+  return { ok: true as const, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)) };
 }
 
 export function apiJoinRoom(req: JoinRoomReq, ctx: ApiCtx) {
@@ -253,6 +270,7 @@ export function apiStartGame(req: StartGameReq, ctx: ApiCtx) {
   if (!room) throw new Error("Room not found");
   if (player.id !== room.hostId) throw new Error("Only host can start");
   room = startGame(room);
+  room = driveBots(room);
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));
   return { ok: true as const, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)) };
@@ -263,6 +281,7 @@ export function apiAckRoundEnd(req: AckRoundEndReq, ctx: ApiCtx) {
   let room = loadRoom(req.roomCode);
   if (!room) throw new Error("Room not found");
   room = ackRoundEnd(room, player.id);
+  room = driveBots(room);
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));
   return { ok: true as const, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)) };
@@ -273,6 +292,7 @@ export function apiForceAdvance(req: AckRoundEndReq, ctx: ApiCtx) {
   let room = loadRoom(req.roomCode);
   if (!room) throw new Error("Room not found");
   room = forceAdvanceRound(room, player.id);
+  room = driveBots(room);
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));
   return { ok: true as const, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)) };
@@ -289,6 +309,7 @@ export function apiSubmitTurn(req: SubmitTurnReq, ctx: ApiCtx) {
     powerUpTarget: req.powerUpTarget,
     sabotageNumber: req.sabotageNumber,
   });
+  room = driveBots(room);
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));
   return { ok: true as const, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)) };
@@ -341,6 +362,7 @@ export function apiSkipWaiting(req: SkipWaitingReq, ctx: ApiCtx) {
   if (!room) throw new Error("Room not found");
   if (player.id !== room.hostId) throw new Error("Only host can skip waiting");
   room = forceResolveTurn(room);
+  room = driveBots(room);
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));
   return { ok: true as const, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)) };

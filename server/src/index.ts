@@ -13,6 +13,7 @@ import {
   apiCreateRoom,
   apiJoinRoom,
   apiSetRoomConfig,
+  apiSetBotCount,
   apiStartGame,
   apiSubmitTurn,
   apiUnsubmitTurn,
@@ -63,6 +64,9 @@ app.post("/api/rooms/:code/start", (req, res) =>
 );
 app.post("/api/rooms/:code/config", (req, res) =>
   safe(res, () => apiSetRoomConfig({ ...req.body, roomCode: req.params.code }, ctx)),
+);
+app.post("/api/rooms/:code/bots", (req, res) =>
+  safe(res, () => apiSetBotCount({ ...req.body, roomCode: req.params.code }, ctx)),
 );
 app.post("/api/rooms/:code/ack-round-end", (req, res) =>
   safe(res, () => apiAckRoundEnd({ ...req.body, roomCode: req.params.code }, ctx)),

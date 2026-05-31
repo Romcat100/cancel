@@ -61,9 +61,11 @@ export function projectStateForPlayer(
       id: p.id,
       name: p.name,
       seat: p.seat,
-      online: onlinePlayerIds.has(p.id),
+      // Bots are always "present" — they have no socket, so they'd otherwise read as offline.
+      online: p.isBot ? true : onlinePlayerIds.has(p.id),
       totalScore: p.totalScore,
       hand,
+      isBot: !!p.isBot,
     };
   });
 

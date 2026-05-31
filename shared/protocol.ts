@@ -22,6 +22,15 @@ export interface CreateRoomReq {
   showHands?: boolean;
   numberMode?: NumberMode;
   customNumbers?: number[];
+  // Single-player: create the room flagged solo and pre-seat this many AI opponents.
+  solo?: boolean;
+  bots?: number;
+}
+
+export interface SetBotCountReq {
+  roomCode: string;
+  claimToken: string;
+  count: number;
 }
 
 export interface SetRoomConfigReq {

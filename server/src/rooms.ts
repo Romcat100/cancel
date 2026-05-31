@@ -69,6 +69,7 @@ export function loadRoom(code: string): RoomDoc | null {
   if (cfg.showHands === undefined) cfg.showHands = true;
   if (cfg.numberMode === undefined) cfg.numberMode = "default";
   if (cfg.customNumbers === undefined) cfg.customNumbers = [];
+  if (cfg.solo === undefined) cfg.solo = false;
   if (typeof doc.rev !== "number") doc.rev = 0;
   return doc;
 }

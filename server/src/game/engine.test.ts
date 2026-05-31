@@ -7,6 +7,7 @@ import {
   forceResolveTurn,
   removePlayer,
   resetToLobby,
+  setBotCount,
   startGame,
   stepDownHost,
   submitTurn,
@@ -39,6 +40,73 @@ function forceSafePool(r: RoomDoc): RoomDoc {
   cur.poolRemaining = [...cur.poolFull];
   return r;
 }
+
+describe("setBotCount (AI players)", () => {
+  it("adds bots with unique names and contiguous seats", () => {
+    const r = setBotCount(room3p(), 2);
+    expect(r.players).toHaveLength(5);
+    const bots = r.players.filter((p) => p.isBot);
+    expect(bots).toHaveLength(2);
+    expect(r.players.map((p) => p.seat)).toEqual([0, 1, 2, 3, 4]);
+    const names = r.players.map((p) => p.name.toLowerCase());
+    expect(new Set(names).size).toBe(names.length); // all names unique
+    // humans keep seats 0..2, bots fill after
+    expect(r.players.slice(0, 3).every((p) => !p.isBot)).toBe(true);
+    expect(r.players.slice(3).every((p) => p.isBot)).toBe(true);
+  });
+
+  it("removes bots when lowered and reindexes seats", () => {
+    let r = setBotCount(room3p(), 3);
+    expect(r.players.filter((p) => p.isBot)).toHaveLength(3);
+    r = setBotCount(r, 1);
+    expect(r.players.filter((p) => p.isBot)).toHaveLength(1);
+    expect(r.players).toHaveLength(4);
+    expect(r.players.map((p) => p.seat)).toEqual([0, 1, 2, 3]);
+  });
+
+  it("clamps so humans + bots never exceed 8", () => {
+    const r = setBotCount(room3p(), 99); // 3 humans → at most 5 bots
+    expect(r.players).toHaveLength(8);
+    expect(r.players.filter((p) => p.isBot)).toHaveLength(5);
+  });
+
+  it("clamps negatives to zero bots", () => {
+    const r = setBotCount(room3p(), -3);
+    expect(r.players.filter((p) => p.isBot)).toHaveLength(0);
+    expect(r.players).toHaveLength(3);
+  });
+
+  it("throws outside the lobby", () => {
+    const r = startGame(room3p());
+    expect(() => setBotCount(r, 1)).toThrow(/lobby/);
+  });
+
+  it("a game with bots starts and bots get hands and rotation slots", () => {
+    let r = setBotCount(room3p(), 1); // 3 humans + 1 bot
+    r = startGame(r);
+    expect(r.phase).toBe("turn_submitting");
+    const bot = r.players.find((p) => p.isBot)!;
+    expect(r.rounds[0].hands[bot.id]).toEqual([0, 1, 2, 3, 4, 5]); // handSize = 6
+    expect(r.rounds[0].rotation).toContain(bot.id);
+  });
+
+  it("bots are never chosen as host on succession", () => {
+    // 2 humans (A, B) + 2 bots: when host A steps down, the role goes to human B, never a bot.
+    let r = createRoom({ code: "MIX1", hostId: "A", hostName: "Alice", rounds: 3, turnDeadlineMs: null });
+    r = addPlayer(r, "B", "Bob");
+    r = setBotCount(r, 2);
+    const stepped = stepDownHost(r, "A", new Set(["A", "B"]));
+    expect(stepped.hostId).toBe("B");
+    expect(stepped.players.find((p) => p.id === stepped.hostId)?.isBot ?? false).toBe(false);
+  });
+
+  it("a lone human host with only bots keeps the host role on step-down", () => {
+    let r = createRoom({ code: "SOLO", hostId: "A", hostName: "Alice", rounds: 3, turnDeadlineMs: null, solo: true });
+    r = setBotCount(r, 3);
+    const stepped = stepDownHost(r, "A", new Set(["A"]));
+    expect(stepped.hostId).toBe("A"); // no other human to hand off to
+  });
+});
 
 describe("engine lifecycle", () => {
   it("creates a lobby with the host as seat 0", () => {

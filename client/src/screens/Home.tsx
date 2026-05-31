@@ -5,7 +5,10 @@ import { clearIdentity, getIdentity, saveIdentity } from "../identity.js";
 import { useAppStore } from "../store.js";
 import { MusicToggle } from "../components.js";
 
-type Mode = "menu" | "create" | "join";
+type Mode = "menu" | "create" | "join" | "single";
+
+// Single-player starts you against this many AI opponents; tweak it in the lobby's Opponents stepper.
+const DEFAULT_SOLO_BOTS = 3;
 
 export function Home() {
   const setState = useAppStore((s) => s.setState);
@@ -33,6 +36,22 @@ export function Home() {
     setErr(null);
     try {
       const res = await api.createRoom(name.trim());
+      saveIdentity({ roomCode: res.roomCode, claimToken: res.claimToken, playerId: res.playerId, name: name.trim() });
+      setState(res.state);
+      connectSocket(res.roomCode, res.claimToken, buildHandlers(res.roomCode));
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleSingle() {
+    if (!name.trim()) return setErr("Enter a name");
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await api.createRoom(name.trim(), { solo: true, bots: DEFAULT_SOLO_BOTS });
       saveIdentity({ roomCode: res.roomCode, claimToken: res.claimToken, playerId: res.playerId, name: name.trim() });
       setState(res.state);
       connectSocket(res.roomCode, res.claimToken, buildHandlers(res.roomCode));
@@ -84,8 +103,33 @@ export function Home() {
           <button className="btn-primary text-xl py-5" onClick={() => setMode("create")} data-testid="home-new-game">
             New game
           </button>
+          <button className="btn-ghost text-xl py-5" onClick={() => setMode("single")} data-testid="home-single-player">
+            Single player
+          </button>
           <button className="btn-ghost text-xl py-5" onClick={() => setMode("join")} data-testid="home-join-with-code">
             Join with code
+          </button>
+        </div>
+      )}
+
+      {mode === "single" && (
+        <div className="flex flex-col gap-3 animate-rise">
+          <label className="text-paper/60 text-xs uppercase tracking-widest font-mono">Your name</label>
+          <input
+            className="input"
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Taylor"
+            maxLength={16}
+            data-testid="home-name-input"
+          />
+          <p className="text-paper/40 text-xs font-mono">You'll play against AI opponents. Pick how many in the next screen.</p>
+          <button className="btn-primary text-xl py-5 mt-2" disabled={busy} onClick={handleSingle} data-sfx="confirm" data-testid="home-start-single">
+            {busy ? "Loading…" : "Play vs. AI"}
+          </button>
+          <button className="btn-ghost mt-2" onClick={() => setMode("menu")} data-testid="home-back">
+            Back
           </button>
         </div>
       )}
