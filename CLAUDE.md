@@ -30,6 +30,16 @@ cd server && npm run test:watch                                # watch mode
 
 Type-check without building: `cd client && npx tsc --noEmit` or `cd server && npx tsc --noEmit`. The server's `npm run build` is just `tsc --noEmit` — there's no JS emit step because the server runs via `tsx` in both dev and production.
 
+### Cleaning up stray dev servers (Windows)
+
+`npm run dev` and `npm start` (including background runs an agent kicks off) can leave orphaned `node.exe` processes holding the dev ports if the parent is killed without tearing down the whole tree. Kill them **by port**, never with a blanket `taskkill /IM node.exe` — that also takes down VS Code's TypeScript server and extension host. From PowerShell:
+
+```powershell
+foreach ($p in 3001,5173) { Get-NetTCPConnection -State Listen -LocalPort $p -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force } }
+```
+
+(`3001` = API/prod server, `5173` = Vite; add any ad-hoc `PORT` you launched with.) `npm run verify` already tears down its own tree on exit, so this is only needed for servers started by hand.
+
 ### Browser verification (`npm run verify`)
 
 `scripts/verify.mjs` drives the real app headlessly to verify UI changes visually — use it instead of guessing whether a frontend change works. It uses `puppeteer-core` pointed at the **system** Chrome/Edge (no bundled Chromium download); set `CHROME_PATH` if auto-discovery (Windows Program Files / LocalAppData paths) misses it. It reuses the dev server on `:5173` if up, else spawns `npm run dev` and tears it down (taskkill the whole tree on Windows) on exit. Each step screenshots to `scripts/shots/NN-name.png` and prints the paths — **Read those PNGs to inspect the result** (Claude Code renders them visually).
