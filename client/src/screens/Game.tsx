@@ -445,7 +445,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
           </div>
           <div className="flex flex-wrap gap-2">
             {publicState.players
-              .filter((p) => p.id !== selfPlayerId)
+              .filter((p) => POWER_UPS[selectedPower].allowSelfTarget || p.id !== selfPlayerId)
               .map((p) => (
                 <button
                   key={p.id}
@@ -459,6 +459,9 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
                   data-testid={`game-target-${p.seat}`}
                 >
                   {p.name}
+                  {p.id === selfPlayerId && (
+                    <span className="ml-1 text-paper/40 font-mono text-[10px]">(you)</span>
+                  )}
                 </button>
               ))}
           </div>
@@ -889,6 +892,27 @@ function RevealView({
           <span className="text-paper">{reveal.switchUsed.switcherOriginal}</span>
         </div>
       )}
+      {reveal.rayUsed && (() => {
+        const isSelf = reveal.rayUsed.rayUserId === reveal.rayUsed.targetId;
+        const userName = playerById.get(reveal.rayUsed.rayUserId)?.name;
+        const targetName = playerById.get(reveal.rayUsed.targetId)?.name;
+        return (
+          <div
+            data-testid="reveal-ray"
+            className="mt-4 text-violet-200 text-sm font-mono text-center"
+          >
+            ↯ {userName} {isSelf ? "zapped themselves" : `zapped ${targetName}`}: random{" "}
+            <span className="text-paper">{reveal.rayUsed.rolledNumber}</span>
+            {reveal.rayUsed.rolledNumber !== reveal.rayUsed.originalNumber && (
+              <>
+                {" "}
+                over their pick of{" "}
+                <span className="text-paper/60">{reveal.rayUsed.originalNumber}</span>
+              </>
+            )}
+          </div>
+        );
+      })()}
       <button className="btn-primary mt-6 px-8 py-3" onClick={onClose} data-sfx="confirm" data-testid="reveal-continue">
         Continue
       </button>

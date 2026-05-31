@@ -693,9 +693,143 @@ describe("wild", () => {
       if (sub?.resolvedPowerUp) seen.add(sub.resolvedPowerUp);
     }
     for (const id of seen) {
-      expect(["peek", "mute", "sabotage", "drain", "swap_hands", "switch_cards", "wild"]).not.toContain(id);
+      expect(["peek", "mute", "sabotage", "drain", "swap_hands", "switch_cards", "random_ray", "wild"]).not.toContain(id);
     }
     expect(seen.size).toBeGreaterThan(1);
+  });
+});
+
+describe("random_ray", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  function setup(): RoomDoc {
+    let r = startGame(room3p());
+    const round = r.rounds[r.currentRoundIndex];
+    if (!round.poolRemaining.includes("random_ray")) {
+      round.poolFull = ["random_ray", ...round.poolFull.slice(1)];
+      round.poolRemaining = ["random_ray", ...round.poolRemaining.slice(1)];
+    }
+    return r;
+  }
+
+  it("accepts self-target (unlike other target-requiring powers)", () => {
+    const r = setup();
+    expect(() =>
+      submitTurn(r, { playerId: "A", number: 4, powerUp: "random_ray", powerUpTarget: "A" }),
+    ).not.toThrow();
+  });
+
+  it("still rejects self-target for powers without allowSelfTarget", () => {
+    const r = startGame(room3p());
+    // Force sabotage into the pool for this regression check.
+    r.rounds[0].poolFull = ["sabotage", ...r.rounds[0].poolFull.slice(1)];
+    r.rounds[0].poolRemaining = ["sabotage", ...r.rounds[0].poolRemaining.slice(1)];
+    expect(() =>
+      submitTurn(r, {
+        playerId: "A",
+        number: 4,
+        powerUp: "sabotage",
+        powerUpTarget: "A",
+        sabotageNumber: 4,
+      }),
+    ).toThrow(/Cannot target self/);
+  });
+
+  it("overrides the target's reveal number with a random draw from the game pool", () => {
+    // Pool for 3p game is [0, 1, 2, 3, 4] (handSize 5). Mock random to land on index 2 → number 2.
+    vi.spyOn(Math, "random").mockReturnValue(2 / 5);
+    let r = setup();
+    r = submitTurn(r, { playerId: "A", number: 4, powerUp: "random_ray", powerUpTarget: "B" });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 1 });
+
+    const reveal = r.rounds[0].reveals[0];
+    expect(reveal.submissions.find((s) => s.playerId === "B")!.number).toBe(2);
+    // Untouched players still show their own number.
+    expect(reveal.submissions.find((s) => s.playerId === "A")!.number).toBe(4);
+    expect(reveal.submissions.find((s) => s.playerId === "C")!.number).toBe(1);
+  });
+
+  it("target's hand loses their OWN original choice, not the rolled number", () => {
+    vi.spyOn(Math, "random").mockReturnValue(2 / 5); // rolls a 2
+    let r = setup();
+    r = submitTurn(r, { playerId: "A", number: 4, powerUp: "random_ray", powerUpTarget: "B" });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 1 });
+
+    // B picked 3 → 3 leaves B's hand. The rolled 2 stays in B's hand (it was there originally).
+    expect(r.rounds[0].hands["B"]).not.toContain(3);
+    expect(r.rounds[0].hands["B"]).toContain(2);
+  });
+
+  it("works when the rolled number isn't in target's hand (still removes target's original)", () => {
+    // 3p game with default numbers — every number 0..4 IS in every hand at start. Force-shrink
+    // B's hand so we have a number in the pool that isn't in their hand.
+    let r = setup();
+    r.rounds[0].hands["B"] = [3]; // B only has {3}; the game pool still has 0..4.
+    vi.spyOn(Math, "random").mockReturnValue(0 / 5); // rolls a 0, not in B's hand
+    r = submitTurn(r, { playerId: "A", number: 4, powerUp: "random_ray", powerUpTarget: "B" });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 1 });
+
+    // B's hand loses their original 3 (now empty). Rolled 0 was never in B's hand, no error.
+    expect(r.rounds[0].hands["B"]).toEqual([]);
+    // Reveal still shows B as having scored as a 0.
+    expect(r.rounds[0].reveals[0].submissions.find((s) => s.playerId === "B")!.number).toBe(0);
+  });
+
+  it("records rayUsed with the user, target, rolled number, and original number", () => {
+    vi.spyOn(Math, "random").mockReturnValue(3 / 5); // rolls a 3
+    let r = setup();
+    r = submitTurn(r, { playerId: "A", number: 4, powerUp: "random_ray", powerUpTarget: "B" });
+    r = submitTurn(r, { playerId: "B", number: 1 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+
+    expect(r.rounds[0].reveals[0].rayUsed).toEqual({
+      rayUserId: "A",
+      targetId: "B",
+      rolledNumber: 3,
+      originalNumber: 1,
+    });
+  });
+
+  it("self-target end-to-end: picker scores the rolled number, loses their original", () => {
+    vi.spyOn(Math, "random").mockReturnValue(1 / 5); // rolls a 1
+    let r = setup();
+    r = submitTurn(r, { playerId: "A", number: 4, powerUp: "random_ray", powerUpTarget: "A" });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+
+    const reveal = r.rounds[0].reveals[0];
+    // Picker scored as 1.
+    expect(reveal.submissions.find((s) => s.playerId === "A")!.number).toBe(1);
+    expect(reveal.scoreLines.find((l) => l.playerId === "A")?.delta).toBe(1);
+    // Picker's hand lost their original 4.
+    expect(r.rounds[0].hands["A"]).not.toContain(4);
+    // rayUsed records both ids as A.
+    expect(reveal.rayUsed).toEqual({ rayUserId: "A", targetId: "A", rolledNumber: 1, originalNumber: 4 });
+  });
+
+  it("works in a 2-player game", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0 / 4); // 2p pool is 0..3 (handSize 4); rolls a 0
+    let r = createRoom({
+      code: "RR2P",
+      hostId: "A",
+      hostName: "Alice",
+      rounds: 1,
+      turnDeadlineMs: null,
+      powerUpMode: "selected",
+      selectedPowerUps: ["random_ray", "double"],
+    });
+    r = addPlayer(r, "B", "Bob");
+    r = startGame(r);
+    expect(r.rounds[0].poolFull).toContain("random_ray");
+
+    r = submitTurn(r, { playerId: "A", number: 3, powerUp: "random_ray", powerUpTarget: "B" });
+    r = submitTurn(r, { playerId: "B", number: 1 });
+
+    expect(r.rounds[0].reveals[0].submissions.find((s) => s.playerId === "B")!.number).toBe(0);
+    expect(r.rounds[0].hands["B"]).not.toContain(1);
   });
 });
 

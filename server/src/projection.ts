@@ -33,6 +33,7 @@ function toRevealedTurn(rv: RevealDoc, roundIndex: number): RevealedTurn {
     sabotageUsed: rv.sabotageUsed,
     swapUsed: rv.swapUsed,
     switchUsed: rv.switchUsed,
+    rayUsed: rv.rayUsed,
   };
 }
 

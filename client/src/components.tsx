@@ -86,6 +86,7 @@ const POWER_VISUAL: Record<PowerUpId, { abbr: string; bg: string; text: string }
   swap_hands: { abbr: "⇄", bg: "bg-teal-400", text: "text-ink" },
   switch_cards: { abbr: "⇌", bg: "bg-sky-400", text: "text-ink" },
   sacrifice: { abbr: "†", bg: "bg-stone-600", text: "text-paper" },
+  random_ray: { abbr: "↯", bg: "bg-violet-500", text: "text-paper" },
   nothingburger: { abbr: "∅", bg: "bg-paper/20", text: "text-paper/70" },
 };
 
@@ -135,10 +136,11 @@ const SCOPE_CHIP: Record<string, string> = {
   Everyone: "bg-cool text-ink",
   Opponents: "bg-rose-500 text-paper",
   "Just you": "bg-emerald-500 text-ink",
+  Anyone: "bg-violet-500 text-paper",
 };
 
 function parseScopedDescription(description: string): { scope: string | null; body: string } {
-  const m = description.match(/^\((Everyone|Opponents|Just you)\)\s*([\s\S]*)$/);
+  const m = description.match(/^\((Everyone|Opponents|Just you|Anyone)\)\s*([\s\S]*)$/);
   return m ? { scope: m[1], body: m[2] } : { scope: null, body: description };
 }
 

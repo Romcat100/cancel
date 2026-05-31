@@ -18,6 +18,7 @@ export type PowerUpId =
   | "swap_hands"
   | "switch_cards"
   | "sacrifice"
+  | "random_ray"
   | "nothingburger";
 
 export type PowerUpMode = "off" | "random" | "selected";
@@ -33,6 +34,9 @@ export interface PowerUpDef {
   name: string;
   description: string;
   needsTarget: boolean;
+  // When true, the picker may target themselves with this power.
+  // Defaults to false (engine rejects self-target for all other needsTarget powers).
+  allowSelfTarget?: boolean;
 }
 
 export interface Player {
@@ -82,6 +86,7 @@ export interface RevealedTurn {
   sabotageUsed?: { sabotagerId: string; targetId: string; forcedNumber: number; originalNumber: number };
   swapUsed?: { swapperId: string; targetId: string };
   switchUsed?: { switcherId: string; targetId: string; switcherOriginal: number; targetOriginal: number };
+  rayUsed?: { rayUserId: string; targetId: string; rolledNumber: number; originalNumber: number };
 }
 
 export interface RoundState {
@@ -260,6 +265,14 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
     description:
       "(Opponents) Your card scores 0. Every other player loses your card's value from their score this turn.",
     needsTarget: false,
+  },
+  random_ray: {
+    id: "random_ray",
+    name: "Random ray",
+    description:
+      "(Anyone) Choose a target, including yourself. Their card is replaced by a random number from the game's full pool for this turn.",
+    needsTarget: true,
+    allowSelfTarget: true,
   },
   nothingburger: {
     id: "nothingburger",

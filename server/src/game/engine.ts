@@ -40,6 +40,7 @@ export interface RevealDoc {
   sabotageUsed?: { sabotagerId: string; targetId: string; forcedNumber: number; originalNumber: number };
   swapUsed?: { swapperId: string; targetId: string };
   switchUsed?: { switcherId: string; targetId: string; switcherOriginal: number; targetOriginal: number };
+  rayUsed?: { rayUserId: string; targetId: string; rolledNumber: number; originalNumber: number };
   revealedAt: number;
 }
 
@@ -332,7 +333,9 @@ export function submitTurn(room: RoomDoc, input: SubmitInput): RoomDoc {
   }
   if (input.powerUp && POWER_UPS[input.powerUp].needsTarget) {
     if (!input.powerUpTarget) throw new Error("Target required");
-    if (input.powerUpTarget === input.playerId) throw new Error("Cannot target self");
+    if (input.powerUpTarget === input.playerId && !POWER_UPS[input.powerUp].allowSelfTarget) {
+      throw new Error("Cannot target self");
+    }
     if (!room.players.some((p) => p.id === input.powerUpTarget)) throw new Error("Unknown target");
   }
   if (input.powerUp === "sabotage") {
@@ -431,23 +434,23 @@ function resolveTurn(room: RoomDoc): RoomDoc {
     }
   }
 
-  // Switch Cards override affects scoring ONLY (not hand removal): the two players
-  // score each other's picked number, but each player still discards their *own*
-  // original choice from their hand (the target's number may not even be in the
-  // picker's hand). Layered on top of any sabotage override so both could in
-  // principle compose, even though only the picker plays a power in practice.
+  // Score-only overrides: layered on top of sabotage but NOT used for hand removal.
+  // Each player still discards their own original card from their hand. Switch cards
+  // and Random ray both write here.
+  const scoreOverrides: { [playerId: string]: number } = {};
+
+  // Switch Cards: the two players score each other's picked number.
   const switchSub = Object.values(room.pendingSubmissions).find(
     (s) => (s.resolvedPowerUp ?? s.powerUp) === "switch_cards",
   );
   let switchUsed: RevealDoc["switchUsed"];
-  const switchOverrides: { [playerId: string]: number } = {};
   if (switchSub && switchSub.powerUpTarget && room.pendingSubmissions[switchSub.powerUpTarget]) {
     const a = switchSub.playerId;
     const b = switchSub.powerUpTarget;
     const aNum = sabotageOverrides[a] ?? room.pendingSubmissions[a].number;
     const bNum = sabotageOverrides[b] ?? room.pendingSubmissions[b].number;
-    switchOverrides[a] = bNum;
-    switchOverrides[b] = aNum;
+    scoreOverrides[a] = bNum;
+    scoreOverrides[b] = aNum;
     switchUsed = {
       switcherId: a,
       targetId: b,
@@ -456,12 +459,32 @@ function resolveTurn(room: RoomDoc): RoomDoc {
     };
   }
 
+  // Random Ray: target's score becomes a random number from the game's full pool.
+  // The roll uses Math.random() (mockable in tests, same as rollWildPower). Target's
+  // original card still leaves their hand — the rolled number is purely a score override.
+  const raySub = Object.values(room.pendingSubmissions).find(
+    (s) => (s.resolvedPowerUp ?? s.powerUp) === "random_ray",
+  );
+  let rayUsed: RevealDoc["rayUsed"];
+  if (raySub && raySub.powerUpTarget && room.pendingSubmissions[raySub.powerUpTarget]) {
+    const targetId = raySub.powerUpTarget;
+    const pool = gameNumbers(room);
+    const rolledNumber = pool[Math.floor(Math.random() * pool.length)];
+    scoreOverrides[targetId] = rolledNumber;
+    rayUsed = {
+      rayUserId: raySub.playerId,
+      targetId,
+      rolledNumber,
+      originalNumber: room.pendingSubmissions[targetId].number,
+    };
+  }
+
   const playsBySeat = [...room.players].sort((a, b) => a.seat - b.seat);
   // What gets recorded in the reveal: keeps the picker's submitted power (e.g. "wild")
   // and the resolved roll so the UI can show "wild → plus_two".
   const revealSubmissions = playsBySeat.map((p) => {
     const s = room.pendingSubmissions[p.id];
-    const number = switchOverrides[p.id] ?? sabotageOverrides[p.id] ?? s.number;
+    const number = scoreOverrides[p.id] ?? sabotageOverrides[p.id] ?? s.number;
     return {
       playerId: p.id,
       number,
@@ -544,6 +567,7 @@ function resolveTurn(room: RoomDoc): RoomDoc {
     sabotageUsed,
     swapUsed,
     switchUsed,
+    rayUsed,
     revealedAt: Date.now(),
   };
 
