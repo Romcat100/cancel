@@ -184,6 +184,15 @@ function choosePower(available: PowerUpId[], intended: number, ctx: PowerCtx): P
       case "slide":
         score = 0.3;
         break;
+      case "sacrifice": {
+        // Picker's card scores 0; every other player loses the picker's face value. Martyr the
+        // highest card for maximum damage; value scales with the card and the opponent count, net
+        // of the score the picker forgoes.
+        const high = Math.max(...myHand);
+        number = high;
+        score = high * oppHands.length * 0.35 - myBase;
+        break;
+      }
       case "wild":
         score = 1.5; // a gamble, occasionally worth it
         break;
