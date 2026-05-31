@@ -154,8 +154,13 @@ immediately — there is intentionally **no move delay**. At `round_end` `driveB
 and returns, so the human still gets to read the round summary before acking. `decideBotMove`/`choosePower`
 are a single "medium" heuristic (value × P(unique) for numbers; per-power scoring for the picker);
 **any power id not explicitly cased falls through to a positive default + auto-target**, so a newly
-added power never stalls or crashes the bot. Locked by `bots.test.ts` (+ `setBotCount` cases in
-`engine.test.ts`) and the `single-player` verify flow.
+added power never stalls or crashes the bot. `chooseNumber` **samples** a card with probability ∝
+`(EV + floor)^GREED` rather than taking the argmax — identical hands otherwise produce identical
+picks, so every bot marched 5,4,3,2 in lockstep and tied each other every turn. Sampling spreads
+them out (top card ≈ a third of picks instead of all of them) while still favoring value; `GREED`
+(1.3) and `PICK_FLOOR` tune greedy↔random. Known board numbers collapse to EV 0 and are never
+chosen. Locked by `bots.test.ts` (+ `setBotCount` cases in `engine.test.ts`) and the `single-player`
+verify flow.
 
 ### Module conventions
 

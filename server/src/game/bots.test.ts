@@ -41,6 +41,29 @@ describe("chooseNumber", () => {
   it("falls back gracefully on an empty hand", () => {
     expect(chooseNumber([], [[0, 1]], [], () => 0.5)).toBe(0);
   });
+
+  it("samples a spread of cards instead of always taking the highest (so bots don't all tie)", () => {
+    // Fresh full hand, three opponents holding the same hand: every card has equal P(unique), so a
+    // deterministic argmax would return the top card every time. Over many draws we expect variety.
+    const hand = [0, 1, 2, 3, 4, 5];
+    const opp = [hand, hand, hand];
+    const picks = Array.from({ length: 400 }, () => chooseNumber(hand, opp, []));
+    const distinct = new Set(picks);
+    const topShare = picks.filter((n) => n === 5).length / picks.length;
+    expect(distinct.size).toBeGreaterThanOrEqual(4); // not collapsed onto one card
+    expect(topShare).toBeLessThan(0.6); // favors the top card but is far from deterministic
+  });
+
+  it("two bots with identical hands usually diverge", () => {
+    // The whole point of sampling: independent draws from the same hand rarely collide every time.
+    const hand = [0, 1, 2, 3, 4, 5];
+    const opp = [hand, hand];
+    let diverged = 0;
+    for (let i = 0; i < 400; i++) {
+      if (chooseNumber(hand, opp, []) !== chooseNumber(hand, opp, [])) diverged++;
+    }
+    expect(diverged).toBeGreaterThan(200); // > half the time they pick different cards
+  });
 });
 
 describe("decideBotMove", () => {
