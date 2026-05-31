@@ -194,9 +194,10 @@ function choosePower(available: PowerUpId[], intended: number, ctx: PowerCtx): P
         score = 0.3;
         break;
       case "sacrifice": {
-        // Picker's card scores 0; every other player loses the picker's face value. Martyr the
-        // highest card for maximum damage; value scales with the card and the opponent count, net
-        // of the score the picker forgoes.
+        // Picker's card scores 0; every other player loses the picker's face value — but only if
+        // the picker's card scores (a board 0 or a tie nullifies it). Martyr the highest card: it
+        // does the most damage and, being high, is the least likely to tie or be cancelled. Value
+        // scales with the card and the opponent count, net of the score the picker forgoes.
         const high = Math.max(...myHand);
         number = high;
         score = high * oppHands.length * 0.35 - myBase;

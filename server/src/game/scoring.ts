@@ -222,18 +222,28 @@ export function scoreTurn(plays: PlayInput[], gameNumbers?: number[]): ScoreResu
     }
   }
 
-  // Sacrifice: picker's card scores 0 and every other player loses the picker's face
-  // value. The penalty is "damage done" — it lands even if the picker's own card was
-  // cancelled or tied out, so the picker can martyr themselves to drag opponents down.
+  // Sacrifice: the picker's card scores 0 and every other player loses the picker's
+  // face value. The sacrifice only lands if the picker's own card would have scored —
+  // it is nullified (fizzles, no penalty) when a board 0 cancels the picker or the
+  // picker's card is tied out, exactly like the things that wipe an ordinary card.
   if (powerUp === "sacrifice" && powerUserId) {
+    const pickerEff = eff.find((e) => e.playerId === powerUserId);
+    const pickerLine = lines.find((l) => l.playerId === powerUserId);
+    const pickerTied =
+      !!pickerEff && !pickerEff.isCancel && (faceCount.get(pickerEff.face) ?? 0) > 1;
+    const nullified = cancelActive || pickerTied;
     const penalty = powerPlay!.number;
-    for (const l of lines) {
-      if (l.playerId === powerUserId) {
-        l.delta = 0;
-        l.notes.push("Sacrifice: card scores 0");
-      } else if (penalty !== 0) {
-        l.delta -= penalty;
-        l.notes.push(`Sacrifice: ${penalty > 0 ? "−" : "+"}${Math.abs(penalty)}`);
+    if (nullified) {
+      pickerLine?.notes.push("Sacrifice: fizzled (card cancelled or tied)");
+    } else {
+      for (const l of lines) {
+        if (l.playerId === powerUserId) {
+          l.delta = 0;
+          l.notes.push("Sacrifice: card scores 0");
+        } else if (penalty !== 0) {
+          l.delta -= penalty;
+          l.notes.push(`Sacrifice: ${penalty > 0 ? "−" : "+"}${Math.abs(penalty)}`);
+        }
       }
     }
   }

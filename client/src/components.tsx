@@ -68,7 +68,7 @@ export function NumberCard({
 
 const POWER_VISUAL: Record<PowerUpId, { abbr: string; bg: string; text: string }> = {
   double: { abbr: "×2", bg: "bg-gold", text: "text-ink" },
-  tie_die: { abbr: "▽", bg: "bg-cool", text: "text-paper" },
+  tie_die: { abbr: "⚔", bg: "bg-cool", text: "text-paper" },
   negate_zero: { abbr: "Ø!", bg: "bg-accent", text: "text-ink" },
   plus_two: { abbr: "+2", bg: "bg-emerald-500", text: "text-ink" },
   free_three: { abbr: "3", bg: "bg-emerald-400", text: "text-ink" },
@@ -85,7 +85,7 @@ const POWER_VISUAL: Record<PowerUpId, { abbr: string; bg: string; text: string }
   wild: { abbr: "?", bg: "bg-violet-400", text: "text-ink" },
   swap_hands: { abbr: "⇄", bg: "bg-teal-400", text: "text-ink" },
   switch_cards: { abbr: "⇌", bg: "bg-sky-400", text: "text-ink" },
-  sacrifice: { abbr: "†", bg: "bg-stone-600", text: "text-paper" },
+  sacrifice: { abbr: "▼", bg: "bg-stone-600", text: "text-paper" },
   random_ray: { abbr: "↯", bg: "bg-violet-500", text: "text-paper" },
   nothingburger: { abbr: "∅", bg: "bg-paper/20", text: "text-paper/70" },
 };

@@ -265,7 +265,7 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
     id: "sacrifice",
     name: "Sacrifice",
     description:
-      "(Opponents) Your card scores 0. Every other player loses your card's value from their score this turn.",
+      "(Opponents) Your card scores 0 and every other player loses your card's value from their score this turn, but only if your card scores. If a 0 cancels you or your card ties out, the sacrifice fizzles.",
     needsTarget: false,
   },
   random_ray: {

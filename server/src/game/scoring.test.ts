@@ -633,24 +633,34 @@ describe("scoreTurn — Sacrifice", () => {
     expect(points(r)).toEqual({ A: 0, B: -2, C: -1 });
   });
 
-  it("penalty still applies even when the picker's card was cancelled by another player's 0", () => {
+  it("fizzles when the picker's card is cancelled by another player's 0", () => {
     const r = scoreTurn([
       { playerId: "A", number: 5, powerUp: "sacrifice" },
       { playerId: "B", number: 0 },
       { playerId: "C", number: 3 },
     ]);
-    // B's 0 cancels everyone to 0 first; then Sacrifice deducts 5 from B and C.
-    expect(points(r)).toEqual({ A: 0, B: -5, C: -5 });
+    // B's 0 cancels everyone to 0; the sacrifice is nullified, so no penalty lands.
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
   });
 
-  it("penalty still applies on top of a tie wipe", () => {
+  it("fizzles when the picker's card is tied out", () => {
     const r = scoreTurn([
       { playerId: "A", number: 5, powerUp: "sacrifice" },
       { playerId: "B", number: 5 },
       { playerId: "C", number: 3 },
     ]);
-    // A and B tie on 5 → both wipe to 0; then Sacrifice deducts 5 from B and C.
-    expect(points(r)).toEqual({ A: 0, B: -5, C: -2 });
+    // A and B tie on 5 → both wipe to 0; the sacrifice is nullified. C keeps its unique 3.
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 3 });
+  });
+
+  it("still lands when an uninvolved tie or suppressed zeros leave the picker's card live", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 5, powerUp: "sacrifice" },
+      { playerId: "B", number: 3 },
+      { playerId: "C", number: 3 },
+    ]);
+    // B and C tie out on 3, but A's 5 is unique and live, so the sacrifice deducts 5.
+    expect(points(r)).toEqual({ A: 0, B: -5, C: -5 });
   });
 
   it("sacrificing a 0 is a no-op penalty (lone 0 still cancels via standard rules)", () => {
@@ -669,5 +679,14 @@ describe("scoreTurn — Sacrifice", () => {
       { playerId: "B", number: 3 },
     ]);
     expect(points(r)).toEqual({ A: 0, B: -1 });
+  });
+
+  it("both score 0 when the picker's sacrifice card ties the only opponent (2-player)", () => {
+    const r = scoreTurn([
+      { playerId: "A", number: 4, powerUp: "sacrifice" },
+      { playerId: "B", number: 4 },
+    ]);
+    // Tie on 4 wipes both to 0; the sacrifice fizzles, so neither loses points.
+    expect(points(r)).toEqual({ A: 0, B: 0 });
   });
 });
