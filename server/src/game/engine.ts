@@ -83,6 +83,9 @@ export interface RoomDoc {
   phase: RoomPhaseDoc;
   players: PlayerDoc[];
   rounds: RoundDoc[];
+  // Seat whose player picks first in round 0, rolled randomly at startGame. Each
+  // later round shifts the starting picker one more seat (see buildRotation).
+  firstPickerSeat: number;
   currentRoundIndex: number;
   currentTurnIndex: number;
   pendingSubmissions: { [playerId: string]: SubmissionDoc };
@@ -127,6 +130,7 @@ export function createRoom(opts: {
     phase: "lobby",
     players: [{ id: opts.hostId, name: opts.hostName, seat: HOST_SEAT, totalScore: 0 }],
     rounds: [],
+    firstPickerSeat: 0,
     currentRoundIndex: -1,
     currentTurnIndex: -1,
     pendingSubmissions: {},
@@ -247,16 +251,21 @@ function gameNumbers(room: RoomDoc): number[] {
   return dealHand(handSize, room.config.numberMode === "custom" ? room.config.customNumbers : undefined);
 }
 
-function buildRotation(players: PlayerDoc[], handSize: number, roundIndex: number): string[] {
+function buildRotation(
+  players: PlayerDoc[],
+  handSize: number,
+  roundIndex: number,
+  firstPickerSeat: number,
+): string[] {
   const sorted = [...players].sort((a, b) => a.seat - b.seat);
-  const offset = roundIndex % sorted.length;
+  const offset = (roundIndex + firstPickerSeat) % sorted.length;
   const order = [...sorted.slice(offset), ...sorted.slice(0, offset)];
   const rot: string[] = [];
   for (let i = 0; i < handSize; i++) rot.push(order[i % order.length].id);
   return rot;
 }
 
-export function startGame(room: RoomDoc): RoomDoc {
+export function startGame(room: RoomDoc, rng: () => number = Math.random): RoomDoc {
   if (room.phase !== "lobby") throw new Error("Not in lobby");
   if (room.players.length < 2) throw new Error("Need at least 2 players");
   if (
@@ -271,7 +280,9 @@ export function startGame(room: RoomDoc): RoomDoc {
   ) {
     throw new Error(`Pick exactly ${room.players.length + 1} numbers for ${room.players.length} players`);
   }
-  return startRound(room, 0);
+  // Roll the first picker randomly instead of always seating the host first.
+  const firstPickerSeat = Math.floor(rng() * room.players.length);
+  return startRound({ ...room, firstPickerSeat }, 0);
 }
 
 export function setRoomConfig(
@@ -316,7 +327,7 @@ function startRound(room: RoomDoc, roundIndex: number): RoomDoc {
     index: roundIndex,
     poolFull,
     poolRemaining: [],
-    rotation: buildRotation(room.players, handSize, roundIndex),
+    rotation: buildRotation(room.players, handSize, roundIndex, room.firstPickerSeat ?? 0),
     reveals: [],
     hands: Object.fromEntries(
       room.players.map((p) => [

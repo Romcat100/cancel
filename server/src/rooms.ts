@@ -71,6 +71,8 @@ export function loadRoom(code: string): RoomDoc | null {
   if (cfg.customNumbers === undefined) cfg.customNumbers = [];
   if (cfg.solo === undefined) cfg.solo = false;
   if (typeof doc.rev !== "number") doc.rev = 0;
+  // Games saved before the random-first-picker change stay host-first (seat 0).
+  if (typeof doc.firstPickerSeat !== "number") doc.firstPickerSeat = 0;
   return doc;
 }
 

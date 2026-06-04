@@ -95,6 +95,8 @@ Three non-obvious flows:
 
 **Unlock**: while `turn_submitting`, a player who has already submitted may call `unsubmitTurn` to clear their `pendingSubmissions` entry and re-pick. Naturally bounded — once everyone has submitted the engine immediately resolves (or moves to `turn_peek_review`). The peeker's re-pick during `turn_peek_review` cannot be unlocked.
 
+**Picker rotation**: each round's per-turn picker order is `round.rotation`, precomputed by `buildRotation` from seat order with `offset = (roundIndex + firstPickerSeat) % playerCount`. `RoomDoc.firstPickerSeat` is rolled randomly in `startGame` (rng-threaded, defaults `Math.random`) so the **first turn of the game lands on a random seat, not always the host**; each later round shifts the starting picker one more seat. Re-rolled every game (incl. rematch via `startGame`). `loadRoom` defaults it to `0` for pre-feature saves (legacy host-first). Tests pin it with `startGame(room, () => 0)` (helper `startGame0` in `engine.test.ts`).
+
 ### Scoring engine — read this before changing rules
 
 `server/src/game/scoring.ts` is a pure function fully covered by tests. Effects apply in deterministic order; `scoring.test.ts` locks the contract — change behavior, update both. Watch for:

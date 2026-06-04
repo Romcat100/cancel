@@ -26,6 +26,14 @@ function pickSafePower(pool: PowerUpId[]): PowerUpId {
   return pool.find((p) => !POWER_UPS[p].needsTarget) ?? pool[0];
 }
 
+// The first picker is randomised in production (startGame rolls firstPickerSeat).
+// Pin it to seat 0 (the host, "A") so existing tests can keep assuming A picks
+// first; the dedicated rng never touches Math.random, so tests that self-mock
+// Math.random (wild/ray rolls) are unaffected.
+function startGame0(r: RoomDoc): RoomDoc {
+  return startGame(r, () => 0);
+}
+
 function ackAll(r: RoomDoc): RoomDoc {
   for (const p of r.players) r = ackRoundEnd(r, p.id);
   return r;
@@ -77,13 +85,13 @@ describe("setBotCount (AI players)", () => {
   });
 
   it("throws outside the lobby", () => {
-    const r = startGame(room3p());
+    const r = startGame0(room3p());
     expect(() => setBotCount(r, 1)).toThrow(/lobby/);
   });
 
   it("a game with bots starts and bots get hands and rotation slots", () => {
     let r = setBotCount(room3p(), 1); // 3 humans + 1 bot
-    r = startGame(r);
+    r = startGame0(r);
     expect(r.phase).toBe("turn_submitting");
     const bot = r.players.find((p) => p.isBot)!;
     expect(r.rounds[0].hands[bot.id]).toEqual([0, 1, 2, 3, 4, 5]); // handSize = 6
@@ -127,7 +135,7 @@ describe("engine lifecycle", () => {
   });
 
   it("startGame deals N+2 cards and N+2 power-ups; first picker is seat 0", () => {
-    const r = startGame(room3p());
+    const r = startGame0(room3p());
     expect(r.phase).toBe("turn_submitting");
     const round = r.rounds[0];
     expect(round.poolFull).toHaveLength(5);
@@ -139,14 +147,14 @@ describe("engine lifecycle", () => {
 
   it("rejects starting with fewer than 2 players", () => {
     const r = createRoom({ code: "ABCD", hostId: "A", hostName: "Alice", rounds: 3, turnDeadlineMs: null });
-    expect(() => startGame(r)).toThrow(/2 players/);
+    expect(() => startGame0(r)).toThrow(/2 players/);
   });
 
   it("off mode deals an empty pool", () => {
     let r = createRoom({ code: "OFF1", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, powerUpMode: "off" });
     r = addPlayer(r, "B", "Bob");
     r = addPlayer(r, "C", "Carol");
-    r = startGame(r);
+    r = startGame0(r);
     expect(r.rounds[0].poolFull).toEqual([]);
   });
 
@@ -155,7 +163,7 @@ describe("engine lifecycle", () => {
     let r = createRoom({ code: "SEL1", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, powerUpMode: "selected", selectedPowerUps: allow });
     r = addPlayer(r, "B", "Bob");
     r = addPlayer(r, "C", "Carol");
-    r = startGame(r);
+    r = startGame0(r);
     const pool = r.rounds[0].poolFull;
     expect(pool).toHaveLength(5); // handSize 5, repeats the 2 chosen powers
     expect(pool.every((p) => allow.includes(p))).toBe(true);
@@ -166,7 +174,7 @@ describe("engine lifecycle", () => {
     const allow: PowerUpId[] = ["peek", "sabotage", "double"];
     let r = createRoom({ code: "SEL2", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, powerUpMode: "selected", selectedPowerUps: allow });
     r = addPlayer(r, "B", "Bob");
-    r = startGame(r);
+    r = startGame0(r);
     const pool = r.rounds[0].poolFull;
     expect(pool).not.toContain("peek");
     expect(pool).not.toContain("sabotage");
@@ -177,21 +185,21 @@ describe("engine lifecycle", () => {
     // Only Peek+Sabotage chosen in a 2-player game leaves nothing to deal.
     let r = createRoom({ code: "SEL3", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, powerUpMode: "selected", selectedPowerUps: ["peek", "sabotage"] });
     r = addPlayer(r, "B", "Bob");
-    expect(() => startGame(r)).toThrow(/at least one power-up/);
+    expect(() => startGame0(r)).toThrow(/at least one power-up/);
   });
 
   it("rejects starting when selected mode has no powers chosen", () => {
     let r = createRoom({ code: "SEL4", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, powerUpMode: "selected", selectedPowerUps: [] });
     r = addPlayer(r, "B", "Bob");
     r = addPlayer(r, "C", "Carol");
-    expect(() => startGame(r)).toThrow(/at least one power-up/);
+    expect(() => startGame0(r)).toThrow(/at least one power-up/);
   });
 
   it("custom number mode deals [0, ...customNumbers] sorted to every player", () => {
     let r = createRoom({ code: "NUM1", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, numberMode: "custom", customNumbers: [9, 3, 8, 1] });
     r = addPlayer(r, "B", "Bob");
     r = addPlayer(r, "C", "Carol");
-    r = startGame(r);
+    r = startGame0(r);
     const round = r.rounds[0];
     expect(round.hands["A"]).toEqual([0, 1, 3, 8, 9]);
     expect(round.hands["B"]).toEqual([0, 1, 3, 8, 9]);
@@ -202,7 +210,7 @@ describe("engine lifecycle", () => {
     let r = createRoom({ code: "NEG1", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, numberMode: "custom", customNumbers: [-5, -2, 3, 7] });
     r = addPlayer(r, "B", "Bob");
     r = addPlayer(r, "C", "Carol");
-    r = startGame(r);
+    r = startGame0(r);
     const round = r.rounds[0];
     expect(round.hands["A"]).toEqual([-5, -2, 0, 3, 7]);
     expect(round.hands["B"]).toEqual([-5, -2, 0, 3, 7]);
@@ -213,18 +221,18 @@ describe("engine lifecycle", () => {
     let r = createRoom({ code: "NUM2", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, numberMode: "custom", customNumbers: [3, 8] });
     r = addPlayer(r, "B", "Bob");
     r = addPlayer(r, "C", "Carol"); // 3 players → needs 4 custom numbers
-    expect(() => startGame(r)).toThrow(/exactly 4 numbers/);
+    expect(() => startGame0(r)).toThrow(/exactly 4 numbers/);
   });
 
   it("default number mode still deals the contiguous hand", () => {
     let r = createRoom({ code: "NUM3", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null });
     r = addPlayer(r, "B", "Bob");
-    r = startGame(r);
+    r = startGame0(r);
     expect(r.rounds[0].hands["A"]).toEqual([0, 1, 2, 3]);
   });
 
   it("submitting a number locks it in; turn auto-resolves when everyone has submitted", () => {
-    let r = startGame(room3p());
+    let r = startGame0(room3p());
     const picker = r.rounds[0].rotation[0];
     expect(picker).toBe("A");
     const power = pickSafePower(r.rounds[0].poolRemaining);
@@ -243,25 +251,25 @@ describe("engine lifecycle", () => {
   });
 
   it("non-pickers cannot play power-ups", () => {
-    const r = startGame(room3p());
+    const r = startGame0(room3p());
     const power = pickSafePower(r.rounds[0].poolRemaining);
     expect(() => submitTurn(r, { playerId: "B", number: 0, powerUp: power })).toThrow(/picker/);
   });
 
   it("picker must pick a power-up while pool is non-empty", () => {
-    const r = startGame(room3p());
+    const r = startGame0(room3p());
     expect(() => submitTurn(r, { playerId: "A", number: 0 })).toThrow(/must pick/);
   });
 
   it("rejects already-submitted player", () => {
-    let r = startGame(room3p());
+    let r = startGame0(room3p());
     const power = pickSafePower(r.rounds[0].poolRemaining);
     r = submitTurn(r, { playerId: "A", number: 4, powerUp: power });
     expect(() => submitTurn(r, { playerId: "A", number: 0, powerUp: power })).toThrow(/Already submitted/);
   });
 
   it("rotation moves picker to seat 1 on turn 2", () => {
-    let r = startGame(room3p());
+    let r = startGame0(room3p());
     const power0 = pickSafePower(r.rounds[0].poolRemaining);
     r = submitTurn(r, { playerId: "A", number: 4, powerUp: power0 });
     r = submitTurn(r, { playerId: "B", number: 3 });
@@ -269,8 +277,35 @@ describe("engine lifecycle", () => {
     expect(r.rounds[0].rotation[1]).toBe("B");
   });
 
+  it("first picker is the random firstPickerSeat and shifts one seat each round", () => {
+    // rng 0.5 → floor(0.5 * 3) = seat 1, so Bob (not the host) picks first in round 0.
+    let r = forceSafePool(startGame(room3p(), () => 0.5));
+    expect(r.firstPickerSeat).toBe(1);
+    expect(r.rounds[0].rotation[0]).toBe("B");
+
+    // Play the whole round, then ack to advance to round 1.
+    const handSize = r.players.length + 2;
+    for (let turn = 0; turn < handSize; turn++) {
+      const cur = r.rounds[r.currentRoundIndex];
+      const picker = cur.rotation[r.currentTurnIndex];
+      const power = pickSafePower(cur.poolRemaining);
+      for (const p of r.players) {
+        const hand = r.rounds[r.currentRoundIndex].hands[p.id];
+        r = submitTurn(
+          r,
+          p.id === picker ? { playerId: p.id, number: hand[0], powerUp: power } : { playerId: p.id, number: hand[0] },
+        );
+      }
+    }
+    expect(r.phase).toBe("round_end");
+    r = ackAll(r);
+    // Round 1's first picker is the next seat after Bob → Carol (seat 2).
+    expect(r.currentRoundIndex).toBe(1);
+    expect(r.rounds[1].rotation[0]).toBe("C");
+  });
+
   it("after last turn of a round, phase is round_end and waits for all acks", () => {
-    let r = forceSafePool(startGame(room3p()));
+    let r = forceSafePool(startGame0(room3p()));
     for (let turn = 0; turn < 5; turn++) {
       const cur = r.rounds[r.currentRoundIndex];
       const picker = cur.rotation[r.currentTurnIndex];
@@ -301,7 +336,7 @@ describe("engine lifecycle", () => {
   });
 
   it("transitions through 3 rounds to game_end with a winner", () => {
-    let r = forceSafePool(startGame(room3p()));
+    let r = forceSafePool(startGame0(room3p()));
     for (let round = 0; round < 3; round++) {
       for (let turn = 0; turn < 5; turn++) {
         const cur = r.rounds[r.currentRoundIndex];
@@ -328,7 +363,7 @@ describe("engine lifecycle", () => {
   });
 
   it("resetToLobby keeps players/seats/config but wipes game progress", () => {
-    let r = forceSafePool(startGame(room3p()));
+    let r = forceSafePool(startGame0(room3p()));
     for (let round = 0; round < 3; round++) {
       for (let turn = 0; turn < 5; turn++) {
         const cur = r.rounds[r.currentRoundIndex];
@@ -358,20 +393,20 @@ describe("engine lifecycle", () => {
     expect(lobby.winnerId).toBeUndefined();
 
     // a fresh game can be started from the recycled lobby
-    const restarted = startGame(lobby);
+    const restarted = startGame0(lobby);
     expect(restarted.phase).toBe("turn_submitting");
     expect(restarted.rounds[0].rotation[0]).toBe("A");
   });
 
   it("resetToLobby rejects unless the game is over", () => {
-    const r = startGame(room3p());
+    const r = startGame0(room3p());
     expect(() => resetToLobby(r)).toThrow(/not over/);
   });
 });
 
 describe("peek mid-turn re-pick", () => {
   function setup(): RoomDoc {
-    let r = startGame(room3p());
+    let r = startGame0(room3p());
     // Force first round's pool to include 'peek' deterministically — replace remaining[0] with peek.
     const round = r.rounds[r.currentRoundIndex];
     if (!round.poolRemaining.includes("peek")) {
@@ -428,7 +463,7 @@ describe("peek mid-turn re-pick", () => {
 
 describe("sabotage", () => {
   function setup(): RoomDoc {
-    let r = startGame(room3p());
+    let r = startGame0(room3p());
     const round = r.rounds[r.currentRoundIndex];
     if (!round.poolRemaining.includes("sabotage")) {
       round.poolFull = ["sabotage", ...round.poolFull.slice(1)];
@@ -568,7 +603,7 @@ describe("mid-game continuation & host succession", () => {
 
   describe("forceResolveTurn (turn_submitting)", () => {
     it("auto-plays an absent picker a card from its hand with no power, leaving the pool intact", () => {
-      let r = forceSafePool(startGame(room3p()));
+      let r = forceSafePool(startGame0(room3p()));
       expect(r.rounds[0].rotation[0]).toBe("A"); // A is picker
       const poolBefore = r.rounds[0].poolRemaining.length;
       const aHand = [...r.rounds[0].hands["A"]];
@@ -585,7 +620,7 @@ describe("mid-game continuation & host succession", () => {
     });
 
     it("auto-plays an absent non-picker; pool drops only by the picker's power", () => {
-      let r = forceSafePool(startGame(room3p()));
+      let r = forceSafePool(startGame0(room3p()));
       const power = pickSafePower(r.rounds[0].poolRemaining);
       const poolBefore = r.rounds[0].poolRemaining.length;
       const cHand = [...r.rounds[0].hands["C"]];
@@ -599,7 +634,7 @@ describe("mid-game continuation & host succession", () => {
     });
 
     it("fills multiple absentees in one shot", () => {
-      let r = forceSafePool(startGame(room3p()));
+      let r = forceSafePool(startGame0(room3p()));
       const power = pickSafePower(r.rounds[0].poolRemaining);
       r = submitTurn(r, { playerId: "A", number: 4, powerUp: power }); // only picker submitted
       r = forceResolveTurn(r); // B and C absent
@@ -608,7 +643,7 @@ describe("mid-game continuation & host succession", () => {
     });
 
     it("auto-plays from the REMAINING hand, never a hardcoded 0", () => {
-      let r = forceSafePool(startGame(room3p()));
+      let r = forceSafePool(startGame0(room3p()));
       const power = pickSafePower(r.rounds[0].poolRemaining);
       r.rounds[0].hands["C"] = [3, 8, 9]; // 0 already gone
       r = submitTurn(r, { playerId: "A", number: 4, powerUp: power });
@@ -618,7 +653,7 @@ describe("mid-game continuation & host succession", () => {
     });
 
     it("is a no-op when nobody is missing", () => {
-      let r = forceSafePool(startGame(room3p()));
+      let r = forceSafePool(startGame0(room3p()));
       const power = pickSafePower(r.rounds[0].poolRemaining);
       // Hand-craft a fully-submitted pending map (never happens naturally, but guards the branch).
       r = { ...r, pendingSubmissions: {
@@ -632,7 +667,7 @@ describe("mid-game continuation & host succession", () => {
     });
 
     it("advances to round_end when the last turn is force-resolved", () => {
-      let r = forceSafePool(startGame(room3p()));
+      let r = forceSafePool(startGame0(room3p()));
       // Resolve the first four turns normally, force-resolve the fifth (last).
       for (let turn = 0; turn < 4; turn++) {
         const cur = r.rounds[r.currentRoundIndex];
@@ -653,7 +688,7 @@ describe("mid-game continuation & host succession", () => {
 
   describe("forceResolveTurn (turn_peek_review)", () => {
     it("auto-submits a card from the absent peeker's hand and still records peekUsed", () => {
-      let r = startGame(room3p());
+      let r = startGame0(room3p());
       const round = r.rounds[r.currentRoundIndex];
       if (!round.poolRemaining.includes("peek")) {
         round.poolFull = ["peek", ...round.poolFull.slice(1)];
@@ -675,7 +710,7 @@ describe("mid-game continuation & host succession", () => {
 
   describe("forceResolveTurn phase guard", () => {
     it("throws at round_end", () => {
-      const r = playRound(forceSafePool(startGame(room3p())));
+      const r = playRound(forceSafePool(startGame0(room3p())));
       expect(r.phase).toBe("round_end");
       expect(() => forceResolveTurn(r)).toThrow(/Nothing to skip/);
     });
@@ -687,7 +722,7 @@ describe("mid-game continuation & host succession", () => {
 
   describe("removePlayer mid-game", () => {
     it("removes a player at round_end, reseats survivors, and keeps finished-round history", () => {
-      let r = playRound(forceSafePool(startGame(room3p())));
+      let r = playRound(forceSafePool(startGame0(room3p())));
       expect(r.phase).toBe("round_end");
       r = removePlayer(r, "C", ALL);
       expect(r.players.map((p) => p.id)).toEqual(["A", "B"]);
@@ -697,14 +732,14 @@ describe("mid-game continuation & host succession", () => {
     });
 
     it("reassigns host when the removed player was the host", () => {
-      let r = playRound(forceSafePool(startGame(room3p())));
+      let r = playRound(forceSafePool(startGame0(room3p())));
       r = removePlayer(r, "A", new Set(["B", "C"]));
       expect(r.hostId).toBe("B");
       expect(r.players.map((p) => p.id)).toEqual(["B", "C"]);
     });
 
     it("re-deals the next round for the smaller set after a round_end removal", () => {
-      let r = playRound(forceSafePool(startGame(room3p())));
+      let r = playRound(forceSafePool(startGame0(room3p())));
       r = removePlayer(r, "C", ALL);
       r = ackRoundEnd(r, "A");
       r = ackRoundEnd(r, "B");
@@ -717,7 +752,7 @@ describe("mid-game continuation & host succession", () => {
     });
 
     it("still throws when removing mid-turn", () => {
-      const r = forceSafePool(startGame(room3p()));
+      const r = forceSafePool(startGame0(room3p()));
       expect(() => removePlayer(r, "C", ALL)).toThrow(/Skip waiting/);
     });
   });
@@ -727,7 +762,7 @@ describe("wild", () => {
   afterEach(() => vi.restoreAllMocks());
 
   function setupWild(): RoomDoc {
-    let r = startGame(room3p());
+    let r = startGame0(room3p());
     r = forceSafePool(r);
     const round = r.rounds[r.currentRoundIndex];
     if (!round.poolRemaining.includes("wild")) {
@@ -785,7 +820,7 @@ describe("random_ray", () => {
   afterEach(() => vi.restoreAllMocks());
 
   function setup(): RoomDoc {
-    let r = startGame(room3p());
+    let r = startGame0(room3p());
     const round = r.rounds[r.currentRoundIndex];
     if (!round.poolRemaining.includes("random_ray")) {
       round.poolFull = ["random_ray", ...round.poolFull.slice(1)];
@@ -802,7 +837,7 @@ describe("random_ray", () => {
   });
 
   it("still rejects self-target for powers without allowSelfTarget", () => {
-    const r = startGame(room3p());
+    const r = startGame0(room3p());
     // Force sabotage into the pool for this regression check.
     r.rounds[0].poolFull = ["sabotage", ...r.rounds[0].poolFull.slice(1)];
     r.rounds[0].poolRemaining = ["sabotage", ...r.rounds[0].poolRemaining.slice(1)];
@@ -904,7 +939,7 @@ describe("random_ray", () => {
       selectedPowerUps: ["random_ray", "double"],
     });
     r = addPlayer(r, "B", "Bob");
-    r = startGame(r);
+    r = startGame0(r);
     expect(r.rounds[0].poolFull).toContain("random_ray");
 
     r = submitTurn(r, { playerId: "A", number: 3, powerUp: "random_ray", powerUpTarget: "B" });
@@ -917,7 +952,7 @@ describe("random_ray", () => {
 
 describe("switch_cards", () => {
   function setup(): RoomDoc {
-    let r = startGame(room3p());
+    let r = startGame0(room3p());
     const round = r.rounds[r.currentRoundIndex];
     if (!round.poolRemaining.includes("switch_cards")) {
       round.poolFull = ["switch_cards", ...round.poolFull.slice(1)];
@@ -1008,7 +1043,7 @@ describe("switch_cards", () => {
       selectedPowerUps: ["switch_cards", "double"],
     });
     r = addPlayer(r, "B", "Bob");
-    r = startGame(r);
+    r = startGame0(r);
     expect(r.rounds[0].poolFull).toContain("switch_cards");
 
     r = submitTurn(r, { playerId: "A", number: 3, powerUp: "switch_cards", powerUpTarget: "B" });
@@ -1048,7 +1083,7 @@ describe("switch_cards", () => {
 
 describe("swap_hands", () => {
   function setup(): RoomDoc {
-    let r = startGame(room3p());
+    let r = startGame0(room3p());
     const round = r.rounds[r.currentRoundIndex];
     if (!round.poolRemaining.includes("swap_hands")) {
       round.poolFull = ["swap_hands", ...round.poolFull.slice(1)];
@@ -1123,7 +1158,7 @@ describe("swap_hands", () => {
       selectedPowerUps: ["swap_hands", "double"],
     });
     r = addPlayer(r, "B", "Bob");
-    r = startGame(r);
+    r = startGame0(r);
     expect(r.rounds[0].poolFull).toContain("swap_hands");
 
     r.rounds[0].hands["A"] = [0, 2, 3];
