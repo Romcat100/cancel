@@ -34,8 +34,8 @@ export function Wave({
   style: styleProp,
   title,
 }: {
-  /** Semantic frequency 0-5. Mutually exclusive with `pathId`. */
-  rank?: 0 | 1 | 2 | 3 | 4 | 5;
+  /** Semantic frequency (0 = flat, higher = denser; see `rankForNumber`). Mutually exclusive with `pathId`. */
+  rank?: number;
   /** Explicit path id (e.g. amplitude waves "ca18", or a raw "cw0"). */
   pathId?: string;
   /** Signal color (hex/CSS color). Drives stroke + glow. Ignored for `sum`. */
@@ -54,7 +54,8 @@ export function Wave({
   let id = pathId;
   if (!id) {
     const r = rank ?? 0;
-    id = antiphase && (r === 2 || r === 5) ? `cw${r}i` : `cw${r}`;
+    // Every rank >= 1 has an antiphase twin (cwNi); rank 0 is flat (no phase).
+    id = antiphase && r >= 1 ? `cw${r}i` : `cw${r}`;
   }
   const cls = ["cw", VARIANT_CLASS[variant], animated ? "cw-anim" : "", className]
     .filter(Boolean)
@@ -99,21 +100,25 @@ function wavePath(halfWidth: number, firstControlY: number): string {
   return d;
 }
 
-// rank → hump width (period 120/rank); amplitude waves share rank-1's width.
+// Highest distinct frequency. Numbers run 0..(players+1) ≤ 9 and custom pools
+// reach ±10, so 10 distinct ranks cover every card with no two sharing a wave.
+const MAX_RANK = 10;
+
+// rank N → hump width 60/N (period 120/N). Each rank N >= 1 also gets an antiphase
+// twin `cwNi` (first hump flipped) for the reveal's destructive-interference
+// pairing. `cw0` is the flat silent line; ca6/8/11/18 are fixed-width,
+// growing-amplitude score waves (rank-1 width).
 const WAVE_PATHS: Record<string, string> = {
-  cw0: `M${WAVE_START} ${WAVE_CENTER} L${WAVE_END} ${WAVE_CENTER}`, // flat / silent
-  cw1: wavePath(60, -4),
-  cw2: wavePath(30, -4),
-  cw2i: wavePath(30, 44), // antiphase twin (down first)
-  cw3: wavePath(20, -4),
-  cw4: wavePath(15, -4),
-  cw5: wavePath(12, -4),
-  cw5i: wavePath(12, 44), // antiphase twin
-  ca18: wavePath(60, -16), // score-amplitude waves: rank-1 width, growing amplitude
+  cw0: `M${WAVE_START} ${WAVE_CENTER} L${WAVE_END} ${WAVE_CENTER}`,
+  ca18: wavePath(60, -16),
   ca11: wavePath(60, -2),
   ca8: wavePath(60, 4),
   ca6: wavePath(60, 8),
 };
+for (let r = 1; r <= MAX_RANK; r++) {
+  WAVE_PATHS[`cw${r}`] = wavePath(60 / r, -4);
+  WAVE_PATHS[`cw${r}i`] = wavePath(60 / r, 44);
+}
 
 // The shared path geometry. Mounted ONCE near the app root; `<use href="#id">`
 // resolves document-globally. Ids are `cw`/`ca`-prefixed to avoid collisions.
@@ -129,16 +134,11 @@ export function WaveDefs() {
   );
 }
 
-// Number rank → frequency bucket. Works across the full -10..10 domain (custom
-// pools, negatives), keyed on magnitude — never index a path by raw face value.
-export function rankForNumber(n: number): 0 | 1 | 2 | 3 | 4 | 5 {
-  const a = Math.abs(n);
-  if (a === 0) return 0; // flat / silent signal (the Ø identity)
-  if (a >= 9) return 5;
-  if (a >= 7) return 4;
-  if (a >= 5) return 3;
-  if (a >= 3) return 2;
-  return 1; // 1-2
+// Number → frequency, 1:1 on magnitude: 0 is flat (silent), then each magnitude
+// gets its own increasing frequency (so 1, 2, 3… all look different), capped at
+// MAX_RANK. Sign doesn't change frequency — the numeral carries it (2 and -2 match).
+export function rankForNumber(n: number): number {
+  return Math.min(Math.abs(n), MAX_RANK);
 }
 
 // End-screen amplitude ∝ total score, mapped to the four amplitude paths.
