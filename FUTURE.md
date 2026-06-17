@@ -41,6 +41,12 @@ they're done.
    `.cf`/`.cfd`/`.cfo` + keyframes in `index.css`. Keep it behind
    `prefers-reduced-motion: no-preference`.
 
+8. **Trim the extra vertical scroll space below the title-screen buttons.** Home scrolls
+   past the content, leaving dead space under the menu buttons. Likely the `min-h-screen`
+   root + top-aligned content in `Home.tsx` (`min-h-screen flex flex-col … pt-12 pb-8`);
+   consider `min-h-[100dvh]`, centering the block, or otherwise sizing it so the page
+   doesn't scroll beyond the buttons.
+
 ## Polish & QA (noticed during the reskin)
 
 1. **PWA icon, manifest, and favicon still use the old theme.** The home-screen icon, PWA
