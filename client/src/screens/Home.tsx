@@ -94,7 +94,7 @@ export function Home() {
       <header className="mb-12 text-center select-none animate-rise">
         {/* Two signals in antiphase summing toward silence — the thesis, as a logo. */}
         <div className="mx-auto mb-2 w-72">
-          <div className="relative h-24">
+          <div className="relative h-32">
             <Wave
               rank={2}
               antiphase
