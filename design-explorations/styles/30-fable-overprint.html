@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Fable: Overprint</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400..900&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ============ FABLE: OVERPRINT ============
+       Players are translucent printing inks on warm cream paper.
+       No boxes, no borders, no shadows: structure is type scale,
+       alignment, and overlapping ink fields that multiply. */
+
+    :root {
+      --paper: #f6f1e3;
+      --ink-red: #f05a28;     /* Ben */
+      --ink-cyan: #00a6c8;    /* Voltaire */
+      --ink-yellow: #f4a300;  /* Mechano */
+      --ink-green: #1f9d63;   /* Data Dan */
+      --ink-magenta: #e8467c; /* Jinx */
+      --teal: #0b9b8d;
+      --rose: #d63a52;
+      --emerald: #149a5e;
+      --violet: #7a4dd8;
+      --amber: #dd8a00;
+      --plum: #2a1228;        /* key ink, near-black */
+      --plum-65: rgba(42, 18, 40, .65);
+      --plum-55: rgba(42, 18, 40, .55);
+      --plum-45: rgba(42, 18, 40, .45);
+      --txt-red: #d8430f;
+      --txt-cyan: #00789b;
+      --txt-yellow: #a96f00;
+      --txt-green: #0e7e4d;
+      --cyan-2x: #0087a6;     /* double-struck cyan for slabs */
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Schibsted Grotesk", sans-serif;
+      color: var(--plum);
+      background-color: var(--paper);
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><filter id="g"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="7"/><feColorMatrix type="matrix" values="0 0 0 0 0.24  0 0 0 0 0.13  0 0 0 0 0.10  0 0 0 0.05 0"/></filter><rect width="240" height="240" filter="url(%23g)"/></svg>');
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .screen {
+      max-width: 420px;
+      margin: 0 auto;
+      padding: 26px 22px 46px;
+      position: relative;
+    }
+
+    button { font-family: inherit; cursor: pointer; }
+
+    /* ---- shared type ---- */
+    .eyebrow {
+      font-size: 11px; font-weight: 800; letter-spacing: .2em;
+      text-transform: uppercase; color: var(--plum-55); margin: 0;
+    }
+    .center { text-align: center; }
+
+    /* ---- ink slabs (buttons) ---- */
+    .slab {
+      display: block; width: 100%; border: 0;
+      padding: 19px 16px; text-align: center;
+      font-size: 19px; font-weight: 800; letter-spacing: .01em;
+      color: var(--paper); background: var(--ink-red);
+    }
+    .slab.big { padding: 22px 16px; font-size: 21px; }
+    .slab.cyan { background: var(--cyan-2x); }
+    .slab.plumslab { background: var(--plum); }
+    .slab.ghost {
+      background: rgba(42, 18, 40, .08); color: var(--plum-65);
+      font-size: 11px; font-weight: 800; letter-spacing: .14em;
+      text-transform: uppercase; padding: 15px 12px;
+    }
+    .linkbtn {
+      background: none; border: 0; padding: 8px 0;
+      font-size: 13px; font-weight: 800; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--plum-65);
+    }
+
+    /* =================== HOME =================== */
+    .home-screen {
+      min-height: 876px; display: flex; flex-direction: column;
+    }
+    .home-art { position: relative; padding: 120px 0 0; }
+    .wash { position: absolute; border-radius: 50%; mix-blend-mode: multiply; }
+    .wy { width: 240px; height: 240px; right: -84px; top: -96px; background: var(--ink-yellow); opacity: .36; }
+    .wc { width: 190px; height: 190px; right: 64px; top: -120px; background: var(--ink-cyan); opacity: .32; }
+    .wr { width: 130px; height: 130px; left: -56px; top: 64px; background: var(--ink-red); opacity: .25; }
+    .wg { width: 90px; height: 90px; left: 34px; top: -52px; background: var(--ink-green); opacity: .26; }
+
+    .wordmark {
+      margin: 0; line-height: .95; letter-spacing: -.035em;
+      font-size: 92px; font-weight: 900; white-space: nowrap;
+      position: relative;
+    }
+    .wordmark span { mix-blend-mode: multiply; opacity: .9; display: inline-block; }
+    .wm-r { color: var(--ink-red); }
+    .wm-c { color: var(--ink-cyan); }
+    .pull { margin-left: -.17em; }
+
+    .tagline {
+      margin: 18px 0 0; font-size: 12.5px; font-weight: 700;
+      letter-spacing: .27em; text-transform: uppercase; color: var(--plum-65);
+    }
+
+    .home-actions { margin-top: 76px; display: grid; gap: 14px; }
+
+    .ghostrow {
+      margin: auto -22px -46px; height: 74px; overflow: hidden;
+      display: flex; justify-content: center; padding-top: 0;
+      font-size: 124px; font-weight: 900; line-height: .9; letter-spacing: -.1em;
+    }
+    .ghostrow span { mix-blend-mode: multiply; opacity: .2; }
+    .gh1 { color: var(--ink-red); }
+    .gh2 { color: var(--ink-cyan); }
+    .gh3 { color: var(--ink-yellow); }
+    .gh4 { color: var(--ink-green); }
+    .gh5 { color: var(--ink-magenta); }
+    .gh6 { color: var(--ink-red); }
+
+    /* =================== LOBBY =================== */
+    .topbar { display: flex; justify-content: space-between; align-items: center; }
+
+    .codeblock { text-align: center; margin: 30px 0 6px; }
+    .roomcode {
+      margin: 0; font-size: 96px; font-weight: 900; line-height: 1;
+      letter-spacing: -.03em; white-space: nowrap;
+    }
+    .roomcode span { mix-blend-mode: multiply; opacity: .88; display: inline-block; }
+    .rc-d { color: var(--ink-red); }
+    .rc-n { color: var(--ink-cyan); margin-left: -.09em; }
+    .rc-2 { color: var(--ink-yellow); margin-left: -.09em; }
+    .rc-h { color: var(--ink-green); margin-left: -.09em; }
+    .codehint {
+      margin: 8px 0 0; font-size: 11px; font-weight: 700;
+      letter-spacing: .24em; text-transform: uppercase; color: var(--plum-45);
+    }
+
+    .sectlabel {
+      margin: 34px 0 12px; font-size: 11px; font-weight: 800;
+      letter-spacing: .2em; text-transform: uppercase; color: var(--plum-55);
+    }
+
+    .bands { list-style: none; margin: 0 -22px; padding: 0; }
+    .band {
+      position: relative; height: 64px; margin-top: -11px;
+      display: flex; align-items: center; gap: 8px; padding: 0 22px;
+    }
+    .band:first-child { margin-top: 0; }
+    .band::before {
+      content: ""; position: absolute; inset: 0;
+      mix-blend-mode: multiply; opacity: .8;
+    }
+    .band.b-red::before { background: var(--ink-red); }
+    .band.b-cyan::before { background: var(--ink-cyan); }
+    .band.b-yellow::before { background: var(--ink-yellow); }
+    .band.b-green::before { background: var(--ink-green); }
+    .bname { position: relative; font-size: 18px; font-weight: 800; margin-right: 6px; }
+    .badge {
+      position: relative; background: var(--plum); color: var(--paper);
+      font-size: 9px; font-weight: 800; letter-spacing: .14em; padding: 4px 7px;
+    }
+    .dot {
+      position: relative; margin-left: auto; width: 12px; height: 12px;
+      border-radius: 50%; background: var(--paper);
+    }
+
+    .settings { margin-top: 34px; }
+    .srow { display: flex; align-items: center; padding: 12px 0; }
+    .slabel { font-size: 16px; font-weight: 800; }
+    .stepper { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .stepbtn {
+      width: 44px; height: 44px; border: 0; background: rgba(42, 18, 40, .08);
+      font-size: 22px; font-weight: 800; color: var(--plum); line-height: 1;
+    }
+    .stepval { font-size: 26px; font-weight: 900; min-width: 22px; text-align: center; }
+
+    .seg { display: flex; align-items: center; gap: 6px; margin: 4px 0 0; }
+    .seg .opt {
+      border: 0; background: none; padding: 12px 15px;
+      font-size: 15px; font-weight: 700; color: var(--plum-55);
+    }
+    .seg .opt.on { background: var(--ink-red); color: var(--paper); font-weight: 800; }
+    .helper { margin: 8px 0 0; font-size: 13px; color: var(--plum-55); }
+
+    .startwrap { margin-top: 26px; }
+
+    /* =================== GAME =================== */
+    .ghead { display: flex; justify-content: space-between; align-items: baseline; }
+    .gmeta { font-size: 15px; font-weight: 900; letter-spacing: .04em; }
+    .gmeta .dim { color: var(--plum-45); font-weight: 700; }
+    .gacts { display: flex; gap: 14px; }
+    .ga {
+      border: 0; background: none; padding: 6px 0;
+      font-size: 10px; font-weight: 800; letter-spacing: .12em; color: var(--plum-55);
+    }
+    .ga.danger { color: var(--txt-red); }
+
+    .score { display: flex; margin: 20px -4px 0; }
+    .sc { position: relative; flex: 1; padding: 9px 6px 7px 12px; }
+    .sc + .sc { margin-left: -7px; }
+    .sc::before { content: ""; position: absolute; inset: 0; mix-blend-mode: multiply; opacity: .8; }
+    .sc.red::before { background: var(--ink-red); }
+    .sc.cyan::before { background: var(--ink-cyan); }
+    .sc.yellow::before { background: var(--ink-yellow); }
+    .sc.green::before { background: var(--ink-green); }
+    .sc .n {
+      position: relative; display: block; font-size: 9px; font-weight: 800;
+      letter-spacing: .08em; text-transform: uppercase; white-space: nowrap;
+    }
+    .sc .v { position: relative; display: block; font-size: 23px; font-weight: 900; line-height: 1.1; }
+
+    .powrow { display: flex; justify-content: space-between; align-items: baseline; margin-top: 26px; }
+    .powcount { font-size: 13px; font-weight: 900; letter-spacing: .08em; }
+
+    .turnbanner { display: flex; align-items: center; gap: 9px; margin: 16px 0 2px; }
+    .turnbanner::before { content: ""; width: 10px; height: 10px; background: var(--ink-red); }
+    .turnbanner span {
+      font-size: 11px; font-weight: 900; letter-spacing: .16em; color: var(--txt-red);
+    }
+
+    .pool { display: flex; margin: 8px -6px 0; }
+    .pw {
+      position: relative; flex: 1; border: 0; background: none;
+      padding: 12px 0 6px; text-align: center;
+    }
+    .pw .glyph {
+      display: block; font-size: 29px; font-weight: 900; line-height: 1.15;
+      mix-blend-mode: multiply;
+    }
+    .pw .pwname {
+      display: block; margin-top: 7px; font-size: 8.5px; font-weight: 800;
+      letter-spacing: .07em; text-transform: uppercase; color: var(--plum-55);
+      line-height: 1.4;
+    }
+    .g-teal { color: var(--teal); }
+    .g-rose { color: var(--rose); }
+    .g-pink { color: var(--ink-magenta); }
+    .g-emerald { color: var(--emerald); }
+    .g-violet { color: var(--violet); }
+    .g-amber { color: var(--amber); }
+    .pw.sel::before {
+      content: ""; position: absolute; left: 50%; top: 1px;
+      transform: translateX(-50%); width: 54px; height: 54px; border-radius: 50%;
+      background: var(--ink-magenta); opacity: .14;
+    }
+    .pw.sel::after {
+      content: ""; position: absolute; left: 50%; top: 1px;
+      transform: translateX(-50%); width: 54px; height: 54px; border-radius: 50%;
+      border: 4px solid var(--ink-red); opacity: .85; mix-blend-mode: multiply;
+    }
+
+    .pgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 18px; margin-top: 14px; }
+    .pcn { font-size: 15px; font-weight: 800; }
+    .pcn .you-tag { font-weight: 600; font-size: 12px; color: var(--plum-45); }
+    .t-red { color: var(--txt-red); }
+    .t-cyan { color: var(--txt-cyan); }
+    .t-yellow { color: var(--txt-yellow); }
+    .t-green { color: var(--txt-green); }
+    .pch {
+      display: block; margin-top: 4px; font-size: 11px; font-weight: 600;
+      letter-spacing: .3em; color: var(--plum-55);
+    }
+    .pcs {
+      display: block; margin-top: 4px; font-size: 10px; font-weight: 800;
+      letter-spacing: .14em; color: var(--plum-55);
+    }
+    .pcs.think { color: var(--txt-red); }
+
+    .skipwrap { margin-top: 20px; }
+
+    .hand { display: flex; justify-content: space-between; margin: 14px 2px 0; }
+    .digit {
+      position: relative; border: 0; background: none; padding: 14px 0;
+      width: 56px; text-align: center;
+      font-size: 62px; font-weight: 900; line-height: 1; color: var(--plum);
+    }
+    .digit.sel::before {
+      content: ""; position: absolute; left: 50%; top: 50%;
+      transform: translate(-50%, -50%); width: 84px; height: 84px; border-radius: 50%;
+      background: var(--ink-red); opacity: .13;
+    }
+    .digit.sel::after {
+      content: ""; position: absolute; left: 50%; top: 50%;
+      transform: translate(-50%, -50%); width: 84px; height: 84px; border-radius: 50%;
+      border: 5px solid var(--ink-red); opacity: .85; mix-blend-mode: multiply;
+    }
+    .lockwrap { margin-top: 26px; }
+
+    /* =================== REVEAL =================== */
+    .played { margin-top: 22px; }
+    .stamp { position: relative; width: 130px; margin: 8px auto 0; text-align: center; padding: 12px 0 0; }
+    .stamp-wash {
+      position: absolute; left: 50%; top: 0; transform: translateX(-50%);
+      width: 76px; height: 76px; border-radius: 50%;
+      background: var(--ink-magenta); opacity: .18; mix-blend-mode: multiply;
+    }
+    .stamp-glyph {
+      position: relative; font-size: 46px; font-weight: 900; line-height: 1.1;
+      color: var(--ink-magenta); mix-blend-mode: multiply;
+    }
+    .stamp-name {
+      position: relative; display: block; margin-top: 6px;
+      font-size: 10px; font-weight: 800; letter-spacing: .22em; color: var(--plum-65);
+    }
+
+    .collide { position: relative; height: 332px; margin-top: 10px; }
+    .big5 {
+      position: absolute; font-size: 212px; font-weight: 900; line-height: 1;
+      mix-blend-mode: multiply; opacity: .85;
+    }
+    .big5.ben5 { color: var(--ink-red); left: 46px; top: 0; }
+    .big5.mech5 { color: var(--ink-yellow); left: 152px; top: 84px; }
+    .void-core {
+      position: absolute; left: 86px; top: 102px; width: 206px; height: 122px;
+      border-radius: 50%; background: var(--plum); opacity: .84;
+      mix-blend-mode: multiply; transform: rotate(-9deg);
+    }
+    .knock {
+      position: absolute; left: 86px; top: 153px; width: 206px; text-align: center;
+      color: var(--paper); font-size: 15px; font-weight: 900; letter-spacing: .24em;
+    }
+    .ctag b { display: block; font-size: 12px; font-weight: 800; letter-spacing: .1em; }
+    .ctag span {
+      display: block; margin-top: 2px; font-size: 10px; font-weight: 800;
+      letter-spacing: .12em; color: var(--plum-55);
+    }
+    .ctag { position: absolute; }
+    .ben-tag { left: 0; top: 254px; color: var(--txt-red); }
+    .mech-tag { right: 2px; top: 36px; text-align: right; color: var(--txt-yellow); }
+
+    .zerostrip { position: relative; height: 248px; margin-top: 6px; }
+    .void-sweep {
+      position: absolute; left: 26px; top: 78px; width: 336px; height: 96px;
+      border-radius: 50%; background: #6e675e; opacity: .5;
+      mix-blend-mode: multiply; transform: rotate(-7deg);
+    }
+    .big3 {
+      position: absolute; right: 36px; top: -10px; font-size: 192px; font-weight: 900;
+      line-height: 1; color: var(--ink-green); opacity: .85; mix-blend-mode: multiply;
+    }
+    .zero {
+      position: absolute; left: 42px; top: 66px; width: 104px; height: 104px;
+      border-radius: 50%; background: var(--paper); border: 3px solid var(--ink-cyan);
+    }
+    .zero .slash {
+      position: absolute; left: 50%; top: 50%; width: 128px; height: 3px;
+      background: var(--ink-cyan); transform: translate(-50%, -50%) rotate(-45deg);
+    }
+    .volt-tag { left: 46px; top: 192px; color: var(--txt-cyan); }
+    .dan-tag { right: 24px; top: 196px; text-align: right; color: var(--txt-green); }
+
+    .continuewrap { margin-top: 18px; }
+
+    /* =================== END =================== */
+    .end-screen { overflow: hidden; }
+    .cf { position: absolute; width: 10px; height: 18px; opacity: .8; mix-blend-mode: multiply; }
+    .cf.disc { width: 13px; height: 13px; border-radius: 50%; }
+    .c-red { background: var(--ink-red); }
+    .c-cyan { background: var(--ink-cyan); }
+    .c-yellow { background: var(--ink-yellow); }
+    .c-green { background: var(--ink-green); }
+    .c-magenta { background: var(--ink-magenta); }
+
+    .pile { position: relative; height: 296px; margin: 14px -22px 0; }
+    .pd { position: absolute; border-radius: 50%; mix-blend-mode: multiply; }
+    .pd.g { width: 150px; height: 150px; left: 38px; top: 26px; background: var(--ink-green); opacity: .8; }
+    .pd.y { width: 162px; height: 162px; left: 212px; top: 10px; background: var(--ink-yellow); opacity: .8; }
+    .pd.c { width: 172px; height: 172px; left: 118px; top: -6px; background: var(--ink-cyan); opacity: .8; }
+    .pd.r { width: 336px; height: 178px; left: 42px; top: 104px; background: var(--ink-red); opacity: .92; }
+    .winline {
+      position: absolute; left: 42px; top: 158px; width: 336px; text-align: center;
+      margin: 0; color: var(--paper); font-size: 58px; font-weight: 900;
+      letter-spacing: -.02em; line-height: 1;
+    }
+
+    .tbl { margin: 26px 0 0; position: relative; }
+    .thead, .trow {
+      display: grid; grid-template-columns: 22px 1fr 34px 34px 34px 58px;
+      align-items: baseline;
+    }
+    .thead {
+      padding: 0 4px 10px; font-size: 10px; font-weight: 800;
+      letter-spacing: .12em; color: var(--plum-45); text-transform: uppercase;
+    }
+    .thead i, .trow i { font-style: normal; text-align: right; }
+    .trow { position: relative; padding: 13px 4px; }
+    .trow.win::before {
+      content: ""; position: absolute; inset: 0 -22px;
+      background: var(--ink-red); opacity: .13;
+    }
+    .trow > * { position: relative; }
+    .rank { font-size: 13px; font-weight: 700; color: var(--plum-45); }
+    .tname { font-size: 16px; font-weight: 800; }
+    .tname .you-tag { font-weight: 600; font-size: 12px; color: var(--plum-45); }
+    .trow i { font-size: 14px; font-weight: 600; color: var(--plum-65); }
+    .trow i.tot { font-size: 22px; font-weight: 900; color: var(--plum); }
+
+    .end-actions { margin-top: 30px; display: grid; gap: 14px; }
+
+    /* ---- switcher ---- */
+    #switcher a {
+      width: 26px; height: 26px; line-height: 26px; text-align: center;
+      background: rgba(42, 18, 40, .12); color: var(--plum);
+      font-size: 12px; font-weight: 800; text-decoration: none;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .slab, .stepbtn, .opt, .digit, .pw { transition: transform .12s ease, opacity .12s ease; }
+      .slab:active { transform: scale(.98); }
+      .digit:active, .pw:active { transform: scale(.94); }
+      .digit.sel::after { animation: ringpulse 2.6s ease-in-out infinite; }
+      @keyframes ringpulse {
+        0%, 100% { transform: translate(-50%, -50%) scale(1); }
+        50% { transform: translate(-50%, -50%) scale(1.05); }
+      }
+      .cf { animation: drift 5s ease-in-out infinite; }
+      .cf:nth-child(odd) { animation-duration: 6.5s; }
+      @keyframes drift {
+        0%, 100% { translate: 0 0; }
+        50% { translate: 0 -8px; }
+      }
+      .wash { animation: breathe 9s ease-in-out infinite; }
+      @keyframes breathe {
+        0%, 100% { scale: 1; }
+        50% { scale: 1.04; }
+      }
+    }
+  </style>
+</head>
+<body>
+  <main data-screen="home">
+    <div class="screen home-screen">
+      <div class="home-art">
+        <i class="wash wy"></i><i class="wash wc"></i><i class="wash wg"></i><i class="wash wr"></i>
+        <h1 class="wordmark"><span class="wm-r">C</span><span class="wm-r">A</span><span class="wm-r">N</span><span class="wm-c pull">C</span><span class="wm-c">E</span><span class="wm-c">L</span></h1>
+        <p class="tagline">a number-picking party game</p>
+      </div>
+      <div class="home-actions">
+        <button class="slab big">New game</button>
+        <button class="slab cyan">Single player</button>
+        <button class="slab plumslab">Join with code</button>
+      </div>
+      <div class="ghostrow" aria-hidden="true"><span class="gh1">Ø</span><span class="gh2">1</span><span class="gh3">2</span><span class="gh4">3</span><span class="gh5">4</span><span class="gh6">5</span></div>
+    </div>
+  </main>
+
+  <main data-screen="lobby">
+    <div class="screen">
+      <div class="topbar">
+        <button class="linkbtn">← Leave</button>
+        <button class="linkbtn">Rules</button>
+      </div>
+      <div class="codeblock">
+        <p class="roomcode"><span class="rc-d">D</span><span class="rc-n">N</span><span class="rc-2">2</span><span class="rc-h">H</span></p>
+        <p class="codehint">press to copy</p>
+      </div>
+      <p class="sectlabel">Players · 4</p>
+      <ul class="bands">
+        <li class="band b-red">
+          <span class="bname">Ben</span>
+          <span class="badge">HOST</span><span class="badge">YOU</span>
+          <span class="dot"></span>
+        </li>
+        <li class="band b-cyan">
+          <span class="bname">Voltaire</span>
+          <span class="badge">BOT</span>
+          <span class="dot"></span>
+        </li>
+        <li class="band b-yellow">
+          <span class="bname">Mechano</span>
+          <span class="badge">BOT</span>
+          <span class="dot"></span>
+        </li>
+        <li class="band b-green">
+          <span class="bname">Data Dan</span>
+          <span class="badge">BOT</span>
+          <span class="dot"></span>
+        </li>
+      </ul>
+      <div class="settings">
+      <div class="srow">
+        <span class="slabel">Rounds</span>
+        <span class="stepper">
+          <button class="stepbtn">−</button>
+          <span class="stepval">3</span>
+          <button class="stepbtn">+</button>
+        </span>
+      </div>
+      <div class="srow">
+        <span class="slabel">AI players</span>
+        <span class="stepper">
+          <button class="stepbtn">−</button>
+          <span class="stepval">3</span>
+          <button class="stepbtn">+</button>
+        </span>
+      </div>
+      <div class="srow" style="padding-bottom:0">
+        <span class="slabel">Power-ups</span>
+      </div>
+      <div class="seg">
+        <button class="opt">None</button>
+        <button class="opt on">Random</button>
+        <button class="opt">Choose</button>
+      </div>
+      <p class="helper">A fresh random pool each round.</p>
+      </div>
+      <div class="startwrap">
+        <button class="slab big">Start game</button>
+      </div>
+    </div>
+  </main>
+
+  <main data-screen="game">
+    <div class="screen">
+      <div class="ghead">
+        <span class="gmeta">R1<span class="dim">/3</span> · T2<span class="dim">/6</span> · DN2H</span>
+        <span class="gacts">
+          <button class="ga">RULES</button>
+          <button class="ga">LEAVE</button>
+          <button class="ga danger">END GAME</button>
+        </span>
+      </div>
+      <div class="score">
+        <div class="sc red"><span class="n">Ben</span><span class="v">4</span></div>
+        <div class="sc cyan"><span class="n">Voltaire</span><span class="v">0</span></div>
+        <div class="sc yellow"><span class="n">Mechano</span><span class="v">2</span></div>
+        <div class="sc green"><span class="n">Data Dan</span><span class="v">5</span></div>
+      </div>
+      <div class="powrow">
+        <span class="eyebrow">Power-ups remaining</span>
+        <span class="powcount">6 / 6</span>
+      </div>
+      <div class="turnbanner"><span>YOUR TURN, PRESS TO SELECT</span></div>
+      <div class="pool">
+        <button class="pw"><span class="glyph g-teal">⇄</span><span class="pwname">Swap Hands</span></button>
+        <button class="pw"><span class="glyph g-rose">✖</span><span class="pwname">Sabotage</span></button>
+        <button class="pw sel"><span class="glyph g-pink">=</span><span class="pwname">Jinx</span></button>
+        <button class="pw"><span class="glyph g-emerald">+2</span><span class="pwname">Plus Two</span></button>
+        <button class="pw"><span class="glyph g-violet">?</span><span class="pwname">Wild</span></button>
+        <button class="pw"><span class="glyph g-amber">↧</span><span class="pwname">Drain</span></button>
+      </div>
+      <p class="sectlabel">Players · Power picker: Ben</p>
+      <div class="pgrid">
+        <div class="pc">
+          <span class="pcn t-red">Ben <span class="you-tag">(you)</span></span>
+          <span class="pch">Ø 1 2 3 4 5</span>
+          <span class="pcs think">THINKING…</span>
+        </div>
+        <div class="pc">
+          <span class="pcn t-cyan">Voltaire</span>
+          <span class="pch">Ø 1 2 3 4 5</span>
+          <span class="pcs">SUBMITTED</span>
+        </div>
+        <div class="pc">
+          <span class="pcn t-yellow">Mechano</span>
+          <span class="pch">Ø 1 2 3 4 5</span>
+          <span class="pcs">SUBMITTED</span>
+        </div>
+        <div class="pc">
+          <span class="pcn t-green">Data Dan</span>
+          <span class="pch">Ø 1 2 3 4 5</span>
+          <span class="pcs">SUBMITTED</span>
+        </div>
+      </div>
+      <div class="skipwrap">
+        <button class="slab ghost">Skip waiting, auto-play who's left</button>
+      </div>
+      <p class="sectlabel">Your hand</p>
+      <div class="hand">
+        <button class="digit">Ø</button>
+        <button class="digit">1</button>
+        <button class="digit">2</button>
+        <button class="digit">3</button>
+        <button class="digit">4</button>
+        <button class="digit sel">5</button>
+      </div>
+      <div class="lockwrap">
+        <button class="slab big">Lock it in</button>
+      </div>
+    </div>
+  </main>
+
+  <main data-screen="reveal">
+    <div class="screen">
+      <p class="eyebrow center" style="margin-top:10px">Turn 2 reveal</p>
+      <div class="played">
+        <p class="eyebrow center">Ben played</p>
+        <div class="stamp">
+          <i class="stamp-wash"></i>
+          <span class="stamp-glyph">=</span>
+          <span class="stamp-name">JINX</span>
+        </div>
+      </div>
+      <div class="collide">
+        <div class="ctag ben-tag"><b>BEN</b><span>CANCELLED · 0</span></div>
+        <div class="ctag mech-tag"><b>MECHANO</b><span>CANCELLED · 0</span></div>
+        <span class="big5 ben5">5</span>
+        <span class="big5 mech5">5</span>
+        <i class="void-core"></i>
+        <span class="knock">CANCELLED</span>
+      </div>
+      <div class="zerostrip">
+        <i class="void-sweep"></i>
+        <span class="big3">3</span>
+        <div class="zero"><i class="slash"></i></div>
+        <div class="ctag volt-tag"><b>VOLTAIRE</b><span>0</span></div>
+        <div class="ctag dan-tag"><b>DATA DAN</b><span>CANCELLED · 0</span></div>
+      </div>
+      <div class="continuewrap">
+        <button class="slab big">Continue</button>
+      </div>
+    </div>
+  </main>
+
+  <main data-screen="end">
+    <div class="screen end-screen">
+      <i class="cf c-cyan" style="left:24px; top:30px; transform:rotate(24deg)"></i>
+      <i class="cf c-yellow" style="left:74px; top:84px; transform:rotate(-18deg)"></i>
+      <i class="cf disc c-red" style="left:150px; top:26px"></i>
+      <i class="cf c-green" style="left:236px; top:54px; transform:rotate(40deg)"></i>
+      <i class="cf c-magenta" style="left:330px; top:20px; transform:rotate(-30deg)"></i>
+      <i class="cf disc c-cyan" style="left:376px; top:96px"></i>
+      <i class="cf c-red" style="left:160px; top:380px; transform:rotate(60deg)"></i>
+      <i class="cf disc c-yellow" style="left:390px; top:348px"></i>
+      <i class="cf c-green" style="left:12px; top:376px; transform:rotate(-50deg)"></i>
+      <i class="cf c-magenta" style="left:210px; top:58px; transform:rotate(15deg)"></i>
+      <i class="cf disc c-green" style="left:14px; top:236px"></i>
+      <i class="cf c-cyan" style="left:392px; top:230px; transform:rotate(75deg)"></i>
+      <p class="eyebrow center" style="margin-top:6px">Game over</p>
+      <div class="pile">
+        <i class="pd g"></i>
+        <i class="pd y"></i>
+        <i class="pd c"></i>
+        <i class="pd r"></i>
+        <p class="winline">You won.</p>
+      </div>
+      <div class="tbl">
+        <div class="thead">
+          <span></span><span></span><i>R1</i><i>R2</i><i>R3</i><i>Total</i>
+        </div>
+        <div class="trow win">
+          <span class="rank">1</span>
+          <span class="tname t-red">Ben <span class="you-tag">(you)</span></span>
+          <i>5</i><i>9</i><i>6</i><i class="tot">20</i>
+        </div>
+        <div class="trow">
+          <span class="rank">2</span>
+          <span class="tname t-green">Data Dan</span>
+          <i>5</i><i>4</i><i>3</i><i class="tot">12</i>
+        </div>
+        <div class="trow">
+          <span class="rank">3</span>
+          <span class="tname t-cyan">Voltaire</span>
+          <i>3</i><i>2</i><i>4</i><i class="tot">9</i>
+        </div>
+        <div class="trow">
+          <span class="rank">4</span>
+          <span class="tname t-yellow">Mechano</span>
+          <i>0</i><i>5</i><i>2</i><i class="tot">7</i>
+        </div>
+      </div>
+      <div class="end-actions">
+        <button class="slab big">Play again</button>
+        <button class="slab plumslab">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

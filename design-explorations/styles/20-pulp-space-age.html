@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Pulp Space Age</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Spectral:ital,wght@0,500;0,700;1,500;1,600&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+    #switcher a { font-family: "Bungee", sans-serif; font-size: 11px; color: #1c2541; background: #f3e9d2; border: 2px solid #1c2541; padding: 4px 8px; text-decoration: none; box-shadow: 2px 2px 0 #1c2541; }
+
+    /* ============ PULP SPACE AGE ============ */
+    :root {
+      --cream: #f3e9d2;
+      --cream2: #faf3e1;
+      --red: #e6442e;
+      --red-dk: #b73220;
+      --teal: #1d7a78;
+      --teal-lt: #9fd8d4;
+      --mustard: #e0a32e;
+      --mustard-dk: #b07c1a;
+      --navy: #1c2541;
+      --ink: rgba(28, 37, 65, .8);
+      --ink-soft: rgba(28, 37, 65, .62);
+      --blue: #35589e;
+      --green: #2e7d4f;
+      --pink: #d9588c;
+      --rose: #cf3f54;
+      --emerald: #2e8b57;
+      --violet: #7b5ea7;
+      --star4: polygon(50% 0%, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0% 50%, 38% 38%);
+      --burst: polygon(50% 0%, 57.8% 21%, 75% 6.7%, 71.2% 28.8%, 93.3% 25%, 79% 42.2%, 100% 50%, 79% 57.8%, 93.3% 75%, 71.2% 71.2%, 75% 93.3%, 57.8% 79%, 50% 100%, 42.2% 79%, 25% 93.3%, 28.8% 71.2%, 6.7% 75%, 21% 57.8%, 0% 50%, 21% 42.2%, 6.7% 25%, 28.8% 28.8%, 25% 6.7%, 42.2% 21%);
+      --shield: polygon(0% 0%, 100% 0%, 100% 66%, 50% 100%, 0% 66%);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { background: #e8dcbd; }
+    body {
+      position: relative;
+      margin: 0;
+      font-family: "Spectral", Georgia, serif;
+      color: var(--navy);
+      background: radial-gradient(130% 90% at 50% 0%, #f7efdc 0%, #f3e9d2 55%, #eadcb8 100%);
+      min-height: 100vh;
+    }
+    /* offset-print paper grain over everything */
+    body::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 50;
+      pointer-events: none;
+      opacity: .10;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.11 0 0 0 0 0.15 0 0 0 0 0.25 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+    button { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+    .d { font-family: "Bungee", "Spectral", sans-serif; font-weight: 400; }
+
+    /* ---- starry sky panels ---- */
+    .sky {
+      background-color: var(--navy);
+      background-image:
+        radial-gradient(circle 1.1px at 22px 28px, rgba(243,233,210,.9) 99%, transparent),
+        radial-gradient(circle .9px at 88px 64px, rgba(243,233,210,.6) 99%, transparent),
+        radial-gradient(circle 1.3px at 141px 21px, rgba(224,163,46,.85) 99%, transparent),
+        radial-gradient(circle .8px at 56px 112px, rgba(243,233,210,.5) 99%, transparent),
+        radial-gradient(circle 1.2px at 118px 132px, rgba(159,216,212,.8) 99%, transparent),
+        radial-gradient(circle 1px at 33px 91px, rgba(243,233,210,.7) 99%, transparent),
+        radial-gradient(ellipse 420px 340px at 88% 6%, rgba(29,122,120,.30), transparent 70%),
+        radial-gradient(ellipse 380px 320px at 6% 96%, rgba(230,68,46,.17), transparent 70%);
+      background-size: 173px 149px, 211px 187px, 167px 193px, 149px 171px, 191px 161px, 157px 137px, 100% 100%, 100% 100%;
+      background-repeat: repeat, repeat, repeat, repeat, repeat, repeat, no-repeat, no-repeat;
+      color: var(--cream);
+    }
+    .spark { position: absolute; clip-path: var(--star4); background: var(--cream); pointer-events: none; }
+
+    /* ---- full-bleed cover screens & paper pages ---- */
+    .cover {
+      position: relative;
+      max-width: 420px;
+      margin: 0 auto;
+      min-height: 100vh;
+      padding: 18px 18px 24px;
+      border: 3px solid var(--navy);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .page { max-width: 420px; margin: 0 auto; padding: 14px 16px 26px; }
+
+    /* ---- shared bits ---- */
+    .panel {
+      position: relative;
+      background: var(--cream2);
+      border: 3px solid var(--navy);
+      border-radius: 10px;
+      box-shadow: 3px 3px 0 rgba(28,37,65,.8), 6px 6px 0 rgba(230,68,46,.2);
+    }
+    .halftone::after {
+      content: "";
+      position: absolute;
+      left: 4px; right: 4px; bottom: 4px;
+      height: 13px;
+      pointer-events: none;
+      background-image:
+        radial-gradient(circle 1.4px at 3.5px 3.5px, rgba(28,37,65,.20) 99%, transparent),
+        radial-gradient(circle 1px at 7px 8px, rgba(28,37,65,.14) 99%, transparent);
+      background-size: 7px 7px, 9px 9px;
+    }
+    .row-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-family: "Bungee", sans-serif;
+      font-size: 10px;
+      letter-spacing: .15em;
+      color: var(--ink);
+      margin: 18px 2px 8px;
+    }
+    .row-label b { font-weight: 400; color: var(--red-dk); }
+
+    .blurb {
+      display: block;
+      width: 100%;
+      font-family: "Bungee", sans-serif;
+      font-size: 15px;
+      text-align: center;
+      padding: 15px 12px 13px;
+      border: 3px solid var(--navy);
+      border-radius: 9px;
+      background: var(--cream);
+      color: var(--navy);
+      box-shadow: 4px 4px 0 var(--navy), 7px 7px 0 rgba(29,122,120,.30);
+    }
+    .blurb.primary {
+      background: var(--red);
+      color: var(--cream);
+      text-shadow: 2px 2px 0 rgba(28,37,65,.45);
+      box-shadow: 4px 4px 0 var(--navy), 7px 7px 0 rgba(224,163,46,.45);
+    }
+
+    /* starburst component */
+    .burst { position: relative; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+    .burst::before { content: ""; position: absolute; inset: 0; background: var(--bc, var(--navy)); clip-path: var(--burst); }
+    .burst::after { content: ""; position: absolute; inset: 4px; background: var(--bf, var(--red)); clip-path: var(--burst); }
+    .burst > span { position: relative; z-index: 1; font-family: "Bungee", sans-serif; color: var(--bt, var(--cream)); text-align: center; line-height: 1; }
+
+    /* ringed planet avatar */
+    .pav { position: relative; width: 28px; height: 28px; border-radius: 50%; border: 2.5px solid var(--navy); flex: none; }
+    .pav::after {
+      content: "";
+      position: absolute;
+      left: -8px; right: -8px; top: 50%;
+      height: 11px; margin-top: -5.5px;
+      border: 2.5px solid var(--navy);
+      border-radius: 50%;
+      transform: rotate(-18deg);
+    }
+    .c-ben  { background: radial-gradient(circle at 33% 28%, #f4906f, #e6442e 62%, #b73220); }
+    .c-vol  { background: radial-gradient(circle at 33% 28%, #7d9fd6, #35589e 62%, #27416f); }
+    .c-mech { background: radial-gradient(circle at 33% 28%, #f2c668, #e0a32e 62%, #b07c1a); }
+    .c-dan  { background: radial-gradient(circle at 33% 28%, #7cc09a, #2e7d4f 62%, #1f5c3a); }
+    .t-ben  { color: #c2331f; }
+    .t-vol  { color: #2d4f93; }
+    .t-mech { color: #9a6c10; }
+    .t-dan  { color: #1f6b41; }
+
+    /* mission-badge number cards */
+    .bwrap { position: relative; display: inline-block; filter: drop-shadow(3px 3px 0 rgba(28,37,65,.6)) drop-shadow(-1.5px -1.5px 0 rgba(230,68,46,.35)); }
+    .badge { position: relative; display: inline-block; width: 54px; height: 70px; background: var(--navy); clip-path: var(--shield); }
+    .badge::before { content: ""; position: absolute; inset: 4px; background: var(--cream); clip-path: var(--shield); }
+    .badge .stars { position: absolute; top: 7px; left: 0; right: 0; text-align: center; font-size: 7px; letter-spacing: 3px; color: var(--mustard); text-indent: 3px; }
+    .badge .num { position: absolute; top: 50%; left: 0; right: 0; transform: translateY(-56%); text-align: center; font-family: "Bungee", sans-serif; font-size: 25px; line-height: 1; color: var(--navy); }
+    .badge.zero .num { color: var(--teal); }
+    .badge.sel { background: var(--mustard); transform: translateY(-6px); }
+    .badge.sel::before { background: var(--red); }
+    .badge.sel .num, .badge.sel.zero .num { color: var(--cream); }
+    .badge.sel .stars { color: var(--cream); }
+    .badge.lg { width: 84px; height: 106px; }
+    .badge.lg::before { inset: 5px; }
+    .badge.lg .stars { top: 10px; font-size: 9px; letter-spacing: 5px; text-indent: 5px; }
+    .badge.lg .num { font-size: 40px; }
+    .ptag { position: absolute; top: -12px; right: -10px; width: 22px; height: 22px; clip-path: var(--star4); background: var(--mustard); transform: rotate(12deg); z-index: 4; }
+
+    /* power patches */
+    .pp { position: relative; display: block; width: 100%; border: 3px solid var(--navy); border-radius: 9px; background: var(--cream2); overflow: hidden; box-shadow: 3px 3px 0 rgba(28,37,65,.8); text-align: center; }
+    .pp .glyph { display: flex; align-items: center; justify-content: center; height: 48px; font-family: "Bungee", "Spectral", sans-serif; font-size: 21px; color: var(--cream); text-shadow: 2px 2px 0 rgba(28,37,65,.5); }
+    .pp .pname { display: block; padding: 6px 2px 5px; font-family: "Bungee", sans-serif; font-size: 8px; letter-spacing: .07em; color: var(--navy); background: var(--cream2); border-top: 3px solid var(--navy); }
+    .pw-teal .glyph { background: var(--teal); }
+    .pw-rose .glyph { background: var(--rose); }
+    .pw-pink .glyph { background: var(--pink); }
+    .pw-em   .glyph { background: var(--emerald); }
+    .pw-vio  .glyph { background: var(--violet); }
+    .pw-amb  .glyph { background: var(--mustard); }
+    .pp.sel { outline: 3px solid var(--mustard); outline-offset: 2px; transform: translateY(-4px) rotate(-2deg); box-shadow: 4px 6px 0 rgba(28,37,65,.8); }
+    .pp.sel .startag { position: absolute; top: -9px; right: -7px; width: 20px; height: 20px; clip-path: var(--star4); background: var(--mustard); }
+
+    /* ribbons */
+    .marquee { position: relative; isolation: isolate; display: flex; justify-content: center; }
+    .ribbon { position: relative; display: inline-block; background: var(--red); color: var(--cream); font-family: "Bungee", sans-serif; font-size: 15px; letter-spacing: .1em; padding: 11px 20px 9px; box-shadow: 0 3px 0 rgba(28,37,65,.85); }
+    .ribbon::before, .ribbon::after { content: ""; position: absolute; top: 5px; width: 0; height: 0; border: 16px solid var(--red-dk); z-index: -1; }
+    .ribbon::before { left: -20px; border-left-color: transparent; }
+    .ribbon::after { right: -20px; border-right-color: transparent; }
+    .ribbon.gold { background: var(--mustard); color: var(--navy); font-family: "Spectral", serif; font-style: italic; font-weight: 600; font-size: 15.5px; letter-spacing: .02em; }
+    .ribbon.gold::before, .ribbon.gold::after { border-color: var(--mustard-dk); border-left-color: var(--mustard-dk); border-right-color: var(--mustard-dk); }
+    .ribbon.gold::before { border-left-color: transparent; }
+    .ribbon.gold::after { border-right-color: transparent; }
+
+    /* =================== HOME =================== */
+    .home-top { display: flex; justify-content: space-between; align-items: flex-start; font-family: "Bungee", sans-serif; font-size: 8.5px; letter-spacing: .18em; color: rgba(243,233,210,.65); }
+    .price { width: 40px; height: 40px; border-radius: 50%; border: 2.5px solid var(--cream); display: flex; align-items: center; justify-content: center; font-size: 11px; letter-spacing: 0; color: var(--cream); background: rgba(230,68,46,.35); flex: none; }
+    .strap { margin-top: 14px; text-align: center; font-family: "Bungee", sans-serif; font-size: 8.5px; letter-spacing: .14em; color: var(--mustard); }
+    .mast { display: flex; justify-content: center; gap: 1px; margin-top: 26px; }
+    .mast span {
+      font-family: "Bungee", sans-serif;
+      font-size: 61px;
+      line-height: 1;
+      color: var(--red);
+      -webkit-text-stroke: 2px var(--teal);
+      paint-order: stroke fill;
+      text-shadow: 4px 5px 0 rgba(13,18,36,.9), -2px -2px 0 rgba(224,163,46,.4);
+      transform: rotate(var(--r)) translateY(var(--y));
+    }
+    .tag-ribbon { margin-top: 20px; }
+    .scene { position: relative; flex: 1 1 auto; min-height: 235px; margin: 8px -18px 6px; }
+    .planet {
+      position: absolute; top: 26px; right: 18px;
+      width: 138px; height: 138px; border-radius: 50%;
+      border: 3px solid var(--navy);
+      background: radial-gradient(circle at 32% 28%, #f0b95a, #e0a32e 45%, #b86b24 78%, #8f4a1e);
+      box-shadow: inset -14px -16px 0 rgba(28,37,65,.20), 6px 8px 0 rgba(230,68,46,.30);
+    }
+    .crater { position: absolute; border-radius: 50%; background: rgba(143,74,30,.6); box-shadow: inset 2px 2px 0 rgba(28,37,65,.35); }
+    .ring {
+      position: absolute; top: 80px; right: -16px;
+      width: 206px; height: 58px;
+      border: 5px solid var(--teal);
+      border-radius: 50%;
+      transform: rotate(-16deg);
+      box-shadow: 0 0 0 2px var(--navy), inset 0 0 0 2px var(--navy);
+    }
+    .rocket-fly { position: absolute; left: -10px; top: 116px; width: 248px; transform: rotate(-21deg); }
+    .rocket-fly svg, .cf-rocket svg { display: block; width: 100%; height: auto; }
+    .burst-new { position: absolute; top: -6px; left: 14px; width: 74px; height: 74px; transform: rotate(-12deg); --bf: var(--red); }
+    .burst-new span { font-size: 13px; }
+    .home-actions { display: grid; gap: 16px; margin-top: 10px; }
+    .home-foot { margin-top: 18px; text-align: center; font-family: "Bungee", sans-serif; font-size: 7.5px; letter-spacing: .2em; color: rgba(243,233,210,.5); }
+
+    /* =================== LOBBY =================== */
+    .topbar { display: flex; justify-content: space-between; margin-bottom: 14px; }
+    .tag-btn { font-family: "Bungee", sans-serif; font-size: 11px; background: var(--cream2); border: 2.5px solid var(--navy); border-radius: 8px; padding: 11px 14px 9px; box-shadow: 2.5px 2.5px 0 rgba(28,37,65,.8); color: var(--navy); }
+    .code-panel { position: relative; border: 3px solid var(--navy); border-radius: 12px; padding: 26px 18px 22px; text-align: center; overflow: hidden; box-shadow: 3px 3px 0 rgba(28,37,65,.8), 6px 6px 0 rgba(224,163,46,.35); }
+    .code { font-family: "Bungee", sans-serif; font-size: 46px; line-height: 1; letter-spacing: .13em; text-indent: .13em; color: var(--mustard); text-shadow: 3px 4px 0 rgba(13,18,36,.95), -2px -2px 0 rgba(230,68,46,.55); }
+    .code-hint { margin-top: 8px; font-style: italic; font-size: 13.5px; color: rgba(243,233,210,.72); }
+    .lobby-saucer { position: absolute; top: 12px; right: 12px; width: 56px; }
+    .lobby-saucer svg { display: block; width: 100%; height: auto; }
+    .players { padding: 4px 14px 16px; }
+    .prow { display: flex; align-items: center; gap: 12px; padding: 13px 2px; border-bottom: 2px dashed rgba(28,37,65,.18); }
+    .prow:last-child { border-bottom: 0; }
+    .prow .pname2 { font-weight: 700; font-size: 16px; }
+    .prow .badges { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+    .pbadge { font-family: "Bungee", sans-serif; font-size: 8px; letter-spacing: .08em; padding: 4px 6px 3px; border: 2px solid var(--navy); border-radius: 5px; }
+    .pbadge.host { background: var(--mustard); color: var(--navy); }
+    .pbadge.you  { background: var(--red); color: var(--cream); }
+    .pbadge.bot  { background: var(--teal); color: var(--cream); }
+    .dot-on { width: 12px; height: 12px; clip-path: var(--star4); background: #3fa06b; flex: none; }
+    .setting { display: flex; align-items: center; padding: 11px 14px; margin-top: 12px; }
+    .set-name { font-family: "Bungee", sans-serif; font-size: 12px; color: var(--navy); }
+    .stepper { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+    .step { width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--navy); background: var(--cream); font-family: "Bungee", sans-serif; font-size: 16px; color: var(--navy); box-shadow: 2.5px 2.5px 0 rgba(28,37,65,.75); display: flex; align-items: center; justify-content: center; }
+    .set-val { font-family: "Bungee", sans-serif; font-size: 19px; min-width: 22px; text-align: center; }
+    .pow-panel { padding: 14px 14px 22px; margin-top: 12px; }
+    .seg { display: grid; grid-template-columns: 1fr 1fr 1fr; border: 3px solid var(--navy); border-radius: 9px; overflow: hidden; margin-top: 10px; background: var(--cream); }
+    .seg button { font-family: "Bungee", sans-serif; font-size: 11px; padding: 13px 4px 11px; color: var(--ink); border-right: 3px solid var(--navy); }
+    .seg button:last-child { border-right: 0; }
+    .seg button.on { background: var(--red); color: var(--cream); text-shadow: 1.5px 1.5px 0 rgba(28,37,65,.4); }
+    .helper { margin-top: 9px; font-style: italic; font-size: 13px; color: var(--ink-soft); }
+    .lobby-start { margin-top: 18px; }
+
+    /* =================== GAME =================== */
+    .gbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--navy); border: 3px solid var(--navy); border-radius: 9px; padding: 9px 10px; box-shadow: 3px 3px 0 rgba(28,37,65,.45); }
+    .gstat { font-family: "Bungee", sans-serif; font-size: 11.5px; color: var(--cream); white-space: nowrap; }
+    .gstat i { font-style: normal; color: rgba(243,233,210,.55); }
+    .gstat em { font-style: normal; color: var(--mustard); }
+    .gbtns { display: flex; gap: 5px; }
+    .mini-btn { font-family: "Bungee", sans-serif; font-size: 7.5px; letter-spacing: .05em; border: 2px solid rgba(243,233,210,.75); color: var(--cream); border-radius: 5px; padding: 7px 7px 5px; white-space: nowrap; }
+    .mini-btn.danger { background: var(--red); border-color: var(--red); }
+    .chips { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+    .chip { display: flex; align-items: center; gap: 9px; background: var(--cream2); border: 2.5px solid var(--navy); border-radius: 9px; padding: 8px 11px; box-shadow: 2.5px 2.5px 0 rgba(28,37,65,.7); }
+    .chip .pav { width: 20px; height: 20px; border-width: 2px; }
+    .chip .pav::after { left: -6px; right: -6px; height: 8px; margin-top: -4px; border-width: 2px; }
+    .chip .cname { font-weight: 700; font-size: 14px; }
+    .chip .cscore { margin-left: auto; font-family: "Bungee", sans-serif; font-size: 16px; }
+    .pool { padding: 14px; overflow: hidden; }
+    .turn-banner { margin: -14px -14px 14px; background: var(--red); color: var(--cream); font-family: "Bungee", sans-serif; font-size: 10.5px; letter-spacing: .12em; text-align: center; padding: 10px 8px 8px; border-bottom: 3px solid var(--navy); text-shadow: 1.5px 1.5px 0 rgba(28,37,65,.45); }
+    .powers { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding-bottom: 6px; }
+    .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .scard { display: flex; gap: 9px; background: var(--cream2); border: 2.5px solid var(--navy); border-radius: 9px; padding: 9px 10px; box-shadow: 2.5px 2.5px 0 rgba(28,37,65,.7); }
+    .scard .pav { width: 24px; height: 24px; margin-top: 2px; }
+    .scard .sname { font-weight: 700; font-size: 13.5px; line-height: 1.25; }
+    .scard .sname i { font-style: italic; font-weight: 500; font-size: 11px; color: var(--ink-soft); }
+    .mini-hand { font-size: 10.5px; font-weight: 600; letter-spacing: .14em; color: var(--ink-soft); margin: 2px 0 5px; }
+    .stamp { display: inline-block; font-family: "Bungee", sans-serif; font-size: 8px; letter-spacing: .05em; padding: 4px 6px 3px; border: 2px solid; border-radius: 4px; transform: rotate(-3deg); }
+    .stamp.sub { color: var(--teal); border-color: var(--teal); background: rgba(29,122,120,.08); }
+    .stamp.think { color: #9a6c10; border-color: #c8901f; border-style: dashed; background: rgba(224,163,46,.13); }
+    .ghost-btn { display: block; width: 100%; margin-top: 12px; font-family: "Bungee", sans-serif; font-size: 9.5px; letter-spacing: .1em; color: var(--ink); border: 2.5px dashed rgba(28,37,65,.45); border-radius: 9px; padding: 13px 8px 11px; text-align: center; }
+    .hand { display: flex; gap: 7px; justify-content: center; padding: 12px 0 4px; }
+    .lock-btn { margin-top: 16px; }
+
+    /* =================== REVEAL =================== */
+    .eyebrow { text-align: center; font-family: "Bungee", sans-serif; font-size: 12px; letter-spacing: .22em; color: var(--mustard); }
+    .eyebrow .sep { color: rgba(243,233,210,.5); }
+    .played-label { margin-top: 22px; text-align: center; font-family: "Bungee", sans-serif; font-size: 10px; letter-spacing: .2em; color: rgba(243,233,210,.8); }
+    .played-power { display: flex; justify-content: center; margin-top: 12px; }
+    .played-power .pp { width: 112px; transform: rotate(-3deg); box-shadow: 4px 5px 0 rgba(13,18,36,.85), 7px 8px 0 rgba(230,68,46,.35); }
+    .played-power .glyph { height: 58px; font-size: 26px; }
+    .played-power .pname { font-size: 9px; }
+    .rgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; margin-top: 18px; }
+    .rcell { display: flex; flex-direction: column; align-items: center; }
+    .rname { font-family: "Bungee", sans-serif; font-size: 9.5px; letter-spacing: .16em; color: rgba(243,233,210,.85); }
+    .rstage { position: relative; width: 100%; height: 150px; display: flex; justify-content: center; align-items: flex-end; }
+    .rout { margin: 8px 0 4px; font-family: "Bungee", sans-serif; font-size: 19px; line-height: 1; }
+    .rout.bad { color: #ff8d77; }
+    .rout.zero { color: var(--mustard); }
+    .bam { position: absolute; left: 50%; bottom: -10px; width: 72px; height: 72px; margin-left: -36px; transform: rotate(var(--br, -12deg)); z-index: 3; }
+    .bam .dots { position: absolute; inset: 0; transform: translate(5px, 6px); clip-path: var(--burst); background-image: radial-gradient(circle 1.6px at 3px 3px, rgba(13,18,36,.85) 99%, transparent); background-size: 7px 7px; }
+    .bam .burst { position: absolute; inset: 0; --bc: var(--cream); --bf: var(--red); }
+    .bam .burst span { font-size: 7px; letter-spacing: .02em; text-shadow: 1.5px 1.5px 0 rgba(28,37,65,.55); }
+    .saucer-hover { position: absolute; left: 50%; top: -16px; width: 96px; margin-left: -48px; z-index: 2; }
+    .saucer-hover svg { display: block; width: 100%; height: auto; }
+    .burst-zap { position: absolute; right: 8px; top: 4px; width: 48px; height: 48px; transform: rotate(10deg); --bf: var(--mustard); --bt: var(--navy); z-index: 3; }
+    .burst-zap span { font-size: 9px; }
+    .continue { margin-top: 22px; }
+
+    /* =================== END =================== */
+    .hero-wrap { position: relative; margin-top: 16px; padding: 30px 0 6px; display: flex; flex-direction: column; align-items: center; z-index: 1; }
+    .sunrays { position: absolute; left: 50%; top: 50%; width: 360px; height: 360px; margin: -180px 0 0 -180px; border-radius: 50%; background: repeating-conic-gradient(rgba(224,163,46,.20) 0 8deg, transparent 8deg 16deg); -webkit-mask-image: radial-gradient(circle, #000 25%, transparent 68%); mask-image: radial-gradient(circle, #000 25%, transparent 68%); pointer-events: none; }
+    .hero {
+      position: relative;
+      font-family: "Bungee", sans-serif;
+      font-size: 47px;
+      line-height: 1;
+      color: var(--cream);
+      -webkit-text-stroke: 2px var(--red);
+      paint-order: stroke fill;
+      text-shadow: 4px 5px 0 rgba(13,18,36,.95), -2px -2px 0 rgba(29,122,120,.5);
+      transform: rotate(-2.5deg);
+    }
+    .end-marquee { margin: 22px 0 20px; }
+    .table-panel { padding: 12px 14px 20px; color: var(--navy); }
+    .trow { display: grid; grid-template-columns: 22px 30px 1fr 30px 30px 30px 46px; align-items: center; gap: 2px; padding: 9px 4px; border-bottom: 2px dashed rgba(28,37,65,.18); }
+    .trow:last-child { border-bottom: 0; }
+    .thead { font-family: "Bungee", sans-serif; font-size: 8.5px; letter-spacing: .08em; color: var(--ink-soft); border-bottom: 2.5px solid var(--navy); padding-bottom: 7px; }
+    .thead span { text-align: right; }
+    .trow .rank { font-family: "Bungee", sans-serif; font-size: 13px; color: var(--ink-soft); }
+    .trow .tname { font-weight: 700; font-size: 14.5px; padding-left: 4px; }
+    .trow .tname i { font-style: italic; font-weight: 500; font-size: 11px; color: var(--ink-soft); }
+    .trow .r { text-align: right; font-weight: 600; font-size: 13px; color: var(--ink); }
+    .trow .tot { text-align: right; font-family: "Bungee", sans-serif; font-size: 17px; }
+    .trow.winner { background: #f7e3ae; border: 3px solid var(--red); border-radius: 9px; margin: 2px -6px; padding: 9px 10px; box-shadow: 2.5px 2.5px 0 rgba(28,37,65,.45); }
+    .trow.winner .rank { color: var(--red-dk); }
+    .end-actions { display: grid; gap: 14px; margin-top: 22px; }
+    .cf { position: absolute; pointer-events: none; }
+    .cf-star { clip-path: var(--star4); }
+    .cf-dot { border-radius: 50%; }
+    .cf-planet { border-radius: 50%; border: 2px solid rgba(243,233,210,.85); }
+    .cf-planet::after { content: ""; position: absolute; left: -6px; right: -6px; top: 50%; height: 8px; margin-top: -4px; border: 2px solid rgba(243,233,210,.85); border-radius: 50%; transform: rotate(-20deg); }
+    .bg-cream { background: var(--cream); }
+    .bg-red { background: var(--red); }
+    .bg-mustard { background: var(--mustard); }
+    .bg-teal { background: var(--teal-lt); }
+
+    /* ---- flourishes: only under reduced-motion: no-preference ---- */
+    @media (prefers-reduced-motion: no-preference) {
+      @keyframes bob { from { transform: translateY(-3px); } to { transform: translateY(3px); } }
+      .float { animation: bob 2.8s ease-in-out infinite alternate; }
+      @keyframes twinkle { from { opacity: .35; } to { opacity: 1; } }
+      .spark { animation: twinkle 1.9s ease-in-out infinite alternate; }
+      .spark:nth-of-type(2n) { animation-delay: .7s; animation-duration: 2.4s; }
+      @keyframes spinrays { to { transform: rotate(360deg); } }
+      .sunrays { animation: spinrays 48s linear infinite; }
+      @keyframes bampop { from { transform: rotate(var(--br, -12deg)) scale(1); } to { transform: rotate(var(--br, -12deg)) scale(1.05); } }
+      .bam { animation: bampop 1.2s ease-in-out infinite alternate; }
+      .blurb, .pp, .step, .tag-btn { transition: transform .12s ease, box-shadow .12s ease; }
+      .blurb:hover { transform: translate(-1px, -2px); }
+      .step:hover, .tag-btn:hover { transform: translate(-1px, -1px); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ 1. HOME : the book cover ============ -->
+  <main data-screen="home">
+    <div class="cover sky">
+      <div class="home-top">
+        <span>VOL. 5 · NO. 0</span>
+        <span class="price">10¢</span>
+      </div>
+      <div class="strap">THRILLING TALES OF NUMERICAL TREACHERY</div>
+      <h1 class="mast" aria-label="Cancel">
+        <span style="--r:-12deg; --y:16px">C</span>
+        <span style="--r:-7deg; --y:5px">A</span>
+        <span style="--r:-2.5deg; --y:0px">N</span>
+        <span style="--r:2.5deg; --y:0px">C</span>
+        <span style="--r:7deg; --y:5px">E</span>
+        <span style="--r:12deg; --y:16px">L</span>
+      </h1>
+      <div class="marquee tag-ribbon"><span class="ribbon gold">a number-picking party game</span></div>
+      <div class="scene">
+        <div class="planet">
+          <span class="crater" style="top:30px; left:34px; width:22px; height:22px;"></span>
+          <span class="crater" style="top:74px; left:78px; width:14px; height:14px;"></span>
+          <span class="crater" style="top:88px; left:30px; width:10px; height:10px;"></span>
+        </div>
+        <div class="ring"></div>
+        <div class="float rocket-fly">
+          <svg viewBox="0 0 200 64" aria-hidden="true">
+            <g fill="none" stroke="#f3e9d2" stroke-width="3" stroke-linecap="round" opacity=".8">
+              <path d="M6 24 H40" stroke-dasharray="2 10"/>
+              <path d="M2 33 H52" stroke-dasharray="14 8"/>
+              <path d="M10 42 H44" stroke-dasharray="2 10"/>
+            </g>
+            <path d="M88 32 C78 24 68 22 56 20 C64 28 64 36 56 44 C68 42 78 40 88 32 Z" fill="#e0a32e" stroke="#1c2541" stroke-width="3"/>
+            <path d="M86 32 C79 27 73 26 66 25 C70 30 70 34 66 39 C73 38 79 37 86 32 Z" fill="#e6442e"/>
+            <path d="M96 18 C88 10 78 6 68 6 C74 14 78 22 80 28 Z" fill="#e6442e" stroke="#1c2541" stroke-width="3"/>
+            <path d="M96 46 C88 54 78 58 68 58 C74 50 78 42 80 36 Z" fill="#e6442e" stroke="#1c2541" stroke-width="3"/>
+            <path d="M86 32 C98 14 138 10 170 32 C138 54 98 50 86 32 Z" fill="#f3e9d2" stroke="#1c2541" stroke-width="3.5"/>
+            <path d="M148 20 C158 24 165 28 170 32 C165 36 158 40 148 44 C152 36 152 28 148 20 Z" fill="#e6442e" stroke="#1c2541" stroke-width="3"/>
+            <circle cx="124" cy="32" r="8" fill="#1d7a78" stroke="#1c2541" stroke-width="3"/>
+            <circle cx="121" cy="29" r="2.5" fill="#f3e9d2"/>
+          </svg>
+        </div>
+        <div class="burst burst-new"><span>NEW!</span></div>
+        <span class="spark" style="top:18px; left:120px; width:13px; height:13px;"></span>
+        <span class="spark" style="top:190px; left:48px; width:10px; height:10px; background:#9fd8d4;"></span>
+        <span class="spark" style="top:96px; right:170px; width:9px; height:9px; background:#e0a32e;"></span>
+        <span class="spark" style="top:206px; right:64px; width:12px; height:12px;"></span>
+      </div>
+      <div class="home-actions">
+        <button class="blurb primary">New game</button>
+        <button class="blurb">Single player</button>
+        <button class="blurb">Join with code</button>
+      </div>
+      <div class="home-foot">APPROVED BY THE COSMIC GAMES AUTHORITY</div>
+    </div>
+  </main>
+
+  <!-- ============ 2. LOBBY ============ -->
+  <main data-screen="lobby">
+    <div class="page">
+      <div class="topbar">
+        <button class="tag-btn">← Leave</button>
+        <button class="tag-btn">Rules</button>
+      </div>
+      <div class="code-panel sky">
+        <div class="float lobby-saucer">
+          <svg viewBox="0 0 96 44" aria-hidden="true">
+            <path d="M30 20 C30 8 66 8 66 20 Z" fill="#9fd8d4" stroke="#1c2541" stroke-width="3"/>
+            <ellipse cx="48" cy="26" rx="30" ry="11" fill="#f3e9d2" stroke="#1c2541" stroke-width="3"/>
+            <circle cx="30" cy="28" r="2.5" fill="#e6442e"/>
+            <circle cx="48" cy="31" r="2.5" fill="#e0a32e"/>
+            <circle cx="66" cy="28" r="2.5" fill="#1d7a78"/>
+          </svg>
+        </div>
+        <span class="spark" style="top:14px; left:18px; width:11px; height:11px;"></span>
+        <span class="spark" style="bottom:16px; right:84px; width:9px; height:9px; background:#e0a32e;"></span>
+        <span class="spark" style="bottom:24px; left:52px; width:8px; height:8px; background:#9fd8d4;"></span>
+        <div class="code">DN2H</div>
+        <div class="code-hint">press to copy</div>
+      </div>
+      <div class="row-label"><span>PLAYERS · 4</span></div>
+      <div class="panel halftone players">
+        <div class="prow">
+          <span class="pav c-ben"></span>
+          <span class="pname2 t-ben">Ben</span>
+          <span class="badges"><span class="pbadge host">HOST</span><span class="pbadge you">YOU</span><span class="dot-on"></span></span>
+        </div>
+        <div class="prow">
+          <span class="pav c-vol"></span>
+          <span class="pname2 t-vol">Voltaire</span>
+          <span class="badges"><span class="pbadge bot">BOT</span><span class="dot-on"></span></span>
+        </div>
+        <div class="prow">
+          <span class="pav c-mech"></span>
+          <span class="pname2 t-mech">Mechano</span>
+          <span class="badges"><span class="pbadge bot">BOT</span><span class="dot-on"></span></span>
+        </div>
+        <div class="prow">
+          <span class="pav c-dan"></span>
+          <span class="pname2 t-dan">Data Dan</span>
+          <span class="badges"><span class="pbadge bot">BOT</span><span class="dot-on"></span></span>
+        </div>
+      </div>
+      <div class="panel setting">
+        <span class="set-name">Rounds</span>
+        <span class="stepper">
+          <button class="step">−</button>
+          <span class="set-val">3</span>
+          <button class="step">+</button>
+        </span>
+      </div>
+      <div class="panel setting">
+        <span class="set-name">AI players</span>
+        <span class="stepper">
+          <button class="step">−</button>
+          <span class="set-val">3</span>
+          <button class="step">+</button>
+        </span>
+      </div>
+      <div class="panel halftone pow-panel">
+        <span class="set-name">Power-ups</span>
+        <div class="seg">
+          <button>None</button>
+          <button class="on">Random</button>
+          <button>Choose</button>
+        </div>
+        <div class="helper">A fresh random pool each round.</div>
+      </div>
+      <button class="blurb primary lobby-start">Start game</button>
+    </div>
+  </main>
+
+  <!-- ============ 3. GAME : picker's view ============ -->
+  <main data-screen="game">
+    <div class="page">
+      <header class="gbar">
+        <div class="gstat">R1<i>/3</i> · T2<i>/6</i> · <em>DN2H</em></div>
+        <div class="gbtns">
+          <button class="mini-btn">RULES</button>
+          <button class="mini-btn">LEAVE</button>
+          <button class="mini-btn danger">END GAME</button>
+        </div>
+      </header>
+      <div class="chips">
+        <div class="chip"><span class="pav c-ben"></span><span class="cname t-ben">Ben</span><span class="cscore">4</span></div>
+        <div class="chip"><span class="pav c-vol"></span><span class="cname t-vol">Voltaire</span><span class="cscore">0</span></div>
+        <div class="chip"><span class="pav c-mech"></span><span class="cname t-mech">Mechano</span><span class="cscore">2</span></div>
+        <div class="chip"><span class="pav c-dan"></span><span class="cname t-dan">Data Dan</span><span class="cscore">5</span></div>
+      </div>
+      <div class="row-label"><span>POWER-UPS REMAINING</span><b>6 / 6</b></div>
+      <div class="panel pool halftone">
+        <div class="turn-banner">✦ YOUR TURN, PRESS TO SELECT ✦</div>
+        <div class="powers">
+          <button class="pp pw-teal"><span class="glyph">⇄</span><span class="pname">SWAP HANDS</span></button>
+          <button class="pp pw-rose"><span class="glyph">✖</span><span class="pname">SABOTAGE</span></button>
+          <button class="pp pw-pink sel"><span class="glyph">=</span><span class="pname">JINX</span><span class="startag"></span></button>
+          <button class="pp pw-em"><span class="glyph">+2</span><span class="pname">PLUS TWO</span></button>
+          <button class="pp pw-vio"><span class="glyph">?</span><span class="pname">WILD</span></button>
+          <button class="pp pw-amb"><span class="glyph">↧</span><span class="pname">DRAIN</span></button>
+        </div>
+      </div>
+      <div class="row-label"><span>PLAYERS · POWER PICKER:</span><b>BEN</b></div>
+      <div class="status-grid">
+        <div class="scard">
+          <span class="pav c-ben"></span>
+          <div>
+            <div class="sname t-ben">Ben <i>(you)</i></div>
+            <div class="mini-hand">Ø 1 2 3 4 5</div>
+            <span class="stamp think">THINKING…</span>
+          </div>
+        </div>
+        <div class="scard">
+          <span class="pav c-vol"></span>
+          <div>
+            <div class="sname t-vol">Voltaire</div>
+            <div class="mini-hand">Ø 1 2 3 4 5</div>
+            <span class="stamp sub">SUBMITTED</span>
+          </div>
+        </div>
+        <div class="scard">
+          <span class="pav c-mech"></span>
+          <div>
+            <div class="sname t-mech">Mechano</div>
+            <div class="mini-hand">Ø 1 2 3 4 5</div>
+            <span class="stamp sub">SUBMITTED</span>
+          </div>
+        </div>
+        <div class="scard">
+          <span class="pav c-dan"></span>
+          <div>
+            <div class="sname t-dan">Data Dan</div>
+            <div class="mini-hand">Ø 1 2 3 4 5</div>
+            <span class="stamp sub">SUBMITTED</span>
+          </div>
+        </div>
+      </div>
+      <button class="ghost-btn">SKIP WAITING, AUTO-PLAY WHO'S LEFT</button>
+      <div class="row-label"><span>YOUR HAND</span></div>
+      <div class="hand">
+        <button class="bwrap"><span class="badge zero"><span class="stars">★ ★ ★</span><span class="num">Ø</span></span></button>
+        <button class="bwrap"><span class="badge"><span class="stars">★ ★ ★</span><span class="num">1</span></span></button>
+        <button class="bwrap"><span class="badge"><span class="stars">★ ★ ★</span><span class="num">2</span></span></button>
+        <button class="bwrap"><span class="badge"><span class="stars">★ ★ ★</span><span class="num">3</span></span></button>
+        <button class="bwrap"><span class="badge"><span class="stars">★ ★ ★</span><span class="num">4</span></span></button>
+        <button class="bwrap"><span class="badge sel"><span class="stars">★ ★ ★</span><span class="num">5</span></span><span class="ptag"></span></button>
+      </div>
+      <button class="blurb primary lock-btn">Lock it in</button>
+    </div>
+  </main>
+
+  <!-- ============ 4. REVEAL : atomic drama ============ -->
+  <main data-screen="reveal">
+    <div class="cover sky">
+      <span class="spark" style="top:64px; left:26px; width:12px; height:12px;"></span>
+      <span class="spark" style="top:120px; right:30px; width:10px; height:10px; background:#e0a32e;"></span>
+      <span class="spark" style="top:300px; left:14px; width:9px; height:9px; background:#9fd8d4;"></span>
+      <span class="spark" style="bottom:150px; right:20px; width:11px; height:11px;"></span>
+      <div class="eyebrow">✦ TURN 2 REVEAL ✦</div>
+      <div class="played-label">BEN PLAYED</div>
+      <div class="played-power">
+        <span class="pp pw-pink"><span class="glyph">=</span><span class="pname">JINX</span></span>
+      </div>
+      <div class="rgrid">
+        <div class="rcell">
+          <span class="rname">BEN</span>
+          <div class="rstage">
+            <span class="bwrap"><span class="badge lg"><span class="stars">★ ★ ★</span><span class="num">5</span></span></span>
+            <div class="bam" style="--br:-12deg"><div class="dots"></div><div class="burst"><span>CANCELLED</span></div></div>
+          </div>
+          <span class="rout bad">0</span>
+        </div>
+        <div class="rcell">
+          <span class="rname">VOLTAIRE</span>
+          <div class="rstage">
+            <span class="bwrap"><span class="badge lg zero"><span class="stars">★ ★ ★</span><span class="num">Ø</span></span></span>
+            <div class="saucer-hover float">
+              <svg viewBox="0 0 96 120" aria-hidden="true">
+                <path d="M34 32 L12 118 H84 L62 32 Z" fill="#e0a32e" opacity=".3"/>
+                <path d="M38 32 L26 118 H70 L58 32 Z" fill="#f3e9d2" opacity=".28"/>
+                <path d="M30 20 C30 8 66 8 66 20 Z" fill="#9fd8d4" stroke="#1c2541" stroke-width="3"/>
+                <ellipse cx="48" cy="26" rx="30" ry="11" fill="#f3e9d2" stroke="#1c2541" stroke-width="3"/>
+                <circle cx="30" cy="28" r="2.5" fill="#e6442e"/>
+                <circle cx="48" cy="31" r="2.5" fill="#e0a32e"/>
+                <circle cx="66" cy="28" r="2.5" fill="#1d7a78"/>
+              </svg>
+            </div>
+            <div class="burst burst-zap"><span>ZAP!</span></div>
+          </div>
+          <span class="rout zero">0</span>
+        </div>
+        <div class="rcell">
+          <span class="rname">MECHANO</span>
+          <div class="rstage">
+            <span class="bwrap"><span class="badge lg"><span class="stars">★ ★ ★</span><span class="num">5</span></span></span>
+            <div class="bam" style="--br:9deg"><div class="dots"></div><div class="burst"><span>CANCELLED</span></div></div>
+          </div>
+          <span class="rout bad">0</span>
+        </div>
+        <div class="rcell">
+          <span class="rname">DATA DAN</span>
+          <div class="rstage">
+            <span class="bwrap"><span class="badge lg"><span class="stars">★ ★ ★</span><span class="num">3</span></span></span>
+            <div class="bam" style="--br:-7deg"><div class="dots"></div><div class="burst"><span>CANCELLED</span></div></div>
+          </div>
+          <span class="rout bad">0</span>
+        </div>
+      </div>
+      <button class="blurb primary continue">Continue</button>
+    </div>
+  </main>
+
+  <!-- ============ 5. END : victory cover ============ -->
+  <main data-screen="end">
+    <div class="cover sky">
+      <!-- static confetti: rockets, stars, planets -->
+      <span class="cf cf-star bg-mustard" style="top:44px; right:62px; width:14px; height:14px; transform:rotate(15deg);"></span>
+      <span class="cf cf-star bg-cream" style="top:128px; left:38px; width:10px; height:10px; transform:rotate(-10deg);"></span>
+      <span class="cf cf-star bg-teal" style="top:210px; right:26px; width:12px; height:12px; transform:rotate(25deg);"></span>
+      <span class="cf cf-star bg-red" style="top:256px; right:92px; width:12px; height:12px; transform:rotate(-18deg);"></span>
+      <span class="cf cf-star bg-cream" style="top:318px; left:20px; width:9px; height:9px; transform:rotate(30deg);"></span>
+      <span class="cf cf-dot bg-red" style="top:170px; left:128px; width:8px; height:8px;"></span>
+      <span class="cf cf-dot bg-cream" style="top:64px; left:212px; width:7px; height:7px;"></span>
+      <span class="cf cf-dot bg-mustard" style="top:294px; left:64px; width:8px; height:8px;"></span>
+      <span class="cf cf-planet c-mech" style="top:236px; left:30px; width:22px; height:22px;"></span>
+      <span class="cf cf-planet c-vol" style="top:88px; right:128px; width:18px; height:18px;"></span>
+      <span class="cf cf-star bg-cream" style="bottom:150px; left:14px; width:11px; height:11px; transform:rotate(12deg);"></span>
+      <span class="cf cf-dot bg-teal" style="bottom:190px; right:16px; width:8px; height:8px;"></span>
+      <span class="cf cf-rocket" style="top:74px; left:10px; width:58px; transform:rotate(-34deg);">
+        <svg viewBox="0 0 200 64" aria-hidden="true">
+          <path d="M88 32 C78 24 68 22 56 20 C64 28 64 36 56 44 C68 42 78 40 88 32 Z" fill="#e0a32e" stroke="#1c2541" stroke-width="3"/>
+          <path d="M96 18 C88 10 78 6 68 6 C74 14 78 22 80 28 Z" fill="#e6442e" stroke="#1c2541" stroke-width="3"/>
+          <path d="M96 46 C88 54 78 58 68 58 C74 50 78 42 80 36 Z" fill="#e6442e" stroke="#1c2541" stroke-width="3"/>
+          <path d="M86 32 C98 14 138 10 170 32 C138 54 98 50 86 32 Z" fill="#f3e9d2" stroke="#1c2541" stroke-width="3.5"/>
+          <path d="M148 20 C158 24 165 28 170 32 C165 36 158 40 148 44 C152 36 152 28 148 20 Z" fill="#e6442e" stroke="#1c2541" stroke-width="3"/>
+          <circle cx="124" cy="32" r="8" fill="#1d7a78" stroke="#1c2541" stroke-width="3"/>
+        </svg>
+      </span>
+      <span class="cf cf-rocket" style="top:330px; right:8px; width:48px; transform:rotate(140deg);">
+        <svg viewBox="0 0 200 64" aria-hidden="true">
+          <path d="M88 32 C78 24 68 22 56 20 C64 28 64 36 56 44 C68 42 78 40 88 32 Z" fill="#e0a32e" stroke="#1c2541" stroke-width="3"/>
+          <path d="M96 18 C88 10 78 6 68 6 C74 14 78 22 80 28 Z" fill="#e6442e" stroke="#1c2541" stroke-width="3"/>
+          <path d="M96 46 C88 54 78 58 68 58 C74 50 78 42 80 36 Z" fill="#e6442e" stroke="#1c2541" stroke-width="3"/>
+          <path d="M86 32 C98 14 138 10 170 32 C138 54 98 50 86 32 Z" fill="#f3e9d2" stroke="#1c2541" stroke-width="3.5"/>
+          <path d="M148 20 C158 24 165 28 170 32 C165 36 158 40 148 44 C152 36 152 28 148 20 Z" fill="#e6442e" stroke="#1c2541" stroke-width="3"/>
+          <circle cx="124" cy="32" r="8" fill="#1d7a78" stroke="#1c2541" stroke-width="3"/>
+        </svg>
+      </span>
+
+      <div class="eyebrow" style="margin-top:10px;">✦ GAME OVER ✦</div>
+      <div class="hero-wrap">
+        <div class="sunrays"></div>
+        <h2 class="hero">You won.</h2>
+      </div>
+      <div class="marquee end-marquee"><span class="ribbon">★ BEN ★</span></div>
+      <div class="panel halftone table-panel">
+        <div class="trow thead">
+          <span></span><span></span><span></span>
+          <span>R1</span><span>R2</span><span>R3</span><span>TOTAL</span>
+        </div>
+        <div class="trow winner">
+          <span class="rank">1</span>
+          <span class="pav c-ben" style="width:24px; height:24px;"></span>
+          <span class="tname t-ben">Ben <i>(you)</i></span>
+          <span class="r">5</span><span class="r">9</span><span class="r">6</span>
+          <span class="tot t-ben">20</span>
+        </div>
+        <div class="trow">
+          <span class="rank">2</span>
+          <span class="pav c-dan" style="width:24px; height:24px;"></span>
+          <span class="tname t-dan">Data Dan</span>
+          <span class="r">5</span><span class="r">4</span><span class="r">3</span>
+          <span class="tot">12</span>
+        </div>
+        <div class="trow">
+          <span class="rank">3</span>
+          <span class="pav c-vol" style="width:24px; height:24px;"></span>
+          <span class="tname t-vol">Voltaire</span>
+          <span class="r">3</span><span class="r">2</span><span class="r">4</span>
+          <span class="tot">9</span>
+        </div>
+        <div class="trow">
+          <span class="rank">4</span>
+          <span class="pav c-mech" style="width:24px; height:24px;"></span>
+          <span class="tname t-mech">Mechano</span>
+          <span class="r">0</span><span class="r">5</span><span class="r">2</span>
+          <span class="tot">7</span>
+        </div>
+      </div>
+      <div class="end-actions">
+        <button class="blurb primary">Play again</button>
+        <button class="blurb">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

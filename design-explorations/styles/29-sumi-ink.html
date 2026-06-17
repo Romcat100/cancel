@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Sumi Ink</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ====== sumi ink / rice paper ====== */
+    :root {
+      --paper: #f6f2e7;
+      --paper-hi: #fcf9f0;
+      --ink: #1a1a1a;
+      --ink2: #4d4d4d;
+      --ink3: #9b9b9b;
+      --verm: #cf3a2b;
+      --ben: #cf3a2b;
+      --vol: #3a4258;
+      --mec: #87662a;
+      --dan: #46583f;
+      --rough: polygon(4% 8%, 14% 2%, 32% 6%, 52% 1%, 72% 5%, 94% 2%, 98% 15%, 95% 37%, 99% 58%, 96% 80%, 97% 95%, 80% 98%, 59% 94%, 37% 99%, 16% 95%, 3% 97%, 5% 75%, 1% 53%, 4% 30%);
+      --rough-wide: polygon(0.6% 12%, 5% 4%, 17% 8%, 33% 2%, 52% 7%, 71% 2%, 86% 7%, 96% 3%, 99.4% 18%, 98.8% 48%, 99.6% 80%, 96.5% 96%, 84% 91%, 64% 97%, 45% 92%, 26% 97%, 9% 92%, 1.4% 96%, 0.4% 60%, 1.2% 30%);
+      --stroke-ink: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 12' preserveAspectRatio='none'><path fill='%231a1a1a' d='M6 4.8C70 3.2 140 6.2 210 4.4 270 3 330 5.6 384 4.8L391 5.5C330 7.2 290 5.6 240 7.4 180 9.4 110 6.6 50 8.6 30 9.3 14 8.1 6 7.6Z'/><path fill='%231a1a1a' opacity='.5' d='M389 4.7l10-.6-9.4 2z'/><path fill='%231a1a1a' opacity='.4' d='M392 6.4l8-.3-7.5 1.6z'/><path fill='%231a1a1a' opacity='.5' d='M0 6.6l5-1.2-4.2 2.4z'/></svg>");
+      --stroke-grey: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 12' preserveAspectRatio='none'><path fill='%239b9b9b' d='M6 4.8C70 3.2 140 6.2 210 4.4 270 3 330 5.6 384 4.8L391 5.5C330 7.2 290 5.6 240 7.4 180 9.4 110 6.6 50 8.6 30 9.3 14 8.1 6 7.6Z'/><path fill='%239b9b9b' opacity='.5' d='M389 4.7l10-.6-9.4 2z'/><path fill='%239b9b9b' opacity='.5' d='M0 6.6l5-1.2-4.2 2.4z'/></svg>");
+      --stroke-verm: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 12' preserveAspectRatio='none'><path fill='%23cf3a2b' d='M6 4.8C70 3.2 140 6.2 210 4.4 270 3 330 5.6 384 4.8L391 5.5C330 7.2 290 5.6 240 7.4 180 9.4 110 6.6 50 8.6 30 9.3 14 8.1 6 7.6Z'/><path fill='%23cf3a2b' opacity='.5' d='M389 4.7l10-.6-9.4 2z'/><path fill='%23cf3a2b' opacity='.5' d='M0 6.6l5-1.2-4.2 2.4z'/></svg>");
+      --vstroke: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 400' preserveAspectRatio='none'><path fill='%234d4d4d' d='M4.8 6C3.2 70 6.2 140 4.4 210 3 270 5.6 330 4.8 384L5.5 391C7.2 330 5.6 290 7.4 240 9.4 180 6.6 110 8.6 50 9.3 30 8.1 14 7.6 6Z'/></svg>");
+      --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' seed='11' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='240' height='240' filter='url(%23g)'/></svg>");
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { background: var(--paper); }
+    body {
+      font-family: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+      color: var(--ink);
+      background-color: var(--paper);
+      position: relative;
+      background-image:
+        radial-gradient(ellipse 560px 420px at 18% 6%, rgba(213, 198, 166, .22), transparent 65%),
+        radial-gradient(ellipse 520px 640px at 96% 72%, rgba(206, 190, 156, .18), transparent 65%),
+        radial-gradient(ellipse 460px 380px at 55% 38%, rgba(255, 253, 246, .6), transparent 70%),
+        radial-gradient(ellipse 320px 260px at 8% 88%, rgba(210, 196, 166, .16), transparent 70%);
+    }
+    body::after {
+      content: ""; position: absolute; inset: 0; z-index: 6; pointer-events: none;
+      opacity: .05; background: var(--grain);
+    }
+    main { max-width: 420px; margin: 0 auto; min-height: 100vh; padding: 26px 26px 48px; position: relative; }
+    button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+    /* type helpers */
+    .lbl { font-size: 10.5px; letter-spacing: 3px; color: var(--ink2); font-weight: 500; }
+    .eyebrow { font-size: 11px; letter-spacing: 5px; color: var(--ink3); font-weight: 500; }
+    .bhr { height: 9px; background: var(--stroke-ink) no-repeat center / 100% 100%; }
+    .bhr.lt { height: 6px; background-image: var(--stroke-grey); opacity: .55; }
+
+    /* buttons */
+    .btn-primary {
+      display: block; width: 100%;
+      background: var(--verm); color: var(--paper-hi);
+      clip-path: var(--rough-wide);
+      letter-spacing: 5px; font-weight: 600; font-size: 17px;
+    }
+    .btn-primary span { display: block; margin: 6px 9px; border: 1px solid rgba(246, 242, 231, .5); padding: 13px 8px 15px; text-align: center; }
+    .btn-primary:hover { background: #b93223; }
+    .btn-brush {
+      display: block; width: 100%; padding: 13px 8px 18px;
+      font-size: 16px; letter-spacing: 2.5px; color: var(--ink);
+      background: var(--stroke-ink) no-repeat 50% 100% / 62% 7px;
+    }
+    .btn-brush:hover { color: var(--verm); }
+    .util { font-size: 9.5px; letter-spacing: 2px; color: var(--ink2); padding: 10px 5px; }
+    .util:hover { color: var(--verm); }
+    .util.end { color: rgba(207, 58, 43, .85); }
+    .txt {
+      font-size: 14px; letter-spacing: 1px; padding: 9px 3px 12px;
+      background: var(--stroke-grey) no-repeat 50% 100% / 100% 5px;
+    }
+    .txt:hover { color: var(--verm); }
+
+    /* seals */
+    .seal {
+      display: inline-flex; align-items: center; justify-content: center; flex: none;
+      width: 26px; height: 26px; background: var(--ink); color: var(--paper-hi);
+      font-weight: 700; font-size: 13px; line-height: 1;
+      clip-path: var(--rough); transform: rotate(-4deg);
+    }
+    .seal.b { background: var(--ben); } .seal.v { background: var(--vol); }
+    .seal.m { background: var(--mec); } .seal.d { background: var(--dan); }
+    .seal.sm { width: 22px; height: 22px; font-size: 11px; }
+
+    /* paper slips (cards) */
+    .card {
+      position: relative; flex: none; border-radius: 2px;
+      background: linear-gradient(176deg, var(--paper-hi), #f1ebd9 94%);
+      border: 1px solid rgba(26, 26, 26, .3);
+      box-shadow: 2px 3px 7px rgba(95, 78, 42, .13), inset 0 0 12px rgba(213, 199, 168, .25);
+      color: var(--ink);
+      transform: rotate(var(--r, 0deg));
+    }
+    .card.sel { border-color: rgba(26, 26, 26, .8); box-shadow: 3px 6px 11px rgba(95, 78, 42, .2), inset 0 0 12px rgba(213, 199, 168, .25); }
+    .card.sel::after {
+      content: "選"; position: absolute; right: -8px; bottom: -8px;
+      width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+      background: var(--verm); color: var(--paper-hi); font-size: 13px; font-weight: 700;
+      clip-path: var(--rough); transform: rotate(8deg);
+    }
+    .slip { width: 55px; height: 94px; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 700; }
+    .slip.sel { transform: translateY(-9px) rotate(var(--r, 0deg)); }
+    .pow { width: 55px; height: 106px; display: flex; flex-direction: column; align-items: center; padding: 14px 3px 9px; gap: 6px; }
+    .pow.sel { transform: translateY(-7px) rotate(var(--r, 0deg)); }
+    .pow .pg { font-size: 20px; font-weight: 700; line-height: 1; }
+    .pow.sel .pg { color: var(--verm); }
+    .pow .pn { margin-top: auto; font-size: 9px; letter-spacing: .4px; color: var(--ink2); text-align: center; line-height: 1.35; }
+    .enso-num { width: 36px; height: 36px; }
+    .enso-num.lg { width: 44px; height: 44px; }
+
+    /* panels are defined by a stroke beside them, not boxes */
+    .panel { padding-left: 16px; background: var(--vstroke) no-repeat left top / 7px 100%; }
+
+    /* ====== home ====== */
+    .home-hero { margin-top: 118px; position: relative; }
+    .enso-hero { position: absolute; width: 320px; height: 320px; right: -48px; top: -98px; pointer-events: none; }
+    .wordmark { font-size: 64px; font-weight: 800; line-height: 1; letter-spacing: .5px; transform: rotate(-1.2deg); position: relative; z-index: 1; }
+    .wordmark .f1 { color: #4d4d4d; }
+    .wordmark .f2 { color: #767676; }
+    .wordmark .f3 { color: #9b9b9b; }
+    .wordmark .seal { margin-left: 12px; width: 24px; height: 24px; font-size: 13px; transform: rotate(8deg) translateY(-30px); }
+    .tag { margin-top: 18px; padding-left: 4px; font-size: 12.5px; letter-spacing: 4px; color: var(--ink2); position: relative; z-index: 1; }
+    .home-actions { margin-top: 170px; display: flex; flex-direction: column; gap: 14px; }
+
+    /* ====== lobby ====== */
+    .topbar { display: flex; justify-content: space-between; align-items: center; }
+    .code-block { margin-top: 54px; }
+    .code { font-size: 58px; font-weight: 800; letter-spacing: 12px; line-height: 1; }
+    .codeline { width: 216px; height: 10px; background: var(--stroke-ink) no-repeat center / 100% 100%; margin-top: 4px; }
+    .hint { margin-top: 12px; font-size: 11px; letter-spacing: 2px; color: var(--ink3); }
+    .players { margin-top: 46px; }
+    .players .lbl { display: block; margin-bottom: 6px; }
+    .prow { display: flex; align-items: center; gap: 11px; padding: 12px 2px; }
+    .pname { font-size: 16px; font-weight: 600; flex: 1; }
+    .badge { font-size: 8.5px; letter-spacing: 1.8px; border: 1px solid rgba(26, 26, 26, .3); color: var(--ink2); padding: 3px 6px 2px; border-radius: 1px; }
+    .badge.you { border-color: rgba(207, 58, 43, .55); color: var(--verm); }
+    .dot { width: 7px; height: 7px; background: var(--verm); border-radius: 55% 45% 60% 40% / 50% 60% 45% 55%; flex: none; }
+    .settings { margin-top: 30px; }
+    .srow { display: flex; align-items: center; justify-content: space-between; padding: 9px 2px; }
+    .sname { font-size: 15.5px; font-weight: 600; }
+    .stepper { display: flex; align-items: center; gap: 6px; }
+    .step { width: 44px; height: 44px; border: 1px solid rgba(26, 26, 26, .4); border-radius: 50%; font-size: 18px; line-height: 1; display: flex; align-items: center; justify-content: center; color: var(--ink2); }
+    .step:hover { border-color: var(--ink); color: var(--ink); }
+    .sval { width: 34px; text-align: center; font-size: 21px; font-weight: 700; }
+    .seg { display: flex; gap: 14px; }
+    .seg button { font-size: 14px; letter-spacing: 1px; color: var(--ink3); padding: 10px 3px 13px; }
+    .seg button:hover { color: var(--ink2); }
+    .seg .on { color: var(--ink); font-weight: 700; background: var(--stroke-verm) no-repeat 50% 100% / 100% 6px; }
+    .helper { font-size: 12px; color: var(--ink3); letter-spacing: .5px; text-align: right; margin-top: -2px; }
+    .lobby-start { margin-top: 44px; }
+
+    /* ====== game ====== */
+    .ghead { display: flex; justify-content: space-between; align-items: center; }
+    .ginfo { font-size: 15px; font-weight: 700; letter-spacing: .5px; }
+    .ginfo i { font-style: normal; color: var(--ink3); font-size: 12px; font-weight: 500; }
+    .ginfo .gcode { font-size: 12px; letter-spacing: 2px; color: var(--ink2); font-weight: 600; }
+    .gutil { display: flex; }
+    .score { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; }
+    .scorerow { display: flex; align-items: center; gap: 8px; }
+    .scorerow .sn { font-size: 13.5px; font-weight: 600; flex: 1; }
+    .scorerow b { font-size: 18px; font-weight: 800; }
+    .gdiv { margin-top: 16px; }
+    .pool { margin-top: 18px; }
+    .poolhead { display: flex; justify-content: space-between; align-items: baseline; }
+    .poolcount { font-size: 13px; font-weight: 700; }
+    .poolcount i { font-style: normal; color: var(--ink3); font-weight: 500; }
+    .turnbanner { margin-top: 13px; font-size: 10px; letter-spacing: 3px; color: var(--verm); font-weight: 600; display: flex; align-items: center; gap: 9px; }
+    .turnbanner::before { content: ""; width: 20px; height: 5px; background: var(--stroke-verm) no-repeat center / 100% 100%; }
+    .powrow { display: flex; gap: 7px; margin-top: 16px; }
+    .statuses { margin-top: 26px; }
+    .who { color: var(--verm); letter-spacing: 2px; }
+    .stat { display: grid; grid-template-columns: 1fr 1fr; gap: 15px 8px; margin-top: 13px; }
+    .stat .p { display: flex; gap: 9px; align-items: flex-start; }
+    .stat .nm { font-size: 14px; font-weight: 600; line-height: 1.2; }
+    .yu { font-size: 10.5px; color: var(--ink3); font-weight: 400; }
+    .stat .ro { margin-top: 3px; font-size: 10.5px; letter-spacing: 2.5px; color: var(--ink3); }
+    .stat .st { margin-top: 3px; font-size: 9px; letter-spacing: 2.5px; color: var(--ink3); }
+    .stat .st.think { color: var(--verm); }
+    .skip { display: block; width: 100%; margin-top: 22px; padding: 14px 8px; font-size: 10px; letter-spacing: 2.5px; color: var(--ink2); border: 1px solid rgba(26, 26, 26, .25); border-radius: 2px; }
+    .skip:hover { border-color: rgba(26, 26, 26, .55); color: var(--ink); }
+    .handsec { margin-top: 26px; }
+    .hand { display: flex; gap: 7px; margin-top: 18px; }
+    .game-cta { margin-top: 26px; }
+
+    /* ====== reveal ====== */
+    .rv { padding-top: 44px; text-align: center; }
+    .played { margin-top: 40px; display: inline-flex; align-items: center; gap: 18px; }
+    .rvgrid { display: flex; justify-content: center; gap: 14px; margin-top: 38px; }
+    .rvcol { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .rvname { font-size: 10px; letter-spacing: 2px; color: var(--ink2); }
+    .rvc { width: 64px; height: 106px; font-size: 40px; }
+    .slash { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+    .cx { position: absolute; top: 7px; right: 2px; writing-mode: vertical-rl; font-size: 8px; letter-spacing: 2.2px; color: var(--ink3); }
+    .pts { font-size: 15px; font-weight: 600; color: var(--ink3); }
+    .pts.keep { font-size: 18px; font-weight: 700; color: var(--verm); }
+    .rv-cta { margin-top: 46px; }
+
+    /* ====== end ====== */
+    .spatter { position: absolute; inset: 0; pointer-events: none; z-index: -1; }
+    .spatter i { position: absolute; background: var(--ink); opacity: .75; border-radius: 55% 45% 62% 38% / 48% 60% 40% 52%; }
+    .spatter .lt { background: var(--ink3); }
+    .spatter .md { background: var(--ink2); }
+    .spatter .v { background: var(--verm); }
+    .spatter .sliver { border-radius: 42%; }
+    .end-eyebrow { margin-top: 58px; }
+    .winline { margin-top: 20px; display: flex; align-items: flex-end; gap: 16px; }
+    .won { font-size: 54px; font-weight: 800; line-height: 1.05; letter-spacing: .5px; }
+    .seal.win { width: 64px; height: 64px; font-size: 34px; transform: rotate(7deg); background: var(--verm); }
+    .wonstroke { margin-top: 8px; width: 232px; height: 13px; background: var(--stroke-ink) no-repeat center / 100% 100%; }
+    .tbl { margin-top: 56px; }
+    .thead, .trow { display: grid; grid-template-columns: 16px 30px 1fr 30px 30px 30px 58px; align-items: center; column-gap: 6px; }
+    .thead span { font-size: 9px; letter-spacing: 1.5px; color: var(--ink3); text-align: right; }
+    .thead { margin-bottom: 8px; }
+    .trow { padding: 11px 0; }
+    .rk { font-size: 12px; color: var(--ink3); }
+    .tn { font-size: 15px; font-weight: 600; padding-left: 4px; }
+    .r { font-size: 13px; color: var(--ink2); text-align: right; }
+    .tt { font-size: 20px; font-weight: 800; text-align: right; }
+    .trow.first .tt { color: var(--verm); }
+    .endbtns { margin-top: 64px; display: flex; flex-direction: column; gap: 12px; }
+
+    /* switcher */
+    #switcher a {
+      width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+      font: 600 12px "Shippori Mincho", serif; color: var(--ink2); text-decoration: none;
+      border: 1px solid rgba(26, 26, 26, .3); background: var(--paper-hi); border-radius: 2px;
+    }
+    #switcher a:hover { color: var(--verm); border-color: var(--verm); }
+
+    @media (prefers-reduced-motion: no-preference) {
+      [data-screen].active { animation: inkfade .55s ease both; }
+      @keyframes inkfade { from { opacity: 0; transform: translateY(6px); } }
+      .seal, .card.sel::after { animation: stamp .5s .15s cubic-bezier(.3, 1.6, .5, 1) both; }
+      @keyframes stamp { from { opacity: 0; transform: scale(1.8) rotate(-20deg); } }
+      .slash { animation: slashin .4s .55s cubic-bezier(.8, 0, .2, 1) both; transform-origin: 85% 0; }
+      @keyframes slashin { from { opacity: 0; transform: scale(.15); } }
+      .btn-primary, .btn-brush, .step, .util, .txt, .seg button, .skip, button.card { transition: transform .15s ease, color .15s ease, background-color .15s ease, border-color .15s ease; }
+      .btn-primary:active { transform: scale(.98); }
+      button.card:hover { transform: translateY(-4px) rotate(var(--r, 0deg)); }
+    }
+  </style>
+</head>
+<body>
+  <main data-screen="home">
+    <div class="home-hero">
+      <svg class="enso-hero" viewBox="0 0 320 320" aria-hidden="true">
+        <g transform="rotate(-68 160 160)" fill="none" stroke="#1a1a1a" stroke-linecap="round">
+          <circle cx="160" cy="160" r="128" stroke-width="17" stroke-dasharray="712 92" opacity=".13"/>
+          <circle cx="160" cy="163" r="123" stroke-width="8" stroke-dasharray="648 125" opacity=".10" transform="rotate(8 160 160)"/>
+          <circle cx="160" cy="158" r="132" stroke-width="4" stroke-dasharray="700 130" opacity=".08" transform="rotate(-5 160 160)"/>
+        </g>
+      </svg>
+      <h1 class="wordmark">CAN<span class="f1">C</span><span class="f2">E</span><span class="f3">L</span><span class="seal" aria-hidden="true">零</span></h1>
+      <p class="tag">a number-picking party game</p>
+    </div>
+    <div class="home-actions">
+      <button class="btn-primary"><span>New game</span></button>
+      <button class="btn-brush">Single player</button>
+      <button class="btn-brush">Join with code</button>
+    </div>
+  </main>
+
+  <main data-screen="lobby">
+    <div class="topbar">
+      <button class="txt">← Leave</button>
+      <button class="txt">Rules</button>
+    </div>
+    <section class="code-block">
+      <h2 class="code">DN2H</h2>
+      <div class="codeline" aria-hidden="true"></div>
+      <p class="hint">press to copy</p>
+    </section>
+    <section class="players">
+      <p class="lbl">Players · 4</p>
+      <div class="prow">
+        <span class="seal b">B</span><span class="pname">Ben</span>
+        <span class="badge">HOST</span><span class="badge you">YOU</span><i class="dot"></i>
+      </div>
+      <div class="bhr lt"></div>
+      <div class="prow">
+        <span class="seal v">V</span><span class="pname">Voltaire</span>
+        <span class="badge">BOT</span><i class="dot"></i>
+      </div>
+      <div class="bhr lt"></div>
+      <div class="prow">
+        <span class="seal m">M</span><span class="pname">Mechano</span>
+        <span class="badge">BOT</span><i class="dot"></i>
+      </div>
+      <div class="bhr lt"></div>
+      <div class="prow">
+        <span class="seal d">D</span><span class="pname">Data Dan</span>
+        <span class="badge">BOT</span><i class="dot"></i>
+      </div>
+    </section>
+    <div class="bhr" style="margin-top:24px"></div>
+    <section class="settings">
+      <div class="srow">
+        <span class="sname">Rounds</span>
+        <div class="stepper"><button class="step">−</button><span class="sval">3</span><button class="step">+</button></div>
+      </div>
+      <div class="srow">
+        <span class="sname">AI players</span>
+        <div class="stepper"><button class="step">−</button><span class="sval">3</span><button class="step">+</button></div>
+      </div>
+      <div class="srow">
+        <span class="sname">Power-ups</span>
+        <div class="seg">
+          <button>None</button><button class="on">Random</button><button>Choose</button>
+        </div>
+      </div>
+      <p class="helper">A fresh random pool each round.</p>
+    </section>
+    <button class="btn-primary lobby-start"><span>Start game</span></button>
+  </main>
+
+  <main data-screen="game">
+    <header class="ghead">
+      <span class="ginfo">R1<i>/3</i> · T2<i>/6</i> · <span class="gcode">DN2H</span></span>
+      <span class="gutil"><button class="util">RULES</button><button class="util">LEAVE</button><button class="util end">END GAME</button></span>
+    </header>
+    <section class="score">
+      <div class="scorerow"><span class="seal b sm">B</span><span class="sn">Ben</span><b>4</b></div>
+      <div class="scorerow"><span class="seal v sm">V</span><span class="sn">Voltaire</span><b>0</b></div>
+      <div class="scorerow"><span class="seal m sm">M</span><span class="sn">Mechano</span><b>2</b></div>
+      <div class="scorerow"><span class="seal d sm">D</span><span class="sn">Data Dan</span><b>5</b></div>
+    </section>
+    <div class="bhr lt gdiv"></div>
+    <section class="pool">
+      <div class="poolhead">
+        <span class="lbl">POWER-UPS REMAINING</span>
+        <span class="poolcount">6 <i>/</i> 6</span>
+      </div>
+      <p class="turnbanner">YOUR TURN, PRESS TO SELECT</p>
+      <div class="powrow">
+        <button class="card pow" style="--r:-1.4deg"><span class="pg">⇄</span><span class="pn">Swap Hands</span></button>
+        <button class="card pow" style="--r:.9deg"><span class="pg">✖</span><span class="pn">Sabotage</span></button>
+        <button class="card pow sel" style="--r:-.6deg"><span class="pg">=</span><span class="pn">Jinx</span></button>
+        <button class="card pow" style="--r:1.2deg"><span class="pg">+2</span><span class="pn">Plus Two</span></button>
+        <button class="card pow" style="--r:-1deg"><span class="pg">?</span><span class="pn">Wild</span></button>
+        <button class="card pow" style="--r:.7deg"><span class="pg">↧</span><span class="pn">Drain</span></button>
+      </div>
+    </section>
+    <section class="statuses panel">
+      <p class="lbl">PLAYERS · POWER PICKER: <b class="who">BEN</b></p>
+      <div class="stat">
+        <div class="p"><span class="seal b">B</span>
+          <div><p class="nm">Ben <span class="yu">(you)</span></p><p class="ro">Ø 1 2 3 4 5</p><p class="st think">THINKING…</p></div>
+        </div>
+        <div class="p"><span class="seal v">V</span>
+          <div><p class="nm">Voltaire</p><p class="ro">Ø 1 2 3 4 5</p><p class="st">SUBMITTED</p></div>
+        </div>
+        <div class="p"><span class="seal m">M</span>
+          <div><p class="nm">Mechano</p><p class="ro">Ø 1 2 3 4 5</p><p class="st">SUBMITTED</p></div>
+        </div>
+        <div class="p"><span class="seal d">D</span>
+          <div><p class="nm">Data Dan</p><p class="ro">Ø 1 2 3 4 5</p><p class="st">SUBMITTED</p></div>
+        </div>
+      </div>
+    </section>
+    <button class="skip">SKIP WAITING, AUTO-PLAY WHO'S LEFT</button>
+    <section class="handsec">
+      <p class="lbl">YOUR HAND</p>
+      <div class="hand">
+        <button class="card slip" style="--r:-1.7deg" aria-label="zero">
+          <svg class="enso-num" viewBox="0 0 48 48" aria-hidden="true">
+            <g transform="rotate(-72 24 24)" fill="none" stroke="#1a1a1a" stroke-linecap="round">
+              <circle cx="24" cy="24" r="16.5" stroke-width="4.6" stroke-dasharray="91 13"/>
+              <circle cx="24" cy="25" r="15.5" stroke-width="2" stroke-dasharray="80 18" opacity=".5" transform="rotate(9 24 24)"/>
+            </g>
+          </svg>
+        </button>
+        <button class="card slip" style="--r:1deg">1</button>
+        <button class="card slip" style="--r:-.7deg">2</button>
+        <button class="card slip" style="--r:1.5deg">3</button>
+        <button class="card slip" style="--r:-1.1deg">4</button>
+        <button class="card slip sel" style="--r:.8deg">5</button>
+      </div>
+    </section>
+    <button class="btn-primary game-cta"><span>Lock it in</span></button>
+  </main>
+
+  <main data-screen="reveal">
+    <div class="rv">
+      <p class="eyebrow">TURN 2 REVEAL</p>
+      <div class="played">
+        <p class="lbl">BEN PLAYED</p>
+        <div class="card pow sel" style="--r:-2deg"><span class="pg">=</span><span class="pn">Jinx</span></div>
+      </div>
+      <div class="rvgrid">
+        <div class="rvcol">
+          <p class="rvname">BEN</p>
+          <div class="card slip rvc" style="--r:-1.6deg">5
+            <svg class="slash" viewBox="0 0 64 106" aria-hidden="true">
+              <path fill="#1a1a1a" opacity=".92" d="M56 5C48 21 39 38 31 54 24 68 18 81 13 93L7.5 90C13.5 77 20 63 27 48 35 31 44 16 50 2.5Z"/>
+              <path fill="#1a1a1a" opacity=".55" d="M11 96l-3.6 6.4 2.4 1.1 3.8-6.6z"/>
+              <path fill="#1a1a1a" opacity=".4" d="M7.6 98.6l-3.2 5.4 1.5.9 3.2-5.6z"/>
+              <path fill="#1a1a1a" opacity=".6" d="M57 2.6l6-2.6-3.6 6z"/>
+            </svg>
+            <span class="cx">CANCELLED</span>
+          </div>
+          <p class="pts">0</p>
+        </div>
+        <div class="rvcol">
+          <p class="rvname">VOLTAIRE</p>
+          <div class="card slip rvc" style="--r:1deg">
+            <svg class="enso-num lg" viewBox="0 0 48 48" aria-hidden="true">
+              <g transform="rotate(-72 24 24)" fill="none" stroke="#1a1a1a" stroke-linecap="round">
+                <circle cx="24" cy="24" r="16.5" stroke-width="4.6" stroke-dasharray="91 13"/>
+                <circle cx="24" cy="25" r="15.5" stroke-width="2" stroke-dasharray="80 18" opacity=".5" transform="rotate(9 24 24)"/>
+              </g>
+            </svg>
+          </div>
+          <p class="pts keep">0</p>
+        </div>
+        <div class="rvcol">
+          <p class="rvname">MECHANO</p>
+          <div class="card slip rvc" style="--r:-.8deg">5
+            <svg class="slash" viewBox="0 0 64 106" aria-hidden="true">
+              <path fill="#1a1a1a" opacity=".92" d="M56 5C48 21 39 38 31 54 24 68 18 81 13 93L7.5 90C13.5 77 20 63 27 48 35 31 44 16 50 2.5Z"/>
+              <path fill="#1a1a1a" opacity=".55" d="M11 96l-3.6 6.4 2.4 1.1 3.8-6.6z"/>
+              <path fill="#1a1a1a" opacity=".4" d="M7.6 98.6l-3.2 5.4 1.5.9 3.2-5.6z"/>
+              <path fill="#1a1a1a" opacity=".6" d="M57 2.6l6-2.6-3.6 6z"/>
+            </svg>
+            <span class="cx">CANCELLED</span>
+          </div>
+          <p class="pts">0</p>
+        </div>
+        <div class="rvcol">
+          <p class="rvname">DATA DAN</p>
+          <div class="card slip rvc" style="--r:1.4deg">3
+            <svg class="slash" viewBox="0 0 64 106" aria-hidden="true">
+              <path fill="#1a1a1a" opacity=".92" d="M56 5C48 21 39 38 31 54 24 68 18 81 13 93L7.5 90C13.5 77 20 63 27 48 35 31 44 16 50 2.5Z"/>
+              <path fill="#1a1a1a" opacity=".55" d="M11 96l-3.6 6.4 2.4 1.1 3.8-6.6z"/>
+              <path fill="#1a1a1a" opacity=".4" d="M7.6 98.6l-3.2 5.4 1.5.9 3.2-5.6z"/>
+              <path fill="#1a1a1a" opacity=".6" d="M57 2.6l6-2.6-3.6 6z"/>
+            </svg>
+            <span class="cx">CANCELLED</span>
+          </div>
+          <p class="pts">0</p>
+        </div>
+      </div>
+      <button class="btn-primary rv-cta"><span>Continue</span></button>
+    </div>
+  </main>
+
+  <main data-screen="end">
+    <div class="spatter" aria-hidden="true">
+      <i style="left:6%;top:9%;width:5px;height:5px"></i>
+      <i class="lt" style="left:14%;top:20%;width:3px;height:3px"></i>
+      <i class="v" style="left:84%;top:7%;width:6px;height:6px"></i>
+      <i style="left:70%;top:14%;width:4px;height:4px"></i>
+      <i class="md sliver" style="left:30%;top:6%;width:14px;height:3px;transform:rotate(-24deg)"></i>
+      <i class="v" style="left:48%;top:16%;width:3px;height:3px"></i>
+      <i class="lt sliver" style="left:60%;top:30%;width:11px;height:2.5px;transform:rotate(18deg)"></i>
+      <i style="left:88%;top:38%;width:4px;height:4px"></i>
+      <i class="md" style="left:8%;top:46%;width:3.5px;height:3.5px"></i>
+      <i class="v sliver" style="left:76%;top:55%;width:12px;height:3px;transform:rotate(-30deg)"></i>
+      <i class="lt" style="left:22%;top:64%;width:4px;height:4px"></i>
+      <i style="left:54%;top:72%;width:3px;height:3px"></i>
+      <i class="md" style="left:90%;top:78%;width:5px;height:5px"></i>
+      <i class="lt" style="left:10%;top:84%;width:3px;height:3px"></i>
+    </div>
+    <p class="eyebrow end-eyebrow">GAME OVER</p>
+    <div class="winline">
+      <h1 class="won">You won.</h1>
+      <span class="seal win" aria-hidden="true">勝</span>
+    </div>
+    <div class="wonstroke" aria-hidden="true"></div>
+    <section class="tbl">
+      <div class="thead"><span></span><span></span><span></span><span>R1</span><span>R2</span><span>R3</span><span>TOTAL</span></div>
+      <div class="trow first">
+        <span class="rk">1</span><span class="seal b sm">B</span><span class="tn">Ben <span class="yu">(you)</span></span>
+        <span class="r">5</span><span class="r">9</span><span class="r">6</span><span class="tt">20</span>
+      </div>
+      <div class="bhr lt"></div>
+      <div class="trow">
+        <span class="rk">2</span><span class="seal d sm">D</span><span class="tn">Data Dan</span>
+        <span class="r">5</span><span class="r">4</span><span class="r">3</span><span class="tt">12</span>
+      </div>
+      <div class="bhr lt"></div>
+      <div class="trow">
+        <span class="rk">3</span><span class="seal v sm">V</span><span class="tn">Voltaire</span>
+        <span class="r">3</span><span class="r">2</span><span class="r">4</span><span class="tt">9</span>
+      </div>
+      <div class="bhr lt"></div>
+      <div class="trow">
+        <span class="rk">4</span><span class="seal m sm">M</span><span class="tn">Mechano</span>
+        <span class="r">0</span><span class="r">5</span><span class="r">2</span><span class="tt">7</span>
+      </div>
+    </section>
+    <div class="endbtns">
+      <button class="btn-primary"><span>Play again</span></button>
+      <button class="btn-brush">Leave room</button>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

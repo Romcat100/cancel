@@ -1,0 +1,1157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Case File Mystery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ============ CASE FILE MYSTERY ============
+       desk charcoal #23262b · manila #e8d9b0 · aged paper #f1e8d2
+       typewriter ink #2b2b2b · stamp red #c0392b · yarn #d63031 · ink blue #1f4e79 */
+
+    :root {
+      --desk: #23262b;
+      --desk-dark: #17191c;
+      --manila: #e8d9b0;
+      --manila-dk: #d8c694;
+      --paper: #f1e8d2;
+      --paper-lt: #f6efdc;
+      --ink: #2b2b2b;
+      --ink-faded: #6f654a;
+      --rule: rgba(43, 43, 43, .28);
+      --red: #c0392b;
+      --red-dk: #7e211a;
+      --yarn: #d63031;
+      --blue: #1f4e79;
+      --ben: #c0392b;
+      --voltaire: #1f4e79;
+      --mechano: #b07d2b;
+      --dan: #2e7d4f;
+      --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.36 0 0 0 0 0.30 0 0 0 0 0.18 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { background: var(--desk); }
+    body {
+      font-family: 'Courier Prime', 'Courier New', monospace;
+      color: var(--ink);
+      background:
+        var(--grain),
+        radial-gradient(1100px 640px at 50% -8%, #31353c 0%, rgba(49,53,60,0) 62%),
+        radial-gradient(900px 620px at 50% 112%, #121417 0%, rgba(18,20,23,0) 60%),
+        var(--desk);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    main { min-height: 100vh; position: relative; overflow: hidden; }
+    .wrap { max-width: 420px; margin: 0 auto; padding: 22px 16px 64px; position: relative; }
+
+    button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+
+    /* ---------- shared paperwork ---------- */
+    .sheet {
+      position: relative;
+      background-image: var(--grain);
+      background-color: var(--paper);
+      border: 1px solid rgba(43, 43, 43, .18);
+      border-radius: 2px;
+      box-shadow: 0 1px 0 rgba(255,255,255,.06), 0 8px 18px rgba(0,0,0,.45);
+    }
+    .sheet.manila { background-color: var(--manila); }
+
+    .folder-tab {
+      position: absolute; top: -23px; left: 14px;
+      background-image: var(--grain); background-color: var(--manila-dk);
+      border: 1px solid rgba(43,43,43,.25); border-bottom: none;
+      border-radius: 7px 7px 0 0;
+      padding: 5px 16px 3px;
+      font-family: 'Special Elite', cursive;
+      font-size: 11px; letter-spacing: 2px; color: var(--ink);
+    }
+
+    .stamp {
+      display: inline-block;
+      font-family: 'Special Elite', cursive;
+      text-transform: uppercase;
+      color: var(--red);
+      border: 3px double var(--red);
+      outline: 1px dashed rgba(192, 57, 43, .55);
+      outline-offset: 2px;
+      border-radius: 4px;
+      padding: 3px 10px;
+      letter-spacing: 2px;
+      mix-blend-mode: multiply;
+      opacity: .9;
+      transform: rotate(-8deg);
+    }
+    .stamp.blue { color: var(--blue); border-color: var(--blue); outline-color: rgba(31, 78, 121, .5); }
+
+    .clip { position: absolute; width: 15px; height: 40px; z-index: 4; pointer-events: none; }
+    .clip::before {
+      content: ""; position: absolute; inset: 0;
+      border: 2.5px solid #9aa1a9; border-bottom: none;
+      border-radius: 8px 8px 3px 3px;
+      box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+    }
+    .clip::after {
+      content: ""; position: absolute; left: 4px; top: 7px; width: 7px; height: 27px;
+      border: 2.5px solid #8a9199; border-top: none; border-radius: 3px 3px 5px 5px;
+    }
+
+    .tape {
+      position: absolute; width: 76px; height: 22px;
+      background: rgba(246, 240, 214, .55);
+      border-left: 1px dashed rgba(43,43,43,.12);
+      border-right: 1px dashed rgba(43,43,43,.12);
+      box-shadow: 0 1px 2px rgba(0,0,0,.2);
+      transform: rotate(-4deg);
+      z-index: 4; pointer-events: none;
+    }
+
+    .pin {
+      position: absolute; width: 16px; height: 16px; border-radius: 50%;
+      background: radial-gradient(circle at 34% 28%, #ff958c 0%, var(--yarn) 52%, #8c1d18 100%);
+      box-shadow: 0 3px 4px rgba(0,0,0,.5);
+      z-index: 6; pointer-events: none;
+    }
+
+    .redact { display: inline-block; height: 11px; background: #1d1d1d; border-radius: 1px; vertical-align: middle; }
+
+    .eyebrow {
+      font-family: 'Special Elite', cursive;
+      font-size: 12px; letter-spacing: 4px; text-transform: uppercase;
+      color: #cdbf9a; text-align: center;
+    }
+    .label-row {
+      font-family: 'Special Elite', cursive;
+      font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+      color: #cdbf9a;
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin: 22px 2px 10px;
+    }
+
+    .btn-primary {
+      display: block; width: 100%;
+      background: linear-gradient(180deg, #cb4334 0%, var(--red) 100%);
+      color: var(--paper-lt);
+      font-family: 'Special Elite', cursive;
+      font-size: 19px; letter-spacing: 3px; text-transform: uppercase;
+      text-align: center;
+      padding: 16px 12px 14px;
+      border: 2px solid var(--red-dk);
+      border-radius: 6px;
+      box-shadow: 0 4px 0 var(--red-dk), 0 10px 18px rgba(0,0,0,.45);
+    }
+    .btn-primary:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--red-dk), 0 4px 8px rgba(0,0,0,.4); }
+
+    .btn-paper {
+      display: block; width: 100%;
+      background-image: var(--grain); background-color: var(--paper);
+      color: var(--ink);
+      font-family: 'Special Elite', cursive;
+      font-size: 15px; letter-spacing: 2px;
+      text-align: center;
+      padding: 13px 12px 11px;
+      border: 1.5px solid rgba(43,43,43,.45);
+      border-radius: 4px;
+      box-shadow: 0 3px 8px rgba(0,0,0,.4);
+    }
+
+    .btn-tab {
+      background-image: var(--grain); background-color: var(--manila);
+      color: var(--ink);
+      font-family: 'Special Elite', cursive;
+      font-size: 12px; letter-spacing: 1px;
+      padding: 7px 12px 5px;
+      border: 1px solid rgba(43,43,43,.35); border-bottom-width: 2.5px;
+      border-radius: 6px 6px 2px 2px;
+      box-shadow: 0 2px 5px rgba(0,0,0,.35);
+    }
+
+    .ghost-btn {
+      display: block; width: 100%;
+      color: #b3a679;
+      font-family: 'Special Elite', cursive;
+      font-size: 11px; letter-spacing: 2px;
+      padding: 11px 8px 9px;
+      border: 1.5px dashed rgba(205, 191, 154, .5);
+      border-radius: 5px;
+      margin-top: 12px;
+    }
+
+    /* ---------- HOME ---------- */
+    .home-wrap { padding-top: 64px; }
+    .coffee-ring {
+      position: absolute; top: 26px; right: -18px;
+      width: 110px; height: 104px; border-radius: 50%;
+      border: 8px solid rgba(150, 106, 48, .22);
+      box-shadow: inset 0 0 0 2px rgba(150, 106, 48, .1);
+      transform: rotate(8deg);
+      pointer-events: none;
+    }
+    .dossier {
+      padding: 34px 22px 22px;
+      transform: rotate(-1.2deg);
+      margin-bottom: 30px;
+    }
+    .dossier .clip { top: -10px; left: 22px; }
+    .stamp-confidential {
+      position: absolute; top: 12px; right: 10px;
+      font-size: 11px; transform: rotate(7deg);
+    }
+    .wordmark {
+      font-family: 'Special Elite', cursive;
+      font-size: 60px; line-height: 1;
+      letter-spacing: 2px;
+      color: var(--ink);
+      text-align: center;
+      margin: 26px 0 4px;
+      position: relative;
+    }
+    .wordmark .hot { color: var(--red); }
+    .wordmark .strike {
+      position: absolute; left: 2%; right: 2%; top: 54%;
+      height: 5px; background: var(--yarn);
+      opacity: .68; border-radius: 3px;
+      transform: rotate(-2.4deg);
+      box-shadow: 0 1px 0 rgba(0,0,0,.15);
+    }
+    .tagline {
+      font-family: 'Special Elite', cursive;
+      text-align: center; font-size: 13px; letter-spacing: 3px;
+      color: var(--ink-faded);
+      margin-bottom: 22px;
+    }
+    .dossier-line {
+      font-size: 12px; letter-spacing: 1px; color: var(--ink);
+      border-top: 1px dashed var(--rule);
+      padding: 7px 2px 0; margin-top: 7px;
+    }
+    .dossier-line .open { color: var(--red); font-weight: 700; }
+    .fingerprint {
+      position: absolute; bottom: 14px; right: 16px;
+      width: 52px; height: 64px; border-radius: 50%;
+      background: repeating-radial-gradient(ellipse at 50% 58%,
+        rgba(43,43,43,.30) 0 1.5px, transparent 1.5px 5px);
+      transform: rotate(-14deg);
+      opacity: .7;
+    }
+    .home-actions { display: grid; gap: 14px; }
+    .home-actions .btn-paper:nth-child(2) { transform: rotate(.5deg); }
+    .home-actions .btn-paper:nth-child(3) { transform: rotate(-.6deg); }
+    .case-meta {
+      margin-top: 26px; text-align: center;
+      font-family: 'Special Elite', cursive;
+      font-size: 10px; letter-spacing: 3px; color: #8d8369;
+    }
+
+    /* ---------- LOBBY ---------- */
+    .bar { display: flex; justify-content: space-between; margin-bottom: 34px; }
+    .code-folder {
+      padding: 22px 18px 16px;
+      text-align: center;
+      transform: rotate(-.6deg);
+      margin-bottom: 4px;
+    }
+    .code-folder .clip { top: -10px; right: 26px; }
+    .room-code {
+      font-family: 'Special Elite', cursive;
+      font-size: 52px; letter-spacing: 14px; text-indent: 14px;
+      color: var(--ink); line-height: 1;
+    }
+    .copy-hint {
+      font-style: italic; font-size: 12px; color: var(--blue);
+      margin-top: 6px;
+    }
+
+    .cork {
+      position: relative; height: 410px;
+      background-image:
+        radial-gradient(rgba(0,0,0,.16) 1px, transparent 1.6px),
+        radial-gradient(rgba(255,244,214,.08) 1px, transparent 1.6px);
+      background-size: 9px 9px, 13px 13px;
+      background-position: 0 0, 5px 7px;
+      background-color: #a07c4c;
+      border: 8px solid #5d4226;
+      border-radius: 4px;
+      box-shadow: inset 0 0 26px rgba(0,0,0,.45), 0 10px 22px rgba(0,0,0,.5);
+    }
+    .polaroid {
+      position: absolute; width: 166px;
+      background-image: var(--grain); background-color: var(--paper-lt);
+      border: 1px solid rgba(43,43,43,.2);
+      padding: 7px 7px 8px;
+      box-shadow: 0 7px 14px rgba(0,0,0,.5);
+      z-index: 1;
+    }
+    .mugshot {
+      height: 112px;
+      display: grid; place-items: center;
+      background-image:
+        repeating-linear-gradient(180deg, transparent 0 16px, rgba(43,43,43,.28) 16px 17px);
+      border: 1px solid rgba(43,43,43,.25);
+      position: relative;
+    }
+    .mugshot .init {
+      font-family: 'Special Elite', cursive;
+      font-size: 48px; color: rgba(28, 28, 28, .82); line-height: 1;
+    }
+    .mug-id {
+      position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);
+      background: var(--paper-lt); border: 1px solid rgba(43,43,43,.4);
+      font-size: 8px; letter-spacing: 2px; padding: 1px 6px 0;
+      font-family: 'Special Elite', cursive; white-space: nowrap;
+    }
+    .pol-name {
+      font-family: 'Special Elite', cursive;
+      font-size: 14px; padding: 7px 1px 3px; color: var(--ink);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .pol-badges { display: flex; gap: 4px; align-items: center; padding: 0 1px; }
+    .badge {
+      font-size: 8.5px; font-weight: 700; letter-spacing: 1px;
+      padding: 2px 5px 1px; border-radius: 2px;
+      border: 1px solid currentColor;
+    }
+    .badge.host { color: var(--red); transform: rotate(-2deg); }
+    .badge.you  { color: var(--blue); transform: rotate(1.5deg); }
+    .badge.bot  { color: #6e6452; }
+    .dot-online {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #3f9d63; box-shadow: 0 0 5px rgba(63,157,99,.8);
+      margin-left: auto;
+    }
+    .yarn {
+      position: absolute; height: 2px; background: var(--yarn);
+      transform-origin: 0 50%;
+      box-shadow: 0 1px 1px rgba(0,0,0,.5);
+      z-index: 5; pointer-events: none;
+    }
+
+    .settings-sheet { margin-top: 22px; padding: 8px 16px 16px; transform: rotate(.4deg); }
+    .setrow {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 2px 11px;
+      border-bottom: 1px dashed var(--rule);
+    }
+    .setrow:last-of-type { border-bottom: none; }
+    .set-name { font-family: 'Special Elite', cursive; font-size: 14px; letter-spacing: 1px; }
+    .stepper { display: flex; align-items: center; gap: 12px; }
+    .step-btn {
+      width: 38px; height: 38px;
+      display: grid; place-items: center;
+      background-image: var(--grain); background-color: var(--manila);
+      border: 1.5px solid rgba(43,43,43,.45); border-radius: 4px;
+      font: 700 18px 'Courier Prime', monospace;
+      box-shadow: 0 2px 0 rgba(43,43,43,.3);
+    }
+    .step-val { font: 700 19px 'Courier Prime', monospace; min-width: 16px; text-align: center; }
+    .powers-row { padding: 13px 2px 4px; }
+    .seg { display: flex; gap: 8px; margin-top: 10px; }
+    .seg-btn {
+      flex: 1;
+      font-family: 'Special Elite', cursive; font-size: 13px; letter-spacing: 1px;
+      padding: 10px 4px 8px;
+      border: 1px solid rgba(43,43,43,.35);
+      border-radius: 3px;
+      color: var(--ink-faded);
+      background-image: var(--grain); background-color: var(--manila);
+    }
+    .seg-btn.sel {
+      color: var(--red);
+      border: 2px double var(--red);
+      outline: 1px dashed rgba(192,57,43,.5); outline-offset: 1px;
+      background-color: var(--paper-lt);
+      transform: rotate(-1.2deg);
+      font-weight: 700;
+    }
+    .seg-help { font-style: italic; font-size: 12px; color: var(--blue); margin: 10px 2px 6px; }
+    .lobby-start { margin-top: 22px; }
+
+    /* ---------- GAME ---------- */
+    .game-head {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+      padding: 10px 12px 8px;
+      margin-bottom: 18px;
+      transform: rotate(-.4deg);
+    }
+    .case-ref { font-family: 'Special Elite', cursive; font-size: 14px; letter-spacing: 1px; }
+    .case-ref .dim { color: var(--ink-faded); }
+    .head-btns { display: flex; gap: 6px; }
+    .mini-tab {
+      font-family: 'Special Elite', cursive; font-size: 9.5px; letter-spacing: 1px;
+      padding: 5px 7px 3px;
+      border: 1px solid rgba(43,43,43,.4); border-radius: 3px;
+      background-color: var(--manila-dk); background-image: var(--grain);
+      color: var(--ink);
+    }
+    .mini-tab.danger { color: var(--red); border-color: rgba(192,57,43,.6); }
+
+    .score-tags { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .score-tag {
+      position: relative;
+      display: flex; align-items: center; gap: 7px;
+      background-image: var(--grain); background-color: var(--manila);
+      clip-path: polygon(15px 0, 100% 0, 100% 100%, 15px 100%, 0 50%);
+      padding: 9px 12px 8px 24px;
+      box-shadow: 0 3px 6px rgba(0,0,0,.4);
+    }
+    .score-tag::before {
+      content: ""; position: absolute; left: 9px; top: 50%; margin-top: -3.5px;
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--desk); box-shadow: inset 0 1px 1px rgba(0,0,0,.6);
+    }
+    .seat-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+    .score-tag .nm { font-family: 'Special Elite', cursive; font-size: 12.5px; }
+    .score-tag .sc { margin-left: auto; font: 700 16px 'Courier Prime', monospace; }
+
+    .pool-sheet { padding: 12px; }
+    .pool-banner {
+      font-family: 'Special Elite', cursive;
+      font-size: 12px; letter-spacing: 2px; text-align: center;
+      color: var(--red);
+      border: 2px double var(--red);
+      outline: 1px dashed rgba(192,57,43,.5); outline-offset: 2px;
+      border-radius: 3px;
+      padding: 7px 6px 5px;
+      margin-bottom: 12px;
+      transform: rotate(-.5deg);
+      mix-blend-mode: multiply;
+    }
+    .memo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+    .memo {
+      position: relative;
+      background-image: var(--grain); background-color: var(--paper-lt);
+      border: 1px solid rgba(43,43,43,.3);
+      border-left: 4px solid var(--mcolor, var(--ink));
+      border-radius: 2px;
+      min-height: 86px;
+      padding: 10px 6px 8px;
+      text-align: center;
+      box-shadow: 0 3px 6px rgba(0,0,0,.3);
+    }
+    .memo .glyph {
+      font-size: 24px; font-weight: 700; line-height: 1.2;
+      color: var(--mcolor, var(--ink));
+      font-family: 'Courier Prime', monospace;
+    }
+    .memo .m-name {
+      font-family: 'Special Elite', cursive;
+      font-size: 9.5px; letter-spacing: 1px; text-transform: uppercase;
+      margin-top: 7px; color: var(--ink);
+    }
+    .memo .m-rule { border-top: 1px dashed var(--rule); margin: 6px 8px 0; }
+    .memo.sel {
+      border: 2px solid var(--red);
+      border-left: 4px solid var(--mcolor);
+      outline: 1.5px dashed rgba(192,57,43,.55); outline-offset: 2px;
+      transform: rotate(-2deg) translateY(-3px);
+      box-shadow: 0 8px 14px rgba(0,0,0,.5);
+      z-index: 2;
+    }
+    .memo.sel .m-pin { top: -8px; left: 50%; margin-left: -8px; width: 15px; height: 15px; }
+
+    .status-sheet { padding: 4px 14px; }
+    .st-row {
+      display: flex; align-items: center; gap: 9px;
+      padding: 11px 0 9px;
+      border-bottom: 1px dashed var(--rule);
+    }
+    .st-row:last-child { border-bottom: none; }
+    .st-who { display: flex; flex-direction: column; gap: 2px; }
+    .st-name { font-family: 'Special Elite', cursive; font-size: 13.5px; }
+    .st-name .you-note { font-style: italic; font-family: 'Courier Prime', monospace; font-size: 10.5px; color: var(--blue); }
+    .st-hand { font-size: 10.5px; letter-spacing: 3px; color: #877a58; }
+    .st-state { margin-left: auto; }
+    .stamp-mini {
+      font-family: 'Special Elite', cursive;
+      font-size: 9.5px; letter-spacing: 1.5px;
+      padding: 3px 7px 1px;
+      border: 2px double var(--blue); border-radius: 3px;
+      color: var(--blue);
+      transform: rotate(-4deg);
+      mix-blend-mode: multiply; opacity: .92;
+      display: inline-block;
+    }
+    .thinking { font-style: italic; font-size: 11.5px; color: var(--red); letter-spacing: 1px; }
+
+    .tray {
+      background:
+        radial-gradient(220px 120px at 50% 0%, rgba(255,255,255,.04), transparent 70%),
+        #2a2d33;
+      border: 1px solid #15171a;
+      border-radius: 6px;
+      box-shadow: inset 0 3px 12px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.05);
+      padding: 16px 12px 14px;
+      position: relative;
+    }
+    .tray-label {
+      position: absolute; top: -9px; left: 14px;
+      background-image: var(--grain); background-color: var(--manila-dk);
+      border: 1px solid rgba(0,0,0,.4);
+      font-family: 'Special Elite', cursive;
+      font-size: 8.5px; letter-spacing: 2px; padding: 3px 8px 1px;
+      color: var(--ink);
+    }
+    .hand-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+
+    .exhibit {
+      position: relative;
+      background-image: var(--grain); background-color: var(--paper);
+      border: 1px solid #c9b98c;
+      border-radius: 3px;
+      box-shadow: 0 4px 8px rgba(0,0,0,.45);
+      padding: 8px 6px 7px;
+      display: flex; flex-direction: column; align-items: center;
+      text-align: center;
+    }
+    .ex-tag {
+      position: relative;
+      background-image: var(--grain); background-color: var(--manila);
+      border: 1px solid #bda878;
+      font-family: 'Special Elite', cursive;
+      font-size: 8.5px; letter-spacing: 1.5px;
+      padding: 3px 7px 1px 14px;
+      transform: rotate(-1.5deg);
+      white-space: nowrap;
+      box-shadow: 0 1px 2px rgba(0,0,0,.2);
+    }
+    .ex-tag::before {
+      content: ""; position: absolute; left: 5px; top: 50%; margin-top: -2.5px;
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--paper); border: 1px solid #a08c5c;
+    }
+    .ex-num {
+      font-family: 'Special Elite', 'Courier Prime', monospace;
+      font-size: 46px; line-height: 1.1;
+      color: var(--ink);
+      margin: 7px 0 4px;
+    }
+    .ex-num.zero { color: var(--red); }
+    .ex-foot {
+      width: 100%;
+      border-top: 1px solid var(--rule);
+      font-size: 8px; letter-spacing: 2px; color: #8a7a55;
+      padding-top: 4px;
+    }
+    .exhibit.sel {
+      border: 2px solid var(--red);
+      outline: 1.5px dashed rgba(192,57,43,.55); outline-offset: 3px;
+      transform: translateY(-7px) rotate(-2deg);
+      box-shadow: 0 12px 18px rgba(0,0,0,.55);
+      z-index: 2;
+    }
+    .exhibit.sel .ex-pin { top: -9px; left: 50%; margin-left: -8px; }
+    .game-cta { margin-top: 20px; }
+
+    /* ---------- REVEAL ---------- */
+    main[data-screen="reveal"] {
+      background:
+        var(--grain),
+        radial-gradient(420px 360px at 50% 17%, #3b4047 0%, rgba(59,64,71,0) 70%),
+        radial-gradient(900px 620px at 50% 112%, #101214 0%, rgba(16,18,20,0) 60%),
+        var(--desk-dark);
+    }
+    .played-row { display: flex; flex-direction: column; align-items: center; margin-top: 26px; }
+    .played-label {
+      font-family: 'Special Elite', cursive;
+      font-size: 12px; letter-spacing: 3px; color: #cdbf9a; margin-bottom: 14px;
+    }
+    .played-card {
+      width: 122px; transform: rotate(1.6deg); min-height: 96px; padding-top: 16px;
+      background-color: #f3e3e6;
+      border-color: rgba(178, 86, 127, .45);
+    }
+    .played-card .tape { top: -10px; left: 24px; }
+    .doc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 28px; }
+    .doc {
+      position: relative;
+      background-image: var(--grain); background-color: var(--paper);
+      border: 1px solid rgba(43,43,43,.2);
+      border-radius: 2px;
+      box-shadow: 0 8px 16px rgba(0,0,0,.5);
+      padding: 12px 10px 10px;
+      display: flex; flex-direction: column; align-items: center;
+      overflow: visible;
+    }
+    .doc:nth-child(1) { transform: rotate(-1.6deg); }
+    .doc:nth-child(2) { transform: rotate(1.2deg); }
+    .doc:nth-child(3) { transform: rotate(1.8deg); }
+    .doc:nth-child(4) { transform: rotate(-1.3deg); }
+    .doc-name {
+      font-family: 'Special Elite', cursive;
+      font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+      padding-bottom: 3px; margin-bottom: 10px;
+      border-bottom: 2px solid var(--seat, var(--ink));
+    }
+    .doc .exhibit { width: 86px; }
+    .doc .ex-num { font-size: 36px; margin: 5px 0 3px; }
+    .doc-points {
+      margin-top: 10px;
+      font: 700 15px 'Courier Prime', monospace;
+    }
+    .doc-note {
+      font-style: italic; font-size: 9.5px; color: var(--ink-faded);
+      margin-top: 3px; text-align: center;
+    }
+    .doc-note.blue { color: var(--blue); }
+    .stamp-cancel {
+      position: absolute; top: 60%; left: 50%;
+      font-size: 17px;
+      padding: 4px 9px 2px;
+      white-space: nowrap;
+      transform: translate(-50%, -50%) rotate(-13deg);
+      z-index: 3;
+      background: rgba(241, 232, 210, .25);
+    }
+    .stamp-suspect {
+      position: absolute; top: 57%; left: 50%;
+      font-size: 13px;
+      padding: 4px 7px 2px;
+      white-space: nowrap;
+      transform: translate(-50%, -50%) rotate(-10deg);
+      z-index: 3;
+      background: rgba(241, 232, 210, .25);
+    }
+    .reveal-cta { margin-top: 30px; }
+
+    /* ---------- END ---------- */
+    .end-wrap { padding-top: 48px; }
+    .hero-line {
+      font-family: 'Special Elite', cursive;
+      font-size: 50px; color: var(--paper);
+      text-align: center; line-height: 1.05;
+      margin: 14px 0 6px;
+      position: relative;
+    }
+    .hero-line .pd { color: var(--yarn); }
+    .hero-underline {
+      width: 168px; height: 5px; margin: 2px auto 0;
+      background: var(--yarn); border-radius: 3px;
+      transform: rotate(-1.6deg);
+      opacity: .85;
+    }
+    .ledger { margin-top: 38px; padding: 56px 16px 14px; transform: rotate(-.5deg); }
+    .ledger .clip { top: -10px; left: 18px; }
+    .stamp-closed {
+      position: absolute; top: 9px; right: 14px;
+      font-size: 16px; transform: rotate(-9deg);
+      z-index: 3;
+    }
+    .ledger-head, .ledger-row {
+      display: grid;
+      grid-template-columns: 20px 12px 1fr 32px 32px 32px 46px;
+      align-items: center; gap: 4px;
+    }
+    .ledger-head {
+      font-family: 'Special Elite', cursive;
+      font-size: 9.5px; letter-spacing: 2px; color: #8a7a55;
+      padding: 0 4px 6px;
+      border-bottom: 2px solid rgba(43,43,43,.55);
+    }
+    .ledger-head span { text-align: right; }
+    .ledger-rows { position: relative; }
+    .ledger-row {
+      padding: 11px 4px 9px;
+      border-bottom: 1px dashed var(--rule);
+      font-size: 13px;
+    }
+    .ledger-row:last-child { border-bottom: none; }
+    .ledger-row .rk { font-family: 'Special Elite', cursive; color: var(--ink-faded); }
+    .ledger-row .nm { font-family: 'Special Elite', cursive; font-size: 13.5px; }
+    .ledger-row .nm .you-note { font-style: italic; font-family: 'Courier Prime', monospace; font-size: 10px; color: var(--blue); }
+    .ledger-row .r { text-align: right; color: #5d5440; }
+    .ledger-row .tot { text-align: right; font-weight: 700; font-size: 16px; }
+    .ledger-row.win .tot { color: var(--red); }
+    .grease {
+      position: absolute; left: -10px; right: -8px; top: -2px; height: 48px;
+      border: 3px solid rgba(214, 48, 49, .8);
+      border-radius: 50%;
+      transform: rotate(-1.8deg);
+      pointer-events: none;
+      box-shadow: inset 0 0 2px rgba(214,48,49,.25);
+      z-index: 2;
+    }
+    .end-actions { margin-top: 30px; display: grid; gap: 14px; }
+    .punch { position: absolute; border-radius: 50%; pointer-events: none; box-shadow: 0 2px 3px rgba(0,0,0,.35); }
+
+    /* ---------- switcher ---------- */
+    #switcher a {
+      display: grid; place-items: center;
+      width: 26px; height: 26px;
+      background: var(--manila); color: var(--ink);
+      font-family: 'Special Elite', cursive; font-size: 12px;
+      text-decoration: none;
+      border: 1px solid rgba(0,0,0,.45); border-radius: 3px;
+      box-shadow: 0 2px 4px rgba(0,0,0,.4);
+    }
+
+    /* ---------- motion (flourish only) ---------- */
+    @media (prefers-reduced-motion: no-preference) {
+      .btn-primary, .btn-paper, .btn-tab, .memo, .exhibit, .seg-btn, .step-btn {
+        transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+      }
+      .btn-primary:hover { filter: brightness(1.07); }
+      .btn-paper:hover, .btn-tab:hover { transform: translateY(-2px); }
+      .exhibit:not(.sel):hover { transform: translateY(-4px); }
+      .memo:not(.sel):hover { transform: translateY(-3px); }
+      @keyframes stampIn {
+        0%   { scale: 2.3; opacity: 0; }
+        70%  { scale: .94; opacity: 1; }
+        100% { scale: 1; }
+      }
+      .stamp-cancel, .stamp-suspect, .stamp-closed { animation: stampIn .5s cubic-bezier(.2,1.4,.4,1) both; }
+      .stamp-cancel { animation-delay: .25s; }
+      @keyframes drift { from { translate: 0 0; } to { translate: 0 7px; } }
+      .punch { animation: drift 2.8s ease-in-out infinite alternate; }
+      .punch:nth-child(odd) { animation-duration: 3.6s; animation-delay: -1.2s; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= 1 · HOME ================= -->
+  <main data-screen="home">
+    <div class="wrap home-wrap">
+      <section class="sheet manila dossier">
+        <div class="folder-tab">CASE FILE · Nº 23</div>
+        <span class="clip"></span>
+        <span class="stamp stamp-confidential">Confidential</span>
+        <div class="coffee-ring"></div>
+        <h1 class="wordmark">CAN<span class="hot">CEL</span><span class="strike"></span></h1>
+        <p class="tagline">a number-picking party game</p>
+        <div class="dossier-line">SUBJECT: <span class="redact" style="width:104px"></span></div>
+        <div class="dossier-line">WITNESSES: <span class="redact" style="width:56px"></span> &nbsp;·&nbsp; STATUS: <span class="open">OPEN</span></div>
+        <div class="fingerprint"></div>
+      </section>
+      <div class="home-actions">
+        <button class="btn-primary">New game</button>
+        <button class="btn-paper">Single player</button>
+        <button class="btn-paper">Join with code</button>
+      </div>
+      <p class="case-meta">EVERY NUMBER IS A SUSPECT</p>
+    </div>
+  </main>
+
+  <!-- ================= 2 · LOBBY ================= -->
+  <main data-screen="lobby">
+    <div class="wrap">
+      <header class="bar">
+        <button class="btn-tab">&#8592; Leave</button>
+        <button class="btn-tab">Rules</button>
+      </header>
+
+      <section class="sheet manila code-folder">
+        <div class="folder-tab">CASE NO.</div>
+        <span class="clip"></span>
+        <div class="room-code">DN2H</div>
+        <div class="copy-hint">press to copy</div>
+      </section>
+
+      <div class="label-row"><span>Players &middot; 4</span><span>SUSPECT BOARD</span></div>
+
+      <section class="cork">
+        <!-- yarn (pin to pin) -->
+        <div class="yarn" style="left:91px;  top:28px;  width:198px; transform:rotate(-2.3deg);"></div>
+        <div class="yarn" style="left:91px;  top:28px;  width:281px; transform:rotate(44.7deg);"></div>
+        <div class="yarn" style="left:289px; top:20px;  width:277px; transform:rotate(133.8deg);"></div>
+        <div class="yarn" style="left:97px;  top:220px; width:194px; transform:rotate(1.8deg);"></div>
+
+        <!-- Ben -->
+        <article class="polaroid" style="left:8px; top:20px; transform:rotate(-2.4deg);">
+          <div class="mugshot" style="background-color:#c98f7f;">
+            <span class="init">B</span>
+            <span class="mug-id">NO. 0001</span>
+          </div>
+          <div class="pol-name">Ben</div>
+          <div class="pol-badges">
+            <span class="badge host">HOST</span>
+            <span class="badge you">YOU</span>
+            <span class="dot-online"></span>
+          </div>
+        </article>
+        <!-- Voltaire -->
+        <article class="polaroid" style="left:206px; top:12px; transform:rotate(2deg);">
+          <div class="mugshot" style="background-color:#8fa3c1;">
+            <span class="init">V</span>
+            <span class="mug-id">NO. 0002</span>
+          </div>
+          <div class="pol-name">Voltaire</div>
+          <div class="pol-badges">
+            <span class="badge bot">BOT</span>
+            <span class="dot-online"></span>
+          </div>
+        </article>
+        <!-- Mechano -->
+        <article class="polaroid" style="left:14px; top:212px; transform:rotate(1.6deg);">
+          <div class="mugshot" style="background-color:#c9ae73;">
+            <span class="init">M</span>
+            <span class="mug-id">NO. 0003</span>
+          </div>
+          <div class="pol-name">Mechano</div>
+          <div class="pol-badges">
+            <span class="badge bot">BOT</span>
+            <span class="dot-online"></span>
+          </div>
+        </article>
+        <!-- Data Dan -->
+        <article class="polaroid" style="left:208px; top:218px; transform:rotate(-2deg);">
+          <div class="mugshot" style="background-color:#8fb89a;">
+            <span class="init">D</span>
+            <span class="mug-id">NO. 0004</span>
+          </div>
+          <div class="pol-name">Data Dan</div>
+          <div class="pol-badges">
+            <span class="badge bot">BOT</span>
+            <span class="dot-online"></span>
+          </div>
+        </article>
+
+        <!-- pins -->
+        <span class="pin" style="left:83px;  top:21px;"></span>
+        <span class="pin" style="left:281px; top:13px;"></span>
+        <span class="pin" style="left:89px;  top:213px;"></span>
+        <span class="pin" style="left:283px; top:219px;"></span>
+      </section>
+
+      <section class="sheet settings-sheet">
+        <div class="setrow">
+          <span class="set-name">Rounds</span>
+          <span class="stepper">
+            <button class="step-btn">&minus;</button>
+            <span class="step-val">3</span>
+            <button class="step-btn">+</button>
+          </span>
+        </div>
+        <div class="setrow">
+          <span class="set-name">AI players</span>
+          <span class="stepper">
+            <button class="step-btn">&minus;</button>
+            <span class="step-val">3</span>
+            <button class="step-btn">+</button>
+          </span>
+        </div>
+        <div class="powers-row">
+          <span class="set-name">Power-ups</span>
+          <div class="seg">
+            <button class="seg-btn">None</button>
+            <button class="seg-btn sel">Random</button>
+            <button class="seg-btn">Choose</button>
+          </div>
+          <p class="seg-help">A fresh random pool each round.</p>
+        </div>
+      </section>
+
+      <button class="btn-primary lobby-start">Start game</button>
+    </div>
+  </main>
+
+  <!-- ================= 3 · GAME ================= -->
+  <main data-screen="game">
+    <div class="wrap">
+      <header class="sheet manila game-head">
+        <span class="case-ref">R1<span class="dim">/3</span> &middot; T2<span class="dim">/6</span> &middot; DN2H</span>
+        <span class="head-btns">
+          <button class="mini-tab">RULES</button>
+          <button class="mini-tab">LEAVE</button>
+          <button class="mini-tab danger">END GAME</button>
+        </span>
+      </header>
+
+      <section class="score-tags">
+        <div class="score-tag"><span class="seat-dot" style="background:var(--ben)"></span><span class="nm">Ben</span><span class="sc">4</span></div>
+        <div class="score-tag"><span class="seat-dot" style="background:var(--voltaire)"></span><span class="nm">Voltaire</span><span class="sc">0</span></div>
+        <div class="score-tag"><span class="seat-dot" style="background:var(--mechano)"></span><span class="nm">Mechano</span><span class="sc">2</span></div>
+        <div class="score-tag"><span class="seat-dot" style="background:var(--dan)"></span><span class="nm">Data Dan</span><span class="sc">5</span></div>
+      </section>
+
+      <div class="label-row"><span>POWER-UPS REMAINING</span><span>6 / 6</span></div>
+
+      <section class="sheet pool-sheet">
+        <div class="pool-banner">YOUR TURN, PRESS TO SELECT</div>
+        <div class="memo-grid">
+          <button class="memo" style="--mcolor:#157a6e;">
+            <span class="glyph">&#8644;</span>
+            <span class="m-rule"></span>
+            <div class="m-name">Swap Hands</div>
+          </button>
+          <button class="memo" style="--mcolor:#b23a48;">
+            <span class="glyph">&#10006;</span>
+            <span class="m-rule"></span>
+            <div class="m-name">Sabotage</div>
+          </button>
+          <button class="memo sel" style="--mcolor:#c2567f;">
+            <span class="pin m-pin"></span>
+            <span class="glyph">=</span>
+            <span class="m-rule"></span>
+            <div class="m-name">Jinx</div>
+          </button>
+          <button class="memo" style="--mcolor:#2e7d4f;">
+            <span class="glyph">+2</span>
+            <span class="m-rule"></span>
+            <div class="m-name">Plus Two</div>
+          </button>
+          <button class="memo" style="--mcolor:#6b5b95;">
+            <span class="glyph">?</span>
+            <span class="m-rule"></span>
+            <div class="m-name">Wild</div>
+          </button>
+          <button class="memo" style="--mcolor:#b07d2b;">
+            <span class="glyph">&#8615;</span>
+            <span class="m-rule"></span>
+            <div class="m-name">Drain</div>
+          </button>
+        </div>
+      </section>
+
+      <div class="label-row"><span>PLAYERS &middot; POWER PICKER: BEN</span></div>
+
+      <section class="sheet status-sheet">
+        <div class="st-row">
+          <span class="seat-dot" style="background:var(--ben)"></span>
+          <span class="st-who">
+            <span class="st-name">Ben <span class="you-note">(you)</span></span>
+            <span class="st-hand">&Oslash; 1 2 3 4 5</span>
+          </span>
+          <span class="st-state thinking">THINKING&#8230;</span>
+        </div>
+        <div class="st-row">
+          <span class="seat-dot" style="background:var(--voltaire)"></span>
+          <span class="st-who">
+            <span class="st-name">Voltaire</span>
+            <span class="st-hand">&Oslash; 1 2 3 4 5</span>
+          </span>
+          <span class="st-state stamp-mini">SUBMITTED</span>
+        </div>
+        <div class="st-row">
+          <span class="seat-dot" style="background:var(--mechano)"></span>
+          <span class="st-who">
+            <span class="st-name">Mechano</span>
+            <span class="st-hand">&Oslash; 1 2 3 4 5</span>
+          </span>
+          <span class="st-state stamp-mini">SUBMITTED</span>
+        </div>
+        <div class="st-row">
+          <span class="seat-dot" style="background:var(--dan)"></span>
+          <span class="st-who">
+            <span class="st-name">Data Dan</span>
+            <span class="st-hand">&Oslash; 1 2 3 4 5</span>
+          </span>
+          <span class="st-state stamp-mini">SUBMITTED</span>
+        </div>
+      </section>
+
+      <button class="ghost-btn">SKIP WAITING, AUTO-PLAY WHO'S LEFT</button>
+
+      <div class="label-row"><span>YOUR HAND</span><span>EVIDENCE TRAY</span></div>
+
+      <section class="tray">
+        <span class="tray-label">EVIDENCE</span>
+        <div class="hand-grid">
+          <button class="exhibit">
+            <span class="ex-tag">EXHIBIT &Oslash;</span>
+            <span class="ex-num zero">&Oslash;</span>
+            <span class="ex-foot">CASE DN2H</span>
+          </button>
+          <button class="exhibit">
+            <span class="ex-tag">EXHIBIT 1</span>
+            <span class="ex-num">1</span>
+            <span class="ex-foot">CASE DN2H</span>
+          </button>
+          <button class="exhibit">
+            <span class="ex-tag">EXHIBIT 2</span>
+            <span class="ex-num">2</span>
+            <span class="ex-foot">CASE DN2H</span>
+          </button>
+          <button class="exhibit">
+            <span class="ex-tag">EXHIBIT 3</span>
+            <span class="ex-num">3</span>
+            <span class="ex-foot">CASE DN2H</span>
+          </button>
+          <button class="exhibit">
+            <span class="ex-tag">EXHIBIT 4</span>
+            <span class="ex-num">4</span>
+            <span class="ex-foot">CASE DN2H</span>
+          </button>
+          <button class="exhibit sel">
+            <span class="pin ex-pin"></span>
+            <span class="ex-tag">EXHIBIT 5</span>
+            <span class="ex-num">5</span>
+            <span class="ex-foot">CASE DN2H</span>
+          </button>
+        </div>
+      </section>
+
+      <button class="btn-primary game-cta">Lock it in</button>
+    </div>
+  </main>
+
+  <!-- ================= 4 · REVEAL ================= -->
+  <main data-screen="reveal">
+    <div class="wrap">
+      <p class="eyebrow" style="margin-top:26px;">TURN 2 REVEAL</p>
+
+      <div class="played-row">
+        <span class="played-label">BEN PLAYED</span>
+        <div class="memo played-card" style="--mcolor:#c2567f;">
+          <span class="tape"></span>
+          <span class="glyph" style="font-size:30px;">=</span>
+          <span class="m-rule"></span>
+          <div class="m-name" style="font-size:11px;">Jinx</div>
+        </div>
+      </div>
+
+      <div class="doc-grid">
+        <article class="doc" style="--seat:var(--ben);">
+          <div class="doc-name">Ben</div>
+          <div class="exhibit">
+            <span class="ex-tag">EXHIBIT 5</span>
+            <span class="ex-num">5</span>
+            <span class="ex-foot">CASE DN2H</span>
+          </div>
+          <span class="stamp stamp-cancel">Cancelled</span>
+          <div class="doc-points">0</div>
+          <div class="doc-note">struck from the record</div>
+        </article>
+
+        <article class="doc" style="--seat:var(--voltaire);">
+          <div class="doc-name">Voltaire</div>
+          <div class="exhibit">
+            <span class="ex-tag">EXHIBIT &Oslash;</span>
+            <span class="ex-num zero">&Oslash;</span>
+            <span class="ex-foot">CASE DN2H</span>
+          </div>
+          <span class="stamp blue stamp-suspect">Prime Suspect</span>
+          <div class="doc-points">0</div>
+          <div class="doc-note blue">the zero that did it</div>
+        </article>
+
+        <article class="doc" style="--seat:var(--mechano);">
+          <div class="doc-name">Mechano</div>
+          <div class="exhibit">
+            <span class="ex-tag">EXHIBIT 5</span>
+            <span class="ex-num">5</span>
+            <span class="ex-foot">CASE DN2H</span>
+          </div>
+          <span class="stamp stamp-cancel">Cancelled</span>
+          <div class="doc-points">0</div>
+          <div class="doc-note">matched and struck</div>
+        </article>
+
+        <article class="doc" style="--seat:var(--dan);">
+          <div class="doc-name">Data Dan</div>
+          <div class="exhibit">
+            <span class="ex-tag">EXHIBIT 3</span>
+            <span class="ex-num">3</span>
+            <span class="ex-foot">CASE DN2H</span>
+          </div>
+          <span class="stamp stamp-cancel">Cancelled</span>
+          <div class="doc-points">0</div>
+          <div class="doc-note">taken down by the zero</div>
+        </article>
+      </div>
+
+      <button class="btn-primary reveal-cta">Continue</button>
+    </div>
+  </main>
+
+  <!-- ================= 5 · END ================= -->
+  <main data-screen="end">
+    <!-- hole-punch confetti -->
+    <i class="punch" style="left:6%;  top:60px;  width:10px; height:10px; background:#e8d9b0;"></i>
+    <i class="punch" style="left:88%; top:44px;  width:9px;  height:9px;  background:#c0392b;"></i>
+    <i class="punch" style="left:22%; top:30px;  width:8px;  height:8px;  background:#f1e8d2;"></i>
+    <i class="punch" style="left:70%; top:96px;  width:11px; height:11px; background:#1f4e79;"></i>
+    <i class="punch" style="left:42%; top:52px;  width:8px;  height:8px;  background:#c0392b;"></i>
+    <i class="punch" style="left:80%; top:170px; width:9px;  height:9px;  background:#e8d9b0;"></i>
+    <i class="punch" style="left:12%; top:208px; width:10px; height:10px; background:#2e7d4f;"></i>
+    <i class="punch" style="left:55%; top:140px; width:7px;  height:7px;  background:#f1e8d2;"></i>
+    <i class="punch" style="left:32%; top:118px; width:9px;  height:9px;  background:#b07d2b;"></i>
+    <i class="punch" style="left:93%; top:260px; width:8px;  height:8px;  background:#e8d9b0;"></i>
+    <i class="punch" style="left:4%;  top:340px; width:9px;  height:9px;  background:#c0392b;"></i>
+    <i class="punch" style="left:64%; top:30px;  width:8px;  height:8px;  background:#2e7d4f;"></i>
+    <i class="punch" style="left:16%; top:470px; width:8px;  height:8px;  background:#1f4e79;"></i>
+    <i class="punch" style="left:86%; top:420px; width:10px; height:10px; background:#f1e8d2;"></i>
+    <i class="punch" style="left:48%; top:660px; width:9px;  height:9px;  background:#b07d2b;"></i>
+    <i class="punch" style="left:8%;  top:600px; width:8px;  height:8px;  background:#e8d9b0;"></i>
+    <i class="punch" style="left:90%; top:580px; width:9px;  height:9px;  background:#c0392b;"></i>
+    <i class="punch" style="left:30%; top:700px; width:8px;  height:8px;  background:#1f4e79;"></i>
+
+    <div class="wrap end-wrap">
+      <p class="eyebrow">GAME OVER</p>
+      <h2 class="hero-line">You won<span class="pd">.</span></h2>
+      <div class="hero-underline"></div>
+
+      <section class="sheet ledger">
+        <span class="clip"></span>
+        <span class="stamp stamp-closed">Case Closed</span>
+        <div class="ledger-head">
+          <span></span><span></span><span></span>
+          <span>R1</span><span>R2</span><span>R3</span><span>TOTAL</span>
+        </div>
+        <div class="ledger-rows">
+          <div class="grease"></div>
+          <div class="ledger-row win">
+            <span class="rk">1</span>
+            <span class="seat-dot" style="background:var(--ben)"></span>
+            <span class="nm">Ben <span class="you-note">(you)</span></span>
+            <span class="r">5</span><span class="r">9</span><span class="r">6</span>
+            <span class="tot">20</span>
+          </div>
+          <div class="ledger-row">
+            <span class="rk">2</span>
+            <span class="seat-dot" style="background:var(--dan)"></span>
+            <span class="nm">Data Dan</span>
+            <span class="r">5</span><span class="r">4</span><span class="r">3</span>
+            <span class="tot">12</span>
+          </div>
+          <div class="ledger-row">
+            <span class="rk">3</span>
+            <span class="seat-dot" style="background:var(--voltaire)"></span>
+            <span class="nm">Voltaire</span>
+            <span class="r">3</span><span class="r">2</span><span class="r">4</span>
+            <span class="tot">9</span>
+          </div>
+          <div class="ledger-row">
+            <span class="rk">4</span>
+            <span class="seat-dot" style="background:var(--mechano)"></span>
+            <span class="nm">Mechano</span>
+            <span class="r">0</span><span class="r">5</span><span class="r">2</span>
+            <span class="tot">7</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="end-actions">
+        <button class="btn-primary">Play again</button>
+        <button class="btn-paper">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

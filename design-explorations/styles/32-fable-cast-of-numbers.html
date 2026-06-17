@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Fable: Cast of Numbers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ============ Fable: Cast of Numbers ============
+       The digits are the characters. Warm cream stage,
+       matte candy characters, ink eyes, soft flat shadows. */
+
+    :root {
+      --stage: #fdf6e9;
+      --panel: #fffdf6;
+      --panel2: #f7ecd6;
+      --ink: #2b2117;
+      --ink-soft: rgba(43, 33, 23, .58);
+      --ink-faint: rgba(43, 33, 23, .34);
+      --shadowc: #efdfc1;
+      --dsh: #ecdbbb;
+      --coral: #ee5c4d;  --coral-d: #c2402f;
+      --gold:  #f2a93b;  --gold-d:  #c98214;
+      --sky:   #57aadc;  --sky-d:   #3a7fae;
+      --grass: #66b35f;  --grass-d: #468c40;
+      --plum:  #9d68c0;  --plum-d:  #7a4a99;
+      --indigo:#5e6fd6;  --indigo-d:#4654ad;
+      --pink:  #ee6fa9;  --pink-d:  #c94f87;
+      --teal:  #35b29b;  --teal-d:  #228871;
+      --rose:  #e2544f;  --rose-d:  #b53b37;
+      --emer:  #3da877;  --emer-d:  #2c8159;
+      --violet:#8a70d6;  --violet-d:#6a51b0;
+      --amber: #e89b2f;  --amber-d: #bd7714;
+      --void:  #251d13;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { min-height: 100%; }
+    body {
+      font-family: "Baloo 2", "Comic Sans MS", cursive, sans-serif;
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.4;
+      background-color: var(--stage);
+      background-image:
+        radial-gradient(rgba(208, 170, 110, .16) 1.4px, transparent 1.5px),
+        radial-gradient(rgba(208, 170, 110, .10) 1.4px, transparent 1.5px),
+        radial-gradient(120% 70% at 50% 0%, rgba(255, 255, 255, .65), transparent 60%);
+      background-size: 30px 30px, 30px 30px, 100% 100%;
+      background-position: 0 0, 15px 15px, 0 0;
+      background-attachment: fixed;
+    }
+
+    .wrap { max-width: 420px; margin: 0 auto; padding: 22px 16px 30px; position: relative; }
+
+    button { font-family: inherit; cursor: pointer; }
+
+    /* ---------- chunky buttons ---------- */
+    .btn {
+      display: block; width: 100%;
+      font-weight: 800; font-size: 19px; color: var(--ink);
+      background: var(--panel);
+      border: 3px solid var(--ink);
+      border-radius: 20px;
+      padding: 13px 16px;
+      box-shadow: 0 5px 0 var(--shadowc);
+    }
+    .btn.primary { background: var(--coral); color: #fff7ea; box-shadow: 0 5px 0 var(--coral-d); }
+    .btn.sm { display: inline-block; width: auto; font-size: 14px; padding: 6px 14px; border-radius: 13px; border-width: 2.5px; box-shadow: 0 3px 0 var(--shadowc); }
+    .btn.tiny { display: inline-block; width: auto; font-size: 9.5px; letter-spacing: .08em; padding: 4px 8px; border-radius: 9px; border-width: 2px; box-shadow: 0 2px 0 var(--shadowc); }
+    .btn.tiny.danger { background: #fbe3da; color: var(--coral-d); }
+    .btn.ghost { background: transparent; border: 2.5px dashed var(--ink-faint); color: var(--ink-soft); font-size: 12px; letter-spacing: .1em; box-shadow: none; border-radius: 16px; padding: 10px; }
+
+    .label { font-size: 11px; font-weight: 800; letter-spacing: .16em; color: var(--ink-soft); }
+    .panel { background: var(--panel); border: 2.5px solid rgba(43,33,23,.16); border-radius: 20px; box-shadow: 0 4px 0 var(--shadowc); }
+
+    /* ---------- the cast: outlined character digits ---------- */
+    .d {
+      position: relative; z-index: 0;
+      display: inline-block;
+      font-weight: 800; line-height: .9;
+      transform: translateY(var(--ty, 0)) rotate(var(--rot, 0deg));
+    }
+    .d::before, .d::after {
+      content: attr(data-d);
+      position: absolute; left: 0; top: 0;
+      font-weight: 800; line-height: .9;
+    }
+    .d::before { z-index: -1; color: var(--ink); -webkit-text-stroke: .13em var(--ink); }
+    .d::after  { z-index: -2; color: var(--dsh); -webkit-text-stroke: .13em var(--dsh); transform: translateY(.08em); }
+
+    .c-coral { color: var(--coral); } .c-gold { color: var(--gold); }
+    .c-sky { color: var(--sky); }     .c-grass { color: var(--grass); }
+    .c-plum { color: var(--plum); }   .c-indigo { color: var(--indigo); }
+    .c-ink { color: #4a3b2a; }
+
+    /* face overlay (em-scaled with the digit) */
+    .face {
+      position: absolute; left: var(--fx, 50%); top: var(--fy, 40%);
+      transform: translate(-50%, -50%);
+      display: flex; flex-direction: column; align-items: center;
+      pointer-events: none; z-index: 2;
+    }
+    .eyes { display: flex; gap: .1em; align-items: center; }
+    .eye { position: relative; width: .095em; height: .135em; background: var(--ink); border-radius: 50%; }
+    .eye::after { content: ""; position: absolute; width: .038em; height: .038em; left: .018em; top: .022em; background: #fff; border-radius: 50%; }
+    .mouth { width: .15em; height: .1em; border: .034em solid transparent; border-bottom-color: var(--ink); border-radius: 50%; margin-top: .015em; }
+
+    .d[data-d="1"] { --fx: 60%; --fy: 33%; }
+    .d[data-d="2"] { --fx: 52%; --fy: 33%; }
+    .d[data-d="3"] { --fx: 56%; --fy: 33%; }
+    .d[data-d="4"] { --fx: 57%; --fy: 45%; }
+    .d[data-d="5"] { --fx: 48%; --fy: 36%; }
+
+    /* sleepy: lidded eyes, small content smile */
+    .slp .eye { height: .035em; border-radius: .04em; }
+    .slp .eye::after { display: none; }
+    .slp .mouth { width: .09em; height: .07em; }
+
+    /* determined: angled brows + set mouth */
+    .det .eye::before { content: ""; position: absolute; width: .13em; height: .045em; background: var(--ink); border-radius: .03em; top: -.075em; left: -.02em; }
+    .det .eyes .eye:first-child::before { transform: rotate(16deg); }
+    .det .eyes .eye:last-child::before  { transform: rotate(-16deg); left: auto; right: -.02em; }
+    .det .mouth { width: .15em; height: .045em; background: var(--ink); border: none; border-radius: .04em .04em .06em .06em; margin-top: .07em; }
+
+    /* wink */
+    .wnk .eyes .eye:last-child { height: .035em; border-radius: .04em; }
+    .wnk .eyes .eye:last-child::after { display: none; }
+
+    /* knocked out: X eyes + little o mouth */
+    .xeye { position: relative; width: .16em; height: .16em; }
+    .xeye::before, .xeye::after { content: ""; position: absolute; left: -8%; top: 50%; width: 116%; height: .045em; background: var(--ink); border-radius: .04em; }
+    .xeye::before { transform: translateY(-50%) rotate(45deg); }
+    .xeye::after  { transform: translateY(-50%) rotate(-45deg); }
+    .mouth.o { width: .1em; height: .12em; border: .036em solid var(--ink); border-radius: 50%; background: transparent; margin-top: .05em; }
+
+    /* dizzy: spiral eyes + wobbly frown */
+    .speye { width: .21em; height: .21em; display: block; }
+    .mouth.frown { border: .034em solid transparent; border-top-color: var(--ink); border-bottom-color: transparent; border-radius: 50%; width: .14em; height: .09em; margin-top: .06em; }
+
+    /* mini mascots: chunkier faces so they read small */
+    .d.mini::before { -webkit-text-stroke: .15em var(--ink); }
+    .d.mini::after  { -webkit-text-stroke: .15em var(--dsh); }
+    .d.mini .eyes { gap: .13em; }
+    .d.mini .eye { width: .16em; height: .21em; }
+    .d.mini .eye::after { width: .07em; height: .07em; left: .03em; top: .035em; }
+    .d.mini .mouth { width: .24em; height: .16em; border-width: .055em; border-color: transparent; border-bottom-color: var(--ink); }
+
+    /* ---------- the Ø: an adorable, ominous void ---------- */
+    .void {
+      position: relative; display: inline-block;
+      width: 1em; height: 1em;
+      background: var(--void);
+      border-radius: 50%;
+      box-shadow: 0 .07em 0 var(--dsh);
+      transform: rotate(var(--rot, 0deg));
+    }
+    .vslash {
+      position: absolute; left: 50%; top: 11%;
+      width: .055em; height: 78%;
+      background: rgba(253, 246, 233, .22);
+      border-radius: .06em;
+      transform: translateX(-50%) rotate(36deg);
+    }
+    .vface { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -52%); display: flex; flex-direction: column; align-items: center; }
+    .veyes { display: flex; gap: .12em; }
+    .veye { position: relative; width: .17em; height: .22em; background: #fffdf4; border-radius: 50%; }
+    .veye::after { content: ""; position: absolute; width: .08em; height: .08em; background: var(--void); border-radius: 50%; left: .055em; top: .1em; }
+    .vgrin {
+      width: .38em; height: .2em;
+      border: .04em solid transparent; border-bottom-color: #fffdf4;
+      border-radius: 50%;
+      margin-top: .02em;
+      transform: rotate(-5deg);
+    }
+    .void.beam .veye::after { left: .045em; top: .05em; }
+    .void.beam .vgrin { width: .46em; height: .24em; transform: none; border-bottom-width: .05em; }
+
+    /* ---------- number cards (the cast on stage) ---------- */
+    .ncard {
+      position: relative;
+      background: var(--panel);
+      border: 3px solid var(--ink);
+      border-radius: 16px;
+      box-shadow: 0 5px 0 var(--shadowc);
+      display: grid; place-items: center;
+      height: 86px;
+    }
+    .ncard .d { font-size: 44px; }
+    .ncard .void { font-size: 48px; }
+    .ncard.sel {
+      transform: translateY(-8px);
+      border-color: var(--plum-d);
+      box-shadow: 0 10px 0 #ddc8ea;
+      background: #faf3ff;
+    }
+    .ncard .spark { position: absolute; top: -12px; right: -7px; font-size: 15px; color: var(--gold); -webkit-text-stroke: 1px var(--ink); font-style: normal; }
+    .ncard .zz { position: absolute; top: 4px; right: 7px; font-size: 11px; font-weight: 800; color: var(--ink-faint); transform: rotate(14deg); font-style: normal; }
+    .ncard .zz small { font-size: 8px; }
+
+    /* ---------- screen: HOME ---------- */
+    .home .wrap { padding-top: 56px; min-height: 880px; }
+    .wordmark { text-align: center; white-space: nowrap; }
+    .wordmark .d { font-size: 62px; margin: 0 1px; }
+    .tagline { text-align: center; font-weight: 700; font-size: 14px; letter-spacing: .22em; color: var(--ink-soft); margin-top: 18px; text-transform: uppercase; }
+    .cast { display: flex; justify-content: center; align-items: flex-end; gap: 12px; margin-top: 48px; position: relative; z-index: 1; }
+    .cast .d { font-size: 50px; }
+    .cast .void { font-size: 62px; margin: 0 2px; }
+    .ground { width: 86%; height: 20px; background: #f1e1c1; border-radius: 50%; margin: -8px auto 0; }
+    .home .btns { margin-top: 54px; display: grid; gap: 14px; }
+
+    /* ---------- screen: LOBBY ---------- */
+    .bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+    .codecard { text-align: center; padding: 18px 16px 14px; margin-bottom: 22px; }
+    .codecard .code .d { font-size: 54px; margin: 0 3px; }
+    .codecard .hint { margin-top: 10px; font-size: 12px; font-weight: 700; letter-spacing: .14em; color: var(--ink-soft); text-transform: uppercase; }
+    .players { list-style: none; margin: 10px 0 22px; display: grid; gap: 9px; }
+    .players li { display: flex; align-items: center; gap: 12px; padding: 9px 14px; }
+    .players .d.mini { font-size: 27px; width: 30px; text-align: center; }
+    .players .pname { font-size: 16px; font-weight: 800; flex: 1; }
+    .badge { font-size: 9px; font-weight: 800; letter-spacing: .1em; padding: 2.5px 7px; border-radius: 8px; border: 2px solid var(--ink); background: var(--panel2); margin-left: 4px; }
+    .badge.host { background: var(--gold); color: #3c2a07; }
+    .badge.you { background: var(--coral); color: #fff7ea; }
+    .badge.bot { background: #e4e6fa; color: var(--indigo-d); border-color: var(--indigo-d); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--grass); border: 2px solid var(--ink); margin-left: 8px; flex: none; }
+    .setting { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; margin-bottom: 10px; }
+    .setting .sname { font-size: 16px; font-weight: 800; }
+    .stepper { display: flex; align-items: center; gap: 12px; }
+    .stepper .stbtn { width: 38px; height: 38px; border-radius: 50%; border: 2.5px solid var(--ink); background: var(--panel2); font-size: 19px; font-weight: 800; color: var(--ink); box-shadow: 0 3px 0 var(--shadowc); line-height: 1; }
+    .stepper .val { font-size: 20px; font-weight: 800; min-width: 16px; text-align: center; }
+    .setting.col { display: block; }
+    .setting.col .sname { display: block; margin-bottom: 9px; }
+    .seg { display: flex; background: var(--panel2); border-radius: 14px; padding: 4px; gap: 4px; }
+    .seg span { flex: 1; text-align: center; font-size: 14px; font-weight: 800; padding: 7px 0; border-radius: 10px; color: var(--ink-soft); }
+    .seg .on { background: var(--coral); color: #fff7ea; border: 2px solid var(--ink); box-shadow: 0 2px 0 var(--coral-d); }
+    .helper { font-size: 12.5px; font-weight: 600; color: var(--ink-soft); margin-top: 8px; }
+    .lobby-start { margin-top: 18px; }
+
+    /* ---------- screen: GAME ---------- */
+    .ghead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .gstat { font-weight: 800; font-size: 14.5px; }
+    .gstat span { color: var(--ink-faint); }
+    .gstat i { font-style: normal; color: var(--ink-faint); margin: 0 5px; }
+    .gbtns { display: flex; gap: 5px; }
+    .scorechips { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+    .chip { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 2.5px solid rgba(43,33,23,.16); border-radius: 14px; padding: 7px 12px; box-shadow: 0 3px 0 var(--shadowc); }
+    .chip .pdot { width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--ink); flex: none; }
+    .chip .nm { font-size: 13.5px; font-weight: 800; flex: 1; }
+    .chip b { font-size: 16px; }
+    .pd-coral { background: var(--coral); } .pd-indigo { background: var(--indigo); }
+    .pd-gold { background: var(--gold); }  .pd-grass { background: var(--grass); }
+
+    .lblrow { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 9px; }
+    .poolpanel { padding: 13px 12px 14px; margin-bottom: 14px; }
+    .banner { background: #fbe3da; color: var(--coral-d); border: 2px dashed rgba(194, 64, 47, .4); font-size: 10.5px; font-weight: 800; letter-spacing: .13em; text-align: center; border-radius: 11px; padding: 6px 4px; margin-bottom: 11px; }
+    .pool { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+    .pcard { position: relative; background: var(--panel); border: 2.5px solid var(--ink); border-radius: 13px; box-shadow: 0 4px 0 var(--shadowc); padding: 6px 2px 5px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .pglyph { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; font-size: 16px; font-weight: 800; color: #fff8ec; border: 2px solid var(--ink); }
+    .pname { font-size: 7.5px; font-weight: 800; letter-spacing: .05em; text-align: center; line-height: 1.15; color: var(--ink-soft); }
+    .g-teal { background: var(--teal); box-shadow: 0 2px 0 var(--teal-d); }
+    .g-rose { background: var(--rose); box-shadow: 0 2px 0 var(--rose-d); }
+    .g-pink { background: var(--pink); box-shadow: 0 2px 0 var(--pink-d); }
+    .g-emer { background: var(--emer); box-shadow: 0 2px 0 var(--emer-d); }
+    .g-violet { background: var(--violet); box-shadow: 0 2px 0 var(--violet-d); }
+    .g-amber { background: var(--amber); box-shadow: 0 2px 0 var(--amber-d); }
+    .pcard.selp { transform: translateY(-5px); border-color: var(--pink-d); background: #fdf1f7; box-shadow: 0 8px 0 #ecc8da; }
+    .pcard.selp .pname { color: var(--pink-d); }
+    .pcard .spark { position: absolute; top: -11px; right: -6px; font-size: 13px; color: var(--gold); -webkit-text-stroke: 1px var(--ink); font-style: normal; }
+
+    .statuspanel { padding: 13px 14px; margin-bottom: 12px; }
+    .picker { color: var(--coral-d); }
+    .pstat { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+    .pcell .pn { font-size: 14px; font-weight: 800; }
+    .pcell .pn em { font-style: normal; font-weight: 600; font-size: 11px; color: var(--ink-soft); }
+    .pcell .phand { font-size: 11px; font-weight: 700; letter-spacing: .22em; color: var(--ink-faint); margin: 1px 0 2px; }
+    .pst { display: inline-block; font-size: 9px; font-weight: 800; letter-spacing: .1em; padding: 2px 8px; border-radius: 8px; }
+    .pst.think { background: #fbe3da; color: var(--coral-d); }
+    .pst.subd { background: #e2f1dd; color: var(--grass-d); }
+    .skipbtn { margin-bottom: 18px; }
+
+    .handlbl { margin-bottom: 10px; display: block; }
+    .hand { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; margin-bottom: 20px; padding-top: 10px; }
+    .lockbtn { font-size: 21px; }
+
+    /* ---------- screen: REVEAL ---------- */
+    .reveal-wrap { text-align: center; padding-top: 30px; }
+    .eyebrow { font-size: 12px; font-weight: 800; letter-spacing: .24em; color: var(--ink-soft); }
+    .playedlbl { margin-top: 22px; font-size: 11px; font-weight: 800; letter-spacing: .18em; color: var(--ink-soft); }
+    .playedcard { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; background: var(--panel); border: 3px solid var(--pink-d); border-radius: 16px; box-shadow: 0 6px 0 #ecc8da; padding: 10px 16px 9px; margin-top: 10px; transform: rotate(-3deg); }
+    .playedcard .pglyph { width: 40px; height: 40px; font-size: 20px; }
+    .playedcard .pname { font-size: 9px; color: var(--pink-d); letter-spacing: .14em; }
+
+    .bonkrow { display: flex; justify-content: center; align-items: flex-start; gap: 26px; margin-top: 34px; position: relative; }
+    .rp { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 124px; }
+    .rp .ncard { width: 104px; height: 138px; }
+    .rp .ncard .d { font-size: 64px; }
+    .rp .ncard .void { font-size: 86px; }
+    .bonk-l .ncard { transform: rotate(9deg) translateX(10px); }
+    .bonk-r .ncard { transform: rotate(-9deg) translateX(-10px); }
+    .bonkstars { position: absolute; left: 50%; top: -24px; transform: translateX(-50%); width: 70px; height: 60px; pointer-events: none; }
+    .bstar { position: absolute; font-style: normal; color: var(--gold); -webkit-text-stroke: 1.5px var(--ink); }
+    .bstar.b1 { font-size: 38px; left: 16px; top: 0; }
+    .bstar.b2 { font-size: 16px; left: 0; top: 30px; color: var(--coral); -webkit-text-stroke: 1px var(--ink); }
+    .bstar.b3 { font-size: 14px; right: 0; top: 22px; color: var(--sky); -webkit-text-stroke: 1px var(--ink); }
+    .dizzy1, .dizzy2 { position: absolute; font-style: normal; color: var(--ink-faint); font-weight: 800; }
+    .dizzy1 { font-size: 14px; top: -16px; left: 12px; }
+    .dizzy2 { font-size: 11px; top: -8px; right: 16px; }
+
+    .nametag { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: .12em; color: #fff7ea; padding: 3px 11px; border-radius: 9px; border: 2px solid var(--ink); }
+    .t-coral { background: var(--coral); } .t-indigo { background: var(--indigo); }
+    .t-gold { background: var(--gold); color: #3c2a07; } .t-grass { background: var(--grass); }
+    .stamp { display: inline-block; background: var(--coral); color: #fff7ea; font-weight: 800; font-size: 10.5px; letter-spacing: .1em; padding: 3px 10px; border-radius: 4px 10px 4px 10px; border: 2px solid var(--ink); transform: rotate(-5deg); box-shadow: 0 2px 0 var(--coral-d); }
+    .pill0 { display: inline-block; background: var(--panel); border: 2.5px solid var(--ink); border-radius: 10px; font-size: 15px; font-weight: 800; padding: 1px 13px; box-shadow: 0 2px 0 var(--shadowc); }
+
+    .duorow { display: flex; justify-content: center; align-items: flex-start; gap: 30px; margin-top: 30px; }
+    .voidwrap { position: relative; width: 104px; height: 138px; display: grid; place-items: center; }
+    .voidwrap .void { font-size: 100px; }
+    .burp { position: absolute; right: -4px; top: 64%; font-style: normal; font-size: 17px; color: var(--gold); -webkit-text-stroke: 1px var(--ink); }
+    .burp small { position: absolute; left: 13px; top: -9px; font-size: 9px; color: var(--ink-faint); -webkit-text-stroke: 0; font-weight: 800; }
+    .rp.dazed .ncard { transform: rotate(-4deg); }
+    .reveal-cta { margin-top: 36px; }
+
+    /* ---------- screen: END ---------- */
+    .end-wrap { text-align: center; padding-top: 44px; min-height: 880px; }
+    .cf { position: absolute; width: 7px; height: 13px; border-radius: 3px; opacity: .92; z-index: 0; }
+    .cf.dot { width: 8px; height: 8px; border-radius: 50%; }
+    .bigh { font-size: 56px; font-weight: 800; line-height: 1; margin-top: 10px; position: relative; z-index: 1; }
+    .bigh em { font-style: normal; color: var(--coral); }
+    .podium { display: flex; justify-content: center; align-items: flex-end; gap: 18px; margin-top: 40px; position: relative; z-index: 1; }
+    .podium .d { font-size: 38px; }
+    .podium .d.winner { font-size: 66px; margin: 0 6px; }
+    .podium .void { font-size: 34px; }
+    .crown {
+      position: absolute; left: 50%; top: -.34em;
+      width: .66em; height: .4em;
+      transform: translateX(-50%) rotate(-9deg);
+      background: var(--gold);
+      clip-path: polygon(0 100%, 0 26%, 22% 55%, 38% 6%, 52% 48%, 68% 6%, 82% 55%, 100% 26%, 100% 100%);
+      filter: drop-shadow(1.5px 0 0 var(--ink)) drop-shadow(-1.5px 0 0 var(--ink)) drop-shadow(0 1.5px 0 var(--ink)) drop-shadow(0 -1.5px 0 var(--ink));
+    }
+    .scorecard { margin-top: 38px; padding: 14px 14px 10px; text-align: left; position: relative; z-index: 1; }
+    .srow { display: grid; grid-template-columns: 18px 32px 1fr 27px 27px 27px 48px; align-items: center; gap: 4px; padding: 7px 4px; border-radius: 12px; }
+    .srow.head { padding: 0 4px 6px; }
+    .srow.head span { font-size: 9.5px; font-weight: 800; letter-spacing: .1em; color: var(--ink-faint); text-align: center; }
+    .srow.head .cT { text-align: right; padding-right: 2px; }
+    .srow .rank { font-size: 13px; font-weight: 800; color: var(--ink-faint); }
+    .srow .d.mini { font-size: 23px; text-align: center; }
+    .srow .pname { font-size: 15px; font-weight: 800; padding-left: 4px; }
+    .srow .pname em { font-style: normal; font-weight: 600; font-size: 11px; color: var(--ink-soft); }
+    .srow .cR { font-size: 13px; font-weight: 700; color: var(--ink-soft); text-align: center; }
+    .srow .cT { font-size: 21px; font-weight: 800; text-align: right; padding-right: 2px; }
+    .srow.first { background: #fdf0d4; border: 2px solid var(--gold-d); box-shadow: 0 2px 0 var(--shadowc); }
+    .end-btns { margin-top: 34px; display: grid; gap: 13px; position: relative; z-index: 1; }
+
+    /* ---------- switcher chrome ---------- */
+    #switcher a { width: 27px; height: 27px; display: grid; place-items: center; background: var(--panel); border: 2px solid var(--ink); border-radius: 50%; color: var(--ink); font-weight: 800; font-size: 12px; text-decoration: none; box-shadow: 0 2px 0 var(--shadowc); font-family: "Baloo 2", sans-serif; }
+
+    /* ---------- motion (flourish only; base = resting state) ---------- */
+    @media (prefers-reduced-motion: no-preference) {
+      @keyframes bob {
+        0%, 100% { transform: translateY(var(--ty, 0)) rotate(var(--rot, 0deg)); }
+        50% { transform: translateY(calc(var(--ty, 0px) - 6px)) rotate(var(--rot, 0deg)); }
+      }
+      .cast .d, .cast .void { animation: bob 2.8s ease-in-out infinite; }
+      .cast > *:nth-child(2) { animation-delay: .25s; }
+      .cast > *:nth-child(3) { animation-delay: .5s; }
+      .cast > *:nth-child(4) { animation-delay: .75s; }
+      .cast > *:nth-child(5) { animation-delay: 1s; }
+      .cast > *:nth-child(6) { animation-delay: 1.25s; }
+
+      @keyframes lift { 0%, 100% { transform: translateY(-8px); } 50% { transform: translateY(-13px); } }
+      .ncard.sel { animation: lift 1.9s ease-in-out infinite; }
+
+      @keyframes twinkle { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+      .bstar, .burp, .spark { animation: twinkle 1.4s ease-in-out infinite; }
+      .bstar.b2 { animation-delay: .3s; }
+      .bstar.b3 { animation-delay: .6s; }
+
+      @keyframes crownwig { 0%, 100% { transform: translateX(-50%) rotate(-9deg); } 50% { transform: translateX(-50%) rotate(-3deg); } }
+      .crown { animation: crownwig 2.4s ease-in-out infinite; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= 1. HOME ================= -->
+  <main data-screen="home" class="home">
+    <div class="wrap">
+      <h1 class="wordmark" aria-label="CANCEL">
+        <span class="d c-coral" data-d="C" style="--rot:-5deg">C</span><span class="d c-gold" data-d="A" style="--rot:3deg;--ty:-6px">A</span><span class="d c-sky" data-d="N" style="--rot:-2deg;--ty:-10px">N</span><span class="d c-grass" data-d="C" style="--rot:4deg;--ty:-10px">C</span><span class="d c-plum" data-d="E" style="--rot:-3deg;--ty:-6px">E</span><span class="d c-coral" data-d="L" style="--rot:3deg">L</span>
+      </h1>
+      <p class="tagline">a number-picking party game</p>
+
+      <div class="cast">
+        <span class="d c-coral" data-d="1" style="--rot:-6deg">1<span class="face"><span class="eyes"><i class="eye"></i><i class="eye"></i></span><i class="mouth"></i></span></span>
+        <span class="d c-gold" data-d="2" style="--rot:4deg">2<span class="face"><span class="eyes"><i class="eye"></i><i class="eye"></i></span><i class="mouth"></i></span></span>
+        <span class="void" style="--rot:-4deg"><i class="vslash"></i><span class="vface"><span class="veyes"><i class="veye"></i><i class="veye"></i></span><i class="vgrin"></i></span></span>
+        <span class="d c-sky" data-d="3" style="--rot:5deg">3<span class="face"><span class="eyes"><i class="eye"></i><i class="eye"></i></span><i class="mouth"></i></span></span>
+        <span class="d c-grass wnk" data-d="4" style="--rot:-4deg">4<span class="face"><span class="eyes"><i class="eye"></i><i class="eye"></i></span><i class="mouth"></i></span></span>
+        <span class="d c-plum" data-d="5" style="--rot:5deg">5<span class="face"><span class="eyes"><i class="eye"></i><i class="eye"></i></span><i class="mouth"></i></span></span>
+      </div>
+      <div class="ground"></div>
+
+      <div class="btns">
+        <button class="btn primary">New game</button>
+        <button class="btn">Single player</button>
+        <button class="btn">Join with code</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ================= 2. LOBBY ================= -->
+  <main data-screen="lobby">
+    <div class="wrap">
+      <header class="bar">
+        <button class="btn sm">← Leave</button>
+        <button class="btn sm">Rules</button>
+      </header>
+
+      <section class="codecard panel">
+        <div class="code">
+          <span class="d c-coral" data-d="D" style="--rot:-4deg">D</span><span class="d c-sky" data-d="N" style="--rot:3deg;--ty:-3px">N</span><span class="d c-gold" data-d="2" style="--rot:-3deg">2<span class="face"><span class="eyes"><i class="eye"></i><i class="eye"></i></span><i class="mouth"></i></span></span><span class="d c-grass" data-d="H" style="--rot:4deg;--ty:-3px">H</span>
+        </div>
+        <div class="hint">press to copy</div>
+      </section>
+
+      <span class="label">Players · 4</span>
+      <ul class="players">
+        <li class="panel">
+          <span class="d mini c-coral" data-d="1">1<span class="face"><span class="eyes"><i class="eye"></i><i class="eye"></i></span><i class="mouth"></i></span></span>
+          <span class="pname">Ben</span>
+          <span class="badge host">HOST</span><span class="badge you">YOU</span><i class="dot"></i>
+        </li>
+        <li class="panel">
+          <span class="d mini c-indigo" data-d="2">2<span class="face"><span class="eyes"><i class="eye"></i><i class="eye"></i></span><i class="mouth"></i></span></span>
+          <span class="pname">Voltaire</span>
+          <span class="badge bot">BOT</span><i class="dot"></i>
+        </li>
+        <li class="panel">
+          <span class="d mini c-gold" data-d="3">3<span class="face"><span class="eyes"><i class="eye"></i><i class="eye"></i></span><i class="mouth"></i></span></span>
+          <span class="pname">Mechano</span>
+          <span class="badge bot">BOT</span><i class="dot"></i>
+        </li>
+        <li class="panel">
+          <span class="d mini c-grass" data-d="4">4<span class="face"><span class="eyes"><i class="eye"></i><i class="eye"></i></span><i class="mouth"></i></span></span>
+          <span class="pname">Data Dan</span>
+          <span class="badge bot">BOT</span><i class="dot"></i>
+        </li>
+      </ul>
+
+      <section class="setting panel">
+        <span class="sname">Rounds</span>
+        <div class="stepper"><button class="stbtn">−</button><span class="val">3</span><button class="stbtn">+</button></div>
+      </section>
+      <section class="setting panel">
+        <span class="sname">AI players</span>
+        <div class="stepper"><button class="stbtn">−</button><span class="val">3</span><button class="stbtn">+</button></div>
+      </section>
+      <section class="setting col panel">
+        <span class="sname">Power-ups</span>
+        <div class="seg"><span>None</span><span class="on">Random</span><span>Choose</span></div>
+        <p class="helper">A fresh random pool each round.</p>
+      </section>
+
+      <button class="btn primary lobby-start">Start game</button>
+    </div>
+  </main>
+
+  <!-- ================= 3. GAME ================= -->
+  <main data-screen="game">
+    <div class="wrap">
+      <header class="ghead">
+        <div class="gstat"><b>R1</b><span>/3</span><i>·</i><b>T2</b><span>/6</span><i>·</i><b>DN2H</b></div>
+        <div class="gbtns">
+          <button class="btn tiny">RULES</button>
+          <button class="btn tiny">LEAVE</button>
+          <button class="btn tiny danger">END GAME</button>
+        </div>
+      </header>
+
+      <section class="scorechips">
+        <div class="chip"><i class="pdot pd-coral"></i><span class="nm">Ben</span><b>4</b></div>
+        <div class="chip"><i class="pdot pd-indigo"></i><span class="nm">Voltaire</span><b>0</b></div>
+        <div class="chip"><i class="pdot pd-gold"></i><span class="nm">Mechano</span><b>2</b></div>
+        <div class="chip"><i class="pdot pd-grass"></i><span class="nm">Data Dan</span><b>5</b></div>
+      </section>
+
+      <section class="poolpanel panel">
+        <div class="lblrow"><span class="label">POWER-UPS REMAINING</span><span class="label">6 / 6</span></div>
+        <div class="banner">YOUR TURN, PRESS TO SELECT</div>
+        <div class="pool">
+          <div class="pcard"><span class="pglyph g-teal">⇄</span><span class="pname">SWAP HANDS</span></div>
+          <div class="pcard"><span class="pglyph g-rose">✖</span><span class="pname">SABOTAGE</span></div>
+          <div class="pcard selp"><span class="pglyph g-pink">=</span><span class="pname">JINX</span><i class="spark">✦</i></div>
+          <div class="pcard"><span class="pglyph g-emer">+2</span><span class="pname">PLUS TWO</span></div>
+          <div class="pcard"><span class="pglyph g-violet">?</span><span class="pname">WILD</span></div>
+          <div class="pcard"><span class="pglyph g-amber">↧</span><span class="pname">DRAIN</span></div>
+        </div>
+      </section>
+
+      <section class="statuspanel panel">
+        <div class="lblrow"><span class="label">PLAYERS · POWER PICKER: <b class="picker">BEN</b></span></div>
+        <div class="pstat">
+          <div class="pcell">
+            <div class="pn">Ben <em>(you)</em></div>
+            <div class="phand">Ø 1 2 3 4 5</div>
+            <span class="pst think">THINKING…</span>
+          </div>
+          <div class="pcell">
+            <div class="pn">Voltaire</div>
+            <div class="phand">Ø 1 2 3 4 5</div>
+            <span class="pst subd">SUBMITTED</span>
+          </div>
+          <div class="pcell">
+            <div class="pn">Mechano</div>
+            <div class="phand">Ø 1 2 3 4 5</div>
+            <span class="pst subd">SUBMITTED</span>
+          </div>
+          <div class="pcell">
+            <div class="pn">Data Dan</div>
+            <div class="phand">Ø 1 2 3 4 5</div>
+            <span class="pst subd">SUBMITTED</span>
+          </div>
+        </div>
+      </section>
+
+      <button class="btn ghost skipbtn">SKIP WAITING, AUTO-PLAY WHO'S LEFT</button>
+
+      <span class="label handlbl">YOUR HAND</span>
+      <div class="hand">
+        <div class="ncard">
+          <span class="void"><i class="vslash"></i><span class="vface"><span class="veyes"><i class="veye"></i><i class="veye"></i></span><i class="vgrin"></i></span></span>
+        </div>
+        <div class="ncard">
+          <span class="d c-coral slp" data-d="1">1<span class="face"><span class="eyes"><i class="eye"></i><i class="eye"></i></span><i class="mouth"></i></span></span>
+        </div>
+        <div class="ncard">
+          <span class="d c-gold slp" data-d="2">2<span class="face"><span class="eyes"><i class="eye"></i><i class="eye"></i></span><i class="mouth"></i></span></span>
+          <i class="zz">z<small>z</small></i>
+        </div>
+        <div class="ncard">
+          <span class="d c-sky slp" data-d="3">3<span class="face"><span class="eyes"><i class="eye"></i><i class="eye"></i></span><i class="mouth"></i></span></span>
+        </div>
+        <div class="ncard">
+          <span class="d c-grass slp" data-d="4">4<span class="face"><span class="eyes"><i class="eye"></i><i class="eye"></i></span><i class="mouth"></i></span></span>
+        </div>
+        <div class="ncard sel">
+          <span class="d c-plum det" data-d="5">5<span class="face"><span class="eyes"><i class="eye"></i><i class="eye"></i></span><i class="mouth"></i></span></span>
+          <i class="spark">✦</i>
+        </div>
+      </div>
+
+      <button class="btn primary lockbtn">Lock it in</button>
+    </div>
+  </main>
+
+  <!-- ================= 4. REVEAL ================= -->
+  <main data-screen="reveal">
+    <div class="wrap reveal-wrap">
+      <p class="eyebrow">TURN 2 REVEAL</p>
+      <p class="playedlbl">BEN PLAYED</p>
+      <div class="playedcard">
+        <span class="pglyph g-pink">=</span>
+        <span class="pname">JINX</span>
+      </div>
+
+      <!-- the bonk: two 5s collide head-first -->
+      <div class="bonkrow">
+        <div class="rp bonk-l">
+          <div class="ncard">
+            <span class="d c-plum" data-d="5">5<span class="face"><span class="eyes"><i class="xeye"></i><i class="xeye"></i></span><i class="mouth o"></i></span></span>
+          </div>
+          <span class="nametag t-coral">BEN</span>
+          <span class="stamp">CANCELLED</span>
+        </div>
+        <div class="bonkstars">
+          <i class="bstar b1">✶</i><i class="bstar b2">✦</i><i class="bstar b3">✦</i>
+        </div>
+        <div class="rp bonk-r">
+          <div class="ncard">
+            <span class="d c-plum" data-d="5">5<span class="face"><span class="eyes"><i class="xeye"></i><i class="xeye"></i></span><i class="mouth o"></i></span></span>
+          </div>
+          <span class="nametag t-gold">MECHANO</span>
+          <span class="stamp">CANCELLED</span>
+        </div>
+      </div>
+
+      <!-- the void beams; the 3 is seeing spirals -->
+      <div class="duorow">
+        <div class="rp">
+          <div class="voidwrap">
+            <span class="void beam"><i class="vslash"></i><span class="vface"><span class="veyes"><i class="veye"></i><i class="veye"></i></span><i class="vgrin"></i></span></span>
+            <i class="burp">✦<small>pop</small></i>
+          </div>
+          <span class="nametag t-indigo">VOLTAIRE</span>
+          <span class="pill0">0</span>
+        </div>
+        <div class="rp dazed">
+          <div class="ncard">
+            <i class="dizzy1">✦</i><i class="dizzy2">✦</i>
+            <span class="d c-sky" data-d="3">3<span class="face"><span class="eyes"><svg class="speye" viewBox="0 0 12 12"><path d="M6.5 6 A.5 .5 0 0 1 6 6.5 A1 1 0 0 1 5 5.5 A1.5 1.5 0 0 1 6.5 4 A2.5 2.5 0 0 1 9 6.5 A3.5 3.5 0 0 1 5.5 10" fill="none" stroke="#2b2117" stroke-width="1.7" stroke-linecap="round"/></svg><svg class="speye" viewBox="0 0 12 12"><path d="M6.5 6 A.5 .5 0 0 1 6 6.5 A1 1 0 0 1 5 5.5 A1.5 1.5 0 0 1 6.5 4 A2.5 2.5 0 0 1 9 6.5 A3.5 3.5 0 0 1 5.5 10" fill="none" stroke="#2b2117" stroke-width="1.7" stroke-linecap="round"/></svg></span><i class="mouth frown"></i></span></span>
+          </div>
+          <span class="nametag t-grass">DATA DAN</span>
+          <span class="stamp">CANCELLED</span>
+        </div>
+      </div>
+
+      <button class="btn primary reveal-cta">Continue</button>
+    </div>
+  </main>
+
+  <!-- ================= 5. END ================= -->
+  <main data-screen="end">
+    <div class="wrap end-wrap">
+      <i class="cf" style="left:4%; top:36px;  transform:rotate(-24deg); background:var(--coral)"></i>
+      <i class="cf" style="left:13%; top:118px; transform:rotate(32deg);  background:var(--gold)"></i>
+      <i class="cf" style="left:24%; top:58px;  transform:rotate(10deg);  background:var(--sky)"></i>
+      <i class="cf" style="left:33%; top:152px; transform:rotate(-36deg); background:var(--grass)"></i>
+      <i class="cf" style="left:45%; top:44px;  transform:rotate(20deg);  background:var(--plum)"></i>
+      <i class="cf" style="left:55%; top:128px; transform:rotate(-14deg); background:var(--coral)"></i>
+      <i class="cf" style="left:66%; top:66px;  transform:rotate(42deg);  background:var(--sky)"></i>
+      <i class="cf" style="left:77%; top:142px; transform:rotate(-26deg); background:var(--gold)"></i>
+      <i class="cf" style="left:90%; top:50px;  transform:rotate(16deg);  background:var(--grass)"></i>
+      <i class="cf dot" style="left:8%;  top:226px; background:var(--plum)"></i>
+      <i class="cf dot" style="left:30%; top:248px; background:var(--gold)"></i>
+      <i class="cf" style="left:50%; top:218px; transform:rotate(28deg);  background:var(--coral)"></i>
+      <i class="cf dot" style="left:70%; top:238px; background:var(--sky)"></i>
+      <i class="cf" style="left:89%; top:208px; transform:rotate(22deg);  background:var(--plum)"></i>
+      <i class="cf" style="left:17%; top:330px; transform:rotate(-18deg); background:var(--grass)"></i>
+      <i class="cf dot" style="left:60%; top:344px; background:var(--gold)"></i>
+      <i class="cf dot" style="left:81%; top:314px; background:var(--coral)"></i>
+      <i class="cf" style="left:41%; top:356px; transform:rotate(8deg);   background:var(--sky)"></i>
+
+      <p class="eyebrow">GAME OVER</p>
+      <h1 class="bigh">You <em>won.</em></h1>
+
+      <div class="podium">
+        <span class="d c-indigo" data-d="2" style="--rot:-7deg">2<span class="face"><span class="eyes"><i class="eye"></i><i class="eye"></i></span><i class="mouth"></i></span></span>
+        <span class="d c-gold wnk" data-d="3" style="--rot:5deg">3<span class="face"><span class="eyes"><i class="eye"></i><i class="eye"></i></span><i class="mouth"></i></span></span>
+        <span class="d winner c-coral" data-d="1" style="--rot:2deg">1<i class="crown"></i><span class="face"><span class="eyes"><i class="eye"></i><i class="eye"></i></span><i class="mouth"></i></span></span>
+        <span class="d c-grass" data-d="4" style="--rot:-5deg">4<span class="face"><span class="eyes"><i class="eye"></i><i class="eye"></i></span><i class="mouth"></i></span></span>
+        <span class="void" style="--rot:6deg"><i class="vslash"></i><span class="vface"><span class="veyes"><i class="veye"></i><i class="veye"></i></span><i class="vgrin"></i></span></span>
+      </div>
+
+      <section class="scorecard panel">
+        <div class="srow head"><span></span><span></span><span></span><span>R1</span><span>R2</span><span>R3</span><span class="cT">TOTAL</span></div>
+        <div class="srow first">
+          <span class="rank">1</span>
+          <span class="d mini c-coral" data-d="1">1<span class="face"><span class="eyes"><i class="eye"></i><i class="eye"></i></span><i class="mouth"></i></span></span>
+          <span class="pname">Ben <em>(you)</em></span>
+          <span class="cR">5</span><span class="cR">9</span><span class="cR">6</span><span class="cT">20</span>
+        </div>
+        <div class="srow">
+          <span class="rank">2</span>
+          <span class="d mini c-grass" data-d="4">4<span class="face"><span class="eyes"><i class="eye"></i><i class="eye"></i></span><i class="mouth"></i></span></span>
+          <span class="pname">Data Dan</span>
+          <span class="cR">5</span><span class="cR">4</span><span class="cR">3</span><span class="cT">12</span>
+        </div>
+        <div class="srow">
+          <span class="rank">3</span>
+          <span class="d mini c-indigo" data-d="2">2<span class="face"><span class="eyes"><i class="eye"></i><i class="eye"></i></span><i class="mouth"></i></span></span>
+          <span class="pname">Voltaire</span>
+          <span class="cR">3</span><span class="cR">2</span><span class="cR">4</span><span class="cT">9</span>
+        </div>
+        <div class="srow">
+          <span class="rank">4</span>
+          <span class="d mini c-gold" data-d="3">3<span class="face"><span class="eyes"><i class="eye"></i><i class="eye"></i></span><i class="mouth"></i></span></span>
+          <span class="pname">Mechano</span>
+          <span class="cR">0</span><span class="cR">5</span><span class="cR">2</span><span class="cT">7</span>
+        </div>
+      </section>
+
+      <div class="end-btns">
+        <button class="btn primary">Play again</button>
+        <button class="btn">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

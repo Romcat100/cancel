@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Bingo Hall</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;0,900;1,600&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ============ BINGO HALL — palette & base ============ */
+    :root {
+      --red: #b5342a; --red-l: #c84b32; --red-d: #7c1d14;
+      --blue: #27408b; --blue-l: #3a57ad; --blue-d: #1a2c63; --night: #1c2f66;
+      --cream: #f6efdf; --cream-d: #eee0c2; --paper: #fffaf0;
+      --ink: #2b2118; --ink-soft: #6b5b44;
+      --gold: #d99a1f; --gold-l: #f4b73f; --bulb: #ffd76a;
+      --pink: #d63384; --pink-d: #a01b60; --purple: #7a3f9d;
+      --green: #2e7d4f;
+      --ben: #c8442e; --ben-d: #82231a;
+      --vol: #3a57ad; --vol-d: #1a2c63;
+      --mech: #e8a020; --mech-d: #8a5a0c;
+      --dan: #34915c; --dan-d: #175c33;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: "Nunito", sans-serif;
+      color: var(--ink);
+      background-color: var(--cream);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Ccircle cx='24' cy='30' r='5' fill='%23b5342a' opacity='.055'/%3E%3Ccircle cx='102' cy='90' r='6' fill='%2327408b' opacity='.055'/%3E%3Ccircle cx='128' cy='24' r='4' fill='%232e7d4f' opacity='.05'/%3E%3Ccircle cx='56' cy='120' r='4' fill='%23d63384' opacity='.05'/%3E%3Crect x='70' y='44' width='9' height='9' rx='2' fill='%23d99a1f' opacity='.06' transform='rotate(18 74 48)'/%3E%3Crect x='14' y='78' width='8' height='8' rx='2' fill='%237a3f9d' opacity='.05' transform='rotate(-20 18 82)'/%3E%3C/svg%3E");
+    }
+    main[data-screen] { min-height: 100vh; box-shadow: inset 0 0 130px rgba(150, 95, 40, .14); }
+    main.night {
+      background-color: var(--night);
+      background-image:
+        radial-gradient(560px 380px at 50% 0, rgba(255, 214, 106, .18), transparent 70%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Ccircle cx='24' cy='30' r='4' fill='%23f6efdf' opacity='.045'/%3E%3Ccircle cx='102' cy='90' r='5' fill='%23ffd76a' opacity='.04'/%3E%3Ccircle cx='128' cy='24' r='3' fill='%23f6efdf' opacity='.04'/%3E%3Ccircle cx='56' cy='120' r='3' fill='%23d63384' opacity='.05'/%3E%3C/svg%3E");
+      box-shadow: inset 0 0 160px rgba(6, 12, 38, .8);
+      color: var(--cream);
+    }
+    .wrap { max-width: 420px; margin: 0 auto; padding: 20px 16px 48px; position: relative; }
+    button { font-family: inherit; cursor: pointer; }
+
+    /* ============ shared atoms ============ */
+    .seclabel {
+      font: 800 12px/1 "Nunito"; letter-spacing: .18em; text-transform: uppercase;
+      color: var(--blue); margin: 22px 2px 10px; display: flex; align-items: center; gap: 8px;
+    }
+    .seclabel b { color: var(--red); }
+    .seclabel::after { content: ""; flex: 1; height: 2px; background: repeating-linear-gradient(90deg, rgba(39,64,139,.3) 0 6px, transparent 6px 12px); border-radius: 2px; }
+
+    .sign {
+      display: block; width: 100%; border: none; border-radius: 14px;
+      font-family: "Lilita One", sans-serif; font-size: 22px; letter-spacing: .04em;
+      padding: 15px 16px; color: #fff6e3; text-shadow: 0 2px 0 rgba(0,0,0,.25);
+      background: linear-gradient(#cf5036, #a52d20);
+      box-shadow: 0 5px 0 var(--red-d), 0 11px 18px rgba(80, 40, 15, .3), inset 0 0 0 3px rgba(255, 246, 227, .35);
+    }
+    .sign.blue { background: linear-gradient(#3a57ad, #24408d); box-shadow: 0 5px 0 #14224d, 0 11px 18px rgba(20, 30, 70, .3), inset 0 0 0 3px rgba(255, 246, 227, .3); }
+    .sign.cream {
+      background: linear-gradient(#fffaf0, #f1e6cd); color: var(--blue); text-shadow: none;
+      box-shadow: 0 5px 0 #c9b88f, 0 11px 18px rgba(80, 40, 15, .18), inset 0 0 0 2px rgba(39, 64, 139, .25);
+    }
+    .sign.cream.dashed { box-shadow: 0 5px 0 #c9b88f, 0 9px 14px rgba(80,40,15,.16); border: 2px dashed var(--blue-l); }
+
+    .pill {
+      border: 2px solid rgba(39, 64, 139, .35); border-radius: 999px; background: var(--paper);
+      color: var(--blue); font: 800 13px "Nunito"; padding: 8px 14px;
+      box-shadow: 0 3px 0 rgba(160, 130, 80, .35);
+    }
+
+    /* ---- bulb rows (marquee lights) ---- */
+    .bulbs {
+      height: 16px; border-radius: 8px;
+      background-image:
+        radial-gradient(circle, rgba(255, 240, 190, .95) 0 2px, var(--gold-l) 2px 4px, #7a520f 4px 5px, transparent 5.5px),
+        radial-gradient(circle, rgba(255, 214, 106, .5) 0 6px, transparent 8px);
+      background-size: 26px 16px, 26px 16px;
+      background-position: 50% 50%; background-repeat: repeat-x;
+    }
+
+    /* ---- glossy bingo balls (the heroes) ---- */
+    .ball {
+      --c: #3a57ad; --cd: #1a2c63;
+      position: relative; width: 56px; height: 56px; border-radius: 50%;
+      flex: 0 0 auto; border: none; padding: 0; display: inline-block;
+      background:
+        radial-gradient(circle at 34% 30%, var(--c) 0 42%, var(--cd) 98%);
+      box-shadow:
+        inset -5px -8px 12px rgba(0, 0, 0, .38),
+        inset 2px 3px 6px rgba(255, 255, 255, .25),
+        0 5px 7px rgba(70, 35, 10, .3);
+    }
+    .ball::before {
+      content: ""; position: absolute; inset: 20%; border-radius: 50%;
+      background: radial-gradient(circle at 36% 30%, #ffffff 0 45%, #eadfc4 100%);
+      box-shadow: inset 0 -2px 3px rgba(0, 0, 0, .25), 0 1px 2px rgba(0,0,0,.2);
+    }
+    .ball::after {
+      content: ""; position: absolute; inset: 0; border-radius: 50%; z-index: 2;
+      background:
+        radial-gradient(ellipse 26% 16% at 32% 20%, rgba(255, 255, 255, .95), rgba(255,255,255,0) 100%),
+        radial-gradient(ellipse 40% 14% at 60% 92%, rgba(255, 255, 255, .18), rgba(255,255,255,0) 100%);
+    }
+    .ball span {
+      position: absolute; inset: 0; z-index: 1; display: grid; place-items: center;
+      font-family: "Lilita One", sans-serif; font-size: 24px; color: #211a12; line-height: 1;
+    }
+    .ball.b0 { --c: #4a443f; --cd: #15120f; }
+    .ball.b1 { --c: #3a57ad; --cd: #16264f; }
+    .ball.b2 { --c: #c0392b; --cd: #701710; }
+    .ball.b3 { --c: #e8a020; --cd: #8a5a0c; }
+    .ball.b4 { --c: #34915c; --cd: #14502b; }
+    .ball.b5 { --c: #8a4dab; --cd: #45205e; }
+    .ball.lg { width: 70px; height: 70px; } .ball.lg span { font-size: 31px; }
+    .ball.sm { width: 44px; height: 44px; } .ball.sm span { font-size: 19px; }
+
+    /* ---- ball rack ---- */
+    .rack { position: relative; }
+    .rack-balls { display: flex; justify-content: center; align-items: flex-end; gap: 7px; position: relative; z-index: 1; padding-top: 22px; }
+    .rack-bar {
+      height: 24px; margin-top: -20px; border-radius: 10px;
+      background: linear-gradient(#9c3326, #6e1f16 70%, #5a150e);
+      box-shadow: inset 0 4px 6px rgba(0, 0, 0, .5), 0 4px 0 #4a110b, 0 8px 12px rgba(80, 40, 15, .3);
+    }
+    .ball.picked {
+      transform: translateY(-18px);
+      box-shadow:
+        0 0 0 3px #fff6e3, 0 0 0 6px var(--pink),
+        inset -5px -8px 12px rgba(0, 0, 0, .38),
+        inset 2px 3px 6px rgba(255, 255, 255, .25),
+        0 14px 14px rgba(70, 35, 10, .35);
+    }
+
+    /* ---- raffle-ticket power cards ---- */
+    .pticket {
+      --tc: #1f8a80; --tcd: #11574f; --perf: 52px;
+      position: relative; border: none; padding: 0; border-radius: 9px;
+      background: linear-gradient(var(--paper), #f7edd8);
+      display: flex; flex-direction: column; overflow: hidden;
+      box-shadow: inset 0 0 0 2px var(--tcd);
+      -webkit-mask-image:
+        radial-gradient(circle 7px at 0 var(--perf), transparent 6.5px, #000 7px),
+        radial-gradient(circle 7px at 100% var(--perf), transparent 6.5px, #000 7px);
+      -webkit-mask-composite: source-in;
+      mask-image:
+        radial-gradient(circle 7px at 0 var(--perf), transparent 6.5px, #000 7px),
+        radial-gradient(circle 7px at 100% var(--perf), transparent 6.5px, #000 7px);
+      mask-composite: intersect;
+    }
+    .pticket .stub {
+      height: var(--perf); display: grid; place-items: center;
+      background:
+        radial-gradient(circle at 18% 30%, rgba(255,255,255,.28), transparent 55%),
+        linear-gradient(var(--tc), var(--tcd));
+      border-bottom: 2px dashed rgba(255, 250, 240, .85);
+    }
+    .pticket .stub i {
+      font-style: normal; font-family: "Lilita One", "Segoe UI Symbol", sans-serif;
+      font-size: 25px; color: #fff6e3; text-shadow: 0 2px 0 rgba(0, 0, 0, .3); line-height: 1;
+    }
+    .pticket .tname {
+      flex: 1; display: grid; place-items: center; padding: 7px 4px 9px;
+      font-family: "Lilita One", sans-serif; font-size: 13.5px; letter-spacing: .03em;
+      color: var(--tcd); text-align: center; line-height: 1.05;
+    }
+    .pticket.t-teal   { --tc: #25a195; --tcd: #0e5a52; }
+    .pticket.t-rose   { --tc: #d04a47; --tcd: #7e1815; }
+    .pticket.t-pink   { --tc: #e0509c; --tcd: #8d1d57; }
+    .pticket.t-green  { --tc: #36a169; --tcd: #145c36; }
+    .pticket.t-violet { --tc: #8a55c0; --tcd: #4b2570; }
+    .pticket.t-amber  { --tc: #e8a020; --tcd: #82530a; }
+    .pticket.sel {
+      transform: translateY(-5px) rotate(-2deg) scale(1.04);
+    }
+    .pticket.sel::after {
+      content: ""; position: absolute; inset: 2px; border-radius: 7px;
+      border: 3px solid var(--pink); pointer-events: none;
+      box-shadow: inset 0 0 0 2px rgba(255, 246, 227, .8);
+    }
+
+    /* ---- ticket strips (eyebrows, tags) ---- */
+    .tstrip {
+      --sb: var(--paper); --st: var(--blue);
+      position: relative; display: inline-block; padding: 7px 22px;
+      background: var(--sb); color: var(--st);
+      font: 800 12px/1 "Nunito"; letter-spacing: .16em; text-transform: uppercase;
+      border: 2px dashed rgba(0, 0, 0, .25); border-radius: 4px;
+      -webkit-mask-image:
+        radial-gradient(circle 6px at 0 50%, transparent 5.5px, #000 6px),
+        radial-gradient(circle 6px at 100% 50%, transparent 5.5px, #000 6px);
+      -webkit-mask-composite: source-in;
+      mask-image:
+        radial-gradient(circle 6px at 0 50%, transparent 5.5px, #000 6px),
+        radial-gradient(circle 6px at 100% 50%, transparent 5.5px, #000 6px);
+      mask-composite: intersect;
+    }
+
+    /* ---- dauber marks ---- */
+    .daub-dot {
+      width: 14px; height: 14px; border-radius: 50%; display: inline-block;
+      background: radial-gradient(circle at 50% 45%, rgba(46, 168, 90, .85) 0 55%, rgba(20, 110, 55, .9) 70%, transparent 72%);
+    }
+    .daubscore {
+      width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center;
+      font-family: "Lilita One", sans-serif; font-size: 16px; color: #4d0e33;
+      background: radial-gradient(circle at 50% 46%, rgba(214, 51, 132, .34) 0 56%, rgba(160, 27, 96, .48) 68%, transparent 71%);
+    }
+
+    /* ============ HOME ============ */
+    .home-wrap { padding-top: 44px; }
+    .marquee {
+      border-radius: 20px; padding: 12px 14px;
+      background: linear-gradient(#33508f, #1c2f66);
+      box-shadow:
+        0 7px 0 #14224d, 0 16px 26px rgba(70, 35, 10, .35),
+        inset 0 0 0 3px #14224d, inset 0 0 0 6px var(--gold);
+    }
+    .marquee-board {
+      margin: 9px 4px; padding: 18px 8px 22px; border-radius: 10px; text-align: center;
+      background:
+        radial-gradient(300px 130px at 50% 30%, rgba(255, 214, 106, .14), transparent 75%),
+        linear-gradient(#16264f, #101c3d);
+      box-shadow: inset 0 3px 10px rgba(0, 0, 0, .6);
+    }
+    .wordmark {
+      margin: 0; font-family: "Lilita One", sans-serif; font-size: 66px; line-height: 1;
+      letter-spacing: .03em; color: #fff6e3;
+      text-shadow: 0 0 22px rgba(255, 214, 106, .55), 0 4px 0 #0c1530;
+    }
+    .wordmark .lit { color: var(--bulb); text-shadow: 0 0 26px rgba(255, 214, 106, .9), 0 4px 0 #0c1530; }
+    .tagline-row { text-align: center; margin: 22px 0 30px; }
+    .tagline-row .tstrip { transform: rotate(-1.2deg); font-size: 12.5px; }
+    .home-btns { display: grid; gap: 14px; margin: 0 6px; }
+    .home-btns .sign { font-size: 24px; padding: 17px 16px; }
+    .home-rack { margin: 44px 18px 0; }
+    .home-rack .rack-balls { gap: 9px; }
+    .home-rack .rack-bar { height: 20px; margin-top: -17px; }
+
+    /* ============ LOBBY ============ */
+    .topbar { display: flex; justify-content: space-between; margin-bottom: 18px; }
+    .codeboard {
+      border-radius: 16px; padding: 10px 12px 14px; text-align: center;
+      background: linear-gradient(#33508f, #1c2f66);
+      box-shadow: 0 5px 0 #14224d, 0 10px 18px rgba(70, 35, 10, .28), inset 0 0 0 2px #14224d, inset 0 0 0 4px var(--gold);
+    }
+    .codeboard .bulbs { height: 12px; background-size: 22px 12px, 22px 12px; margin-bottom: 10px; }
+    .code-letters { display: flex; justify-content: center; gap: 8px; }
+    .code-letters span {
+      width: 52px; height: 58px; border-radius: 8px; display: grid; place-items: center;
+      background: linear-gradient(#fffaf0, #eee0c2); color: var(--blue-d);
+      font-family: "Lilita One", sans-serif; font-size: 34px;
+      box-shadow: 0 3px 0 #c9b88f, inset 0 1px 0 #fff;
+    }
+    .code-hint { margin-top: 9px; font: italic 600 12px "Nunito"; color: rgba(255, 246, 227, .75); letter-spacing: .08em; }
+    .roster { display: grid; gap: 10px; }
+    .pcard {
+      --pc: var(--ben); --pcd: var(--ben-d);
+      background: var(--paper); border-radius: 10px; overflow: hidden;
+      box-shadow: 0 3px 0 rgba(160, 130, 80, .4), 0 6px 10px rgba(80, 40, 15, .12), inset 0 0 0 2px var(--pcd);
+    }
+    .pcard-head {
+      display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+      background: linear-gradient(var(--pc), var(--pcd));
+    }
+    .pcard-head .pname { font-family: "Lilita One", sans-serif; font-size: 17px; color: #fff6e3; text-shadow: 0 1px 0 rgba(0,0,0,.3); flex: 1; }
+    .pcard.mech .pcard-head .pname { color: #3d2802; text-shadow: 0 1px 0 rgba(255,255,255,.3); }
+    .badge {
+      font: 900 9.5px "Nunito"; letter-spacing: .1em; font-style: normal;
+      padding: 3px 7px; border-radius: 4px; background: var(--paper); color: var(--blue-d);
+      border: 1px dashed rgba(39, 64, 139, .5);
+    }
+    .badge.gold { background: var(--bulb); color: #6b4a05; border-color: #a87c14; }
+    .pcard-cells { display: grid; grid-template-columns: repeat(5, 1fr); height: 21px; background: var(--paper); }
+    .pcard-cells i { border-right: 1.5px solid var(--cream-d); border-top: 1.5px solid var(--cream-d); position: relative; }
+    .pcard-cells i:last-child { border-right: none; }
+    .pcard-cells i.daubed::after {
+      content: ""; position: absolute; inset: 2px 26px 2px 26px; min-width: 15px; border-radius: 50%;
+      left: 50%; top: 50%; transform: translate(-50%, -50%); width: 15px; height: 15px; inset: auto;
+      background: radial-gradient(circle at 50% 45%, rgba(214, 51, 132, .42) 0 55%, rgba(160, 27, 96, .5) 68%, transparent 71%);
+    }
+    .pcard.ben { --pc: #cd4b33; --pcd: #82231a; }
+    .pcard.vol { --pc: #3a57ad; --pcd: #1a2c63; }
+    .pcard.mech { --pc: #f0b13a; --pcd: #b3760e; }
+    .pcard.dan { --pc: #38935e; --pcd: #175c33; }
+    .settings { display: grid; gap: 10px; }
+    .setrow {
+      background: var(--paper); border-radius: 10px; padding: 12px 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 3px 0 rgba(160, 130, 80, .4), inset 0 0 0 2px rgba(39, 64, 139, .18);
+    }
+    .setrow.col { flex-direction: column; align-items: stretch; gap: 10px; }
+    .setlabel { font: 800 15px "Nunito"; color: var(--ink); }
+    .stepper { display: flex; align-items: center; gap: 12px; }
+    .stepper button {
+      width: 34px; height: 34px; border-radius: 50%; border: none;
+      font-family: "Lilita One", sans-serif; font-size: 18px; color: #fff6e3;
+      background: radial-gradient(circle at 34% 28%, #d8604a, #a52d20 70%);
+      box-shadow: 0 3px 0 var(--red-d), inset 1px 2px 3px rgba(255,255,255,.35);
+    }
+    .stepper b { font-family: "Lilita One", sans-serif; font-size: 22px; min-width: 16px; text-align: center; }
+    .seg { display: flex; background: var(--cream-d); border-radius: 9px; padding: 4px; gap: 4px; }
+    .seg button {
+      flex: 1; border: none; border-radius: 6px; padding: 9px 0;
+      font: 800 13.5px "Nunito"; color: var(--ink-soft); background: transparent;
+    }
+    .seg button.on {
+      background: linear-gradient(#cf5036, #a52d20); color: #fff6e3;
+      box-shadow: 0 2px 0 var(--red-d), inset 0 0 0 2px rgba(255, 246, 227, .3);
+    }
+    .hint { margin: 0; font: italic 600 12.5px "Nunito"; color: var(--ink-soft); }
+    .lobby-start { margin-top: 18px; }
+
+    /* ============ GAME ============ */
+    .gamebar {
+      display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+      background: linear-gradient(#33508f, #1c2f66); border-radius: 12px; padding: 9px 12px;
+      box-shadow: 0 4px 0 #14224d, 0 8px 12px rgba(70, 35, 10, .22), inset 0 0 0 2px var(--gold);
+    }
+    .gb-stat { font-family: "Lilita One", sans-serif; font-size: 17px; color: #fff6e3; }
+    .gb-stat i { font-style: normal; color: rgba(255, 246, 227, .55); font-size: 14px; }
+    .gb-sep { color: var(--gold-l); font-weight: 900; }
+    .gb-code { font: 900 12px "Nunito"; letter-spacing: .14em; color: var(--bulb); }
+    .gb-btns { margin-left: auto; display: flex; gap: 5px; }
+    .gb-btns button {
+      border: none; border-radius: 6px; padding: 5px 8px;
+      font: 900 9.5px "Nunito"; letter-spacing: .06em;
+      background: rgba(255, 250, 240, .92); color: var(--blue-d);
+      box-shadow: 0 2px 0 rgba(0, 0, 0, .35);
+    }
+    .gb-btns button.danger { background: var(--red-l); color: #fff6e3; }
+    .scoreboard { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+    .schip {
+      display: flex; align-items: center; gap: 8px; padding: 7px 9px;
+      background: var(--paper); border-radius: 9px;
+      box-shadow: 0 3px 0 rgba(160, 130, 80, .4), inset 0 0 0 2px rgba(39, 64, 139, .16);
+    }
+    .sball {
+      --c: #3a57ad; --cd: #1a2c63;
+      width: 20px; height: 20px; border-radius: 50%; flex: 0 0 auto;
+      background: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, .95) 0 18%, var(--c) 40%, var(--cd));
+      box-shadow: inset -2px -3px 4px rgba(0, 0, 0, .35), 0 1px 2px rgba(0,0,0,.25);
+    }
+    .sball.ben { --c: #cd4b33; --cd: #82231a; }
+    .sball.vol { --c: #3a57ad; --cd: #1a2c63; }
+    .sball.mech { --c: #f0b13a; --cd: #8a5a0c; }
+    .sball.dan { --c: #38935e; --cd: #175c33; }
+    .schip span { flex: 1; font: 800 14px "Nunito"; }
+    .schip .daubscore { width: 28px; height: 28px; font-size: 14px; }
+    .poolwrap {
+      margin-top: 18px; border-radius: 14px; padding: 12px;
+      background: linear-gradient(#2e4a96, #1f3470);
+      box-shadow: 0 5px 0 #14224d, 0 10px 16px rgba(70, 35, 10, .25), inset 0 0 0 2px #16264f, inset 0 0 0 4px rgba(244, 183, 63, .8);
+    }
+    .poolhead { display: flex; justify-content: space-between; align-items: center; padding: 0 2px 10px; }
+    .poolhead span { font: 800 11px "Nunito"; letter-spacing: .16em; color: rgba(255, 246, 227, .8); }
+    .poolhead b { font-family: "Lilita One", sans-serif; font-size: 15px; color: var(--bulb); }
+    .banner {
+      position: relative; text-align: center; margin: 0 6px 12px; padding: 8px 26px;
+      background: linear-gradient(var(--gold-l), var(--gold)); border-radius: 8px;
+      font: 900 11.5px "Nunito"; letter-spacing: .14em; color: #4a3104;
+      box-shadow: 0 3px 0 #8a5a0c, inset 0 1px 0 rgba(255, 255, 255, .5);
+    }
+    .banner::before, .banner::after {
+      content: ""; position: absolute; top: 50%; width: 9px; height: 9px; border-radius: 50%;
+      transform: translateY(-50%);
+      background: radial-gradient(circle at 35% 30%, #fff8e0, var(--red-l) 60%, var(--red-d));
+    }
+    .banner::before { left: 9px; } .banner::after { right: 9px; }
+    .pool { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .statgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stat {
+      background: var(--paper); border-radius: 9px; padding: 8px 10px;
+      box-shadow: 0 3px 0 rgba(160, 130, 80, .4), inset 0 0 0 2px rgba(39, 64, 139, .16);
+    }
+    .stat-top { display: flex; align-items: center; gap: 7px; }
+    .stat-top .sball { width: 17px; height: 17px; }
+    .stat-top b { font: 800 13.5px "Nunito"; }
+    .stat-top .you { font: italic 600 11px "Nunito"; color: var(--ink-soft); }
+    .hand-mini { font: 700 11.5px "Nunito"; letter-spacing: .22em; color: #a08c68; margin: 4px 0 3px; }
+    .status { font: 900 10.5px "Nunito"; letter-spacing: .12em; display: flex; align-items: center; gap: 5px; }
+    .status.think { color: #a3690b; }
+    .status.done { color: var(--green); }
+    .status.done::before {
+      content: ""; width: 11px; height: 11px; border-radius: 50%;
+      background: radial-gradient(circle at 50% 45%, rgba(46, 168, 90, .8) 0 55%, rgba(20, 110, 55, .85) 70%, transparent 72%);
+    }
+    .ghost {
+      display: block; width: 100%; margin-top: 12px; padding: 11px;
+      background: transparent; border: 2px dashed rgba(39, 64, 139, .45); border-radius: 10px;
+      font: 900 11px "Nunito"; letter-spacing: .14em; color: var(--blue);
+    }
+    .hand-rack { margin: 8px 2px 0; }
+    .lockin { margin-top: 22px; }
+
+    /* ============ REVEAL ============ */
+    .reveal-wrap { text-align: center; }
+    .eyebrow {
+      font: 900 13px "Nunito"; letter-spacing: .26em; color: var(--bulb);
+      margin: 6px 0 4px; text-shadow: 0 0 14px rgba(255, 214, 106, .5);
+    }
+    .cage { display: block; width: 215px; margin: 0 auto -6px; }
+    .rlabel { font: 900 12px "Nunito"; letter-spacing: .22em; color: rgba(246, 239, 223, .85); margin: 6px 0 10px; }
+    .played { display: flex; justify-content: center; margin-bottom: 6px; }
+    .played .pticket { width: 108px; height: 104px; }
+    .rgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 10px; margin: 18px 4px 8px; }
+    .rcell {
+      position: relative; padding: 12px 8px 10px; border-radius: 12px;
+      background: rgba(16, 28, 61, .55); box-shadow: inset 0 0 0 1.5px rgba(244, 183, 63, .3);
+    }
+    .rname { margin: 0 0 9px; font: 900 11.5px "Nunito"; letter-spacing: .18em; }
+    .rname.ben { color: #ffab92; } .rname.vol { color: #a8bdf5; }
+    .rname.mech { color: var(--bulb); } .rname.dan { color: #93dcae; }
+    .ballwrap { position: relative; display: inline-block; }
+    .splat {
+      position: absolute; inset: -11px; z-index: 3; pointer-events: none;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(214, 51, 132, .52) 0 49%, rgba(160, 27, 96, .62) 56%, transparent 59%),
+        radial-gradient(circle at 11% 30%, rgba(214, 51, 132, .55) 0 6%, transparent 7.5%),
+        radial-gradient(circle at 90% 64%, rgba(214, 51, 132, .55) 0 5%, transparent 6.5%),
+        radial-gradient(circle at 74% 6%, rgba(214, 51, 132, .55) 0 4.5%, transparent 6%),
+        radial-gradient(circle at 22% 88%, rgba(214, 51, 132, .55) 0 4%, transparent 5.5%);
+    }
+    .ballwrap.winner { border-radius: 50%; }
+    .ballwrap.winner .ball {
+      box-shadow:
+        0 0 0 4px var(--gold-l), 0 0 0 9px rgba(244, 183, 63, .35),
+        0 0 30px 8px rgba(255, 214, 106, .55),
+        inset -5px -8px 12px rgba(0, 0, 0, .38),
+        inset 2px 3px 6px rgba(255, 255, 255, .25);
+    }
+    .rshelf {
+      height: 7px; margin: -4px 16px 8px; border-radius: 4px;
+      background: linear-gradient(#8a2a20, #5a150e);
+      box-shadow: 0 2px 0 rgba(0, 0, 0, .4);
+    }
+    .pts { margin: 2px 0 6px; font-family: "Lilita One", sans-serif; font-size: 25px; color: var(--cream); line-height: 1; }
+    .pts.win { color: var(--bulb); text-shadow: 0 0 16px rgba(255, 214, 106, .7); }
+    .cstrip {
+      --sb: var(--pink); --st: #fff2f8;
+      display: inline-block; font-family: "Lilita One", sans-serif; font-weight: 400;
+      font-size: 11.5px; letter-spacing: .14em; padding: 5px 16px;
+      border-color: rgba(255, 242, 248, .65); transform: rotate(-2deg);
+    }
+    .reveal-cta { margin-top: 18px; }
+
+    /* ============ END ============ */
+    .endwrap { text-align: center; overflow: hidden; }
+    .conf {
+      position: absolute; width: 24px; height: 13px; border-radius: 2px; opacity: .85;
+      border-top: 2px dashed rgba(255, 250, 240, .75); border-bottom: 2px dashed rgba(255, 250, 240, .75);
+    }
+    .eyebrow.day { color: var(--red); text-shadow: none; letter-spacing: .3em; margin-top: 26px; }
+    .wonline {
+      position: relative; z-index: 1; margin: 6px 0 4px;
+      font-family: "Lilita One", sans-serif; font-size: 58px; line-height: 1.05; color: var(--red);
+      text-shadow: 0 3px 0 rgba(255, 250, 240, .9), 0 6px 0 rgba(124, 29, 20, .25);
+    }
+    .wonline::after {
+      content: ""; display: block; width: 150px; height: 17px; margin: 8px auto 0; border-radius: 50%;
+      background: radial-gradient(ellipse at 50% 50%, rgba(214, 51, 132, .4) 0 52%, rgba(160, 27, 96, .45) 66%, transparent 70%);
+    }
+    .endboard {
+      position: relative; z-index: 1; margin: 22px 0 20px; padding: 12px 10px 10px; border-radius: 14px;
+      background: var(--paper);
+      box-shadow: 0 4px 0 rgba(160, 130, 80, .45), 0 10px 18px rgba(80, 40, 15, .18), inset 0 0 0 2px rgba(39, 64, 139, .25);
+    }
+    .erow {
+      display: grid; grid-template-columns: 17px 19px 1fr 27px 27px 27px 44px;
+      gap: 7px; align-items: center; padding: 8px 8px; border-radius: 9px; text-align: left;
+    }
+    .erow.head { padding: 0 8px 7px; }
+    .erow.head span { font: 900 10px "Nunito"; letter-spacing: .1em; color: var(--ink-soft); text-align: center; }
+    .erow .rank { font-family: "Lilita One", sans-serif; font-size: 15px; color: var(--ink-soft); }
+    .erow .ename { font: 800 14.5px "Nunito"; white-space: nowrap; overflow: hidden; }
+    .erow .ename em { font: italic 600 11px "Nunito"; color: var(--ink-soft); }
+    .erow .rs { font: 700 13.5px "Nunito"; color: var(--ink-soft); text-align: center; }
+    .erow .daubscore { justify-self: center; }
+    .erow.winner {
+      position: relative;
+      background:
+        radial-gradient(circle at 88% 50%, rgba(214, 51, 132, .2) 0 26%, transparent 30%),
+        linear-gradient(rgba(255, 214, 106, .35), rgba(244, 183, 63, .28));
+      box-shadow: inset 0 0 0 2px var(--gold);
+    }
+    .erow.winner .rank { color: var(--red); }
+    .erow.winner .daubscore {
+      width: 38px; height: 38px; font-size: 19px;
+      background: radial-gradient(circle at 50% 46%, rgba(214, 51, 132, .42) 0 56%, rgba(160, 27, 96, .55) 68%, transparent 71%);
+      box-shadow: 0 0 0 2px rgba(244, 183, 63, .9);
+    }
+    .end-btns { position: relative; z-index: 1; display: grid; gap: 12px; margin-top: 6px; }
+
+    /* ============ switcher ============ */
+    #switcher a {
+      width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+      background: radial-gradient(circle at 34% 28%, #4a69c2, var(--blue-d) 75%);
+      color: #fff6e3; font: 800 12px "Nunito"; text-decoration: none;
+      box-shadow: 0 2px 0 rgba(0, 0, 0, .35), inset 1px 1px 2px rgba(255, 255, 255, .3);
+    }
+
+    /* ============ motion (flourishes only) ============ */
+    @media (prefers-reduced-motion: no-preference) {
+      .sign, .pill, .pticket, .ball, .seg button, .stepper button, .ghost, .gb-btns button { transition: transform .15s ease, box-shadow .15s ease, filter .15s ease; }
+      .sign:hover, .pill:hover { transform: translateY(-2px); }
+      .sign:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--red-d); }
+      .pticket:hover { transform: translateY(-3px); }
+      .pticket.sel:hover { transform: translateY(-7px) rotate(-2deg) scale(1.04); }
+      .ball:hover { filter: brightness(1.08); }
+      @keyframes twinkle { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.45); } }
+      .bulbs { animation: twinkle 1.4s ease-in-out infinite; }
+      @keyframes glowpulse {
+        0%, 100% { text-shadow: 0 0 22px rgba(255, 214, 106, .55), 0 4px 0 #0c1530; }
+        50% { text-shadow: 0 0 34px rgba(255, 214, 106, .95), 0 4px 0 #0c1530; }
+      }
+      .wordmark { animation: glowpulse 2.6s ease-in-out infinite; }
+      @keyframes bob { 0%, 100% { transform: translateY(-18px); } 50% { transform: translateY(-23px); } }
+      .ball.picked { animation: bob 1.8s ease-in-out infinite; }
+      @keyframes sway { 0%, 100% { margin-top: 0; } 50% { margin-top: 6px; } }
+      .conf { animation: sway 3s ease-in-out infinite; }
+      .conf:nth-child(odd) { animation-delay: -1.5s; }
+      @keyframes ringpulse {
+        0%, 100% { box-shadow: 0 0 0 4px var(--gold-l), 0 0 0 9px rgba(244,183,63,.35), 0 0 30px 8px rgba(255,214,106,.55), inset -5px -8px 12px rgba(0,0,0,.38), inset 2px 3px 6px rgba(255,255,255,.25); }
+        50% { box-shadow: 0 0 0 4px var(--gold-l), 0 0 0 12px rgba(244,183,63,.5), 0 0 44px 14px rgba(255,214,106,.75), inset -5px -8px 12px rgba(0,0,0,.38), inset 2px 3px 6px rgba(255,255,255,.25); }
+      }
+      .ballwrap.winner .ball { animation: ringpulse 2s ease-in-out infinite; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ 1 · HOME ============ -->
+  <main data-screen="home">
+    <div class="wrap home-wrap">
+      <div class="marquee">
+        <div class="bulbs"></div>
+        <div class="marquee-board">
+          <h1 class="wordmark">CAN<span class="lit">CEL</span></h1>
+        </div>
+        <div class="bulbs"></div>
+      </div>
+      <div class="tagline-row">
+        <span class="tstrip">a number-picking party game</span>
+      </div>
+      <div class="home-btns">
+        <button class="sign">New game</button>
+        <button class="sign blue">Single player</button>
+        <button class="sign cream dashed">Join with code</button>
+      </div>
+      <div class="rack home-rack" aria-hidden="true">
+        <div class="rack-balls">
+          <span class="ball sm b0"><span>Ø</span></span>
+          <span class="ball sm b1"><span>1</span></span>
+          <span class="ball sm b2"><span>2</span></span>
+          <span class="ball sm b3"><span>3</span></span>
+          <span class="ball sm b4"><span>4</span></span>
+          <span class="ball sm b5"><span>5</span></span>
+        </div>
+        <div class="rack-bar"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ 2 · LOBBY ============ -->
+  <main data-screen="lobby">
+    <div class="wrap">
+      <div class="topbar">
+        <button class="pill">← Leave</button>
+        <button class="pill">Rules</button>
+      </div>
+      <div class="codeboard">
+        <div class="bulbs"></div>
+        <div class="code-letters" style="margin-top:10px"><span>D</span><span>N</span><span>2</span><span>H</span></div>
+        <div class="code-hint">press to copy</div>
+      </div>
+      <h2 class="seclabel">Players <b>·</b> 4</h2>
+      <div class="roster">
+        <div class="pcard ben">
+          <div class="pcard-head">
+            <span class="pname">Ben</span>
+            <i class="badge gold">HOST</i><i class="badge">YOU</i><span class="daub-dot"></span>
+          </div>
+          <div class="pcard-cells"><i></i><i></i><i class="daubed"></i><i></i><i></i></div>
+        </div>
+        <div class="pcard vol">
+          <div class="pcard-head">
+            <span class="pname">Voltaire</span>
+            <i class="badge">BOT</i><span class="daub-dot"></span>
+          </div>
+          <div class="pcard-cells"><i></i><i></i><i class="daubed"></i><i></i><i></i></div>
+        </div>
+        <div class="pcard mech">
+          <div class="pcard-head">
+            <span class="pname">Mechano</span>
+            <i class="badge">BOT</i><span class="daub-dot"></span>
+          </div>
+          <div class="pcard-cells"><i></i><i></i><i class="daubed"></i><i></i><i></i></div>
+        </div>
+        <div class="pcard dan">
+          <div class="pcard-head">
+            <span class="pname">Data Dan</span>
+            <i class="badge">BOT</i><span class="daub-dot"></span>
+          </div>
+          <div class="pcard-cells"><i></i><i></i><i class="daubed"></i><i></i><i></i></div>
+        </div>
+      </div>
+      <h2 class="seclabel">Settings</h2>
+      <div class="settings">
+        <div class="setrow">
+          <span class="setlabel">Rounds</span>
+          <span class="stepper"><button>−</button><b>3</b><button>+</button></span>
+        </div>
+        <div class="setrow">
+          <span class="setlabel">AI players</span>
+          <span class="stepper"><button>−</button><b>3</b><button>+</button></span>
+        </div>
+        <div class="setrow col">
+          <span class="setlabel">Power-ups</span>
+          <div class="seg"><button>None</button><button class="on">Random</button><button>Choose</button></div>
+          <p class="hint">A fresh random pool each round.</p>
+        </div>
+      </div>
+      <button class="sign lobby-start">Start game</button>
+    </div>
+  </main>
+
+  <!-- ============ 3 · GAME ============ -->
+  <main data-screen="game">
+    <div class="wrap">
+      <div class="gamebar">
+        <span class="gb-stat">R1<i>/3</i></span><span class="gb-sep">·</span><span class="gb-stat">T2<i>/6</i></span>
+        <span class="gb-code">DN2H</span>
+        <span class="gb-btns"><button>RULES</button><button>LEAVE</button><button class="danger">END GAME</button></span>
+      </div>
+      <div class="scoreboard">
+        <div class="schip"><i class="sball ben"></i><span>Ben</span><span class="daubscore">4</span></div>
+        <div class="schip"><i class="sball vol"></i><span>Voltaire</span><span class="daubscore">0</span></div>
+        <div class="schip"><i class="sball mech"></i><span>Mechano</span><span class="daubscore">2</span></div>
+        <div class="schip"><i class="sball dan"></i><span>Data Dan</span><span class="daubscore">5</span></div>
+      </div>
+      <div class="poolwrap">
+        <div class="poolhead"><span>POWER-UPS REMAINING</span><b>6 / 6</b></div>
+        <div class="banner">YOUR TURN, PRESS TO SELECT</div>
+        <div class="pool">
+          <button class="pticket t-teal"><span class="stub"><i>⇄</i></span><span class="tname">Swap Hands</span></button>
+          <button class="pticket t-rose"><span class="stub"><i>✖</i></span><span class="tname">Sabotage</span></button>
+          <button class="pticket t-pink sel"><span class="stub"><i>=</i></span><span class="tname">Jinx</span></button>
+          <button class="pticket t-green"><span class="stub"><i>+2</i></span><span class="tname">Plus Two</span></button>
+          <button class="pticket t-violet"><span class="stub"><i>?</i></span><span class="tname">Wild</span></button>
+          <button class="pticket t-amber"><span class="stub"><i>↧</i></span><span class="tname">Drain</span></button>
+        </div>
+      </div>
+      <h2 class="seclabel">PLAYERS <b>·</b> POWER PICKER: BEN</h2>
+      <div class="statgrid">
+        <div class="stat">
+          <div class="stat-top"><i class="sball ben"></i><b>Ben</b><span class="you">(you)</span></div>
+          <div class="hand-mini">Ø 1 2 3 4 5</div>
+          <div class="status think">THINKING…</div>
+        </div>
+        <div class="stat">
+          <div class="stat-top"><i class="sball vol"></i><b>Voltaire</b></div>
+          <div class="hand-mini">Ø 1 2 3 4 5</div>
+          <div class="status done">SUBMITTED</div>
+        </div>
+        <div class="stat">
+          <div class="stat-top"><i class="sball mech"></i><b>Mechano</b></div>
+          <div class="hand-mini">Ø 1 2 3 4 5</div>
+          <div class="status done">SUBMITTED</div>
+        </div>
+        <div class="stat">
+          <div class="stat-top"><i class="sball dan"></i><b>Data Dan</b></div>
+          <div class="hand-mini">Ø 1 2 3 4 5</div>
+          <div class="status done">SUBMITTED</div>
+        </div>
+      </div>
+      <button class="ghost">SKIP WAITING, AUTO-PLAY WHO'S LEFT</button>
+      <h2 class="seclabel">YOUR HAND</h2>
+      <div class="rack hand-rack">
+        <div class="rack-balls">
+          <button class="ball b0"><span>Ø</span></button>
+          <button class="ball b1"><span>1</span></button>
+          <button class="ball b2"><span>2</span></button>
+          <button class="ball b3"><span>3</span></button>
+          <button class="ball b4"><span>4</span></button>
+          <button class="ball b5 picked"><span>5</span></button>
+        </div>
+        <div class="rack-bar"></div>
+      </div>
+      <button class="sign lockin">Lock it in</button>
+    </div>
+  </main>
+
+  <!-- ============ 4 · REVEAL ============ -->
+  <main data-screen="reveal" class="night">
+    <div class="wrap reveal-wrap">
+      <p class="eyebrow">TURN 2 REVEAL</p>
+      <svg class="cage" viewBox="0 0 220 162" aria-hidden="true">
+        <path d="M70 152 L98 98 M150 152 L122 98" stroke="#caa44a" stroke-width="5" stroke-linecap="round" fill="none"/>
+        <rect x="56" y="150" width="108" height="7" rx="3.5" fill="#caa44a"/>
+        <circle cx="110" cy="62" r="46" fill="rgba(246,239,223,.05)" stroke="#f4b73f" stroke-width="3"/>
+        <ellipse cx="110" cy="62" rx="46" ry="15" fill="none" stroke="rgba(244,183,63,.5)" stroke-width="2"/>
+        <ellipse cx="110" cy="62" rx="19" ry="46" fill="none" stroke="rgba(244,183,63,.5)" stroke-width="2"/>
+        <line x1="58" y1="62" x2="162" y2="62" stroke="#caa44a" stroke-width="4"/>
+        <path d="M162 62 L177 47" stroke="#caa44a" stroke-width="4" stroke-linecap="round" fill="none"/>
+        <circle cx="180" cy="44" r="6" fill="#b5342a" stroke="#7c1d14" stroke-width="2"/>
+        <circle cx="94" cy="78" r="10" fill="#c0392b"/><circle cx="94" cy="78" r="5" fill="#fff6e3"/>
+        <circle cx="118" cy="83" r="10" fill="#3a57ad"/><circle cx="118" cy="83" r="5" fill="#fff6e3"/>
+        <circle cx="106" cy="63" r="10" fill="#e8a020"/><circle cx="106" cy="63" r="5" fill="#fff6e3"/>
+        <circle cx="129" cy="70" r="10" fill="#34915c"/><circle cx="129" cy="70" r="5" fill="#fff6e3"/>
+        <path d="M103 107 L117 107 L122 124 L98 124 Z" fill="#caa44a"/>
+        <circle cx="110" cy="138" r="11" fill="#2a2421" stroke="#f4b73f" stroke-width="1.5"/>
+        <circle cx="110" cy="138" r="5.5" fill="#fff6e3"/>
+      </svg>
+      <p class="rlabel">BEN PLAYED</p>
+      <div class="played">
+        <span class="pticket t-pink"><span class="stub"><i>=</i></span><span class="tname">Jinx</span></span>
+      </div>
+      <div class="rgrid">
+        <div class="rcell">
+          <p class="rname ben">BEN</p>
+          <span class="ballwrap"><span class="ball lg b5"><span>5</span></span><i class="splat"></i></span>
+          <div class="rshelf"></div>
+          <p class="pts">0</p>
+          <span class="tstrip cstrip">CANCELLED</span>
+        </div>
+        <div class="rcell">
+          <p class="rname vol">VOLTAIRE</p>
+          <span class="ballwrap winner"><span class="ball lg b0"><span>Ø</span></span></span>
+          <div class="rshelf"></div>
+          <p class="pts win">0</p>
+        </div>
+        <div class="rcell">
+          <p class="rname mech">MECHANO</p>
+          <span class="ballwrap"><span class="ball lg b5"><span>5</span></span><i class="splat"></i></span>
+          <div class="rshelf"></div>
+          <p class="pts">0</p>
+          <span class="tstrip cstrip">CANCELLED</span>
+        </div>
+        <div class="rcell">
+          <p class="rname dan">DATA DAN</p>
+          <span class="ballwrap"><span class="ball lg b3"><span>3</span></span><i class="splat"></i></span>
+          <div class="rshelf"></div>
+          <p class="pts">0</p>
+          <span class="tstrip cstrip">CANCELLED</span>
+        </div>
+      </div>
+      <button class="sign reveal-cta">Continue</button>
+    </div>
+  </main>
+
+  <!-- ============ 5 · END ============ -->
+  <main data-screen="end">
+    <div class="wrap endwrap">
+      <i class="conf" style="left:6%;  top:34px;  transform:rotate(24deg);  background:#c0392b"></i>
+      <i class="conf" style="left:80%; top:52px;  transform:rotate(-18deg); background:#3a57ad"></i>
+      <i class="conf" style="left:46%; top:20px;  transform:rotate(8deg);   background:#d63384"></i>
+      <i class="conf" style="left:22%; top:96px;  transform:rotate(-30deg); background:#e8a020"></i>
+      <i class="conf" style="left:88%; top:170px; transform:rotate(40deg);  background:#34915c"></i>
+      <i class="conf" style="left:3%;  top:210px; transform:rotate(-12deg); background:#8a4dab"></i>
+      <i class="conf" style="left:64%; top:118px; transform:rotate(18deg);  background:#c0392b"></i>
+      <i class="conf" style="left:12%; top:420px; transform:rotate(34deg);  background:#3a57ad"></i>
+      <i class="conf" style="left:84%; top:392px; transform:rotate(-24deg); background:#d63384"></i>
+      <i class="conf" style="left:36%; top:520px; transform:rotate(12deg);  background:#e8a020"></i>
+      <i class="conf" style="left:70%; top:560px; transform:rotate(-38deg); background:#34915c"></i>
+      <i class="conf" style="left:8%;  top:600px; transform:rotate(20deg);  background:#c0392b"></i>
+      <i class="conf" style="left:90%; top:640px; transform:rotate(-8deg);  background:#8a4dab"></i>
+      <i class="conf" style="left:50%; top:660px; transform:rotate(28deg);  background:#3a57ad"></i>
+      <i class="conf" style="left:28%; top:700px; transform:rotate(-20deg); background:#d63384"></i>
+      <i class="conf" style="left:74%; top:710px; transform:rotate(14deg);  background:#e8a020"></i>
+      <p class="eyebrow day">GAME OVER</p>
+      <h1 class="wonline">You won.</h1>
+      <div class="endboard">
+        <div class="erow head">
+          <span></span><span></span><span></span><span>R1</span><span>R2</span><span>R3</span><span>TOTAL</span>
+        </div>
+        <div class="erow winner">
+          <span class="rank">1</span><i class="sball ben"></i>
+          <span class="ename">Ben <em>(you)</em></span>
+          <span class="rs">5</span><span class="rs">9</span><span class="rs">6</span>
+          <span class="daubscore">20</span>
+        </div>
+        <div class="erow">
+          <span class="rank">2</span><i class="sball dan"></i>
+          <span class="ename">Data Dan</span>
+          <span class="rs">5</span><span class="rs">4</span><span class="rs">3</span>
+          <span class="daubscore">12</span>
+        </div>
+        <div class="erow">
+          <span class="rank">3</span><i class="sball vol"></i>
+          <span class="ename">Voltaire</span>
+          <span class="rs">3</span><span class="rs">2</span><span class="rs">4</span>
+          <span class="daubscore">9</span>
+        </div>
+        <div class="erow">
+          <span class="rank">4</span><i class="sball mech"></i>
+          <span class="ename">Mechano</span>
+          <span class="rs">0</span><span class="rs">5</span><span class="rs">2</span>
+          <span class="daubscore">7</span>
+        </div>
+      </div>
+      <div class="end-btns">
+        <button class="sign">Play again</button>
+        <button class="sign cream dashed">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

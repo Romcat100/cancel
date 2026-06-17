@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Riverstone Zen</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+    #switcher a { width: 26px; height: 26px; display: grid; place-items: center; background: rgba(255,255,255,.72); border: 1px solid #cfd6d2; border-radius: 50%; font-size: 11px; color: #5f6b69; text-decoration: none; font-family: "Zen Maru Gothic", sans-serif; }
+
+    /* ===== Riverstone Zen ===== */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif;
+      color: #33403d;
+      background:
+        radial-gradient(130% 46% at 82% -6%, rgba(243,239,228,.85), rgba(243,239,228,0) 62%),
+        radial-gradient(110% 42% at 8% 104%, rgba(157,189,182,.30), rgba(157,189,182,0) 64%),
+        radial-gradient(90% 34% at 50% 56%, rgba(207,214,210,.40), rgba(207,214,210,0) 70%),
+        linear-gradient(180deg, #edeee9 0%, #e8eae6 42%, #e0e5e1 100%);
+      min-height: 100vh;
+    }
+    .wrap { max-width: 420px; margin: 0 auto; padding: 30px 26px 54px; min-height: 100vh; position: relative; }
+    button { font-family: inherit; cursor: pointer; }
+
+    .lbl {
+      font-size: 11px; font-weight: 500;
+      letter-spacing: .32em; text-transform: uppercase;
+      color: #6b7674;
+    }
+    .hint { font-size: 12px; color: #8b9492; letter-spacing: .08em; }
+
+    /* ---- buttons: flat sand pebbles ---- */
+    .btn {
+      display: block; width: 100%; border: 0;
+      padding: 17px 20px; text-align: center;
+      font-size: 16px; font-weight: 700; letter-spacing: .05em;
+      color: #3b443d;
+      background: linear-gradient(168deg, #e0d4b8, #d4c6a4);
+      border-radius: 30px 34px 32px 36px / 34px 30px 36px 32px;
+      box-shadow: 0 12px 18px -14px rgba(95,107,105,.55);
+    }
+    .btn.quiet {
+      background: rgba(255,255,255,.55);
+      border: 1px solid #cfd6d2;
+      color: #5f6b69; font-weight: 500;
+      box-shadow: none;
+    }
+    .btn.ghost {
+      background: transparent; border: 1px dashed #c0cac5;
+      color: #8b9492; font-size: 11px; font-weight: 500;
+      letter-spacing: .22em; text-transform: uppercase;
+      padding: 13px 16px;
+      border-radius: 26px 30px 28px 32px / 30px 26px 32px 28px;
+    }
+    .chipbtn {
+      background: rgba(255,255,255,.5); border: 1px solid #d3dad5;
+      color: #6b7674; font-size: 10px; font-weight: 500;
+      letter-spacing: .18em; text-transform: uppercase;
+      padding: 7px 12px; border-radius: 16px 18px 17px 19px / 18px 16px 19px 17px;
+    }
+
+    /* ---- stones ---- */
+    .stone {
+      position: relative; z-index: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 64px; height: 58px;
+      font-weight: 900; font-size: 25px; color: #2d3936;
+      border: 0; background: none; padding: 0;
+    }
+    .stone::after {
+      content: ""; position: absolute; z-index: -2;
+      left: 6%; right: 6%; bottom: -8px; height: 13px;
+      border-radius: 50%;
+      background: radial-gradient(closest-side, rgba(51,64,61,.24), rgba(51,64,61,0));
+    }
+    .stone i {
+      position: absolute; inset: 0; z-index: -1;
+      box-shadow: inset 0 -7px 12px -6px rgba(43,53,50,.28), inset 0 4px 7px -3px rgba(255,255,255,.6);
+    }
+    .stone span { position: relative; }
+    .st0 { color: #e3e7e2; }
+    .st0 i {
+      background: radial-gradient(85% 70% at 35% 22%, rgba(255,255,255,.16), rgba(255,255,255,0) 55%), linear-gradient(160deg, #4b534f, #333c39 55%, #272f2d);
+      border-radius: 53% 47% 44% 56% / 49% 56% 44% 51%;
+      box-shadow: inset 0 -7px 12px -6px rgba(0,0,0,.4), inset 0 4px 7px -3px rgba(255,255,255,.22);
+    }
+    .st1 i { background: radial-gradient(85% 70% at 36% 24%, rgba(255,255,255,.65), rgba(255,255,255,0) 58%), #d6dad3; border-radius: 47% 53% 56% 44% / 55% 47% 53% 45%; }
+    .st2 i { background: radial-gradient(85% 70% at 34% 22%, rgba(255,255,255,.55), rgba(255,255,255,0) 58%), #c4ccc7; border-radius: 55% 45% 48% 52% / 46% 54% 46% 54%; }
+    .st3 i { background: radial-gradient(85% 70% at 38% 24%, rgba(255,255,255,.6), rgba(255,255,255,0) 58%), #cfd4cb; border-radius: 44% 56% 52% 48% / 56% 44% 56% 44%; }
+    .st4 i { background: radial-gradient(85% 70% at 33% 23%, rgba(255,255,255,.5), rgba(255,255,255,0) 58%), #bbc4bf; border-radius: 52% 48% 43% 57% / 47% 53% 45% 55%; }
+    .st5 i { background: radial-gradient(85% 70% at 36% 22%, rgba(255,255,255,.62), rgba(255,255,255,0) 58%), #d2d6cd; border-radius: 48% 52% 55% 45% / 55% 48% 52% 45%; }
+    .st0 span { transform: translate(-1px, -2px) rotate(-4deg); }
+    .st1 span { transform: translate(-3px, -1px) rotate(-5deg); }
+    .st2 span { transform: translate(2px, -2px) rotate(3deg); }
+    .st3 span { transform: translate(-2px, 1px) rotate(-2deg); }
+    .st4 span { transform: translate(2px, -1px) rotate(4deg); }
+    .st5 span { transform: translate(-2px, -2px) rotate(-3deg); }
+    .stone.sel i { box-shadow: inset 0 -7px 12px -6px rgba(43,53,50,.28), inset 0 4px 7px -3px rgba(255,255,255,.6), 0 0 0 7px rgba(232,234,230,.01); }
+    .stone.sel::before {
+      content: ""; position: absolute; inset: -9px; z-index: -2;
+      border-radius: inherit;
+      border: 2px solid rgba(122,143,106,.85);
+    }
+    .st0.sel::before { border-radius: 53% 47% 44% 56% / 49% 56% 44% 51%; }
+    .st5.sel::before { border-radius: 48% 52% 55% 45% / 55% 48% 52% 45%; }
+
+    /* ---- raked sand panel ---- */
+    .sand {
+      position: relative;
+      border-radius: 36px 44px 38px 46px / 44px 36px 46px 38px;
+      background:
+        repeating-radial-gradient(circle at 16% 140%, rgba(95,107,105,.085) 0 1.5px, transparent 1.5px 18px),
+        repeating-radial-gradient(circle at 90% -46%, rgba(95,107,105,.07) 0 1.5px, transparent 1.5px 23px),
+        linear-gradient(172deg, #eae5d6, #e3ded0);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.65), 0 14px 22px -20px rgba(95,107,105,.5);
+      padding: 30px 20px 32px;
+    }
+
+    /* ---- player identity dots ---- */
+    .pdot {
+      width: 26px; height: 26px; flex: none;
+      display: inline-grid; place-items: center;
+      font-size: 12px; font-weight: 700; color: #f6f6f2;
+      border-radius: 52% 48% 46% 54% / 50% 54% 46% 50%;
+      box-shadow: inset 0 -3px 5px -2px rgba(43,53,50,.3), inset 0 2px 3px -1px rgba(255,255,255,.35);
+    }
+    .pd-ben { background: #bd7d62; }
+    .pd-vol { background: #7b8fa6; }
+    .pd-mec { background: #c2a05e; }
+    .pd-dan { background: #7a8f6a; }
+    .mini { width: 10px; height: 10px; font-size: 0; box-shadow: none; }
+
+    .badge {
+      font-size: 9px; font-weight: 700; letter-spacing: .16em;
+      padding: 3px 8px 2px; border-radius: 10px;
+    }
+    .b-host { background: #e7dcc1; color: #7a6c48; }
+    .b-you  { background: #dee5e1; color: #5f6b69; }
+    .b-bot  { background: #dce8e5; color: #54756f; }
+    .online { width: 7px; height: 7px; border-radius: 50%; background: #7a8f6a; flex: none; }
+
+    /* ---- rows / cards ---- */
+    .row-card {
+      display: flex; align-items: center; gap: 11px;
+      background: rgba(255,255,255,.5);
+      border: 1px solid rgba(207,214,210,.7);
+      border-radius: 22px 26px 24px 28px / 26px 22px 28px 24px;
+      padding: 12px 16px;
+    }
+
+    /* ================= HOME ================= */
+    [data-screen="home"] .wrap { display: flex; flex-direction: column; }
+    .hero { margin-top: 96px; position: relative; }
+    .enso { position: absolute; width: 168px; height: 168px; top: -58px; right: 34px; transform: rotate(18deg); opacity: .9; }
+    .wordmark {
+      font-size: 56px; font-weight: 700; letter-spacing: .1em;
+      line-height: 1; color: #33403d; position: relative;
+    }
+    .wordmark b { font-weight: 700; color: #7a8f6a; }
+    .tagline { margin-top: 18px; font-size: 12px; letter-spacing: .28em; color: #5f6b69; }
+    .home-cairn { margin: 64px 0 0 26px; opacity: .9; }
+    .home-actions { margin-top: auto; display: grid; gap: 12px; padding-top: 48px; }
+
+    /* small cairn (rock stack) */
+    .cairn { position: relative; width: 84px; height: 64px; }
+    .cairn i { position: absolute; left: 50%; }
+    .cairn .c1 { bottom: 0; width: 68px; height: 26px; margin-left: -35px; background: linear-gradient(178deg, #a2aba6, #828c88); border-radius: 50% 50% 45% 55% / 65% 55% 45% 35%; }
+    .cairn .c2 { bottom: 22px; width: 46px; height: 21px; margin-left: -20px; background: linear-gradient(178deg, #d3d7d0, #b3bbb5); border-radius: 55% 45% 50% 50% / 60% 65% 35% 40%; }
+    .cairn .c3 { bottom: 40px; width: 28px; height: 15px; margin-left: -17px; background: linear-gradient(178deg, #4e5653, #383f3d); border-radius: 50% 50% 55% 45% / 65% 55% 45% 35%; }
+    .cairn::after {
+      content: ""; position: absolute; left: 4px; right: 4px; bottom: -7px; height: 12px;
+      border-radius: 50%; background: radial-gradient(closest-side, rgba(51,64,61,.2), rgba(51,64,61,0));
+    }
+    .cairn .leaf { bottom: 53px; margin-left: 2px; width: 13px; height: 8px; background: #7a8f6a; border-radius: 80% 20% 75% 25% / 60% 40% 65% 35%; transform: rotate(-18deg); opacity: .85; }
+
+    /* ================= LOBBY ================= */
+    .topbar { display: flex; justify-content: space-between; align-items: center; }
+    .roomcode { text-align: center; margin: 52px 0 60px; }
+    .roomcode .code {
+      font-size: 54px; font-weight: 700; letter-spacing: .34em;
+      color: #33403d; text-indent: .34em;
+    }
+    .roomcode .hint { display: block; margin-top: 6px; letter-spacing: .22em; text-transform: uppercase; font-size: 10px; }
+    .players-list { display: grid; gap: 9px; margin: 14px 0 40px; }
+    .players-list .name { font-weight: 700; font-size: 15px; flex: 1; }
+    .players-list .badges { display: flex; gap: 6px; align-items: center; }
+    .settings { display: grid; gap: 9px; margin: 14px 0 44px; }
+    .set-row { justify-content: space-between; }
+    .set-row .sname { font-weight: 700; font-size: 14.5px; }
+    .stepper { display: flex; align-items: center; gap: 13px; }
+    .stepper .val { font-weight: 900; font-size: 18px; min-width: 16px; text-align: center; }
+    .pebbtn {
+      width: 36px; height: 34px; border: 0;
+      background: linear-gradient(170deg, #e6dfcd, #d9d0b8);
+      border-radius: 48% 52% 50% 50% / 55% 50% 50% 45%;
+      font-size: 16px; font-weight: 700; color: #5f6b69;
+      box-shadow: inset 0 1px 1px rgba(255,255,255,.6), 0 5px 8px -6px rgba(95,107,105,.5);
+    }
+    .seg-wrap { display: block; }
+    .seg { display: flex; gap: 4px; background: rgba(95,107,105,.08); border-radius: 22px; padding: 4px; margin-top: 10px; }
+    .seg button {
+      flex: 1; border: 0; background: transparent;
+      font-size: 12.5px; font-weight: 500; letter-spacing: .06em;
+      color: #6b7674; padding: 9px 0; border-radius: 18px;
+    }
+    .seg button.on {
+      background: linear-gradient(168deg, #e0d4b8, #d4c6a4);
+      color: #3b443d; font-weight: 700;
+      box-shadow: 0 4px 8px -5px rgba(95,107,105,.5);
+    }
+    .seg-help { margin-top: 9px; }
+
+    /* ================= GAME ================= */
+    .ghead { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .ghead .stat { font-size: 13px; letter-spacing: .12em; color: #8b9492; white-space: nowrap; }
+    .ghead .stat b { color: #33403d; font-weight: 700; }
+    .ghead .acts { display: flex; gap: 5px; }
+    .ghead .chipbtn { padding: 6px 9px; font-size: 9px; letter-spacing: .12em; }
+    .scorechips { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 22px; }
+    .scorechips .row-card { padding: 9px 14px; gap: 9px; }
+    .scorechips .name { font-size: 13.5px; font-weight: 700; flex: 1; }
+    .scorechips .pts { font-size: 16px; font-weight: 900; color: #33403d; }
+    .sect-head { display: flex; justify-content: space-between; align-items: baseline; margin: 34px 0 0; }
+    .sect-head .count { font-size: 12px; letter-spacing: .18em; color: #6b7674; font-weight: 700; }
+    .turn-banner {
+      margin: 14px 0 12px; text-align: center;
+      font-size: 10.5px; font-weight: 700; letter-spacing: .3em; text-indent: .3em;
+      color: #5d7150;
+      background: rgba(122,143,106,.14);
+      border: 1px solid rgba(122,143,106,.3);
+      padding: 9px 6px; border-radius: 18px 22px 20px 24px / 22px 18px 24px 20px;
+    }
+    .powers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+    .power {
+      position: relative;
+      background: rgba(255,255,255,.6);
+      border: 1px solid rgba(207,214,210,.8);
+      border-radius: 22px 26px 24px 28px / 26px 22px 28px 24px;
+      padding: 13px 6px 11px;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+    }
+    .power b { font-size: 21px; font-weight: 900; line-height: 1; }
+    .power span { font-size: 9.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #616c69; text-align: center; }
+    .power.sel {
+      background: #edf1e7;
+      border-color: rgba(122,143,106,.7);
+      box-shadow: 0 0 0 2px rgba(122,143,106,.45);
+    }
+    .pw-teal { color: #56948a; } .pw-rose { color: #b66a6a; } .pw-pink { color: #b97c99; }
+    .pw-emer { color: #639270; } .pw-viol { color: #8d80ab; } .pw-ambr { color: #b28b48; }
+    .status-list { display: grid; gap: 8px; margin-top: 14px; }
+    .status-list .row-card { padding: 10px 14px; }
+    .status-list .who { flex: 1; min-width: 0; }
+    .status-list .who .nm { font-weight: 700; font-size: 14px; }
+    .status-list .who .nm em { font-style: normal; font-weight: 400; font-size: 11.5px; color: #8b9492; }
+    .status-list .who .hand-mini { font-size: 10.5px; letter-spacing: .3em; color: #98a19d; margin-top: 1px; }
+    .status { font-size: 10px; font-weight: 700; letter-spacing: .2em; }
+    .st-think { color: #ab7d52; }
+    .st-sub { color: #71856a; }
+    .skip { margin-top: 12px; }
+    .hand-sect { margin-top: 36px; }
+    .hand-stones { display: flex; flex-wrap: wrap; justify-content: center; gap: 26px 34px; padding: 6px 2px 10px; }
+    .hand-stones .stone { width: 76px; height: 68px; font-size: 29px; }
+    .hand-stones .stone:nth-child(1) { transform: translateY(6px); }
+    .hand-stones .stone:nth-child(2) { transform: translateY(-3px); }
+    .hand-stones .stone:nth-child(3) { transform: translateY(4px); }
+    .hand-stones .stone:nth-child(4) { transform: translateY(-2px); }
+    .hand-stones .stone:nth-child(5) { transform: translateY(5px); }
+    .hand-stones .stone:nth-child(6) { transform: translateY(-4px); }
+    .lock { margin-top: 26px; }
+
+    /* ================= REVEAL ================= */
+    [data-screen="reveal"] .wrap { display: flex; flex-direction: column; text-align: center; }
+    .rv-eyebrow { margin-top: 34px; }
+    .rv-played { margin: 44px 0 0; display: grid; justify-items: center; gap: 14px; }
+    .rv-played .power { width: 112px; padding: 16px 8px 13px; }
+    .rv-played .power b { font-size: 26px; }
+    .rv-grid { margin: 52px 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 34px 14px; }
+    .rv-cell { display: grid; justify-items: center; gap: 9px; }
+    .rv-name { font-size: 10.5px; font-weight: 700; letter-spacing: .24em; text-transform: uppercase; color: #6b7674; display: flex; align-items: center; gap: 6px; }
+    .pool { position: relative; width: 116px; height: 116px; display: grid; place-items: center; }
+    .pool .stone { width: 66px; height: 60px; font-size: 26px; }
+    .pool.sunk .stone { transform: scale(.88) translateY(3px); opacity: .8; filter: saturate(.7) brightness(.94); }
+    .pool.sunk .stone::after { opacity: 0; }
+    .pool .water {
+      position: absolute; inset: 0; border-radius: 50%;
+      background:
+        repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,0) 0 13px, rgba(255,255,255,.3) 13px 14.5px, rgba(255,255,255,0) 14.5px 27px),
+        radial-gradient(circle at 50% 36%, rgba(157,189,182,.55), rgba(122,158,150,.68) 78%);
+      box-shadow: inset 0 3px 10px rgba(51,64,61,.22), inset 0 -2px 6px rgba(255,255,255,.25);
+      display: grid; place-items: center;
+    }
+    .pool .water em {
+      font-style: normal; font-size: 10px; font-weight: 700;
+      letter-spacing: .18em; text-transform: lowercase;
+      color: #f4f7f4; opacity: .85; margin-top: 56px;
+      text-shadow: 0 1px 2px rgba(51,64,61,.3);
+    }
+    .pool.still::before {
+      content: ""; position: absolute; inset: 0; border-radius: 50%;
+      background: repeating-radial-gradient(circle at 50% 54%, rgba(108,148,140,0) 0 14px, rgba(108,148,140,.6) 14px 16px, rgba(108,148,140,0) 16px 29px);
+    }
+    .rv-out { font-size: 15px; font-weight: 900; color: #33403d; }
+    .rv-out.zero { color: #56756e; }
+    .rv-out small { display: block; font-size: 9px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: #8b9492; margin-top: 2px; }
+    .rv-continue { margin-top: auto; padding-top: 52px; }
+
+    /* ================= END ================= */
+    [data-screen="end"] .wrap { display: flex; flex-direction: column; text-align: center; overflow: hidden; }
+    .end-eyebrow { margin-top: 44px; }
+    .end-hero { margin-top: 18px; font-size: 46px; font-weight: 700; letter-spacing: .04em; color: #33403d; }
+    .end-cairn { margin: 40px auto 8px; }
+    .end-cairn .c3 { background: linear-gradient(178deg, #cfa05e, #b8894a); }
+    .rank-table { margin: 44px 0 0; display: grid; gap: 8px; text-align: left; }
+    .rank-head {
+      display: grid; grid-template-columns: 20px 18px 1fr 30px 30px 30px 50px;
+      gap: 6px; align-items: center; padding: 0 16px;
+      font-size: 9px; font-weight: 700; letter-spacing: .18em; color: #8b9492;
+    }
+    .rank-head s { text-decoration: none; text-align: right; }
+    .rank-row {
+      display: grid; grid-template-columns: 20px 18px 1fr 30px 30px 30px 50px;
+      gap: 6px; align-items: center;
+      background: rgba(255,255,255,.5);
+      border: 1px solid rgba(207,214,210,.7);
+      border-radius: 20px 24px 22px 26px / 24px 20px 26px 22px;
+      padding: 12px 16px;
+    }
+    .rank-row.win { background: rgba(231,220,193,.55); border-color: rgba(186,166,118,.55); }
+    .rank-row .pos { font-size: 12px; color: #8b9492; font-weight: 700; }
+    .rank-row .nm { font-weight: 700; font-size: 14px; min-width: 0; }
+    .rank-row .nm em { font-style: normal; font-weight: 400; font-size: 11px; color: #8b9492; }
+    .rank-row .r { text-align: right; font-size: 12.5px; color: #6b7674; }
+    .rank-row .tot { text-align: right; font-size: 17px; font-weight: 900; color: #33403d; }
+    .end-actions { margin-top: auto; padding-top: 52px; display: grid; gap: 12px; }
+    .petals { position: absolute; inset: 0; pointer-events: none; }
+    .petal { position: absolute; width: 14px; height: 9px; border-radius: 80% 20% 75% 25% / 60% 40% 65% 35%; }
+    .pe1 { left: 9%; top: 60px; background: #7a8f6a; opacity: .55; transform: rotate(-24deg); }
+    .pe2 { left: 81%; top: 96px; background: #9dbdb6; opacity: .6; transform: rotate(40deg); }
+    .pe3 { left: 30%; top: 168px; background: #d4c6a4; opacity: .8; transform: rotate(12deg); }
+    .pe4 { left: 88%; top: 250px; background: #bd7d62; opacity: .42; transform: rotate(-52deg); }
+    .pe5 { left: 6%; top: 320px; background: #9dbdb6; opacity: .5; transform: rotate(70deg); }
+    .pe6 { left: 64%; top: 38px; background: #7a8f6a; opacity: .4; transform: rotate(-8deg); width: 11px; height: 7px; }
+    .pe7 { left: 46%; top: 120px; background: #bd7d62; opacity: .35; transform: rotate(28deg); width: 11px; height: 7px; }
+    .pe8 { left: 16%; top: 224px; background: #9dbdb6; opacity: .38; transform: rotate(-64deg); width: 10px; height: 7px; }
+
+    /* ---- flourishes: motion only ---- */
+    @media (prefers-reduced-motion: no-preference) {
+      .stone.sel::before { animation: ringPulse 3.2s ease-in-out infinite; }
+      @keyframes ringPulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(122,143,106,0); }
+        45% { box-shadow: 0 0 0 7px rgba(122,143,106,.16); }
+      }
+      .pool .water { animation: waterBreathe 5s ease-in-out infinite; }
+      @keyframes waterBreathe {
+        0%, 100% { background-size: 100% 100%, 100% 100%; }
+        50% { background-size: 106% 106%, 100% 100%; }
+      }
+      .petal { animation: drift 7s ease-in-out infinite alternate; }
+      .pe2, .pe5, .pe7 { animation-duration: 9s; animation-delay: -3s; }
+      .pe3, .pe6, .pe8 { animation-duration: 8s; animation-delay: -5s; }
+      @keyframes drift {
+        from { translate: 0 0; }
+        to { translate: 14px 22px; }
+      }
+      .btn { transition: transform .25s ease, box-shadow .25s ease; }
+      .btn:hover { transform: translateY(-2px); }
+      .cairn { transition: transform .4s ease; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= 1. HOME ================= -->
+  <main data-screen="home">
+    <div class="wrap">
+      <div class="hero">
+        <svg class="enso" viewBox="0 0 200 200" aria-hidden="true">
+          <path d="M128 26 A 80 80 0 1 0 166 58" fill="none" stroke="rgba(157,189,182,.5)" stroke-width="11" stroke-linecap="round"/>
+          <path d="M128 26 A 80 80 0 1 0 166 58" fill="none" stroke="rgba(122,158,150,.25)" stroke-width="5" stroke-linecap="round" transform="translate(2,3)"/>
+        </svg>
+        <h1 class="wordmark">CAN<b>CEL</b></h1>
+        <p class="tagline">a number-picking party game</p>
+      </div>
+      <div class="cairn home-cairn" aria-hidden="true">
+        <i class="c1"></i><i class="c2"></i><i class="c3"></i><i class="leaf"></i>
+      </div>
+      <div class="home-actions">
+        <button class="btn">New game</button>
+        <button class="btn quiet">Single player</button>
+        <button class="btn quiet">Join with code</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ================= 2. LOBBY ================= -->
+  <main data-screen="lobby">
+    <div class="wrap">
+      <div class="topbar">
+        <button class="chipbtn">← Leave</button>
+        <button class="chipbtn">Rules</button>
+      </div>
+
+      <div class="roomcode">
+        <div class="code">DN2H</div>
+        <span class="hint">press to copy</span>
+      </div>
+
+      <div class="lbl">Players · 4</div>
+      <div class="players-list">
+        <div class="row-card">
+          <span class="pdot pd-ben">B</span>
+          <span class="name">Ben</span>
+          <span class="badges"><span class="badge b-host">HOST</span><span class="badge b-you">YOU</span><span class="online"></span></span>
+        </div>
+        <div class="row-card">
+          <span class="pdot pd-vol">V</span>
+          <span class="name">Voltaire</span>
+          <span class="badges"><span class="badge b-bot">BOT</span><span class="online"></span></span>
+        </div>
+        <div class="row-card">
+          <span class="pdot pd-mec">M</span>
+          <span class="name">Mechano</span>
+          <span class="badges"><span class="badge b-bot">BOT</span><span class="online"></span></span>
+        </div>
+        <div class="row-card">
+          <span class="pdot pd-dan">D</span>
+          <span class="name">Data Dan</span>
+          <span class="badges"><span class="badge b-bot">BOT</span><span class="online"></span></span>
+        </div>
+      </div>
+
+      <div class="lbl">Settings</div>
+      <div class="settings">
+        <div class="row-card set-row">
+          <span class="sname">Rounds</span>
+          <span class="stepper">
+            <button class="pebbtn">−</button>
+            <span class="val">3</span>
+            <button class="pebbtn">+</button>
+          </span>
+        </div>
+        <div class="row-card set-row">
+          <span class="sname">AI players</span>
+          <span class="stepper">
+            <button class="pebbtn">−</button>
+            <span class="val">3</span>
+            <button class="pebbtn">+</button>
+          </span>
+        </div>
+        <div class="row-card seg-wrap">
+          <span class="sname">Power-ups</span>
+          <div class="seg">
+            <button>None</button>
+            <button class="on">Random</button>
+            <button>Choose</button>
+          </div>
+          <p class="hint seg-help">A fresh random pool each round.</p>
+        </div>
+      </div>
+
+      <button class="btn">Start game</button>
+    </div>
+  </main>
+
+  <!-- ================= 3. GAME ================= -->
+  <main data-screen="game">
+    <div class="wrap">
+      <div class="ghead">
+        <span class="stat"><b>R1</b>/3 · <b>T2</b>/6 · DN2H</span>
+        <span class="acts">
+          <button class="chipbtn">Rules</button>
+          <button class="chipbtn">Leave</button>
+          <button class="chipbtn">End game</button>
+        </span>
+      </div>
+
+      <div class="scorechips">
+        <div class="row-card"><span class="pdot pd-ben mini"></span><span class="name">Ben</span><span class="pts">4</span></div>
+        <div class="row-card"><span class="pdot pd-vol mini"></span><span class="name">Voltaire</span><span class="pts">0</span></div>
+        <div class="row-card"><span class="pdot pd-mec mini"></span><span class="name">Mechano</span><span class="pts">2</span></div>
+        <div class="row-card"><span class="pdot pd-dan mini"></span><span class="name">Data Dan</span><span class="pts">5</span></div>
+      </div>
+
+      <div class="sect-head">
+        <span class="lbl">Power-ups remaining</span>
+        <span class="count">6 / 6</span>
+      </div>
+      <div class="turn-banner">Your turn, press to select</div>
+      <div class="powers">
+        <button class="power"><b class="pw-teal">⇄</b><span>Swap Hands</span></button>
+        <button class="power"><b class="pw-rose">✖</b><span>Sabotage</span></button>
+        <button class="power sel"><b class="pw-pink">=</b><span>Jinx</span></button>
+        <button class="power"><b class="pw-emer">+2</b><span>Plus Two</span></button>
+        <button class="power"><b class="pw-viol">?</b><span>Wild</span></button>
+        <button class="power"><b class="pw-ambr">↧</b><span>Drain</span></button>
+      </div>
+
+      <div class="sect-head">
+        <span class="lbl">Players · Power picker: Ben</span>
+      </div>
+      <div class="status-list">
+        <div class="row-card">
+          <span class="pdot pd-ben">B</span>
+          <span class="who"><span class="nm">Ben <em>(you)</em></span><div class="hand-mini">Ø 1 2 3 4 5</div></span>
+          <span class="status st-think">THINKING…</span>
+        </div>
+        <div class="row-card">
+          <span class="pdot pd-vol">V</span>
+          <span class="who"><span class="nm">Voltaire</span><div class="hand-mini">Ø 1 2 3 4 5</div></span>
+          <span class="status st-sub">SUBMITTED</span>
+        </div>
+        <div class="row-card">
+          <span class="pdot pd-mec">M</span>
+          <span class="who"><span class="nm">Mechano</span><div class="hand-mini">Ø 1 2 3 4 5</div></span>
+          <span class="status st-sub">SUBMITTED</span>
+        </div>
+        <div class="row-card">
+          <span class="pdot pd-dan">D</span>
+          <span class="who"><span class="nm">Data Dan</span><div class="hand-mini">Ø 1 2 3 4 5</div></span>
+          <span class="status st-sub">SUBMITTED</span>
+        </div>
+      </div>
+      <button class="btn ghost skip">Skip waiting, auto-play who's left</button>
+
+      <div class="hand-sect">
+        <div class="sect-head" style="margin-top:0; margin-bottom:14px;">
+          <span class="lbl">Your hand</span>
+        </div>
+        <div class="sand">
+          <div class="hand-stones">
+            <button class="stone st0"><i></i><span>Ø</span></button>
+            <button class="stone st1"><i></i><span>1</span></button>
+            <button class="stone st2"><i></i><span>2</span></button>
+            <button class="stone st3"><i></i><span>3</span></button>
+            <button class="stone st4"><i></i><span>4</span></button>
+            <button class="stone st5 sel"><i></i><span>5</span></button>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn lock">Lock it in</button>
+    </div>
+  </main>
+
+  <!-- ================= 4. REVEAL ================= -->
+  <main data-screen="reveal">
+    <div class="wrap">
+      <div class="lbl rv-eyebrow">Turn 2 reveal</div>
+
+      <div class="rv-played">
+        <span class="lbl" style="font-size:10px;">Ben played</span>
+        <div class="power sel"><b class="pw-pink">=</b><span>Jinx</span></div>
+      </div>
+
+      <div class="rv-grid">
+        <div class="rv-cell">
+          <span class="rv-name"><span class="pdot pd-ben mini"></span>Ben</span>
+          <div class="pool sunk">
+            <span class="stone st5"><i></i><span>5</span></span>
+            <span class="water"><em>cancelled</em></span>
+          </div>
+          <span class="rv-out">0<small>cancelled</small></span>
+        </div>
+        <div class="rv-cell">
+          <span class="rv-name"><span class="pdot pd-vol mini"></span>Voltaire</span>
+          <div class="pool still">
+            <span class="stone st0"><i></i><span>Ø</span></span>
+          </div>
+          <span class="rv-out zero">0</span>
+        </div>
+        <div class="rv-cell">
+          <span class="rv-name"><span class="pdot pd-mec mini"></span>Mechano</span>
+          <div class="pool sunk">
+            <span class="stone st4"><i></i><span>5</span></span>
+            <span class="water"><em>cancelled</em></span>
+          </div>
+          <span class="rv-out">0<small>cancelled</small></span>
+        </div>
+        <div class="rv-cell">
+          <span class="rv-name"><span class="pdot pd-dan mini"></span>Data Dan</span>
+          <div class="pool sunk">
+            <span class="stone st3"><i></i><span>3</span></span>
+            <span class="water"><em>cancelled</em></span>
+          </div>
+          <span class="rv-out">0<small>cancelled</small></span>
+        </div>
+      </div>
+
+      <div class="rv-continue">
+        <button class="btn">Continue</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ================= 5. END ================= -->
+  <main data-screen="end">
+    <div class="wrap">
+      <div class="petals" aria-hidden="true">
+        <span class="petal pe1"></span><span class="petal pe2"></span><span class="petal pe3"></span>
+        <span class="petal pe4"></span><span class="petal pe5"></span><span class="petal pe6"></span>
+        <span class="petal pe7"></span><span class="petal pe8"></span>
+      </div>
+
+      <div class="lbl end-eyebrow">Game over</div>
+      <h2 class="end-hero">You won.</h2>
+
+      <div class="cairn end-cairn" aria-hidden="true">
+        <i class="c1"></i><i class="c2"></i><i class="c3"></i><i class="leaf"></i>
+      </div>
+
+      <div class="rank-table">
+        <div class="rank-head">
+          <s></s><s></s><s></s><s>R1</s><s>R2</s><s>R3</s><s>TOTAL</s>
+        </div>
+        <div class="rank-row win">
+          <span class="pos">1</span><span class="pdot pd-ben mini"></span>
+          <span class="nm">Ben <em>(you)</em></span>
+          <span class="r">5</span><span class="r">9</span><span class="r">6</span><span class="tot">20</span>
+        </div>
+        <div class="rank-row">
+          <span class="pos">2</span><span class="pdot pd-dan mini"></span>
+          <span class="nm">Data Dan</span>
+          <span class="r">5</span><span class="r">4</span><span class="r">3</span><span class="tot">12</span>
+        </div>
+        <div class="rank-row">
+          <span class="pos">3</span><span class="pdot pd-vol mini"></span>
+          <span class="nm">Voltaire</span>
+          <span class="r">3</span><span class="r">2</span><span class="r">4</span><span class="tot">9</span>
+        </div>
+        <div class="rank-row">
+          <span class="pos">4</span><span class="pdot pd-mec mini"></span>
+          <span class="nm">Mechano</span>
+          <span class="r">0</span><span class="r">5</span><span class="r">2</span><span class="tot">7</span>
+        </div>
+      </div>
+
+      <div class="end-actions">
+        <button class="btn">Play again</button>
+        <button class="btn quiet">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

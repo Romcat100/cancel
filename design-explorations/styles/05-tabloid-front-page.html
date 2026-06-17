@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Tabloid Front Page</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+    #switcher a { font-family: Anton, sans-serif; font-size: 12px; color: #f2efe6; background: #111008;
+      border: 1px solid #f2efe6; padding: 4px 9px; text-decoration: none; }
+
+    /* ============ TABLOID FRONT PAGE ============ */
+    :root {
+      --paper: #f2efe6;
+      --paper-dim: #e7e2d3;
+      --ink: #111008;
+      --ink-soft: #54503f;
+      --red: #cc0000;
+      --yellow: #f3cf2b;
+      --ben: #cf4a1f;
+      --vol: #33518e;
+      --mec: #b8860d;
+      --dan: #2f7a4d;
+      --teal: #1d7a6f;
+      --rose: #b32d44;
+      --pink: #c2407e;
+      --emer: #2e7d4f;
+      --viol: #6b4fa1;
+      --amber: #b07c10;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { background: var(--paper); }
+    body {
+      background-color: var(--paper);
+      background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='180' height='180' filter='url(%23n)' opacity='0.07'/></svg>");
+      color: var(--ink);
+      font-family: "PT Serif", Georgia, serif;
+      font-size: 14px;
+      line-height: 1.4;
+      -webkit-font-smoothing: antialiased;
+    }
+    .sheet { max-width: 420px; margin: 0 auto; padding: 10px 14px 24px; position: relative; }
+    button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+
+    /* --- shared newspaper furniture --- */
+    .topstrip {
+      display: flex; justify-content: space-between; gap: 8px;
+      border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink);
+      font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase;
+      padding: 3px 2px; color: var(--ink);
+    }
+    .skybox {
+      background: var(--yellow); border: 1.5px solid var(--ink);
+      font-family: Anton, sans-serif; font-size: 11px; letter-spacing: .08em;
+      text-transform: uppercase; text-align: center; padding: 6px 8px 5px; margin: 6px 0;
+    }
+    .skybox b { color: var(--red); }
+    .rule-thickthin { border-top: 3px solid var(--ink); margin-top: 2px; position: relative; }
+    .rule-thickthin::after { content: ""; display: block; border-top: 1px solid var(--ink); margin-top: 2px; }
+    .kicker {
+      font-family: Anton, sans-serif; color: var(--red); font-size: 11px;
+      letter-spacing: .22em; text-transform: uppercase;
+    }
+    .sec {
+      display: flex; align-items: baseline; justify-content: space-between;
+      border-top: 3px solid var(--ink); border-bottom: 1px solid var(--ink);
+      padding: 5px 2px 4px; margin: 16px 0 10px;
+      font-family: Anton, sans-serif; font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+    }
+    .sec .count { color: var(--red); letter-spacing: .08em; }
+    .pagefoot {
+      display: flex; justify-content: space-between;
+      border-top: 3px solid var(--ink); margin-top: 20px; padding-top: 5px;
+      font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft);
+    }
+    .sw { display: inline-block; width: 9px; height: 9px; background: var(--c, var(--ink)); flex: none; }
+
+    /* --- buttons --- */
+    .btn-stack { margin: 14px 0 0; }
+    .strap {
+      display: block; background: var(--red); color: #fff;
+      font-family: Anton, sans-serif; font-size: 10px; letter-spacing: .34em;
+      text-transform: uppercase; text-align: center; padding: 4px 0 3px;
+    }
+    .btn-primary {
+      display: block; width: 100%; min-height: 58px;
+      background: var(--ink); color: var(--paper);
+      font-family: Anton, sans-serif; font-size: 30px; line-height: 1;
+      text-transform: uppercase; letter-spacing: .04em;
+      padding: 15px 10px 12px; text-align: center;
+    }
+    .btn-box {
+      display: block; width: 100%; min-height: 50px;
+      border: 2px solid var(--ink); background: transparent;
+      font-family: Anton, sans-serif; font-size: 19px; line-height: 1;
+      text-transform: uppercase; letter-spacing: .04em;
+      padding: 14px 8px 12px; text-align: center; color: var(--ink);
+    }
+    .btn-mini {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-height: 40px; padding: 0 10px;
+      border: 1.5px solid var(--ink); background: var(--paper);
+      font-family: Anton, sans-serif; font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+    }
+    .btn-ghost {
+      display: block; width: 100%; min-height: 44px; margin-top: 10px;
+      border: 2px dashed rgba(17,16,8,.5); color: var(--ink-soft); background: transparent;
+      font-family: Anton, sans-serif; font-size: 11px; letter-spacing: .12em;
+      text-transform: uppercase; padding: 12px 8px; text-align: center;
+    }
+
+    /* ================= HOME ================= */
+    .masthead { position: relative; background: var(--red); padding: 16px 8px 8px; text-align: center; margin-top: 6px; }
+    .masthead h1 {
+      font-family: Anton, sans-serif; font-size: 96px; line-height: .88;
+      color: var(--paper); letter-spacing: .015em; text-transform: uppercase;
+    }
+    .masthead .since {
+      color: #ffd9d9; font-size: 9px; letter-spacing: .3em; text-transform: uppercase; margin-top: 6px;
+    }
+    .sticker {
+      position: absolute; top: -12px; right: -4px; width: 74px; height: 74px;
+      background: var(--yellow); border: 2px solid var(--ink); border-radius: 50%;
+      transform: rotate(9deg);
+      display: flex; align-items: center; justify-content: center; text-align: center;
+      font-family: Anton, sans-serif; font-size: 11px; line-height: 1.15; letter-spacing: .04em;
+      text-transform: uppercase; padding: 8px; color: var(--ink);
+      box-shadow: 2px 3px 0 rgba(17,16,8,.3);
+    }
+    .tagbar {
+      background: var(--ink); color: var(--yellow);
+      font-family: Anton, sans-serif; font-size: 14px; letter-spacing: .32em;
+      text-transform: uppercase; text-align: center; padding: 7px 4px 6px;
+    }
+    .lead-kicker {
+      display: flex; align-items: center; gap: 10px; margin: 16px 0 7px;
+    }
+    .lead-kicker::after { content: ""; flex: 1; border-top: 1px solid var(--ink); }
+    .btn-lead {
+      display: block; width: 100%; background: var(--ink); color: var(--paper);
+      font-family: Anton, sans-serif; font-size: 46px; line-height: .95;
+      text-transform: uppercase; padding: 18px 10px 14px; text-align: center;
+    }
+    .btn-lead small {
+      display: block; font-family: "PT Serif", serif; font-style: italic; font-weight: 400;
+      font-size: 12px; letter-spacing: .02em; text-transform: none; color: var(--paper-dim); margin-top: 7px;
+    }
+    .home-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; margin-top: 14px; position: relative; }
+    .home-cols::before { content: ""; position: absolute; top: 4px; bottom: 4px; left: 50%; border-left: 1px solid rgba(17,16,8,.55); }
+    .story .kicker { display: block; margin-bottom: 6px; }
+    .story .deck { font-style: italic; font-size: 12px; color: var(--ink-soft); margin-top: 6px; }
+    .article { margin-top: 18px; }
+    .article h3 { font-family: Anton, sans-serif; font-size: 24px; line-height: 1; text-transform: uppercase; margin: 4px 0 8px; }
+    .article-flex { display: flex; gap: 12px; }
+    .article-flex p { flex: 1; font-size: 12px; line-height: 1.5; text-align: justify; hyphens: auto; }
+    .article-flex p::first-letter { font-family: Anton, sans-serif; font-size: 30px; float: left; line-height: .8; padding: 3px 5px 0 0; }
+    .filephoto { width: 124px; flex: none; }
+    .filephoto .ph {
+      position: relative; height: 104px; border: 1.5px solid var(--ink); overflow: hidden;
+      background: linear-gradient(180deg, #d8d3c4, #bdb7a3);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .filephoto .ph .zero { font-family: Anton, sans-serif; font-size: 68px; color: rgba(17,16,8,.78); line-height: 1; }
+    .filephoto .ph::after {
+      content: ""; position: absolute; inset: 0;
+      background-image: radial-gradient(circle, rgba(242,239,230,.7) 1px, transparent 1.3px);
+      background-size: 3.5px 3.5px;
+    }
+    .filephoto .ph .ftag {
+      position: absolute; bottom: 6px; right: -8px; transform: rotate(-7deg);
+      font-family: Anton, sans-serif; font-size: 8.5px; letter-spacing: .12em; color: var(--red);
+      border: 1.5px solid var(--red); padding: 1px 14px 1px 5px; background: rgba(242,239,230,.85); z-index: 1;
+    }
+    .filephoto figcaption { font-size: 9px; font-style: italic; color: var(--ink-soft); margin-top: 4px; line-height: 1.35; }
+
+    /* ================= LOBBY ================= */
+    .lobbybar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+    .miniplate {
+      background: var(--red); color: var(--paper); font-family: Anton, sans-serif;
+      font-size: 13px; letter-spacing: .06em; padding: 3px 8px 2px; text-transform: uppercase;
+    }
+    .lobby-head { text-align: center; margin: 14px 0 4px; }
+    .lobby-head h2 { font-family: Anton, sans-serif; font-size: 42px; line-height: .95; text-transform: uppercase; margin-top: 4px; }
+    .coupon {
+      border: 2.5px dashed var(--ink); background: rgba(255,255,255,.4);
+      text-align: center; padding: 14px 10px 12px; margin: 14px 0 4px; position: relative;
+    }
+    .coupon .scis { position: absolute; top: -12px; left: 16px; background: var(--paper); padding: 0 5px; font-size: 15px; }
+    .coupon .code { font-family: Anton, sans-serif; font-size: 60px; line-height: 1; letter-spacing: .16em; margin: 6px 0 2px; text-indent: .16em; }
+    .coupon .hint { font-style: italic; font-size: 12px; color: var(--ink-soft); }
+    .mugs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .mug { border: 2px solid var(--ink); background: var(--paper); }
+    .mug .photo {
+      position: relative; height: 88px; overflow: hidden;
+      background:
+        repeating-linear-gradient(180deg, rgba(17,16,8,.18) 0 1px, transparent 1px 14px),
+        linear-gradient(180deg, #dad5c6, #c3bda9);
+    }
+    .mug .photo svg { position: absolute; left: 50%; bottom: -2px; transform: translateX(-50%); height: 76px; width: auto; opacity: .92; }
+    .mug .photo::after {
+      content: ""; position: absolute; inset: 0;
+      background-image: radial-gradient(circle, rgba(242,239,230,.65) 1px, transparent 1.3px);
+      background-size: 3.5px 3.5px;
+    }
+    .nameplate { border-top: 2px solid var(--ink); padding: 6px 7px 7px; }
+    .nameplate .nm { display: flex; align-items: center; gap: 6px; font-family: Anton, sans-serif; font-size: 15px; letter-spacing: .02em; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #2f7a4d; margin-left: auto; flex: none; }
+    .badges { display: flex; gap: 4px; margin-top: 5px; flex-wrap: wrap; }
+    .badge {
+      font-family: Anton, sans-serif; font-size: 8.5px; letter-spacing: .1em;
+      padding: 2px 5px 1px; border: 1.5px solid var(--ink); text-transform: uppercase;
+    }
+    .b-host { background: var(--red); border-color: var(--red); color: #fff; }
+    .b-you { background: var(--yellow); }
+    .b-bot { background: var(--ink); color: var(--paper); }
+    .bk { font-size: 8.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); border-top: 1px dotted rgba(17,16,8,.4); margin-top: 6px; padding-top: 4px; }
+    .setrow { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px dotted rgba(17,16,8,.5); }
+    .setrow .lbl { font-family: Anton, sans-serif; font-size: 14px; letter-spacing: .06em; text-transform: uppercase; }
+    .setrow .leader { flex: 1; border-bottom: 2px dotted rgba(17,16,8,.45); transform: translateY(-3px); }
+    .step {
+      width: 44px; height: 44px; border: 2px solid var(--ink); background: var(--paper);
+      font-family: Anton, sans-serif; font-size: 19px;
+      display: inline-flex; align-items: center; justify-content: center; flex: none;
+    }
+    .setrow .val { font-family: Anton, sans-serif; font-size: 24px; width: 30px; text-align: center; }
+    .powrow { padding: 11px 0 12px; border-bottom: 1px dotted rgba(17,16,8,.5); }
+    .segment { display: flex; border: 2px solid var(--ink); margin-top: 9px; }
+    .segment button {
+      flex: 1; min-height: 44px; font-family: Anton, sans-serif; font-size: 14px;
+      letter-spacing: .06em; text-transform: uppercase; background: var(--paper);
+      border-left: 2px solid var(--ink);
+    }
+    .segment button:first-child { border-left: none; }
+    .segment button.on { background: var(--yellow); box-shadow: inset 0 0 0 2px var(--ink); position: relative; }
+    .segment button.on::after { content: "✔"; color: var(--red); font-size: 11px; margin-left: 5px; }
+    .helper { font-style: italic; font-size: 12.5px; color: var(--ink-soft); margin-top: 7px; }
+
+    /* ================= GAME ================= */
+    .gamebar { display: flex; align-items: center; gap: 5px; margin-top: 8px; }
+    .gamebar .info { font-family: Anton, sans-serif; font-size: 16px; letter-spacing: .03em; margin-right: auto; white-space: nowrap; }
+    .gamebar .info em { font-style: normal; color: var(--red); }
+    .ticker {
+      display: flex; align-items: center; justify-content: space-between; gap: 6px;
+      background: var(--ink); color: var(--paper);
+      font-family: Anton, sans-serif; font-size: 12.5px; letter-spacing: .04em;
+      padding: 8px 9px 7px; margin-top: 8px; white-space: nowrap; overflow: hidden;
+    }
+    .ticker .tl { background: var(--red); color: #fff; font-size: 9px; letter-spacing: .14em; padding: 3px 5px 2px; flex: none; }
+    .ticker .ti { display: inline-flex; align-items: center; gap: 5px; }
+    .ticker .ti b { color: var(--yellow); font-weight: 400; }
+    .alert {
+      background: var(--red); color: #fff; font-family: Anton, sans-serif;
+      font-size: 14px; letter-spacing: .13em; text-transform: uppercase;
+      text-align: center; padding: 9px 6px 8px; margin: 2px 0 10px;
+    }
+    .ads { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .ad {
+      position: relative; border: 1.5px solid var(--ink); background: var(--paper);
+      padding: 9px 4px 7px; text-align: center; min-height: 100px;
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .ad .glyph { font-family: Anton, sans-serif; font-size: 30px; line-height: 1.05; color: var(--pc, var(--ink)); }
+    .ad .nm {
+      font-family: Anton, sans-serif; font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase;
+      border-top: 1px solid var(--ink); margin-top: 7px; padding-top: 5px;
+    }
+    .ad .bx { font-size: 8.5px; font-style: italic; color: var(--ink-soft); margin-top: 2px; }
+    .ad.sel { background: var(--yellow); box-shadow: 0 0 0 2px var(--ink); }
+    .picked {
+      position: absolute; top: -10px; right: -7px; transform: rotate(8deg);
+      border: 2px solid var(--red); color: var(--red); background: rgba(242,239,230,.92);
+      font-family: Anton, sans-serif; font-size: 9px; letter-spacing: .1em; padding: 2px 5px 1px;
+    }
+    .prow { display: flex; align-items: center; gap: 8px; padding: 8px 2px; border-bottom: 1px solid rgba(17,16,8,.35); }
+    .prow .nm { font-family: Anton, sans-serif; font-size: 14px; letter-spacing: .02em; white-space: nowrap; }
+    .prow .you { font-family: "PT Serif", serif; font-style: italic; font-size: 11px; color: var(--ink-soft); }
+    .prow .hand { font-size: 11px; letter-spacing: .2em; color: var(--ink-soft); margin-left: 2px; }
+    .prow .st { margin-left: auto; white-space: nowrap; }
+    .st-sub { font-family: Anton, sans-serif; font-size: 10px; letter-spacing: .12em; color: var(--red); border: 1.5px solid var(--red); padding: 2px 5px 1px; transform: rotate(-2deg); display: inline-block; }
+    .st-think { font-style: italic; font-size: 12.5px; }
+    .ticket { border: 2px solid var(--ink); background: var(--paper); }
+    .ticket-head {
+      display: flex; justify-content: space-between; font-size: 8.5px; letter-spacing: .16em;
+      text-transform: uppercase; padding: 4px 8px 3px; border-bottom: 1px solid var(--ink); color: var(--ink-soft);
+    }
+    .cells { display: grid; grid-template-columns: repeat(6, 1fr); }
+    .cell {
+      position: relative; min-height: 92px; padding: 14px 0 9px; text-align: center;
+      border-right: 1px solid var(--ink); background: var(--paper);
+    }
+    .cell:last-child { border-right: none; }
+    .cell .num { font-family: Anton, sans-serif; font-size: 42px; line-height: 1; display: block; }
+    .cell .word { display: block; font-size: 8px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-soft); margin-top: 7px; }
+    .cell.sel { background: var(--yellow); }
+    .cell .ring { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+    /* ================= REVEAL ================= */
+    .extra-strip {
+      background: var(--ink); color: var(--yellow); font-family: Anton, sans-serif;
+      font-size: 11px; letter-spacing: .3em; text-transform: uppercase;
+      text-align: center; padding: 5px 4px 4px; margin-top: 6px;
+    }
+    .reveal-head { text-align: center; margin: 14px 0 6px; }
+    .mega {
+      font-family: Anton, sans-serif; font-size: 67px; line-height: .9;
+      text-transform: uppercase; letter-spacing: .005em; margin-top: 6px;
+    }
+    .reveal-deck { font-style: italic; font-size: 13px; color: var(--ink-soft); text-align: center; margin: 10px 8px 0; }
+    .played { text-align: center; margin: 16px 0 4px; }
+    .played .ad { width: 116px; margin: 8px auto 0; min-height: 96px; }
+    .rgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 12px; margin-top: 14px; }
+    .rslot { text-align: center; }
+    .rslot .who { font-family: Anton, sans-serif; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--pc, var(--ink)); }
+    .rcard {
+      position: relative; width: 100px; height: 124px; margin: 7px auto 0;
+      border: 2px solid var(--ink); background: var(--paper);
+      display: flex; align-items: center; justify-content: center;
+      font-family: Anton, sans-serif; font-size: 60px;
+      box-shadow: 3px 3px 0 rgba(17,16,8,.18);
+    }
+    .stamp {
+      position: absolute; left: 50%; top: 50%;
+      transform: translate(-50%,-50%) rotate(-14deg);
+      font-family: Anton, sans-serif; font-size: 15px; letter-spacing: .07em;
+      color: var(--red); border: 2px solid var(--red);
+      box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.5px var(--red);
+      padding: 4px 8px 3px; background: rgba(242,239,230,.5);
+      mix-blend-mode: multiply; white-space: nowrap; text-transform: uppercase;
+    }
+    .out { margin-top: 9px; }
+    .out .pts { font-family: Anton, sans-serif; font-size: 22px; line-height: 1; }
+    .out .lbl { display: inline-block; font-family: Anton, sans-serif; font-size: 9px; letter-spacing: .16em; text-transform: uppercase; margin-top: 4px; }
+    .out.cancelled .pts, .out.cancelled .lbl { color: var(--red); }
+    .out .lonezero { background: var(--yellow); padding: 2px 6px 1px; border: 1px solid var(--ink); }
+
+    /* ================= END ================= */
+    .hero { position: relative; text-align: center; padding: 22px 0 8px; }
+    .hero .kicker { position: relative; z-index: 3; }
+    .hero h2 { font-family: Anton, sans-serif; font-size: 84px; line-height: .92; text-transform: uppercase; position: relative; z-index: 2; }
+    .hero h2 .hl { background: var(--yellow); padding: 0 8px; box-decoration-break: clone; }
+    .hero .deck { font-style: italic; font-size: 13.5px; color: var(--ink-soft); margin-top: 12px; position: relative; z-index: 2; }
+    .champ {
+      position: absolute; top: 4px; right: 2px; transform: rotate(10deg); z-index: 3;
+      font-family: Anton, sans-serif; font-size: 12px; letter-spacing: .1em; color: var(--red);
+      border: 2px solid var(--red); box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.5px var(--red);
+      padding: 3px 8px 2px; background: rgba(242,239,230,.7); mix-blend-mode: multiply; text-transform: uppercase;
+    }
+    .confetti { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+    .cf { position: absolute; width: 9px; height: 17px; background: var(--red); transform: rotate(var(--r, 12deg)); }
+    .cf.y { background: var(--yellow); border: 1px solid rgba(17,16,8,.5); }
+    .cf.k { background: var(--ink); }
+    .cf.p { background: #fff; border: 1px solid rgba(17,16,8,.45); }
+    .cf.star { background: none; border: none; width: auto; height: auto; font-size: 14px; color: var(--red); font-family: Anton, sans-serif; }
+    .league { width: 100%; border-collapse: collapse; border: 2px solid var(--ink); }
+    .league th {
+      background: var(--ink); color: var(--paper); font-family: Anton, sans-serif;
+      font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; font-weight: 400;
+      padding: 7px 4px 6px; text-align: center;
+    }
+    .league th.pl { text-align: left; padding-left: 9px; }
+    .league td { border-bottom: 1px solid rgba(17,16,8,.4); padding: 9px 4px 8px; text-align: center; font-family: Anton, sans-serif; font-size: 15px; }
+    .league td.pl { text-align: left; padding-left: 9px; }
+    .league td.pl .pname { display: inline-flex; align-items: center; gap: 7px; }
+    .league td.pl .you { font-family: "PT Serif", serif; font-style: italic; font-size: 11px; color: var(--ink-soft); }
+    .league td.pos { font-size: 13px; color: var(--ink-soft); width: 26px; }
+    .league td.tot, .league th.tot { border-left: 2px solid var(--ink); }
+    .league td.tot { font-size: 21px; }
+    .league tr.me td { background: var(--yellow); }
+    .league tr:last-child td { border-bottom: none; }
+
+    /* --- motion flourishes only --- */
+    @media (prefers-reduced-motion: no-preference) {
+      .stamp { animation: slam .45s cubic-bezier(.2, 1.4, .4, 1) both; }
+      @keyframes slam {
+        from { transform: translate(-50%,-50%) rotate(-14deg) scale(2.8); opacity: 0; }
+        to   { transform: translate(-50%,-50%) rotate(-14deg) scale(1); opacity: 1; }
+      }
+      .mega { animation: drop .4s ease-out both; }
+      @keyframes drop {
+        from { transform: translateY(-14px); opacity: 0; }
+        to   { transform: translateY(0); opacity: 1; }
+      }
+      .alert { animation: flash 1.4s steps(2) infinite; }
+      @keyframes flash { 0%, 100% { background: var(--red); } 50% { background: #a40000; } }
+      .cf { animation: drift 2.6s ease-in-out infinite alternate; }
+      @keyframes drift {
+        from { transform: rotate(var(--r, 12deg)) translateY(-4px); }
+        to   { transform: rotate(var(--r, 12deg)) translateY(4px); }
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ 1. HOME ============ -->
+  <main data-screen="home">
+    <div class="sheet">
+      <div class="topstrip"><span>Vol. XIII · No. 86</span><span>Tuesday, June 10, 2026</span><span>Price: One Pick</span></div>
+      <div class="skybox">Inside: <b>six powers that twist the rules,</b> page 3</div>
+      <header class="masthead">
+        <h1>Cancel</h1>
+        <div class="since">The numbers paper of record · est. 2026</div>
+        <div class="sticker">100% ruthless</div>
+      </header>
+      <div class="tagbar">a number-picking party game</div>
+      <div class="rule-thickthin"></div>
+
+      <div class="lead-kicker"><span class="kicker">Exclusive</span></div>
+      <button class="btn-lead">New game<small>Round up your rivals tonight. Doors open now.</small></button>
+
+      <div class="home-cols">
+        <div class="story">
+          <span class="kicker">Solo desk</span>
+          <button class="btn-box">Single player</button>
+          <p class="deck">One reader takes on three machines.</p>
+        </div>
+        <div class="story">
+          <span class="kicker">Tip line</span>
+          <button class="btn-box">Join with code</button>
+          <p class="deck">Got a code? Spill it. We print anything.</p>
+        </div>
+      </div>
+
+      <div class="article">
+        <span class="kicker">Crime · Page 5</span>
+        <h3>Zero strikes again</h3>
+        <div class="article-flex">
+          <p>Witnesses say four players locked in their numbers at midnight. Matching picks cancelled each other to nothing, while a lone zero wiped the rest of the table clean. The survivors banked their points, kept their heads down, and refused to comment.</p>
+          <figure class="filephoto">
+            <div class="ph"><span class="zero">Ø</span><span class="ftag">File photo</span></div>
+            <figcaption>The zero, pictured leaving the table last night.</figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <footer class="pagefoot"><span>Cancel · Late Final</span><span>Page 1</span></footer>
+    </div>
+  </main>
+
+  <!-- ============ 2. LOBBY ============ -->
+  <main data-screen="lobby">
+    <div class="sheet">
+      <div class="lobbybar">
+        <button class="btn-mini">← Leave</button>
+        <span class="miniplate">Cancel</span>
+        <button class="btn-mini">Rules</button>
+      </div>
+      <div class="rule-thickthin"></div>
+
+      <header class="lobby-head">
+        <span class="kicker">Room report · Tuesday edition</span>
+        <h2>Who's in the room?</h2>
+      </header>
+
+      <div class="coupon">
+        <span class="scis">✂</span>
+        <span class="kicker">Room code, clip and share</span>
+        <div class="code">DN2H</div>
+        <div class="hint">press to copy</div>
+      </div>
+
+      <div class="sec"><span>Players · 4</span><span class="count">Full house</span></div>
+      <div class="mugs">
+        <div class="mug">
+          <div class="photo"><svg viewBox="0 0 100 92" style="color:var(--ben)" aria-hidden="true"><path fill="currentColor" d="M50 6a17 17 0 0 1 17 17c0 7-3 13-7 17 14 4 24 14 27 32l1 20H12l1-20c3-18 13-28 27-32-4-4-7-10-7-17A17 17 0 0 1 50 6z"/></svg></div>
+          <div class="nameplate">
+            <div class="nm">Ben<span class="dot"></span></div>
+            <div class="badges"><span class="badge b-host">Host</span><span class="badge b-you">You</span></div>
+            <div class="bk">Nº 0001 · The Editor</div>
+          </div>
+        </div>
+        <div class="mug">
+          <div class="photo"><svg viewBox="0 0 100 92" style="color:var(--vol)" aria-hidden="true"><path fill="currentColor" d="M50 6a17 17 0 0 1 17 17c0 7-3 13-7 17 14 4 24 14 27 32l1 20H12l1-20c3-18 13-28 27-32-4-4-7-10-7-17A17 17 0 0 1 50 6z"/></svg></div>
+          <div class="nameplate">
+            <div class="nm">Voltaire<span class="dot"></span></div>
+            <div class="badges"><span class="badge b-bot">Bot</span></div>
+            <div class="bk">Nº 0002 · Known machine</div>
+          </div>
+        </div>
+        <div class="mug">
+          <div class="photo"><svg viewBox="0 0 100 92" style="color:var(--mec)" aria-hidden="true"><path fill="currentColor" d="M50 6a17 17 0 0 1 17 17c0 7-3 13-7 17 14 4 24 14 27 32l1 20H12l1-20c3-18 13-28 27-32-4-4-7-10-7-17A17 17 0 0 1 50 6z"/></svg></div>
+          <div class="nameplate">
+            <div class="nm">Mechano<span class="dot"></span></div>
+            <div class="badges"><span class="badge b-bot">Bot</span></div>
+            <div class="bk">Nº 0003 · Known machine</div>
+          </div>
+        </div>
+        <div class="mug">
+          <div class="photo"><svg viewBox="0 0 100 92" style="color:var(--dan)" aria-hidden="true"><path fill="currentColor" d="M50 6a17 17 0 0 1 17 17c0 7-3 13-7 17 14 4 24 14 27 32l1 20H12l1-20c3-18 13-28 27-32-4-4-7-10-7-17A17 17 0 0 1 50 6z"/></svg></div>
+          <div class="nameplate">
+            <div class="nm">Data Dan<span class="dot"></span></div>
+            <div class="badges"><span class="badge b-bot">Bot</span></div>
+            <div class="bk">Nº 0004 · Known machine</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec"><span>House rules</span><span class="count">Order form</span></div>
+      <div class="setrow">
+        <span class="lbl">Rounds</span><span class="leader"></span>
+        <button class="step">−</button><span class="val">3</span><button class="step">+</button>
+      </div>
+      <div class="setrow">
+        <span class="lbl">AI players</span><span class="leader"></span>
+        <button class="step">−</button><span class="val">3</span><button class="step">+</button>
+      </div>
+      <div class="powrow">
+        <span class="lbl" style="font-family:Anton,sans-serif;font-size:14px;letter-spacing:.06em;text-transform:uppercase;">Power-ups</span>
+        <div class="segment">
+          <button>None</button>
+          <button class="on">Random</button>
+          <button>Choose</button>
+        </div>
+        <p class="helper">A fresh random pool each round.</p>
+      </div>
+
+      <div class="btn-stack">
+        <span class="strap">Stop press</span>
+        <button class="btn-primary">Start game</button>
+      </div>
+
+      <footer class="pagefoot"><span>The Lobby Desk</span><span>Page 2</span></footer>
+    </div>
+  </main>
+
+  <!-- ============ 3. GAME ============ -->
+  <main data-screen="game">
+    <div class="sheet">
+      <div class="topstrip"><span>Cancel · Late Final</span><span>Turn 2 Edition</span></div>
+      <div class="gamebar">
+        <span class="info">R1<em>/3</em> · T2<em>/6</em> · DN2H</span>
+        <button class="btn-mini">Rules</button>
+        <button class="btn-mini">Leave</button>
+        <button class="btn-mini" style="color:var(--red);border-color:var(--red)">End game</button>
+      </div>
+
+      <div class="ticker">
+        <span class="tl">Scores</span>
+        <span class="ti"><i class="sw" style="--c:var(--ben)"></i>BEN <b>4</b></span>
+        <span class="ti"><i class="sw" style="--c:var(--vol)"></i>VOLTAIRE <b>0</b></span>
+        <span class="ti"><i class="sw" style="--c:var(--mec)"></i>MECHANO <b>2</b></span>
+        <span class="ti"><i class="sw" style="--c:var(--dan)"></i>DATA DAN <b>5</b></span>
+      </div>
+
+      <div class="sec"><span>Power-ups remaining</span><span class="count">6 / 6</span></div>
+      <div class="alert">Your turn, press to select</div>
+      <div class="ads">
+        <button class="ad" style="--pc:var(--teal)"><span class="glyph">⇄</span><span class="nm">Swap Hands</span><span class="bx">box nº 1</span></button>
+        <button class="ad" style="--pc:var(--rose)"><span class="glyph">✖</span><span class="nm">Sabotage</span><span class="bx">box nº 2</span></button>
+        <button class="ad sel" style="--pc:var(--pink)"><span class="glyph">=</span><span class="nm">Jinx</span><span class="bx">box nº 3</span><span class="picked">Picked</span></button>
+        <button class="ad" style="--pc:var(--emer)"><span class="glyph">+2</span><span class="nm">Plus Two</span><span class="bx">box nº 4</span></button>
+        <button class="ad" style="--pc:var(--viol)"><span class="glyph">?</span><span class="nm">Wild</span><span class="bx">box nº 5</span></button>
+        <button class="ad" style="--pc:var(--amber)"><span class="glyph">↧</span><span class="nm">Drain</span><span class="bx">box nº 6</span></button>
+      </div>
+
+      <div class="sec"><span>Players</span><span class="count">Power picker: Ben</span></div>
+      <div class="prow">
+        <i class="sw" style="--c:var(--ben)"></i>
+        <span class="nm">Ben <span class="you">(you)</span></span>
+        <span class="hand">Ø 1 2 3 4 5</span>
+        <span class="st st-think">thinking…</span>
+      </div>
+      <div class="prow">
+        <i class="sw" style="--c:var(--vol)"></i>
+        <span class="nm">Voltaire</span>
+        <span class="hand">Ø 1 2 3 4 5</span>
+        <span class="st"><span class="st-sub">Submitted</span></span>
+      </div>
+      <div class="prow">
+        <i class="sw" style="--c:var(--mec)"></i>
+        <span class="nm">Mechano</span>
+        <span class="hand">Ø 1 2 3 4 5</span>
+        <span class="st"><span class="st-sub">Submitted</span></span>
+      </div>
+      <div class="prow">
+        <i class="sw" style="--c:var(--dan)"></i>
+        <span class="nm">Data Dan</span>
+        <span class="hand">Ø 1 2 3 4 5</span>
+        <span class="st"><span class="st-sub">Submitted</span></span>
+      </div>
+      <button class="btn-ghost">Skip waiting, auto-play who's left</button>
+
+      <div class="sec"><span>Your hand</span><span class="count">Pick one</span></div>
+      <div class="ticket">
+        <div class="ticket-head"><span>Cancel daily lotto</span><span>Not valid after reveal</span></div>
+        <div class="cells">
+          <button class="cell"><span class="num">Ø</span><span class="word">Zero</span></button>
+          <button class="cell"><span class="num">1</span><span class="word">One</span></button>
+          <button class="cell"><span class="num">2</span><span class="word">Two</span></button>
+          <button class="cell"><span class="num">3</span><span class="word">Three</span></button>
+          <button class="cell"><span class="num">4</span><span class="word">Four</span></button>
+          <button class="cell sel"><span class="num">5</span><span class="word">Five</span>
+            <svg class="ring" viewBox="0 0 62 92" aria-hidden="true"><ellipse cx="31" cy="42" rx="25" ry="33" fill="none" stroke="#cc0000" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="158 24" transform="rotate(-8 31 42)"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="btn-stack">
+        <span class="strap">Late final</span>
+        <button class="btn-primary">Lock it in</button>
+      </div>
+
+      <footer class="pagefoot"><span>Cancel · Turn 2 of 6</span><span>Page 1</span></footer>
+    </div>
+  </main>
+
+  <!-- ============ 4. REVEAL ============ -->
+  <main data-screen="reveal">
+    <div class="sheet">
+      <div class="extra-strip">★ Extra ★ Extra ★ Extra ★</div>
+      <header class="reveal-head">
+        <span class="kicker">Turn 2 reveal</span>
+        <h2 class="mega">Cancelled!</h2>
+      </header>
+      <div class="rule-thickthin"></div>
+      <p class="reveal-deck">Lone zero wipes out the field; three numbers reduced to nothing in late-night bloodbath.</p>
+
+      <div class="played">
+        <span class="kicker">Ben played</span>
+        <div class="ad sel" style="--pc:var(--pink)"><span class="glyph">=</span><span class="nm">Jinx</span><span class="bx">box nº 3</span></div>
+      </div>
+
+      <div class="rgrid">
+        <div class="rslot" style="--pc:var(--ben)">
+          <span class="who">Ben</span>
+          <div class="rcard">5<span class="stamp">Cancelled</span></div>
+          <div class="out cancelled"><span class="pts">0</span><br><span class="lbl">Cancelled</span></div>
+        </div>
+        <div class="rslot" style="--pc:var(--vol)">
+          <span class="who">Voltaire</span>
+          <div class="rcard">Ø</div>
+          <div class="out"><span class="pts">0</span><br><span class="lbl lonezero">The lone zero</span></div>
+        </div>
+        <div class="rslot" style="--pc:var(--mec)">
+          <span class="who">Mechano</span>
+          <div class="rcard">5<span class="stamp">Cancelled</span></div>
+          <div class="out cancelled"><span class="pts">0</span><br><span class="lbl">Cancelled</span></div>
+        </div>
+        <div class="rslot" style="--pc:var(--dan)">
+          <span class="who">Data Dan</span>
+          <div class="rcard">3<span class="stamp">Cancelled</span></div>
+          <div class="out cancelled"><span class="pts">0</span><br><span class="lbl">Cancelled</span></div>
+        </div>
+      </div>
+
+      <div class="btn-stack">
+        <span class="strap">Read all about it</span>
+        <button class="btn-primary">Continue</button>
+      </div>
+
+      <footer class="pagefoot"><span>Cancel · Special Edition</span><span>Page 1</span></footer>
+    </div>
+  </main>
+
+  <!-- ============ 5. END ============ -->
+  <main data-screen="end">
+    <div class="sheet">
+      <div class="topstrip"><span>Final edition</span><span>Tuesday, June 10, 2026</span><span>Free</span></div>
+      <header class="hero">
+        <div class="confetti" aria-hidden="true">
+          <span class="cf" style="left:6%;top:8%;--r:-24deg"></span>
+          <span class="cf y" style="left:16%;top:58%;--r:31deg"></span>
+          <span class="cf k" style="left:26%;top:14%;--r:-9deg"></span>
+          <span class="cf p" style="left:9%;top:80%;--r:48deg"></span>
+          <span class="cf y" style="left:36%;top:2%;--r:-40deg"></span>
+          <span class="cf" style="left:48%;top:88%;--r:14deg"></span>
+          <span class="cf k" style="left:60%;top:4%;--r:24deg"></span>
+          <span class="cf p" style="left:70%;top:70%;--r:-31deg"></span>
+          <span class="cf y" style="left:82%;top:42%;--r:9deg"></span>
+          <span class="cf" style="left:91%;top:74%;--r:-17deg"></span>
+          <span class="cf p" style="left:42%;top:34%;--r:64deg"></span>
+          <span class="cf k" style="left:88%;top:10%;--r:-48deg"></span>
+          <span class="cf star" style="left:3%;top:36%;--r:-12deg">★</span>
+          <span class="cf star" style="left:64%;top:84%;--r:10deg">★</span>
+          <span class="cf star" style="left:30%;top:78%;--r:18deg">★</span>
+        </div>
+        <span class="kicker">Game over</span>
+        <h2>You <span class="hl">won.</span></h2>
+        <span class="champ">Champion</span>
+        <p class="deck">Ben wins it all. Three rounds, one champion, no apologies.</p>
+      </header>
+      <div class="rule-thickthin"></div>
+
+      <div class="sec"><span>Final league table</span><span class="count">Official</span></div>
+      <table class="league">
+        <thead>
+          <tr><th class="pos">#</th><th class="pl">Player</th><th>R1</th><th>R2</th><th>R3</th><th class="tot">Total</th></tr>
+        </thead>
+        <tbody>
+          <tr class="me"><td class="pos">1</td><td class="pl"><span class="pname"><i class="sw" style="--c:var(--ben)"></i>Ben <span class="you">(you)</span></span></td><td>5</td><td>9</td><td>6</td><td class="tot">20</td></tr>
+          <tr><td class="pos">2</td><td class="pl"><span class="pname"><i class="sw" style="--c:var(--dan)"></i>Data Dan</span></td><td>5</td><td>4</td><td>3</td><td class="tot">12</td></tr>
+          <tr><td class="pos">3</td><td class="pl"><span class="pname"><i class="sw" style="--c:var(--vol)"></i>Voltaire</span></td><td>3</td><td>2</td><td>4</td><td class="tot">9</td></tr>
+          <tr><td class="pos">4</td><td class="pl"><span class="pname"><i class="sw" style="--c:var(--mec)"></i>Mechano</span></td><td>0</td><td>5</td><td>2</td><td class="tot">7</td></tr>
+        </tbody>
+      </table>
+
+      <div class="btn-stack">
+        <span class="strap">Tomorrow's edition</span>
+        <button class="btn-primary">Play again</button>
+      </div>
+      <button class="btn-box" style="margin-top:10px;">Leave room</button>
+
+      <footer class="pagefoot"><span>Cancel · Final Whistle</span><span>Back page</span></footer>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

@@ -1,0 +1,714 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Clay Toybox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400..800&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ====================== CLAY TOYBOX ====================== */
+    :root{
+      --cream:#fdf3e3;
+      --slab:#fff8ea;
+      --choc:#5b4032;
+      --choc-soft:#a3866f;
+      --coral:#ff8a70;
+      --coral-deep:#e0604a;
+      --butter:#ffd97a;
+      --mint:#9fe2bf;
+      --sky:#9ec9ff;
+      --lilac:#cdb4f6;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      color:var(--choc);
+      font-family:'Baloo 2','Comic Sans MS',sans-serif;
+      font-weight:500;
+      background-color:var(--cream);
+      background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cg fill='%238a5a40' fill-opacity='.05'%3E%3Ccircle cx='14' cy='24' r='1.7'/%3E%3Ccircle cx='58' cy='9' r='1.2'/%3E%3Ccircle cx='104' cy='32' r='1.6'/%3E%3Ccircle cx='142' cy='70' r='1.2'/%3E%3Ccircle cx='34' cy='80' r='1.5'/%3E%3Ccircle cx='80' cy='62' r='1.1'/%3E%3Ccircle cx='120' cy='112' r='1.7'/%3E%3Ccircle cx='20' cy='132' r='1.3'/%3E%3Ccircle cx='70' cy='140' r='1.6'/%3E%3Ccircle cx='96' cy='90' r='1.1'/%3E%3Ccircle cx='148' cy='148' r='1.4'/%3E%3C/g%3E%3C/svg%3E"),
+        radial-gradient(440px 320px at 6% -4%, rgba(255,217,122,.42), transparent 65%),
+        radial-gradient(420px 340px at 104% 8%, rgba(159,226,191,.36), transparent 65%),
+        radial-gradient(460px 400px at -8% 72%, rgba(158,201,255,.30), transparent 65%),
+        radial-gradient(400px 330px at 108% 94%, rgba(205,180,246,.34), transparent 65%);
+    }
+    button{font-family:inherit;cursor:pointer}
+    .wrap{max-width:420px;margin:0 auto;padding:22px 20px 44px;position:relative;z-index:1}
+
+    /* clay slabs + buttons */
+    .slab{
+      background:var(--slab);
+      border-radius:20px 24px 18px 22px;
+      box-shadow:
+        inset 3px 4px 7px rgba(255,255,255,.7),
+        inset -4px -5px 8px rgba(135,84,52,.13),
+        0 6px 12px rgba(150,94,60,.16),
+        0 2px 3px rgba(150,94,60,.10);
+    }
+    .pill{
+      padding:10px 18px;border:0;
+      background:var(--slab);color:var(--choc);
+      font-weight:700;font-size:14px;
+      border-radius:16px 20px 14px 18px;
+      box-shadow:
+        inset 2px 3px 5px rgba(255,255,255,.75),
+        inset -3px -4px 6px rgba(135,84,52,.14),
+        0 5px 9px rgba(150,94,60,.18);
+    }
+    .pill.xs{padding:8px 10px;font-size:10px;letter-spacing:.08em;border-radius:12px 15px 11px 14px;font-weight:800}
+    .pill.danger{background:#f9908d;color:#7d1f23;text-shadow:0 1px 0 rgba(255,255,255,.35)}
+    .btn{
+      display:block;width:100%;padding:16px 20px;border:0;
+      background:var(--slab);color:var(--choc);
+      font-weight:700;font-size:17px;
+      border-radius:24px 28px 22px 26px;
+      box-shadow:
+        inset 3px 4px 7px rgba(255,255,255,.75),
+        inset -4px -6px 9px rgba(135,84,52,.14),
+        0 7px 13px rgba(150,94,60,.18),
+        0 2px 3px rgba(150,94,60,.10);
+    }
+    .cta{
+      position:relative;display:block;width:100%;
+      padding:17px 20px 18px;border:0;
+      background:var(--coral);color:#7e2a17;
+      font-weight:800;font-size:20px;
+      border-radius:26px 30px 24px 28px;
+      box-shadow:
+        inset 3px 5px 8px rgba(255,255,255,.55),
+        inset -5px -7px 11px rgba(170,60,35,.30),
+        0 9px 18px rgba(196,90,60,.32),
+        0 3px 4px rgba(150,94,60,.16);
+      text-shadow:0 1px 0 rgba(255,255,255,.35);
+    }
+    .cta::after{ /* fingerprint dimple */
+      content:"";position:absolute;left:8%;top:13%;width:66px;height:42px;border-radius:50%;
+      background:
+        radial-gradient(closest-side, rgba(255,255,255,.34), rgba(255,255,255,0) 78%),
+        repeating-radial-gradient(ellipse 66px 42px at 50% 50%, rgba(255,255,255,.15) 0 2px, rgba(255,255,255,0) 2px 7px);
+      pointer-events:none;
+    }
+    .ghost{
+      width:100%;padding:13px 10px;border:0;margin-top:14px;
+      background:rgba(141,90,58,.08);color:var(--choc-soft);
+      font-weight:700;font-size:11.5px;letter-spacing:.13em;
+      border-radius:18px 22px 16px 20px;
+      box-shadow:
+        inset 3px 4px 7px rgba(135,84,52,.13),
+        inset -2px -3px 5px rgba(255,255,255,.6);
+    }
+    .iconbtn{
+      position:absolute;top:18px;right:18px;width:46px;height:46px;border:0;
+      background:var(--slab);display:grid;place-items:center;
+      border-radius:16px 19px 15px 18px;
+      box-shadow:
+        inset 2px 3px 5px rgba(255,255,255,.75),
+        inset -3px -4px 6px rgba(135,84,52,.14),
+        0 5px 9px rgba(150,94,60,.18);
+    }
+
+    /* type bits */
+    .label{font-size:11.5px;font-weight:800;letter-spacing:.16em;color:var(--choc-soft);text-transform:uppercase}
+    .hint{font-size:12.5px;font-weight:600;color:var(--choc-soft)}
+    .eyebrow{font-size:12px;font-weight:800;letter-spacing:.22em;color:var(--choc-soft);text-transform:uppercase;text-align:center}
+
+    /* letter tiles (wordmark + room code) */
+    .lt{
+      display:inline-grid;place-items:center;
+      width:54px;height:58px;
+      font-weight:800;font-size:32px;line-height:1;
+      border-radius:18px 22px 15px 20px;
+      transform:rotate(var(--r,0deg));
+      box-shadow:
+        inset 3px 4px 6px rgba(255,255,255,.55),
+        inset -3px -5px 8px rgba(120,60,30,.22),
+        0 7px 13px rgba(150,94,60,.24),
+        0 2px 3px rgba(150,94,60,.14);
+      text-shadow:0 1px 0 rgba(255,255,255,.5);
+    }
+    .lt.sm{width:46px;height:50px;font-size:25px;border-radius:15px 18px 13px 16px}
+    .lt-coral{background:var(--coral);color:#8f3120}
+    .lt-butter{background:var(--butter);color:#85610e}
+    .lt-mint{background:var(--mint);color:#236b4c}
+    .lt-sky{background:var(--sky);color:#2c569c}
+    .lt-lilac{background:var(--lilac);color:#5f3da0}
+
+    /* clay blob avatars with punched-dot eyes */
+    .blob{
+      position:relative;display:block;flex:none;width:40px;height:40px;
+      border-radius:46% 54% 48% 52%;
+      box-shadow:
+        inset 2px 3px 5px rgba(255,255,255,.55),
+        inset -2px -4px 6px rgba(120,60,30,.22),
+        0 4px 8px rgba(150,94,60,.24);
+    }
+    .blob::before,.blob::after{
+      content:"";position:absolute;top:38%;width:13%;height:13%;
+      border-radius:50%;background:rgba(74,38,24,.5);
+      box-shadow:inset 0 1px 1px rgba(0,0,0,.4), 0 1px 0 rgba(255,255,255,.35);
+    }
+    .blob::before{left:26%}
+    .blob::after{right:26%}
+    .blob.sm{width:28px;height:28px}
+    .p-ben{background:var(--coral)}
+    .p-vol{background:var(--sky)}
+    .p-mec{background:var(--butter)}
+    .p-dan{background:var(--mint)}
+
+    .dot{flex:none;width:10px;height:10px;border-radius:50%;background:#65cf96;box-shadow:inset 1px 1px 2px rgba(255,255,255,.6), 0 2px 3px rgba(40,110,70,.35)}
+    .badge{font-size:9.5px;font-weight:800;letter-spacing:.1em;padding:4px 8px;border-radius:9px 11px 8px 10px;
+      box-shadow:inset 1px 2px 3px rgba(255,255,255,.55), inset -1px -2px 3px rgba(120,60,30,.16), 0 2px 4px rgba(150,94,60,.16)}
+    .b-host{background:var(--butter);color:#7c5a0a}
+    .b-you{background:var(--sky);color:#2c569c}
+    .b-bot{background:var(--lilac);color:#5f3da0}
+
+    /* number cards: clay tablets with pressed numerals */
+    .numcard{
+      position:relative;flex:none;
+      width:54px;height:74px;
+      background:var(--slab);
+      display:grid;place-items:center;
+      border-radius:16px 20px 14px 18px;
+      box-shadow:
+        inset 3px 4px 6px rgba(255,255,255,.8),
+        inset -4px -6px 9px rgba(135,84,52,.16),
+        0 7px 13px rgba(150,94,60,.20),
+        0 2px 3px rgba(150,94,60,.12);
+    }
+    .numcard .n{
+      font-weight:800;font-size:30px;line-height:1;color:#a8765a;
+      text-shadow:0 1.5px 0 rgba(255,255,255,.85), 0 -1px 1px rgba(120,70,40,.18);
+    }
+    .numcard .n.zero{color:var(--coral-deep)}
+    .numcard.selected{
+      background:#ffe7d2;
+      transform:translateY(3px);
+      box-shadow:
+        inset 4px 6px 9px rgba(135,84,52,.24),
+        inset -3px -4px 7px rgba(255,255,255,.55),
+        0 2px 5px rgba(150,94,60,.14),
+        0 0 0 3px var(--choc);
+    }
+    .numcard.selected .n{color:var(--coral-deep)}
+
+    /* power cards */
+    .power{
+      position:relative;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
+      min-height:92px;padding:10px 6px;
+      border-radius:20px 24px 17px 22px;
+      box-shadow:
+        inset 3px 4px 6px rgba(255,255,255,.5),
+        inset -3px -5px 8px rgba(120,60,30,.2),
+        0 6px 12px rgba(150,94,60,.2),
+        0 2px 3px rgba(150,94,60,.12);
+    }
+    .pglyph{font-size:27px;font-weight:800;line-height:1;text-shadow:0 1px 0 rgba(255,255,255,.5)}
+    .pwname{font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;text-align:center;text-shadow:0 1px 0 rgba(255,255,255,.4)}
+    .pw-teal{background:#8fdfd0}.pw-teal .pglyph,.pw-teal .pwname{color:#1c6b5c}
+    .pw-rose{background:#f9908d}.pw-rose .pglyph,.pw-rose .pwname{color:#8e2229}
+    .pw-pink{background:#f7abd9}.pw-pink .pglyph,.pw-pink .pwname{color:#a32f7e}
+    .pw-emerald{background:#97dcae}.pw-emerald .pglyph,.pw-emerald .pwname{color:#1e7a4a}
+    .pw-violet{background:#cab2f5}.pw-violet .pglyph,.pw-violet .pwname{color:#633fa8}
+    .pw-amber{background:#ffc97e}.pw-amber .pglyph,.pw-amber .pwname{color:#8a5a0e}
+    .power.selected{
+      transform:translateY(3px) scale(.98);
+      box-shadow:
+        inset 4px 6px 9px rgba(120,40,90,.3),
+        inset -3px -4px 7px rgba(255,255,255,.45),
+        0 2px 5px rgba(150,94,60,.14),
+        0 0 0 3px var(--choc);
+    }
+
+    /* ---------- home ---------- */
+    .homestage{position:relative;min-height:100vh;overflow:hidden}
+    .home-pad{padding-top:108px}
+    .wordmark{display:flex;justify-content:center;gap:7px}
+    .tagline{text-align:center;font-size:15px;font-weight:600;color:var(--choc-soft);margin:24px 0 46px;letter-spacing:.04em}
+    .stack>*{margin-bottom:14px}
+
+    /* clay confetti pieces (also home decor) */
+    .cf{position:absolute;z-index:0;transform:rotate(var(--r,0deg))}
+    .worm{width:30px;height:11px;border-radius:9px 10px 8px 9px}
+    .cfd{width:13px;height:13px;border-radius:50%}
+    .c-coral{background:var(--coral)}
+    .c-butter{background:var(--butter)}
+    .c-mint{background:var(--mint)}
+    .c-sky{background:var(--sky)}
+    .c-lilac{background:var(--lilac)}
+    .cf{box-shadow:inset 1px 2px 3px rgba(255,255,255,.55), inset -1px -2px 3px rgba(135,84,52,.22), 0 3px 6px rgba(150,94,60,.22)}
+
+    /* ---------- lobby ---------- */
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
+    .codecard{padding:20px 16px 14px;text-align:center;margin-bottom:24px}
+    .codetiles{display:flex;justify-content:center;gap:8px;margin-bottom:10px}
+    .rows>*{margin-bottom:12px}
+    .prow{display:flex;align-items:center;gap:12px;padding:11px 14px}
+    .pname{font-weight:700;font-size:17px}
+    .badges{margin-left:auto;display:flex;align-items:center;gap:6px}
+    .sect{margin:22px 0 10px}
+    .srow{display:flex;align-items:center;justify-content:space-between;padding:12px 16px}
+    .sname{font-weight:700;font-size:16px}
+    .stepper{display:flex;align-items:center;gap:13px}
+    .step{
+      width:42px;height:42px;border:0;font-weight:800;font-size:20px;line-height:1;
+      background:var(--butter);color:#7c5a0a;
+      border-radius:14px 16px 12px 15px;
+      box-shadow:
+        inset 2px 3px 5px rgba(255,255,255,.6),
+        inset -2px -4px 6px rgba(140,90,20,.25),
+        0 4px 8px rgba(150,94,60,.22);
+    }
+    .sval{font-weight:800;font-size:20px;min-width:22px;text-align:center}
+    .scol{padding:14px 16px 16px}
+    .seg{display:flex;gap:6px;padding:6px;margin:12px 0 10px;background:#f1e0c5;border-radius:18px 21px 16px 19px;
+      box-shadow:inset 3px 4px 7px rgba(135,84,52,.16), inset -2px -3px 5px rgba(255,255,255,.6)}
+    .segopt{flex:1;text-align:center;padding:10px 0;font-weight:700;font-size:14px;color:var(--choc-soft);border-radius:13px 16px 12px 15px}
+    .segopt.on{
+      background:var(--coral);color:#7e2a17;text-shadow:0 1px 0 rgba(255,255,255,.3);
+      box-shadow:inset 2px 3px 5px rgba(255,255,255,.5), inset -2px -3px 5px rgba(170,60,35,.3), 0 4px 8px rgba(196,90,60,.3);
+    }
+    .startwrap{margin-top:24px}
+
+    /* ---------- game ---------- */
+    .ghead{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+    .gmeta{font-size:15px;font-weight:600;color:var(--choc-soft)}
+    .gmeta b{color:var(--choc);font-weight:800}
+    .gcode{font-weight:800;letter-spacing:.08em;color:var(--choc)}
+    .gbtns{display:flex;gap:6px}
+    .scorechips{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+    .chip{display:flex;align-items:center;gap:9px;padding:8px 14px;font-weight:700;font-size:15px}
+    .chip b{margin-left:auto;font-size:18px;font-weight:800}
+    .rowlabel{display:flex;justify-content:space-between;align-items:baseline;margin:18px 2px 10px}
+    .labelval{font-weight:800;font-size:14px;letter-spacing:.1em}
+    .banner{
+      background:var(--butter);color:#7c5a0a;text-align:center;
+      font-weight:800;font-size:12.5px;letter-spacing:.13em;
+      padding:12px 10px;margin-bottom:12px;
+      border-radius:18px 22px 16px 20px;
+      box-shadow:
+        inset 2px 3px 5px rgba(255,255,255,.55),
+        inset -3px -4px 7px rgba(140,90,20,.22),
+        0 5px 10px rgba(150,94,60,.2);
+      text-shadow:0 1px 0 rgba(255,255,255,.4);
+    }
+    .powers{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .pstatus{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .pcell{padding:12px 13px;display:flex;flex-direction:column;gap:7px;align-items:flex-start}
+    .ptop{display:flex;align-items:center;gap:8px}
+    .pname2{font-weight:700;font-size:14.5px;line-height:1.1}
+    .pname2 i{font-style:normal;font-weight:600;font-size:11px;color:var(--choc-soft)}
+    .phand{font-size:11.5px;font-weight:700;letter-spacing:.24em;color:var(--choc-soft)}
+    .status{font-size:9.5px;font-weight:800;letter-spacing:.1em;padding:5px 10px;border-radius:10px 12px 9px 11px;
+      box-shadow:inset 1px 2px 3px rgba(255,255,255,.5), inset -1px -2px 3px rgba(120,60,30,.18), 0 2px 4px rgba(150,94,60,.16)}
+    .status.thinking{background:var(--butter);color:#7c5a0a}
+    .status.submitted{background:var(--mint);color:#1e6b47}
+    .handlabel{margin:26px 2px 12px}
+    .hand{display:flex;justify-content:center;gap:9px;margin-bottom:24px}
+
+    /* ---------- reveal ---------- */
+    .rwrap{padding-top:44px}
+    .sub{margin-top:26px;letter-spacing:.16em}
+    .rpower{display:flex;justify-content:center;margin:14px 0 30px}
+    .power.big{width:104px;min-height:112px}
+    .power.big .pglyph{font-size:36px}
+    .rgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px 14px;margin-bottom:30px}
+    .rcell{display:flex;flex-direction:column;align-items:center;gap:8px}
+    .rname{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+    .rn-ben{color:#c14a31}
+    .rn-vol{color:#3c66ad}
+    .rn-mec{color:#9a720f}
+    .rn-dan{color:#2a7d58}
+    .rslot{position:relative;height:106px;width:100%;display:flex;justify-content:center;align-items:flex-end}
+    .rv{width:76px;height:100px;border-radius:18px 22px 16px 20px}
+    .rv .n{font-size:40px}
+    .crushed .rv{transform:scaleY(.5) scaleX(1.32);transform-origin:50% 100%}
+    .cracks{position:absolute;left:50%;bottom:0;width:100px;height:50px;transform:translateX(-50%);pointer-events:none}
+    .clayx{position:absolute;left:64%;bottom:6px;width:42px;height:42px;transform:translateX(-50%) rotate(10deg)}
+    .clayx::before,.clayx::after{
+      content:"";position:absolute;left:50%;top:50%;width:44px;height:11px;
+      border-radius:8px 9px 7px 8px;background:var(--coral-deep);
+      box-shadow:
+        inset 2px 2px 4px rgba(255,255,255,.45),
+        inset -2px -3px 5px rgba(140,40,20,.4),
+        0 4px 8px rgba(140,60,40,.38);
+    }
+    .clayx::before{transform:translate(-50%,-50%) rotate(45deg)}
+    .clayx::after{transform:translate(-50%,-50%) rotate(-45deg)}
+    .hero .rv{
+      transform:translateY(-6px) rotate(-3deg);
+      box-shadow:
+        inset 3px 4px 6px rgba(255,255,255,.8),
+        inset -4px -6px 9px rgba(135,84,52,.16),
+        0 9px 16px rgba(150,94,60,.26),
+        0 0 0 3px var(--mint);
+    }
+    .spark{position:absolute;background:var(--butter);border-radius:3px;
+      box-shadow:inset 1px 1px 2px rgba(255,255,255,.6), 0 2px 4px rgba(150,94,60,.25)}
+    .s1{top:8px;left:24px;width:10px;height:10px;transform:rotate(45deg)}
+    .s2{top:-4px;right:30px;width:8px;height:8px;transform:rotate(25deg)}
+    .s3{top:40px;right:14px;width:7px;height:7px;transform:rotate(45deg)}
+    .rout{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:36px}
+    .rout b{font-size:18px;font-weight:800;line-height:1}
+    .cstamp{font-size:10px;font-weight:800;letter-spacing:.16em;color:var(--coral-deep)}
+
+    /* ---------- end ---------- */
+    .endstage{position:relative;min-height:100vh;overflow:hidden}
+    .end-pad{padding-top:56px}
+    .won{font-size:48px;font-weight:800;text-align:center;color:var(--choc);margin:8px 0 30px;line-height:1.05;
+      text-shadow:0 2px 0 rgba(255,255,255,.65)}
+    .won em{font-style:normal;color:var(--coral-deep)}
+    .thead,.trow{display:grid;grid-template-columns:16px 36px 1fr 30px 30px 30px 50px;align-items:center}
+    .thead{padding:0 16px;margin-bottom:8px}
+    .thead span{text-align:center;font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--choc-soft)}
+    .trow{padding:10px 14px;margin-bottom:11px}
+    .trank{font-size:13px;font-weight:800;color:var(--choc-soft)}
+    .tname{font-weight:700;font-size:15px;padding-left:9px}
+    .tname i{font-style:normal;font-weight:600;font-size:11px;color:var(--choc-soft)}
+    .sc{text-align:center;font-size:13px;font-weight:600;color:var(--choc-soft)}
+    .trow b{text-align:center;font-size:18px;font-weight:800}
+    .trow.winner{
+      background:#ffeec0;
+      box-shadow:
+        inset 3px 4px 7px rgba(255,255,255,.75),
+        inset -4px -5px 8px rgba(150,100,20,.18),
+        0 7px 13px rgba(170,110,40,.24),
+        0 0 0 3px var(--butter);
+    }
+    .avwrap{position:relative;width:28px;height:28px}
+    .crown{position:absolute;top:-12px;left:-5px;width:24px;transform:rotate(-16deg);z-index:2;
+      filter:drop-shadow(0 2px 1px rgba(150,94,60,.35))}
+    .endbtns{margin-top:30px}
+    .endbtns>*{margin-bottom:14px}
+
+    /* switcher styling */
+    #switcher a{
+      width:30px;height:30px;display:grid;place-items:center;
+      background:var(--slab);color:var(--choc);
+      font-weight:800;font-size:14px;text-decoration:none;
+      border-radius:10px 12px 9px 11px;
+      box-shadow:0 3px 6px rgba(150,94,60,.28), inset 1px 2px 3px rgba(255,255,255,.65);
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .lt{animation:bob 3.2s ease-in-out infinite alternate}
+      .lt:nth-child(2n){animation-delay:.45s}
+      .lt:nth-child(3n){animation-delay:.85s}
+      @keyframes bob{
+        from{transform:rotate(var(--r,0deg)) translateY(0)}
+        to{transform:rotate(var(--r,0deg)) translateY(-5px)}
+      }
+      .crushed .rv{animation:squash .55s cubic-bezier(.3,1.4,.5,1) both}
+      @keyframes squash{
+        from{transform:scaleY(1) scaleX(1)}
+        to{transform:scaleY(.5) scaleX(1.32)}
+      }
+      .clayx{animation:stampin .4s .5s cubic-bezier(.3,1.6,.5,1) backwards}
+      @keyframes stampin{
+        from{transform:translateX(-50%) rotate(10deg) scale(2.2);opacity:0}
+      }
+      .cf{animation:drift 4.5s ease-in-out infinite alternate}
+      .cf:nth-child(2n){animation-delay:.7s}
+      .cf:nth-child(3n){animation-delay:1.6s}
+      @keyframes drift{
+        to{transform:rotate(var(--r,0deg)) translateY(9px)}
+      }
+      .cta,.btn,.pill,.step,.numcard,.power{transition:transform .15s ease}
+      .cta:active{transform:translateY(3px)}
+      .btn:active,.pill:active,.step:active{transform:translateY(2px)}
+    }
+  </style>
+</head>
+<body>
+  <main data-screen="home">
+    <div class="homestage">
+      <span class="cf worm c-mint" style="top:6%;left:7%;--r:-28deg"></span>
+      <span class="cf cfd c-butter" style="top:4%;left:56%"></span>
+      <span class="cf worm c-lilac" style="top:9%;left:78%;--r:42deg"></span>
+      <span class="cf cfd c-sky" style="top:30%;left:6%"></span>
+      <span class="cf worm c-coral" style="top:34%;left:86%;--r:-55deg"></span>
+      <span class="cf cfd c-mint" style="top:62%;left:10%"></span>
+      <span class="cf worm c-butter" style="top:70%;left:82%;--r:24deg"></span>
+      <span class="cf cfd c-lilac" style="top:84%;left:30%"></span>
+      <span class="cf worm c-sky" style="top:90%;left:62%;--r:-18deg"></span>
+      <button class="iconbtn" aria-label="Mute sounds">
+        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z" fill="#5b4032"/><line x1="16" y1="9" x2="21" y2="14" stroke="#5b4032" stroke-width="2.4" stroke-linecap="round"/><line x1="21" y1="9" x2="16" y2="14" stroke="#5b4032" stroke-width="2.4" stroke-linecap="round"/></svg>
+      </button>
+      <div class="wrap home-pad">
+        <div class="wordmark">
+          <span class="lt lt-coral" style="--r:-5deg">C</span>
+          <span class="lt lt-butter" style="--r:3deg">A</span>
+          <span class="lt lt-mint" style="--r:-2deg">N</span>
+          <span class="lt lt-sky" style="--r:4deg">C</span>
+          <span class="lt lt-lilac" style="--r:-3deg">E</span>
+          <span class="lt lt-coral" style="--r:2deg">L</span>
+        </div>
+        <p class="tagline">a number-picking party game</p>
+        <div class="stack">
+          <button class="cta">New game</button>
+          <button class="btn">Single player</button>
+          <button class="btn">Join with code</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <main data-screen="lobby">
+    <div class="wrap">
+      <div class="topbar">
+        <button class="pill">← Leave</button>
+        <button class="pill">Rules</button>
+      </div>
+      <div class="slab codecard">
+        <div class="codetiles">
+          <span class="lt sm lt-butter" style="--r:-3deg">D</span>
+          <span class="lt sm lt-sky" style="--r:2deg">N</span>
+          <span class="lt sm lt-mint" style="--r:-2deg">2</span>
+          <span class="lt sm lt-lilac" style="--r:3deg">H</span>
+        </div>
+        <div class="hint">press to copy</div>
+      </div>
+      <div class="label sect">Players · 4</div>
+      <div class="rows">
+        <div class="slab prow">
+          <span class="blob p-ben"></span>
+          <span class="pname">Ben</span>
+          <span class="badges"><span class="badge b-host">HOST</span><span class="badge b-you">YOU</span><span class="dot"></span></span>
+        </div>
+        <div class="slab prow">
+          <span class="blob p-vol"></span>
+          <span class="pname">Voltaire</span>
+          <span class="badges"><span class="badge b-bot">BOT</span><span class="dot"></span></span>
+        </div>
+        <div class="slab prow">
+          <span class="blob p-mec"></span>
+          <span class="pname">Mechano</span>
+          <span class="badges"><span class="badge b-bot">BOT</span><span class="dot"></span></span>
+        </div>
+        <div class="slab prow">
+          <span class="blob p-dan"></span>
+          <span class="pname">Data Dan</span>
+          <span class="badges"><span class="badge b-bot">BOT</span><span class="dot"></span></span>
+        </div>
+      </div>
+      <div class="rows" style="margin-top:24px">
+        <div class="slab srow">
+          <span class="sname">Rounds</span>
+          <span class="stepper"><button class="step">−</button><span class="sval">3</span><button class="step">+</button></span>
+        </div>
+        <div class="slab srow">
+          <span class="sname">AI players</span>
+          <span class="stepper"><button class="step">−</button><span class="sval">3</span><button class="step">+</button></span>
+        </div>
+        <div class="slab scol">
+          <div class="sname">Power-ups</div>
+          <div class="seg">
+            <span class="segopt">None</span><span class="segopt on">Random</span><span class="segopt">Choose</span>
+          </div>
+          <div class="hint">A fresh random pool each round.</div>
+        </div>
+      </div>
+      <div class="startwrap"><button class="cta">Start game</button></div>
+    </div>
+  </main>
+
+  <main data-screen="game">
+    <div class="wrap">
+      <div class="ghead">
+        <div class="gmeta"><b>R1</b>/3 · <b>T2</b>/6 · <span class="gcode">DN2H</span></div>
+        <div class="gbtns">
+          <button class="pill xs">RULES</button>
+          <button class="pill xs">LEAVE</button>
+          <button class="pill xs danger">END GAME</button>
+        </div>
+      </div>
+      <div class="scorechips">
+        <div class="slab chip"><span class="blob sm p-ben"></span>Ben<b>4</b></div>
+        <div class="slab chip"><span class="blob sm p-vol"></span>Voltaire<b>0</b></div>
+        <div class="slab chip"><span class="blob sm p-mec"></span>Mechano<b>2</b></div>
+        <div class="slab chip"><span class="blob sm p-dan"></span>Data Dan<b>5</b></div>
+      </div>
+      <div class="rowlabel">
+        <span class="label">POWER-UPS REMAINING</span>
+        <span class="labelval">6 / 6</span>
+      </div>
+      <div class="banner">YOUR TURN, PRESS TO SELECT</div>
+      <div class="powers">
+        <div class="power pw-teal"><span class="pglyph">⇄</span><span class="pwname">Swap Hands</span></div>
+        <div class="power pw-rose"><span class="pglyph">✖</span><span class="pwname">Sabotage</span></div>
+        <div class="power pw-pink selected"><span class="pglyph">=</span><span class="pwname">Jinx</span></div>
+        <div class="power pw-emerald"><span class="pglyph">+2</span><span class="pwname">Plus Two</span></div>
+        <div class="power pw-violet"><span class="pglyph">?</span><span class="pwname">Wild</span></div>
+        <div class="power pw-amber"><span class="pglyph">↧</span><span class="pwname">Drain</span></div>
+      </div>
+      <div class="rowlabel">
+        <span class="label">PLAYERS · POWER PICKER: BEN</span>
+      </div>
+      <div class="pstatus">
+        <div class="slab pcell">
+          <span class="ptop"><span class="blob sm p-ben"></span><span class="pname2">Ben <i>(you)</i></span></span>
+          <span class="phand">Ø 1 2 3 4 5</span>
+          <span class="status thinking">THINKING…</span>
+        </div>
+        <div class="slab pcell">
+          <span class="ptop"><span class="blob sm p-vol"></span><span class="pname2">Voltaire</span></span>
+          <span class="phand">Ø 1 2 3 4 5</span>
+          <span class="status submitted">SUBMITTED</span>
+        </div>
+        <div class="slab pcell">
+          <span class="ptop"><span class="blob sm p-mec"></span><span class="pname2">Mechano</span></span>
+          <span class="phand">Ø 1 2 3 4 5</span>
+          <span class="status submitted">SUBMITTED</span>
+        </div>
+        <div class="slab pcell">
+          <span class="ptop"><span class="blob sm p-dan"></span><span class="pname2">Data Dan</span></span>
+          <span class="phand">Ø 1 2 3 4 5</span>
+          <span class="status submitted">SUBMITTED</span>
+        </div>
+      </div>
+      <button class="ghost">SKIP WAITING, AUTO-PLAY WHO'S LEFT</button>
+      <div class="label handlabel">YOUR HAND</div>
+      <div class="hand">
+        <div class="numcard"><span class="n zero">Ø</span></div>
+        <div class="numcard"><span class="n">1</span></div>
+        <div class="numcard"><span class="n">2</span></div>
+        <div class="numcard"><span class="n">3</span></div>
+        <div class="numcard"><span class="n">4</span></div>
+        <div class="numcard selected"><span class="n">5</span></div>
+      </div>
+      <button class="cta">Lock it in</button>
+    </div>
+  </main>
+
+  <main data-screen="reveal">
+    <div class="wrap rwrap">
+      <div class="eyebrow">TURN 2 REVEAL</div>
+      <div class="eyebrow sub">BEN PLAYED</div>
+      <div class="rpower">
+        <div class="power pw-pink big"><span class="pglyph">=</span><span class="pwname">Jinx</span></div>
+      </div>
+      <div class="rgrid">
+        <div class="rcell">
+          <div class="rname rn-ben">Ben</div>
+          <div class="rslot crushed">
+            <div class="numcard rv"><span class="n">5</span></div>
+            <svg class="cracks" viewBox="0 0 100 50" aria-hidden="true"><polyline points="6,30 16,22 13,36 26,28" fill="none" stroke="#8a5a40" stroke-width="1.8" stroke-linecap="round" opacity=".42"/><polyline points="30,46 38,38 50,44" fill="none" stroke="#8a5a40" stroke-width="1.6" stroke-linecap="round" opacity=".35"/><polyline points="88,14 80,24 92,30" fill="none" stroke="#8a5a40" stroke-width="1.6" stroke-linecap="round" opacity=".4"/></svg>
+            <span class="clayx"></span>
+          </div>
+          <div class="rout"><b>0</b><span class="cstamp">CANCELLED</span></div>
+        </div>
+        <div class="rcell">
+          <div class="rname rn-vol">Voltaire</div>
+          <div class="rslot hero">
+            <span class="spark s1"></span><span class="spark s2"></span><span class="spark s3"></span>
+            <div class="numcard rv"><span class="n zero">Ø</span></div>
+          </div>
+          <div class="rout"><b>0</b></div>
+        </div>
+        <div class="rcell">
+          <div class="rname rn-mec">Mechano</div>
+          <div class="rslot crushed">
+            <div class="numcard rv"><span class="n">5</span></div>
+            <svg class="cracks" viewBox="0 0 100 50" aria-hidden="true"><polyline points="8,18 18,26 12,38 24,42" fill="none" stroke="#8a5a40" stroke-width="1.8" stroke-linecap="round" opacity=".42"/><polyline points="34,8 42,16 36,24" fill="none" stroke="#8a5a40" stroke-width="1.6" stroke-linecap="round" opacity=".35"/><polyline points="90,20 82,30 94,38" fill="none" stroke="#8a5a40" stroke-width="1.6" stroke-linecap="round" opacity=".4"/></svg>
+            <span class="clayx"></span>
+          </div>
+          <div class="rout"><b>0</b><span class="cstamp">CANCELLED</span></div>
+        </div>
+        <div class="rcell">
+          <div class="rname rn-dan">Data Dan</div>
+          <div class="rslot crushed">
+            <div class="numcard rv"><span class="n">3</span></div>
+            <svg class="cracks" viewBox="0 0 100 50" aria-hidden="true"><polyline points="10,34 20,26 16,40 30,34" fill="none" stroke="#8a5a40" stroke-width="1.8" stroke-linecap="round" opacity=".42"/><polyline points="86,12 78,22 90,28 84,38" fill="none" stroke="#8a5a40" stroke-width="1.6" stroke-linecap="round" opacity=".4"/></svg>
+            <span class="clayx"></span>
+          </div>
+          <div class="rout"><b>0</b><span class="cstamp">CANCELLED</span></div>
+        </div>
+      </div>
+      <button class="cta">Continue</button>
+    </div>
+  </main>
+
+  <main data-screen="end">
+    <div class="endstage">
+      <span class="cf worm c-coral" style="top:3%;left:6%;--r:-24deg"></span>
+      <span class="cf cfd c-butter" style="top:5%;left:38%"></span>
+      <span class="cf worm c-sky" style="top:2%;left:66%;--r:40deg"></span>
+      <span class="cf cfd c-mint" style="top:9%;left:88%"></span>
+      <span class="cf worm c-lilac" style="top:14%;left:8%;--r:70deg"></span>
+      <span class="cf cfd c-coral" style="top:47%;left:4%"></span>
+      <span class="cf cfd c-sky" style="top:24%;left:90%"></span>
+      <span class="cf worm c-mint" style="top:30%;left:4%;--r:30deg"></span>
+      <span class="cf cfd c-lilac" style="top:33%;left:70%"></span>
+      <span class="cf worm c-coral" style="top:45%;left:86%;--r:-60deg"></span>
+      <span class="cf cfd c-butter" style="top:50%;left:7%"></span>
+      <span class="cf worm c-sky" style="top:58%;left:60%;--r:20deg"></span>
+      <span class="cf cfd c-mint" style="top:62%;left:30%"></span>
+      <span class="cf worm c-lilac" style="top:70%;left:80%;--r:-35deg"></span>
+      <span class="cf cfd c-coral" style="top:74%;left:14%"></span>
+      <span class="cf worm c-butter" style="top:82%;left:40%;--r:55deg"></span>
+      <span class="cf cfd c-sky" style="top:86%;left:68%"></span>
+      <span class="cf worm c-mint" style="top:92%;left:22%;--r:-20deg"></span>
+      <span class="cf cfd c-lilac" style="top:90%;left:88%"></span>
+      <div class="wrap end-pad">
+        <div class="eyebrow">GAME OVER</div>
+        <h1 class="won">You <em>won.</em></h1>
+        <div class="thead">
+          <span></span><span></span><span></span><span>R1</span><span>R2</span><span>R3</span><span>TOTAL</span>
+        </div>
+        <div class="slab trow winner">
+          <span class="trank">1</span>
+          <span class="avwrap"><svg class="crown" viewBox="0 0 24 14" aria-hidden="true"><path d="M2 12 L2 4 L7 8 L12 1.5 L17 8 L22 4 L22 12 Z" fill="#ffd97a" stroke="#c89018" stroke-width="1.4" stroke-linejoin="round"/></svg><span class="blob sm p-ben"></span></span>
+          <span class="tname">Ben <i>(you)</i></span>
+          <span class="sc">5</span><span class="sc">9</span><span class="sc">6</span><b>20</b>
+        </div>
+        <div class="slab trow">
+          <span class="trank">2</span>
+          <span class="avwrap"><span class="blob sm p-dan"></span></span>
+          <span class="tname">Data Dan</span>
+          <span class="sc">5</span><span class="sc">4</span><span class="sc">3</span><b>12</b>
+        </div>
+        <div class="slab trow">
+          <span class="trank">3</span>
+          <span class="avwrap"><span class="blob sm p-vol"></span></span>
+          <span class="tname">Voltaire</span>
+          <span class="sc">3</span><span class="sc">2</span><span class="sc">4</span><b>9</b>
+        </div>
+        <div class="slab trow">
+          <span class="trank">4</span>
+          <span class="avwrap"><span class="blob sm p-mec"></span></span>
+          <span class="tname">Mechano</span>
+          <span class="sc">0</span><span class="sc">5</span><span class="sc">2</span><b>7</b>
+        </div>
+        <div class="endbtns">
+          <button class="cta">Play again</button>
+          <button class="btn">Leave room</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

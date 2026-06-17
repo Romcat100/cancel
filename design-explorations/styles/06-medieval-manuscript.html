@@ -1,0 +1,1025 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Medieval Manuscript</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..700&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ====================== palette & primitives ====================== */
+    :root {
+      --parch: #ede0bd;
+      --parch-lt: #f3e8c8;
+      --parch-md: #f0e3bf;
+      --ink: #3a2f1d;
+      --ink-soft: #6b5b3e;
+      --gold: #c9a227;
+      --gold-hi: #f0d878;
+      --gold-dk: #8a6d14;
+      --verm: #a93226;
+      --verm-dk: #7c241a;
+      --lapis: #27496d;
+      --verd: #3e6b4f;
+      --hairline: rgba(58, 47, 29, .55);
+      --hairline-lt: rgba(58, 47, 29, .3);
+      --boss: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 32 C42 25 54 25 62 32 C54 39 42 39 32 32 Z' fill='%23a93226'/%3E%3Cpath d='M32 32 C22 25 10 25 2 32 C10 39 22 39 32 32 Z' fill='%23a93226'/%3E%3Cpath d='M32 32 C25 22 25 10 32 2 C39 10 39 22 32 32 Z' fill='%2327496d'/%3E%3Cpath d='M32 32 C25 42 25 54 32 62 C39 54 39 42 32 32 Z' fill='%2327496d'/%3E%3Ccircle cx='61' cy='32' r='1.8' fill='%23c9a227'/%3E%3Ccircle cx='3' cy='32' r='1.8' fill='%23c9a227'/%3E%3Ccircle cx='32' cy='3' r='1.8' fill='%23c9a227'/%3E%3Ccircle cx='32' cy='61' r='1.8' fill='%23c9a227'/%3E%3Crect x='25.5' y='25.5' width='13' height='13' transform='rotate(45 32 32)' fill='%23c9a227' stroke='%237a5f10' stroke-width='1'/%3E%3Ccircle cx='32' cy='32' r='2' fill='%233a2f1d'/%3E%3C/svg%3E");
+      --tex: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.011 0.014' numOctaves='3' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.38 0 0 0 0 0.28 0 0 0 0 0.10 0 0 0 0.10 0'/%3E%3C/filter%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='2' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.32 0 0 0 0 0.24 0 0 0 0 0.10 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='320' height='320' filter='url(%23b)'/%3E%3Crect width='320' height='320' filter='url(%23g)'/%3E%3C/svg%3E");
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "EB Garamond", Georgia, serif;
+      font-size: 16px;
+      line-height: 1.35;
+      background-color: var(--parch);
+      background-image:
+        radial-gradient(ellipse 90% 55% at 12% 6%, rgba(151, 107, 45, .12), transparent 62%),
+        radial-gradient(ellipse 70% 45% at 92% 32%, rgba(151, 107, 45, .09), transparent 60%),
+        radial-gradient(ellipse 110% 65% at 50% 104%, rgba(122, 84, 30, .16), transparent 65%),
+        var(--tex);
+      overflow-x: hidden;
+    }
+
+    main { max-width: 420px; margin: 0 auto; }
+
+    button { font-family: inherit; cursor: pointer; }
+
+    /* ====================== the illuminated page frame ====================== */
+    .frame {
+      position: relative;
+      margin: 14px;
+      padding: 26px 18px 30px;
+      min-height: calc(100vh - 28px);
+      box-shadow: inset 0 0 64px rgba(96, 70, 28, .16);
+      display: flex;
+      flex-direction: column;
+    }
+    .frame::before {
+      content: "";
+      position: absolute; inset: 0;
+      border: 1.6px solid rgba(58, 47, 29, .8);
+      pointer-events: none;
+    }
+    .frame::after {
+      content: "";
+      position: absolute; inset: 5px;
+      border: 1px solid rgba(58, 47, 29, .55);
+      pointer-events: none;
+    }
+    .boss {
+      position: absolute;
+      width: 28px; height: 28px;
+      background: var(--boss) no-repeat center / contain;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .boss.tl { top: -14px; left: -14px; }
+    .boss.tr { top: -14px; right: -14px; }
+    .boss.bl { bottom: -14px; left: -14px; }
+    .boss.br { bottom: -14px; right: -14px; }
+
+    /* ====================== type helpers ====================== */
+    .rubric {
+      display: flex; align-items: center; gap: 10px;
+      margin: 20px 0 10px;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: .2em; text-transform: uppercase;
+      color: var(--verm);
+    }
+    .rubric .fill { flex: 1; border-top: 1px solid var(--hairline-lt); height: 0; }
+    .rubric .count { color: var(--ink); font-size: 13px; letter-spacing: .08em; }
+    .rubric b { color: var(--ink); font-weight: 700; }
+
+    .eyebrow {
+      text-align: center;
+      font-size: 12px; font-weight: 700;
+      letter-spacing: .3em; text-transform: uppercase;
+      color: var(--verm);
+      margin: 0 0 6px;
+    }
+
+    .hint { text-align: center; font-style: italic; color: var(--ink-soft); font-size: 13.5px; margin: 8px 0 0; }
+
+    .fleuron-rule {
+      display: flex; align-items: center; gap: 12px;
+      color: var(--gold-dk); font-size: 17px; line-height: 1;
+    }
+    .fleuron-rule::before, .fleuron-rule::after {
+      content: ""; flex: 1; height: 3px;
+      border-top: 1px solid var(--hairline-lt);
+      border-bottom: 1px solid var(--hairline-lt);
+    }
+
+    /* ====================== ribbon banner buttons ====================== */
+    .ribbon {
+      position: relative;
+      display: block; width: 100%;
+      border: none; background: none; padding: 0 20px;
+      color: inherit;
+    }
+    .ribbon .face {
+      position: relative; z-index: 1;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 54px; padding: 8px 10px;
+      background: linear-gradient(180deg, #bf4733, #a93226 45%, #8e2a20);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 233, 180, .35),
+        inset 0 0 0 1.5px rgba(122, 31, 22, .7),
+        inset 0 0 0 3px rgba(201, 162, 39, .55),
+        0 3px 6px rgba(58, 47, 29, .35);
+      color: #f6ecd2;
+      font-weight: 700; font-size: 16px;
+      letter-spacing: .14em; text-transform: uppercase;
+    }
+    .ribbon .tail {
+      position: absolute; top: 9px; bottom: -7px; width: 36px;
+      background: linear-gradient(180deg, #8e2a20, #6f1f16);
+      z-index: 0;
+    }
+    .ribbon .tail.l { left: 0; clip-path: polygon(100% 0, 0 0, 30% 50%, 0 100%, 100% 100%); }
+    .ribbon .tail.r { right: 0; clip-path: polygon(0 0, 100% 0, 70% 50%, 100% 100%, 0 100%); }
+    .ribbon.slim { padding: 0 16px; }
+    .ribbon.slim .face { min-height: 36px; font-size: 11px; letter-spacing: .18em; padding: 6px 8px; }
+    .ribbon.slim .tail { top: 6px; bottom: -5px; width: 24px; }
+
+    /* parchment scroll buttons (secondary) */
+    .btn-scroll {
+      display: block; width: 100%;
+      min-height: 50px; padding: 11px 16px;
+      background: var(--parch-lt);
+      border: 1px solid var(--hairline);
+      border-radius: 3px;
+      box-shadow:
+        inset 0 0 0 3px var(--parch-lt),
+        inset 0 0 0 4px rgba(58, 47, 29, .45),
+        0 2px 4px rgba(58, 47, 29, .22);
+      color: var(--ink);
+      font-weight: 600; font-size: 16.5px;
+      letter-spacing: .04em;
+    }
+
+    /* small annotation buttons */
+    .btn-quill {
+      min-height: 36px; padding: 6px 15px;
+      background: var(--parch-lt);
+      border: 1px solid var(--hairline);
+      border-radius: 3px;
+      box-shadow: inset 0 0 0 2.5px var(--parch-lt), inset 0 0 0 3.5px rgba(58, 47, 29, .4);
+      color: var(--ink);
+      font-weight: 600; font-size: 14.5px;
+    }
+    .btn-tiny {
+      padding: 6px 9px;
+      background: var(--parch-lt);
+      border: 1px solid var(--hairline-lt);
+      border-radius: 3px;
+      color: var(--ink-soft);
+      font-weight: 700; font-size: 9px;
+      letter-spacing: .14em; text-transform: uppercase;
+    }
+    .btn-tiny.danger { color: var(--verm); border-color: rgba(169, 50, 38, .5); }
+
+    .btn-ghost {
+      display: block; width: 100%;
+      min-height: 40px; padding: 9px 12px;
+      background: transparent;
+      border: 1px dashed rgba(58, 47, 29, .45);
+      border-radius: 3px;
+      color: var(--ink-soft);
+      font-weight: 600; font-size: 10.5px;
+      letter-spacing: .16em; text-transform: uppercase;
+    }
+
+    /* wax-seal steppers */
+    .seal {
+      width: 42px; height: 42px;
+      border: 1px solid #5e1810;
+      border-radius: 46% 54% 51% 49% / 53% 47% 55% 45%;
+      background: radial-gradient(circle at 35% 30%, #c8503c, #a93226 55%, #7c241a);
+      box-shadow:
+        inset 0 2px 3px rgba(255, 255, 255, .28),
+        inset 0 -3px 5px rgba(0, 0, 0, .3),
+        0 2px 3px rgba(58, 47, 29, .4);
+      color: #f6ecd2;
+      font-size: 20px; font-weight: 700; line-height: 1;
+      display: grid; place-items: center;
+      padding-bottom: 2px;
+    }
+
+    /* segmented control */
+    .seg {
+      display: flex; width: 100%;
+      background: var(--parch-lt);
+      border: 1px solid var(--hairline);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .seg button {
+      flex: 1; min-height: 42px; padding: 8px 0;
+      background: none; border: none;
+      border-left: 1px solid var(--hairline-lt);
+      color: var(--ink-soft);
+      font-weight: 600; font-size: 14.5px;
+    }
+    .seg button:first-child { border-left: none; }
+    .seg button.on {
+      background: linear-gradient(180deg, #bf4733, #8e2a20);
+      color: #f6ecd2; font-weight: 700;
+      box-shadow: inset 0 0 0 1px rgba(201, 162, 39, .6);
+    }
+
+    /* ====================== shared bits: players ====================== */
+    .pinit {
+      flex: none;
+      width: 36px; height: 36px;
+      display: grid; place-items: center;
+      border-radius: 4px;
+      font-weight: 700; font-size: 18px;
+      color: #f6ecd2;
+      box-shadow: inset 0 0 0 1px rgba(246, 236, 210, .45), 0 1px 2px rgba(58, 47, 29, .4);
+    }
+    .pinit.sm { width: 27px; height: 27px; font-size: 13.5px; border-radius: 3px; }
+    .pinit.ben { background: linear-gradient(150deg, #bf4733, #8e2a20); }
+    .pinit.voltaire { background: linear-gradient(150deg, #335d89, #1d3b59); }
+    .pinit.mechano { background: linear-gradient(150deg, #d9b73f, #a5821a); color: #4a3a08; }
+    .pinit.datadan { background: linear-gradient(150deg, #4e8263, #2f543e); }
+
+    .pip { flex: none; width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(58, 47, 29, .35); }
+    .pip.ben { background: var(--verm); }
+    .pip.voltaire { background: var(--lapis); }
+    .pip.mechano { background: var(--gold); }
+    .pip.datadan { background: var(--verd); }
+
+    .badge {
+      padding: 2px 7px 3px;
+      border: 1px solid var(--hairline-lt);
+      border-radius: 3px;
+      font-size: 9.5px; font-weight: 700;
+      letter-spacing: .14em; text-transform: uppercase;
+      color: var(--ink-soft);
+      background: var(--parch-lt);
+    }
+    .badge.host { color: #6e5610; border-color: rgba(138, 109, 20, .6); background: linear-gradient(180deg, #ecd98e, #ddc05a); }
+    .badge.bot { color: var(--lapis); border-color: rgba(39, 73, 109, .45); background: #e4e0c8; }
+
+    .dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #6f9c81, #3e6b4f 70%); box-shadow: 0 0 0 1px rgba(58, 47, 29, .25); }
+
+    /* ====================== the number cards (the heroes) ====================== */
+    .ncard {
+      position: relative;
+      width: 62px; height: 86px;
+      padding: 4px;
+      border: none;
+      border-radius: 6px;
+      background:
+        linear-gradient(118deg, rgba(255, 244, 200, .6) 0%, rgba(255, 244, 200, 0) 30%),
+        linear-gradient(135deg, #e8cc66, #c9a227 38%, #9c7d18 70%, #d9b73f);
+      box-shadow:
+        0 2px 5px rgba(58, 47, 29, .38),
+        inset 0 0 0 1px rgba(122, 95, 16, .9);
+    }
+    .ncard .field {
+      position: relative;
+      width: 100%; height: 100%;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      border-radius: 3px;
+      background:
+        radial-gradient(2.4px 2.4px at 7px 7px, var(--gold-dk) 98%, transparent),
+        radial-gradient(2.4px 2.4px at calc(100% - 7px) 7px, var(--gold-dk) 98%, transparent),
+        radial-gradient(2.4px 2.4px at 7px calc(100% - 7px), var(--gold-dk) 98%, transparent),
+        radial-gradient(2.4px 2.4px at calc(100% - 7px) calc(100% - 7px), var(--gold-dk) 98%, transparent),
+        radial-gradient(ellipse at 50% 36%, #f8edcb, #efe2bb 68%, #e5d2a0);
+      box-shadow: inset 0 0 0 1px rgba(58, 47, 29, .5);
+    }
+    .ncard .field::after { content: "✦"; font-size: 8px; line-height: 1; color: var(--gold-dk); margin-top: 4px; }
+    .ncard .num { font-size: 33px; font-weight: 700; line-height: 1; }
+    .ncard.red .num { color: var(--verm); }
+    .ncard.blue .num { color: var(--lapis); }
+    .ncard.sel {
+      transform: translateY(-7px);
+      box-shadow:
+        0 0 0 2.5px var(--gold),
+        0 7px 13px rgba(58, 47, 29, .45),
+        inset 0 0 0 1px rgba(122, 95, 16, .9);
+    }
+    .ncard.sel .field {
+      background:
+        radial-gradient(2.4px 2.4px at 7px 7px, var(--gold-dk) 98%, transparent),
+        radial-gradient(2.4px 2.4px at calc(100% - 7px) 7px, var(--gold-dk) 98%, transparent),
+        radial-gradient(2.4px 2.4px at 7px calc(100% - 7px), var(--gold-dk) 98%, transparent),
+        radial-gradient(2.4px 2.4px at calc(100% - 7px) calc(100% - 7px), var(--gold-dk) 98%, transparent),
+        radial-gradient(ellipse at 50% 36%, #faf0c4, #f1e0a6 68%, #e3ca80);
+    }
+    .ncard.big { width: 88px; height: 120px; padding: 5px; border-radius: 7px; }
+    .ncard.big .num { font-size: 48px; }
+    .ncard.big .field::after { font-size: 10px; margin-top: 6px; }
+
+    /* red ink strike (the cancellation) */
+    .slash {
+      position: absolute;
+      left: -9px; right: -9px; top: 50%;
+      height: 4.5px; border-radius: 4px;
+      z-index: 3;
+      background: linear-gradient(90deg, rgba(169, 50, 38, 0), #a93226 11%, #8e2a20 50%, #a93226 89%, rgba(169, 50, 38, 0));
+    }
+    .slash.s1 { transform: translateY(-8px) rotate(-21deg); }
+    .slash.s2 { transform: translateY(4px) rotate(15deg); height: 3.5px; opacity: .88; }
+
+    .ncard.lone {
+      box-shadow:
+        0 0 0 3px var(--gold),
+        0 0 22px 5px rgba(201, 162, 39, .55),
+        0 2px 5px rgba(58, 47, 29, .38),
+        inset 0 0 0 1px rgba(122, 95, 16, .9);
+    }
+
+    /* ====================== power-up tiles ====================== */
+    .ptile {
+      position: relative;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 7px;
+      padding: 12px 4px 10px;
+      background: var(--parch-md);
+      border: 1px solid var(--hairline);
+      border-radius: 6px;
+      box-shadow:
+        inset 0 0 0 3px var(--parch-md),
+        inset 0 0 0 4px rgba(58, 47, 29, .3),
+        0 1px 3px rgba(58, 47, 29, .25);
+    }
+    .pmed {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      display: grid; place-items: center;
+      color: #f6ecd2;
+      font-size: 17px; font-weight: 700; line-height: 1;
+      box-shadow:
+        inset 0 2px 3px rgba(255, 255, 255, .3),
+        inset 0 -3px 4px rgba(0, 0, 0, .28),
+        0 1px 2px rgba(58, 47, 29, .4);
+    }
+    .ptile .pname {
+      font-size: 10.5px; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+      color: var(--ink);
+      text-align: center;
+    }
+    .ptile.teal .pmed { background: radial-gradient(circle at 35% 30%, #459c8c, #2e6e62 60%, #1e4a42); }
+    .ptile.rose .pmed { background: radial-gradient(circle at 35% 30%, #c8503c, #a93226 60%, #7c241a); }
+    .ptile.pink .pmed { background: radial-gradient(circle at 35% 30%, #d07f9e, #b65a7c 60%, #8a3f5c); }
+    .ptile.emerald .pmed { background: radial-gradient(circle at 35% 30%, #5b9472, #3e6b4f 60%, #294a36); }
+    .ptile.violet .pmed { background: radial-gradient(circle at 35% 30%, #7d68a0, #5d4a78 60%, #413253); }
+    .ptile.amber .pmed { background: radial-gradient(circle at 35% 30%, #d0a04a, #b07d2b 60%, #82591a); }
+    .ptile.sel {
+      transform: translateY(-3px);
+      background: linear-gradient(180deg, #f4e5ae, #ecd98e);
+      border-color: var(--gold-dk);
+      box-shadow:
+        0 0 0 2px var(--gold),
+        0 5px 10px rgba(58, 47, 29, .35),
+        inset 0 0 0 3px rgba(244, 229, 174, .9),
+        inset 0 0 0 4px rgba(138, 109, 20, .55);
+    }
+    .ptile.sel::after {
+      content: "✦";
+      position: absolute; top: -8px; right: -7px;
+      width: 19px; height: 19px;
+      display: grid; place-items: center;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #f0d878, #c9a227 70%);
+      border: 1px solid var(--gold-dk);
+      color: #5a4408; font-size: 10px;
+    }
+
+    /* ====================== HOME ====================== */
+    .home-frame { padding-top: 64px; }
+    .top-orn { text-align: center; color: var(--gold-dk); font-size: 15px; letter-spacing: .9em; padding-left: .9em; margin-bottom: 26px; }
+    .wordmark {
+      display: flex; align-items: flex-end; justify-content: center;
+      gap: 7px;
+    }
+    .dropcap {
+      position: relative; flex: none;
+      width: 118px; height: 118px;
+      display: grid; place-items: center;
+      border: 2px solid #7a5f10;
+      border-radius: 4px;
+      background:
+        linear-gradient(118deg, rgba(255, 248, 214, .65) 0%, rgba(255, 248, 214, 0) 32%),
+        linear-gradient(135deg, #e8cc66, #c9a227 40%, #9c7d18 72%, #d9b73f);
+      box-shadow:
+        inset 0 0 0 1.5px rgba(246, 230, 162, .8),
+        inset 0 0 0 5px rgba(122, 95, 16, .35),
+        0 3px 7px rgba(58, 47, 29, .4);
+    }
+    .dropcap .filigree { position: absolute; inset: 7px; width: calc(100% - 14px); height: calc(100% - 14px); opacity: .92; }
+    .dropcap .dc-letter {
+      position: relative; z-index: 1;
+      font-family: "UnifrakturMaguntia", serif;
+      font-size: 84px; line-height: 1;
+      color: var(--verm);
+      text-shadow: 0 1px 0 rgba(255, 244, 200, .55), 0 2px 2px rgba(58, 47, 29, .35);
+      margin-top: -8px;
+    }
+    .wm-rest {
+      font-family: "UnifrakturMaguntia", serif;
+      font-size: 90px; line-height: .82;
+      color: var(--ink);
+      text-shadow: 0 2px 0 rgba(201, 162, 39, .35);
+      margin-bottom: -2px;
+    }
+    .tagline {
+      margin: 26px 0 0;
+      text-align: center;
+      font-style: italic;
+      font-size: 18.5px;
+      color: var(--ink-soft);
+    }
+    .tagline .fleur { color: var(--verm); font-style: normal; font-size: 15px; margin: 0 8px; }
+    .tagline .fleur.flip { display: inline-block; transform: scaleX(-1); }
+    .home-rule { margin: 30px 8px 0; }
+    .home-actions { display: flex; flex-direction: column; gap: 15px; margin-top: 34px; }
+    .colophon { margin-top: auto; padding-top: 36px; }
+
+    /* ====================== LOBBY ====================== */
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .codebox {
+      margin: 4px auto 0;
+      width: fit-content;
+      padding: 12px 30px 10px;
+      background: var(--parch-lt);
+      border: 1px solid var(--hairline);
+      border-radius: 4px;
+      box-shadow:
+        inset 0 0 0 3px var(--parch-lt),
+        inset 0 0 0 4.5px rgba(201, 162, 39, .85),
+        0 2px 4px rgba(58, 47, 29, .22);
+      text-align: center;
+    }
+    .code { font-size: 46px; font-weight: 700; letter-spacing: .16em; line-height: 1.05; margin-right: -.16em; }
+    .code .r { color: var(--verm); }
+    .code .b { color: var(--lapis); }
+    .codebox .hint { margin-top: 1px; }
+
+    .plist { display: flex; flex-direction: column; gap: 8px; }
+    .prow {
+      display: flex; align-items: center; gap: 11px;
+      padding: 9px 12px;
+      background: var(--parch-md);
+      border: 1px solid var(--hairline-lt);
+      border-radius: 4px;
+      box-shadow: 0 1px 2px rgba(58, 47, 29, .18);
+    }
+    .prow .pname { font-size: 17px; font-weight: 600; flex: 1; }
+    .prow .badge + .badge { margin-left: -3px; }
+
+    .setrow {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 13px;
+      background: var(--parch-md);
+      border: 1px solid var(--hairline-lt);
+      border-radius: 4px;
+      margin-top: 9px;
+    }
+    .setrow .setlabel { flex: 1; font-size: 16.5px; font-weight: 700; }
+    .setrow .stepval { width: 28px; text-align: center; font-size: 21px; font-weight: 700; }
+    .setrow.col { flex-direction: column; align-items: stretch; gap: 9px; }
+    .setrow.col .helper { margin: 0 2px; font-style: italic; font-size: 13.5px; color: var(--ink-soft); }
+    .lobby-start { margin-top: 20px; }
+
+    /* ====================== GAME ====================== */
+    .ghead { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .gmeta { font-size: 15.5px; font-weight: 700; white-space: nowrap; }
+    .gmeta span { color: var(--ink-soft); font-weight: 500; }
+    .gmeta .gcode { color: var(--gold-dk); font-weight: 700; letter-spacing: .1em; margin-left: 5px; }
+    .gbtns { display: flex; gap: 5px; }
+
+    .chips { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+    .chip {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 11px;
+      background: var(--parch-md);
+      border: 1px solid var(--hairline-lt);
+      border-radius: 4px;
+    }
+    .chip span { font-size: 15px; font-weight: 600; }
+    .chip b { margin-left: auto; font-size: 17px; }
+
+    .pool-banner { margin: 2px 0 12px; }
+    .pool { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+
+    .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 12px; }
+    .srow { display: flex; gap: 9px; align-items: flex-start; }
+    .srow.picker .pinit { box-shadow: 0 0 0 2px var(--gold), inset 0 0 0 1px rgba(246, 236, 210, .45); }
+    .scol { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .sname { font-size: 15px; font-weight: 600; line-height: 1.15; }
+    .sname .you { font-style: italic; font-weight: 400; color: var(--ink-soft); font-size: 12.5px; }
+    .shand { font-size: 11.5px; letter-spacing: .3em; color: var(--ink-soft); }
+    .sstat { font-size: 9.5px; font-weight: 700; letter-spacing: .17em; text-transform: uppercase; }
+    .sstat.think { color: var(--verm); }
+    .sstat.sub { color: var(--verd); }
+    .sstat.sub::before { content: "✓ "; }
+    .skip-btn { margin-top: 16px; }
+
+    .hand { display: flex; flex-wrap: wrap; justify-content: center; gap: 13px 10px; padding-top: 7px; }
+    .game-cta { margin-top: 24px; }
+
+    /* ====================== REVEAL ====================== */
+    .reveal-frame { justify-content: center; text-align: center; padding-top: 40px; padding-bottom: 40px; }
+    .played-label {
+      margin: 18px 0 10px;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: .26em; text-transform: uppercase;
+      color: var(--ink-soft);
+    }
+    .reveal-power { width: 112px; margin: 0 auto; padding: 14px 8px 11px; }
+    .reveal-power .pmed { width: 44px; height: 44px; font-size: 20px; }
+    .reveal-power .pname { font-size: 12px; }
+    .rgrid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 22px 14px;
+      margin: 26px 6px 0;
+    }
+    .rcell { display: flex; flex-direction: column; align-items: center; }
+    .rname {
+      margin: 0 0 9px;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: .22em; text-transform: uppercase;
+    }
+    .rname.ben { color: var(--verm); }
+    .rname.voltaire { color: var(--lapis); }
+    .rname.mechano { color: var(--gold-dk); }
+    .rname.datadan { color: var(--verd); }
+    .outcome { margin: 9px 0 0; line-height: 1.2; }
+    .outcome .zero { display: block; font-size: 14.5px; color: var(--ink-soft); }
+    .outcome .ocancel {
+      display: block;
+      text-transform: lowercase;
+      font-style: italic;
+      font-size: 17px;
+      color: var(--verm);
+      transform: rotate(-3deg);
+    }
+    .outcome .lonezero { display: block; font-size: 23px; font-weight: 700; color: var(--gold-dk); }
+    .outcome .lonezero::before { content: "✦ "; font-size: 11px; vertical-align: 3px; }
+    .outcome .lonezero::after { content: " ✦"; font-size: 11px; vertical-align: 3px; }
+    .reveal-cta { margin-top: 30px; }
+
+    /* ====================== END ====================== */
+    .end-frame { justify-content: center; padding-top: 44px; padding-bottom: 40px; }
+    .celebration { position: relative; text-align: center; padding: 26px 0 10px; }
+    .sp { position: absolute; line-height: 1; pointer-events: none; }
+    .sp.g1 { color: var(--gold); font-size: 19px; }
+    .sp.g2 { color: var(--gold); font-size: 13px; }
+    .sp.g3 { color: var(--gold-dk); font-size: 10px; }
+    .sp.r, .sp.b { width: 7px; height: 7px; transform: rotate(45deg); }
+    .sp.r { background: var(--verm); }
+    .sp.b { background: var(--lapis); }
+    .dedication {
+      margin: 8px 0 0;
+      font-family: "UnifrakturMaguntia", serif;
+      font-weight: 400;
+      font-size: 66px; line-height: 1;
+      background: linear-gradient(105deg, #8a6d14 0%, #c9a227 28%, #f0d878 50%, #c9a227 72%, #8a6d14 100%);
+      background-size: 200% 100%;
+      background-position: 50% 0;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      filter: drop-shadow(0 2px 0 rgba(58, 47, 29, .4));
+    }
+    .ded-rule { margin: 22px 30px 0; }
+
+    .scoretable {
+      margin-top: 24px;
+      padding: 8px 12px 6px;
+      background: var(--parch-md);
+      border: 1px solid var(--hairline);
+      border-radius: 4px;
+      box-shadow: inset 0 0 0 3px var(--parch-md), inset 0 0 0 4px rgba(58, 47, 29, .25);
+    }
+    .thead, .trow {
+      display: grid;
+      grid-template-columns: 14px 29px 1fr 29px 29px 29px 48px;
+      gap: 7px; align-items: center;
+      padding: 8px 4px;
+    }
+    .thead {
+      padding-bottom: 5px;
+      border-bottom: 1px solid var(--hairline-lt);
+      font-size: 9.5px; font-weight: 700;
+      letter-spacing: .14em; text-transform: uppercase;
+      color: var(--verm);
+    }
+    .thead span { text-align: center; }
+    .thead .th-total { text-align: right; }
+    .trow + .trow { border-top: 1px solid rgba(58, 47, 29, .15); }
+    .trow .rk { font-size: 13.5px; color: var(--ink-soft); }
+    .trow .tname { font-size: 15.5px; font-weight: 600; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .trow .tname .you { font-style: italic; font-weight: 400; color: var(--ink-soft); font-size: 12px; }
+    .trow .sc { text-align: center; font-size: 14.5px; color: var(--ink-soft); }
+    .trow .tot { text-align: right; font-size: 19px; font-weight: 700; }
+    .trow.winner {
+      background: linear-gradient(180deg, rgba(201, 162, 39, .26), rgba(201, 162, 39, .12));
+      box-shadow: inset 0 0 0 1.5px var(--gold);
+      border-radius: 4px;
+    }
+    .trow.winner .tot { color: var(--verm); }
+    .end-actions { display: flex; flex-direction: column; gap: 14px; margin-top: 26px; }
+
+    /* ====================== switcher chrome ====================== */
+    #switcher a {
+      width: 26px; height: 26px;
+      display: grid; place-items: center;
+      background: var(--parch-lt);
+      border: 1px solid var(--ink);
+      border-radius: 3px;
+      color: var(--ink);
+      font: 700 13px "EB Garamond", serif;
+      text-decoration: none;
+    }
+
+    /* ====================== motion (flourish only) ====================== */
+    @media (prefers-reduced-motion: no-preference) {
+      .ribbon .face, .btn-scroll, .btn-quill, .ncard, .ptile, .seal, .seg button {
+        transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+      }
+      .ribbon:hover .face { filter: brightness(1.07); }
+      .btn-scroll:hover, .btn-quill:hover { transform: translateY(-1px); }
+      .ncard:hover { transform: translateY(-4px); }
+      .ncard.sel:hover { transform: translateY(-8px); }
+      .ptile:hover { transform: translateY(-2px); }
+      .ptile.sel:hover { transform: translateY(-4px); }
+
+      @keyframes twinkle {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: .35; transform: scale(.78); }
+      }
+      @keyframes twinkle-d {
+        0%, 100% { opacity: 1; transform: rotate(45deg) scale(1); }
+        50% { opacity: .45; transform: rotate(45deg) scale(.7); }
+      }
+      .sp { animation: twinkle 2.8s ease-in-out infinite; }
+      .sp.r, .sp.b { animation-name: twinkle-d; }
+      .sp:nth-child(2n) { animation-delay: .7s; }
+      .sp:nth-child(3n) { animation-delay: 1.3s; }
+      .sp:nth-child(5n) { animation-delay: 1.9s; }
+
+      @keyframes goldsheen {
+        0% { background-position: 120% 0; }
+        100% { background-position: -20% 0; }
+      }
+      .dedication { animation: goldsheen 5s ease-in-out infinite alternate; }
+
+      @keyframes haloPulse {
+        0%, 100% { box-shadow: 0 0 0 3px var(--gold), 0 0 22px 5px rgba(201, 162, 39, .55), 0 2px 5px rgba(58, 47, 29, .38), inset 0 0 0 1px rgba(122, 95, 16, .9); }
+        50% { box-shadow: 0 0 0 3px var(--gold), 0 0 30px 9px rgba(201, 162, 39, .7), 0 2px 5px rgba(58, 47, 29, .38), inset 0 0 0 1px rgba(122, 95, 16, .9); }
+      }
+      .ncard.lone { animation: haloPulse 2.4s ease-in-out infinite; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ====================== 1 · HOME ====================== -->
+  <main data-screen="home">
+    <div class="frame home-frame">
+      <i class="boss tl"></i><i class="boss tr"></i><i class="boss bl"></i><i class="boss br"></i>
+
+      <div class="top-orn">✦ ✦ ✦</div>
+
+      <div class="wordmark">
+        <span class="dropcap">
+          <svg class="filigree" viewBox="0 0 100 100" aria-hidden="true">
+            <g fill="none" stroke-linecap="round">
+              <path stroke="#a93226" stroke-width="1.6" d="M6 40 C6 14 22 6 40 6"/>
+              <path fill="#a93226" d="M10 30 C12 18 20 11 30 10 C26 16 24 22 26 28 C19 26 13 27 10 30 Z"/>
+              <path stroke="#a93226" stroke-width="1.6" d="M40 6 C48 6 52 12 50 18"/>
+              <path stroke="#27496d" stroke-width="1.6" d="M94 60 C94 86 78 94 60 94"/>
+              <path fill="#27496d" d="M90 70 C88 82 80 89 70 90 C74 84 76 78 74 72 C81 74 87 73 90 70 Z"/>
+              <path stroke="#27496d" stroke-width="1.6" d="M60 94 C52 94 48 88 50 82"/>
+            </g>
+            <circle cx="50" cy="18" r="2.4" fill="#7a5f10"/>
+            <circle cx="50" cy="82" r="2.4" fill="#7a5f10"/>
+            <circle cx="8" cy="62" r="2" fill="#7a5f10"/>
+            <circle cx="92" cy="38" r="2" fill="#7a5f10"/>
+          </svg>
+          <span class="dc-letter">C</span>
+        </span><span class="wm-rest">ancel</span>
+      </div>
+
+      <p class="tagline"><span class="fleur">❧</span>a number-picking party game<span class="fleur flip">❧</span></p>
+
+      <div class="fleuron-rule home-rule">❦</div>
+
+      <div class="home-actions">
+        <button class="ribbon"><i class="tail l"></i><i class="tail r"></i><span class="face">New game</span></button>
+        <button class="btn-scroll">Single player</button>
+        <button class="btn-scroll">Join with code</button>
+      </div>
+
+      <div class="fleuron-rule colophon">❦</div>
+    </div>
+  </main>
+
+  <!-- ====================== 2 · LOBBY ====================== -->
+  <main data-screen="lobby">
+    <div class="frame">
+      <i class="boss tl"></i><i class="boss tr"></i><i class="boss bl"></i><i class="boss br"></i>
+
+      <header class="topbar">
+        <button class="btn-quill">← Leave</button>
+        <button class="btn-quill">Rules</button>
+      </header>
+
+      <div class="codebox">
+        <div class="code"><span class="r">D</span><span class="b">N</span><span class="r">2</span><span class="b">H</span></div>
+        <p class="hint">press to copy</p>
+      </div>
+
+      <p class="rubric">Players · 4 <i class="fill"></i></p>
+      <div class="plist">
+        <div class="prow">
+          <span class="pinit ben">B</span>
+          <span class="pname">Ben</span>
+          <span class="badge host">Host</span><span class="badge">You</span>
+          <span class="dot"></span>
+        </div>
+        <div class="prow">
+          <span class="pinit voltaire">V</span>
+          <span class="pname">Voltaire</span>
+          <span class="badge bot">Bot</span>
+          <span class="dot"></span>
+        </div>
+        <div class="prow">
+          <span class="pinit mechano">M</span>
+          <span class="pname">Mechano</span>
+          <span class="badge bot">Bot</span>
+          <span class="dot"></span>
+        </div>
+        <div class="prow">
+          <span class="pinit datadan">D</span>
+          <span class="pname">Data Dan</span>
+          <span class="badge bot">Bot</span>
+          <span class="dot"></span>
+        </div>
+      </div>
+
+      <div class="setrow" style="margin-top: 22px;">
+        <span class="setlabel">Rounds</span>
+        <button class="seal">−</button>
+        <span class="stepval">3</span>
+        <button class="seal">+</button>
+      </div>
+      <div class="setrow">
+        <span class="setlabel">AI players</span>
+        <button class="seal">−</button>
+        <span class="stepval">3</span>
+        <button class="seal">+</button>
+      </div>
+      <div class="setrow col">
+        <span class="setlabel">Power-ups</span>
+        <div class="seg">
+          <button>None</button>
+          <button class="on">Random</button>
+          <button>Choose</button>
+        </div>
+        <p class="helper">A fresh random pool each round.</p>
+      </div>
+
+      <button class="ribbon lobby-start"><i class="tail l"></i><i class="tail r"></i><span class="face">Start game</span></button>
+    </div>
+  </main>
+
+  <!-- ====================== 3 · GAME ====================== -->
+  <main data-screen="game">
+    <div class="frame">
+      <i class="boss tl"></i><i class="boss tr"></i><i class="boss bl"></i><i class="boss br"></i>
+
+      <header class="ghead">
+        <div class="gmeta"><b>R1</b><span>/3</span> · <b>T2</b><span>/6</span><span class="gcode">DN2H</span></div>
+        <div class="gbtns">
+          <button class="btn-tiny">Rules</button>
+          <button class="btn-tiny">Leave</button>
+          <button class="btn-tiny danger">End game</button>
+        </div>
+      </header>
+
+      <div class="chips">
+        <div class="chip"><i class="pip ben"></i><span>Ben</span><b>4</b></div>
+        <div class="chip"><i class="pip voltaire"></i><span>Voltaire</span><b>0</b></div>
+        <div class="chip"><i class="pip mechano"></i><span>Mechano</span><b>2</b></div>
+        <div class="chip"><i class="pip datadan"></i><span>Data Dan</span><b>5</b></div>
+      </div>
+
+      <p class="rubric">Power-ups remaining <i class="fill"></i> <span class="count">6 / 6</span></p>
+
+      <div class="ribbon slim pool-banner"><i class="tail l"></i><i class="tail r"></i><span class="face">☞ Your turn, press to select</span></div>
+
+      <div class="pool">
+        <button class="ptile teal"><span class="pmed">⇄</span><span class="pname">Swap Hands</span></button>
+        <button class="ptile rose"><span class="pmed">✖</span><span class="pname">Sabotage</span></button>
+        <button class="ptile pink sel"><span class="pmed">=</span><span class="pname">Jinx</span></button>
+        <button class="ptile emerald"><span class="pmed">+2</span><span class="pname">Plus Two</span></button>
+        <button class="ptile violet"><span class="pmed">?</span><span class="pname">Wild</span></button>
+        <button class="ptile amber"><span class="pmed">↧</span><span class="pname">Drain</span></button>
+      </div>
+
+      <p class="rubric">Players · Power picker: <b>Ben</b> <i class="fill"></i></p>
+      <div class="status-grid">
+        <div class="srow picker">
+          <span class="pinit sm ben">B</span>
+          <div class="scol">
+            <span class="sname">Ben <i class="you">(you)</i></span>
+            <span class="shand">Ø 1 2 3 4 5</span>
+            <span class="sstat think">Thinking…</span>
+          </div>
+        </div>
+        <div class="srow">
+          <span class="pinit sm voltaire">V</span>
+          <div class="scol">
+            <span class="sname">Voltaire</span>
+            <span class="shand">Ø 1 2 3 4 5</span>
+            <span class="sstat sub">Submitted</span>
+          </div>
+        </div>
+        <div class="srow">
+          <span class="pinit sm mechano">M</span>
+          <div class="scol">
+            <span class="sname">Mechano</span>
+            <span class="shand">Ø 1 2 3 4 5</span>
+            <span class="sstat sub">Submitted</span>
+          </div>
+        </div>
+        <div class="srow">
+          <span class="pinit sm datadan">D</span>
+          <div class="scol">
+            <span class="sname">Data Dan</span>
+            <span class="shand">Ø 1 2 3 4 5</span>
+            <span class="sstat sub">Submitted</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-ghost skip-btn">Skip waiting, auto-play who's left</button>
+
+      <p class="rubric">Your hand <i class="fill"></i></p>
+      <div class="hand">
+        <button class="ncard red"><span class="field"><span class="num">Ø</span></span></button>
+        <button class="ncard blue"><span class="field"><span class="num">1</span></span></button>
+        <button class="ncard red"><span class="field"><span class="num">2</span></span></button>
+        <button class="ncard blue"><span class="field"><span class="num">3</span></span></button>
+        <button class="ncard red"><span class="field"><span class="num">4</span></span></button>
+        <button class="ncard blue sel"><span class="field"><span class="num">5</span></span></button>
+      </div>
+
+      <button class="ribbon game-cta"><i class="tail l"></i><i class="tail r"></i><span class="face">Lock it in</span></button>
+    </div>
+  </main>
+
+  <!-- ====================== 4 · REVEAL ====================== -->
+  <main data-screen="reveal">
+    <div class="frame reveal-frame">
+      <i class="boss tl"></i><i class="boss tr"></i><i class="boss bl"></i><i class="boss br"></i>
+
+      <p class="eyebrow">Turn 2 reveal</p>
+
+      <p class="played-label">Ben played</p>
+      <div class="ptile pink reveal-power"><span class="pmed">=</span><span class="pname">Jinx</span></div>
+
+      <div class="rgrid">
+        <div class="rcell">
+          <p class="rname ben">Ben</p>
+          <div class="ncard big blue">
+            <span class="field"><span class="num">5</span></span>
+            <i class="slash s1"></i><i class="slash s2"></i>
+          </div>
+          <p class="outcome"><span class="zero">0</span><span class="ocancel">CANCELLED</span></p>
+        </div>
+        <div class="rcell">
+          <p class="rname voltaire">Voltaire</p>
+          <div class="ncard big red lone">
+            <span class="field"><span class="num">Ø</span></span>
+          </div>
+          <p class="outcome"><span class="lonezero">0</span></p>
+        </div>
+        <div class="rcell">
+          <p class="rname mechano">Mechano</p>
+          <div class="ncard big blue">
+            <span class="field"><span class="num">5</span></span>
+            <i class="slash s1"></i><i class="slash s2"></i>
+          </div>
+          <p class="outcome"><span class="zero">0</span><span class="ocancel">CANCELLED</span></p>
+        </div>
+        <div class="rcell">
+          <p class="rname datadan">Data Dan</p>
+          <div class="ncard big blue">
+            <span class="field"><span class="num">3</span></span>
+            <i class="slash s1"></i><i class="slash s2"></i>
+          </div>
+          <p class="outcome"><span class="zero">0</span><span class="ocancel">CANCELLED</span></p>
+        </div>
+      </div>
+
+      <button class="ribbon reveal-cta"><i class="tail l"></i><i class="tail r"></i><span class="face">Continue</span></button>
+    </div>
+  </main>
+
+  <!-- ====================== 5 · END ====================== -->
+  <main data-screen="end">
+    <div class="frame end-frame">
+      <i class="boss tl"></i><i class="boss tr"></i><i class="boss bl"></i><i class="boss br"></i>
+
+      <div class="celebration">
+        <i class="sp g1" style="top: 6%;  left: 7%;">✦</i>
+        <i class="sp g2" style="top: 14%; left: 21%;">✧</i>
+        <i class="sp r"  style="top: 4%;  left: 33%;"></i>
+        <i class="sp g2" style="top: 0%;  left: 49%;">✧</i>
+        <i class="sp b"  style="top: 5%;  left: 64%;"></i>
+        <i class="sp g1" style="top: 9%;  left: 87%;">✦</i>
+        <i class="sp g3" style="top: 30%; left: 2%;">✦</i>
+        <i class="sp g2" style="top: 36%; left: 93%;">✧</i>
+        <i class="sp b"  style="top: 52%; left: 5%;"></i>
+        <i class="sp g3" style="top: 58%; left: 95%;">✦</i>
+        <i class="sp g2" style="top: 74%; left: 11%;">✧</i>
+        <i class="sp r"  style="top: 78%; left: 88%;"></i>
+        <i class="sp g1" style="top: 90%; left: 25%;">✦</i>
+        <i class="sp g3" style="top: 93%; left: 55%;">✦</i>
+        <i class="sp g1" style="top: 88%; left: 76%;">✦</i>
+
+        <p class="eyebrow">Game over</p>
+        <h1 class="dedication">You won.</h1>
+        <div class="fleuron-rule ded-rule">❦</div>
+      </div>
+
+      <div class="scoretable">
+        <div class="thead">
+          <span></span><span></span><span></span>
+          <span>R1</span><span>R2</span><span>R3</span><span class="th-total">Total</span>
+        </div>
+        <div class="trow winner">
+          <span class="rk">1</span>
+          <span class="pinit sm ben">B</span>
+          <span class="tname">Ben <i class="you">(you)</i></span>
+          <span class="sc">5</span><span class="sc">9</span><span class="sc">6</span>
+          <b class="tot">20</b>
+        </div>
+        <div class="trow">
+          <span class="rk">2</span>
+          <span class="pinit sm datadan">D</span>
+          <span class="tname">Data Dan</span>
+          <span class="sc">5</span><span class="sc">4</span><span class="sc">3</span>
+          <b class="tot">12</b>
+        </div>
+        <div class="trow">
+          <span class="rk">3</span>
+          <span class="pinit sm voltaire">V</span>
+          <span class="tname">Voltaire</span>
+          <span class="sc">3</span><span class="sc">2</span><span class="sc">4</span>
+          <b class="tot">9</b>
+        </div>
+        <div class="trow">
+          <span class="rk">4</span>
+          <span class="pinit sm mechano">M</span>
+          <span class="tname">Mechano</span>
+          <span class="sc">0</span><span class="sc">5</span><span class="sc">2</span>
+          <b class="tot">7</b>
+        </div>
+      </div>
+
+      <div class="end-actions">
+        <button class="ribbon"><i class="tail l"></i><i class="tail r"></i><span class="face">Play again</span></button>
+        <button class="btn-scroll">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

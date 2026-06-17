@@ -1,0 +1,906 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Noir Editorial</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Karla:ital,wght@0,300..800;1,300..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ============ tokens ============ */
+    :root {
+      --cream: #f7f3ea;
+      --plate: #fdfbf4;
+      --ink: #161310;
+      --ink70: rgba(22, 19, 16, .7);
+      --ink55: rgba(22, 19, 16, .55);
+      --ink35: rgba(22, 19, 16, .35);
+      --ink18: rgba(22, 19, 16, .18);
+      --red: #b3001b;
+      --c-ben: #b3001b;
+      --c-vol: #34415f;
+      --c-mech: #8a6c1c;
+      --c-dan: #3c5a45;
+      --p-teal: #2e5f58;
+      --p-rose: #9c2133;
+      --p-pink: #a85b72;
+      --p-em: #3c5a45;
+      --p-vio: #564a72;
+      --p-amb: #8a6c1c;
+      --serif: "Playfair Display", "Bodoni MT", Didot, serif;
+      --sans: "Karla", "Gill Sans", sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--cream); }
+    body {
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.45;
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+    button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+    a { color: inherit; text-decoration: none; cursor: pointer; }
+
+    main[data-screen] {
+      min-height: 100vh;
+      background: var(--cream);
+      position: relative;
+      overflow: clip;
+    }
+    /* paper grain */
+    main[data-screen]::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 40;
+      opacity: .045;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='240' height='240' filter='url(%23g)'/></svg>");
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 420px;
+      margin: 0 auto;
+      padding: 26px 22px 40px;
+    }
+
+    /* ============ shared vocabulary ============ */
+    .sc {
+      font-family: var(--sans);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .24em;
+      font-size: 11px;
+    }
+    .dim { color: var(--ink55); }
+    .serif { font-family: var(--serif); font-variant-numeric: oldstyle-nums; font-feature-settings: "onum" 1; }
+    .onum { font-variant-numeric: oldstyle-nums; font-feature-settings: "onum" 1; }
+    .ital { font-family: var(--serif); font-style: italic; }
+    .hr { height: 1px; background: var(--ink); border: 0; }
+    .hr.faint { background: var(--ink18); }
+
+    .btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 100%; min-height: 54px;
+      border: 1px solid var(--ink);
+      background: transparent; color: var(--ink);
+      font-family: var(--sans); font-weight: 700; font-size: 12.5px;
+      text-transform: uppercase; letter-spacing: .26em;
+      text-indent: .26em;
+    }
+    .btn.primary {
+      background: var(--ink); color: var(--cream);
+      font-family: var(--serif); font-style: italic; font-weight: 500;
+      font-size: 21px; text-transform: none; letter-spacing: .02em; text-indent: 0;
+      min-height: 58px;
+    }
+    .btn.ghost {
+      border-color: var(--ink35); color: var(--ink55);
+      font-size: 10.5px;
+    }
+
+    .tick { width: 9px; height: 9px; display: inline-block; flex: none; }
+    .t-ben { background: var(--c-ben); }
+    .t-vol { background: var(--c-vol); }
+    .t-mech { background: var(--c-mech); }
+    .t-dan { background: var(--c-dan); }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #4a7a52; display: inline-block; flex: none; }
+
+    /* the number plate: hero object */
+    .ncard {
+      position: relative;
+      background: var(--plate);
+      border: 1px solid rgba(22, 19, 16, .8);
+      box-shadow: 0 2px 12px rgba(22, 19, 16, .08);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ncard::before {
+      content: "";
+      position: absolute; inset: 5px;
+      border: 1px solid var(--ink18);
+      pointer-events: none;
+    }
+    .ncard .num {
+      font-family: var(--serif);
+      font-weight: 600;
+      font-size: 62px;
+      line-height: 1;
+      color: var(--ink);
+      font-variant-numeric: oldstyle-nums;
+      font-feature-settings: "onum" 1;
+    }
+
+    .linkbtn {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-height: 44px; padding: 0 16px;
+      border: 1px solid var(--ink35);
+      font-family: var(--sans); font-weight: 700; font-size: 11px;
+      text-transform: uppercase; letter-spacing: .22em; text-indent: .22em;
+      color: var(--ink);
+    }
+
+    /* ============ 1 · HOME ============ */
+    .cover-frame {
+      border: 1px solid var(--ink);
+      padding: 18px 18px 22px;
+      min-height: calc(100vh - 66px);
+      display: flex; flex-direction: column;
+    }
+    .cover-frame::before {
+      content: "";
+      position: absolute; inset: 31px 27px;
+      border: 1px solid var(--ink18);
+      pointer-events: none;
+    }
+    .folio {
+      display: flex; align-items: center; gap: 12px;
+      position: relative; z-index: 2;
+    }
+    .folio .sc { font-size: 9.5px; letter-spacing: .28em; }
+    .folio .line { flex: 1; height: 1px; background: var(--ink35); }
+    .mute {
+      width: 44px; height: 44px; border: 1px solid var(--ink35); border-radius: 50%;
+      display: grid; place-items: center; position: relative;
+      font-family: var(--serif); font-size: 17px; color: var(--ink70);
+      flex: none;
+    }
+    .mute::after {
+      content: "";
+      position: absolute; width: 24px; height: 1.5px; background: var(--red);
+      transform: rotate(-40deg);
+    }
+    .masthead {
+      margin: 26px 0 0;
+      font-family: var(--serif);
+      font-weight: 800;
+      font-size: 81px;
+      line-height: .94;
+      letter-spacing: .005em;
+      text-align: center;
+      color: var(--ink);
+    }
+    .masthead .m2 { color: var(--red); font-style: italic; }
+    .tagline {
+      margin-top: 16px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .tagline .line { flex: 1; height: 1px; background: var(--ink); }
+    .tagline span { font-size: 10px; letter-spacing: .3em; white-space: nowrap; }
+    .coverart {
+      margin: 30px auto 0;
+      text-align: center;
+    }
+    .coverart .ncard {
+      width: 158px; height: 198px; margin: 0 auto;
+      box-shadow: 10px 12px 0 rgba(22, 19, 16, .1), 0 2px 12px rgba(22, 19, 16, .08);
+    }
+    .coverart .num { font-size: 112px; font-weight: 500; }
+    .coverart figcaption {
+      margin-top: 14px;
+      font-family: var(--serif); font-style: italic;
+      font-size: 16px; color: var(--ink70);
+    }
+    .cover-actions {
+      margin-top: auto;
+      padding-top: 30px;
+      display: flex; flex-direction: column; gap: 12px;
+      position: relative; z-index: 2;
+    }
+    .cover-foot {
+      margin-top: 22px;
+      padding-top: 14px;
+      border-top: 1px solid var(--ink35);
+      display: flex; justify-content: space-between;
+      font-family: var(--serif); font-size: 19px; color: var(--ink55);
+      font-variant-numeric: oldstyle-nums; font-feature-settings: "onum" 1;
+      padding-left: 14px; padding-right: 14px;
+    }
+
+    /* ============ 2 · LOBBY ============ */
+    .bar { display: flex; justify-content: space-between; align-items: center; }
+    .codeblock { margin-top: 34px; text-align: center; }
+    .codeblock .hr { margin: 0 8px; }
+    .roomcode {
+      font-family: var(--serif);
+      font-weight: 700;
+      font-size: 88px;
+      line-height: 1.05;
+      letter-spacing: .06em;
+      text-indent: .06em;
+      margin: 6px 0 2px;
+    }
+    .codehint {
+      font-family: var(--serif); font-style: italic;
+      font-size: 15px; color: var(--ink55);
+      margin-bottom: 14px;
+    }
+    .sechead {
+      margin: 30px 0 0;
+      display: flex; align-items: baseline; justify-content: space-between;
+      border-bottom: 1px solid var(--ink);
+      padding-bottom: 8px;
+    }
+    .plist { list-style: none; }
+    .prow {
+      display: flex; align-items: center; gap: 11px;
+      min-height: 56px;
+      border-bottom: 1px solid var(--ink18);
+    }
+    .prow .name { font-family: var(--serif); font-weight: 600; font-size: 20px; flex: 1; }
+    .badge {
+      font-family: var(--sans); font-weight: 700; font-size: 9px;
+      letter-spacing: .2em; text-indent: .2em; text-transform: uppercase;
+      padding: 4px 7px; border: 1px solid var(--ink35); color: var(--ink55);
+    }
+    .badge.host { border-color: var(--red); color: var(--red); }
+    .badge.you { background: var(--ink); border-color: var(--ink); color: var(--cream); }
+    .setrow {
+      display: flex; align-items: center; justify-content: space-between;
+      min-height: 64px;
+      border-bottom: 1px solid var(--ink18);
+    }
+    .stepper { display: flex; align-items: center; gap: 14px; }
+    .stepbtn {
+      width: 44px; height: 44px; border: 1px solid var(--ink); border-radius: 50%;
+      display: grid; place-items: center;
+      font-family: var(--serif); font-size: 19px; line-height: 1;
+    }
+    .stepval {
+      font-family: var(--serif); font-weight: 700; font-size: 24px;
+      min-width: 22px; text-align: center;
+      font-variant-numeric: oldstyle-nums; font-feature-settings: "onum" 1;
+    }
+    .powrow { padding: 16px 0 18px; border-bottom: 1px solid var(--ink18); }
+    .seg { display: flex; margin-top: 12px; }
+    .seg button {
+      flex: 1; min-height: 46px;
+      border: 1px solid var(--ink); margin-left: -1px;
+      font-family: var(--sans); font-weight: 700; font-size: 11px;
+      letter-spacing: .2em; text-indent: .2em; text-transform: uppercase;
+      color: var(--ink70);
+    }
+    .seg button:first-child { margin-left: 0; }
+    .seg button.on { background: var(--ink); color: var(--cream); position: relative; z-index: 2; }
+    .helper {
+      margin-top: 10px;
+      font-family: var(--serif); font-style: italic;
+      font-size: 14.5px; color: var(--ink55);
+    }
+    .lobby-start { margin-top: 26px; }
+
+    /* ============ 3 · GAME ============ */
+    .ghead {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--ink);
+    }
+    .gmeta { font-size: 11px; letter-spacing: .18em; white-space: nowrap; }
+    .gmeta b { color: var(--ink); }
+    .gmeta span { color: var(--ink55); font-weight: 700; }
+    .gactions { display: flex; gap: 13px; }
+    .gactions a {
+      font-family: var(--sans); font-weight: 700; font-size: 9.5px;
+      letter-spacing: .16em; text-transform: uppercase;
+      color: var(--ink70);
+      border-bottom: 1px solid var(--ink35);
+      padding: 8px 0 3px;
+    }
+    .gactions a.danger { color: var(--red); border-bottom-color: var(--red); }
+    .board {
+      margin-top: 14px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 9px;
+    }
+    .bcell {
+      border: 1px solid var(--ink35);
+      padding: 8px 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .bcell .sc { font-size: 10px; letter-spacing: .14em; flex: 1; }
+    .bscore {
+      font-family: var(--serif); font-weight: 700; font-size: 23px; line-height: 1;
+      font-variant-numeric: oldstyle-nums; font-feature-settings: "onum" 1;
+    }
+    .rowlabel {
+      margin-top: 18px;
+      display: flex; align-items: baseline; justify-content: space-between;
+      border-bottom: 1px solid var(--ink);
+      padding-bottom: 7px;
+    }
+    .rowlabel .count { font-family: var(--serif); font-weight: 700; font-size: 19px; font-variant-numeric: oldstyle-nums; font-feature-settings: "onum" 1; }
+    .banner {
+      margin-top: 12px;
+      text-align: center;
+      font-size: 10.5px; letter-spacing: .3em; text-indent: .3em;
+      color: var(--red);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .banner::before, .banner::after { content: ""; flex: 1; height: 1px; background: rgba(179, 0, 27, .4); }
+    .toc { margin-top: 6px; }
+    .trow {
+      display: flex; align-items: center; gap: 12px;
+      width: 100%; min-height: 44px;
+      border-bottom: 1px solid var(--ink18);
+      text-align: left;
+    }
+    .tg {
+      width: 30px; height: 30px; flex: none;
+      border: 1.5px solid var(--pc); color: var(--pc);
+      display: grid; place-items: center;
+      font-family: var(--serif); font-weight: 700; font-size: 15px;
+    }
+    .tname {
+      font-family: var(--sans); font-weight: 700; font-size: 11.5px;
+      letter-spacing: .18em; text-transform: uppercase; color: var(--ink);
+      white-space: nowrap;
+    }
+    .lead { flex: 1; border-bottom: 1px dotted var(--ink35); transform: translateY(-3px); }
+    .tno { font-family: var(--serif); font-style: italic; font-size: 14.5px; color: var(--ink55); }
+    .trow.sel {
+      box-shadow: inset 3px 0 0 var(--red);
+      background: rgba(179, 0, 27, .05);
+      padding-left: 11px; padding-right: 4px;
+    }
+    .trow.sel .tname, .trow.sel .tno { color: var(--red); }
+    .pgrid { margin-top: 11px; display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    .pcell { border: 1px solid var(--ink35); padding: 8px 12px 7px; }
+    .pcell .pname {
+      font-family: var(--serif); font-weight: 600; font-size: 16.5px;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .pcell .pname em { font-size: 12px; font-weight: 400; color: var(--ink55); }
+    .pcell .phand {
+      font-family: var(--serif); font-size: 12.5px; letter-spacing: .3em;
+      color: var(--ink55); margin: 3px 0 2px;
+      font-variant-numeric: oldstyle-nums; font-feature-settings: "onum" 1;
+    }
+    .pstat { font-family: var(--sans); font-weight: 700; font-size: 9px; letter-spacing: .2em; text-transform: uppercase; color: var(--ink55); }
+    .pstat.think { color: var(--red); font-size: 9.5px; }
+    .skipbtn { margin-top: 12px; min-height: 44px; }
+    .hand { margin-top: 13px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; }
+    .hand .ncard { aspect-ratio: 4 / 5; }
+    .hand .ncard.sel {
+      border-color: var(--ink);
+      box-shadow: 0 7px 20px rgba(22, 19, 16, .2);
+      transform: translateY(-4px);
+    }
+    .hand .sel .num { border-bottom: 3px solid var(--red); padding-bottom: 3px; }
+    .hand .pick {
+      position: absolute; left: 0; right: 0; bottom: 8px;
+      text-align: center;
+      font-family: var(--serif); font-style: italic;
+      font-size: 14px; color: var(--red);
+    }
+    .lockin { margin-top: 18px; }
+
+    /* ============ 4 · REVEAL (the dark spread) ============ */
+    main[data-screen="reveal"] {
+      background: #13100c;
+      background-image: radial-gradient(130% 80% at 50% 0%, rgba(247, 243, 234, .07), transparent 62%);
+      color: var(--cream);
+    }
+    main[data-screen="reveal"]::after { opacity: .06; }
+    .rev-top { text-align: center; padding-top: 4px; }
+    .rev-top .sc { color: rgba(247, 243, 234, .65); font-size: 10.5px; letter-spacing: .42em; text-indent: .42em; }
+    .rev-rule { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .rev-rule::before, .rev-rule::after { content: ""; flex: 1; height: 1px; background: rgba(247, 243, 234, .35); }
+    .rev-rule i { font-family: var(--serif); font-style: italic; color: var(--red); font-size: 16px; }
+    .rev-head {
+      font-family: var(--serif); font-style: italic; font-weight: 500;
+      font-size: 70px; line-height: 1; letter-spacing: .01em;
+      color: var(--cream);
+      margin: 6px 0 0;
+    }
+    .played { margin-top: 19px; text-align: center; }
+    .played .sc { color: rgba(247, 243, 234, .65); font-size: 10px; letter-spacing: .32em; text-indent: .32em; }
+    .pow-plate {
+      margin-top: 11px;
+      display: inline-flex; align-items: center; gap: 13px;
+      border: 1px solid rgba(247, 243, 234, .4);
+      background: rgba(247, 243, 234, .05);
+      padding: 11px 22px 11px 13px;
+    }
+    .pow-plate .tg { border-color: #d98ba3; color: #d98ba3; }
+    .pow-plate .sc { color: var(--cream); font-size: 12px; letter-spacing: .3em; text-indent: 0; }
+    .plates {
+      margin-top: 20px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 13px 14px;
+    }
+    .plate { text-align: center; }
+    .plate figcaption {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin-bottom: 9px;
+    }
+    .plate figcaption .sc { color: rgba(247, 243, 234, .8); font-size: 10px; letter-spacing: .24em; text-indent: .24em; }
+    .plate .ncard { aspect-ratio: 4 / 5; box-shadow: 0 10px 30px rgba(0, 0, 0, .5); }
+    .plate .num { font-size: 68px; }
+    .kill {
+      position: absolute; inset: 0;
+      display: grid; place-items: center;
+      transform: rotate(-9deg);
+      pointer-events: none;
+    }
+    .kill::before {
+      content: "";
+      position: absolute; left: -7%; right: -7%; top: 50%;
+      height: 2px; background: var(--red);
+    }
+    .kill::after {
+      content: "";
+      position: absolute; left: 2%; right: 2%; top: calc(50% + 6px);
+      height: 1px; background: rgba(179, 0, 27, .65);
+    }
+    .kill i {
+      position: relative;
+      font-family: var(--serif); font-style: italic; font-weight: 600;
+      font-size: 25px; color: var(--red);
+      transform: translateY(-4px);
+    }
+    .outcome { margin-top: 8px; min-height: 36px; }
+    .outcome .pts {
+      font-family: var(--serif); font-weight: 600; font-size: 21px; line-height: 1.1;
+      color: rgba(247, 243, 234, .9); display: block;
+      font-variant-numeric: oldstyle-nums; font-feature-settings: "onum" 1;
+    }
+    .outcome .lbl { font-size: 8.5px; letter-spacing: .26em; text-indent: .26em; color: var(--red); }
+    .outcome .lbl.alive { color: rgba(247, 243, 234, .55); }
+    .rev-continue {
+      margin-top: 22px;
+      background: var(--cream); color: var(--ink); border-color: var(--cream);
+    }
+
+    /* ============ 5 · END ============ */
+    .orn { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+    .orn span {
+      position: absolute;
+      font-family: var(--serif);
+      color: rgba(22, 19, 16, .12);
+      line-height: 1;
+    }
+    .orn span.r { color: rgba(179, 0, 27, .22); }
+    .end-eyebrow {
+      margin-top: 10px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .end-eyebrow::before, .end-eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--ink); }
+    .end-eyebrow span { font-size: 10.5px; letter-spacing: .4em; text-indent: .4em; }
+    .end-head {
+      margin: 34px 0 0;
+      font-family: var(--serif); font-style: italic; font-weight: 600;
+      font-size: 118px; line-height: .92; letter-spacing: -.015em;
+      color: var(--ink);
+    }
+    .end-head .stop { color: var(--red); font-style: normal; }
+    .end-sub {
+      margin: 22px 0 0;
+      border-top: 1px solid var(--ink);
+    }
+    .score { width: 100%; border-collapse: collapse; margin-top: 4px; }
+    .score th {
+      font-family: var(--sans); font-weight: 700; font-size: 9px;
+      letter-spacing: .22em; text-transform: uppercase; color: var(--ink55);
+      text-align: right; padding: 12px 4px 6px;
+      border-bottom: 1px solid var(--ink18);
+    }
+    .score th:first-child { text-align: left; }
+    .score td {
+      padding: 13px 4px;
+      border-bottom: 1px solid var(--ink18);
+      text-align: right;
+      font-family: var(--serif); font-size: 15.5px; color: var(--ink70);
+      font-variant-numeric: oldstyle-nums; font-feature-settings: "onum" 1;
+    }
+    .score .who {
+      text-align: left;
+      display: flex; align-items: center; gap: 9px;
+      font-size: 17.5px; font-weight: 600; color: var(--ink);
+    }
+    .score .who em { font-size: 12px; font-weight: 400; color: var(--ink55); }
+    .score .rank {
+      font-family: var(--serif); font-style: italic; font-size: 14px;
+      color: var(--ink55); width: 14px; flex: none;
+    }
+    .score .tot { font-weight: 700; font-size: 22px; color: var(--ink); }
+    .score tr.win td { background: rgba(22, 19, 16, .045); border-bottom: 1px solid var(--ink); }
+    .score tr.win .rank { color: var(--red); font-weight: 700; }
+    .end-actions { margin-top: 32px; display: flex; flex-direction: column; gap: 12px; }
+
+    /* ============ switcher ============ */
+    #switcher a {
+      width: 30px; height: 30px;
+      display: grid; place-items: center;
+      background: var(--cream); color: var(--ink);
+      border: 1px solid var(--ink); border-radius: 50%;
+      font-family: var(--serif); font-size: 13px;
+    }
+
+    /* ============ motion (flourish only) ============ */
+    @media (prefers-reduced-motion: no-preference) {
+      @keyframes rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+      @keyframes riseCard { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(-4px); } }
+      [data-screen].active .page > * { animation: rise .55s cubic-bezier(.2, .7, .2, 1) both; }
+      [data-screen].active .page > *:nth-child(2) { animation-delay: .06s; }
+      [data-screen].active .page > *:nth-child(3) { animation-delay: .12s; }
+      [data-screen].active .page > *:nth-child(4) { animation-delay: .18s; }
+      [data-screen].active .page > *:nth-child(5) { animation-delay: .24s; }
+      [data-screen].active .page > *:nth-child(6) { animation-delay: .3s; }
+      [data-screen].active .page > *:nth-child(7) { animation-delay: .36s; }
+      [data-screen].active .page > *:nth-child(8) { animation-delay: .42s; }
+      [data-screen].active .page > *:nth-child(9) { animation-delay: .48s; }
+      [data-screen].active .page > *:nth-child(10) { animation-delay: .54s; }
+      [data-screen].active .hand .ncard.sel { animation: riseCard .55s cubic-bezier(.2, .7, .2, 1) both .3s; }
+      .btn, .linkbtn, .stepbtn, .trow, .ncard, .seg button { transition: background-color .2s ease, color .2s ease, box-shadow .25s ease, transform .25s ease, border-color .2s ease; }
+      .btn.primary:hover { background: #2a241e; }
+      .btn:not(.primary):hover, .linkbtn:hover, .stepbtn:hover { background: rgba(22, 19, 16, .06); }
+      .hand .ncard:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(22, 19, 16, .16); }
+      .hand .ncard.sel:hover { transform: translateY(-6px); }
+      @keyframes strike { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+      [data-screen].active .kill { animation: strike .5s ease-out both .5s; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ 1 · HOME : the cover ============ -->
+  <main data-screen="home">
+    <div class="page">
+      <div class="cover-frame">
+        <div class="folio">
+          <span class="sc dim">№ 1</span>
+          <span class="line"></span>
+          <button class="mute" aria-label="Mute">♪</button>
+          <span class="line"></span>
+          <span class="sc dim">MMXXVI</span>
+        </div>
+
+        <h1 class="masthead">CAN<span class="m2">CEL</span></h1>
+
+        <div class="tagline">
+          <span class="line"></span>
+          <span class="sc">A Number-Picking Party Game</span>
+          <span class="line"></span>
+        </div>
+
+        <figure class="coverart">
+          <div class="ncard"><span class="num">Ø</span></div>
+          <figcaption>the lone zero.</figcaption>
+        </figure>
+
+        <div class="cover-actions">
+          <button class="btn primary">New game</button>
+          <button class="btn">Single player</button>
+          <button class="btn">Join with code</button>
+        </div>
+
+        <div class="cover-foot">
+          <span>Ø</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ 2 · LOBBY : the contents page ============ -->
+  <main data-screen="lobby">
+    <div class="page">
+      <header class="bar">
+        <button class="linkbtn">← Leave</button>
+        <button class="linkbtn">Rules</button>
+      </header>
+
+      <section class="codeblock">
+        <div class="hr"></div>
+        <div class="roomcode serif">DN2H</div>
+        <div class="codehint">press to copy</div>
+        <div class="hr faint"></div>
+      </section>
+
+      <div class="sechead">
+        <span class="sc">Players · 4</span>
+      </div>
+      <ul class="plist">
+        <li class="prow">
+          <span class="tick t-ben"></span>
+          <span class="name">Ben</span>
+          <span class="badge host">Host</span>
+          <span class="badge you">You</span>
+          <span class="dot"></span>
+        </li>
+        <li class="prow">
+          <span class="tick t-vol"></span>
+          <span class="name">Voltaire</span>
+          <span class="badge">Bot</span>
+          <span class="dot"></span>
+        </li>
+        <li class="prow">
+          <span class="tick t-mech"></span>
+          <span class="name">Mechano</span>
+          <span class="badge">Bot</span>
+          <span class="dot"></span>
+        </li>
+        <li class="prow">
+          <span class="tick t-dan"></span>
+          <span class="name">Data Dan</span>
+          <span class="badge">Bot</span>
+          <span class="dot"></span>
+        </li>
+      </ul>
+
+      <div class="setrow">
+        <span class="sc">Rounds</span>
+        <div class="stepper">
+          <button class="stepbtn">−</button>
+          <span class="stepval">3</span>
+          <button class="stepbtn">+</button>
+        </div>
+      </div>
+      <div class="setrow">
+        <span class="sc">AI players</span>
+        <div class="stepper">
+          <button class="stepbtn">−</button>
+          <span class="stepval">3</span>
+          <button class="stepbtn">+</button>
+        </div>
+      </div>
+      <div class="powrow">
+        <span class="sc">Power-ups</span>
+        <div class="seg">
+          <button>None</button>
+          <button class="on">Random</button>
+          <button>Choose</button>
+        </div>
+        <p class="helper">A fresh random pool each round.</p>
+      </div>
+
+      <button class="btn primary lobby-start">Start game</button>
+    </div>
+  </main>
+
+  <!-- ============ 3 · GAME : the working spread ============ -->
+  <main data-screen="game">
+    <div class="page">
+      <header class="ghead">
+        <div class="gmeta sc"><b>R1</b><span>/3</span> · <b>T2</b><span>/6</span> · <span>DN2H</span></div>
+        <nav class="gactions">
+          <a>Rules</a>
+          <a>Leave</a>
+          <a class="danger">End game</a>
+        </nav>
+      </header>
+
+      <section class="board">
+        <div class="bcell"><span class="tick t-ben"></span><span class="sc">Ben</span><span class="bscore">4</span></div>
+        <div class="bcell"><span class="tick t-vol"></span><span class="sc">Voltaire</span><span class="bscore">0</span></div>
+        <div class="bcell"><span class="tick t-mech"></span><span class="sc">Mechano</span><span class="bscore">2</span></div>
+        <div class="bcell"><span class="tick t-dan"></span><span class="sc">Data Dan</span><span class="bscore">5</span></div>
+      </section>
+
+      <div class="rowlabel">
+        <span class="sc">Power-ups remaining</span>
+        <span class="count serif">6 / 6</span>
+      </div>
+      <div class="banner sc">Your turn, press to select</div>
+
+      <div class="toc">
+        <button class="trow" style="--pc: var(--p-teal)">
+          <span class="tg">⇄</span><span class="tname">Swap Hands</span><span class="lead"></span><span class="tno">i</span>
+        </button>
+        <button class="trow" style="--pc: var(--p-rose)">
+          <span class="tg">✕</span><span class="tname">Sabotage</span><span class="lead"></span><span class="tno">ii</span>
+        </button>
+        <button class="trow sel" style="--pc: var(--p-pink)">
+          <span class="tg">=</span><span class="tname">Jinx</span><span class="lead"></span><span class="tno">selected</span>
+        </button>
+        <button class="trow" style="--pc: var(--p-em)">
+          <span class="tg">+2</span><span class="tname">Plus Two</span><span class="lead"></span><span class="tno">iv</span>
+        </button>
+        <button class="trow" style="--pc: var(--p-vio)">
+          <span class="tg">?</span><span class="tname">Wild</span><span class="lead"></span><span class="tno">v</span>
+        </button>
+        <button class="trow" style="--pc: var(--p-amb)">
+          <span class="tg">↧</span><span class="tname">Drain</span><span class="lead"></span><span class="tno">vi</span>
+        </button>
+      </div>
+
+      <div class="rowlabel">
+        <span class="sc">Players · Power picker: Ben</span>
+      </div>
+      <section class="pgrid">
+        <div class="pcell">
+          <div class="pname"><span class="tick t-ben"></span>Ben <em>(you)</em></div>
+          <div class="phand">Ø 1 2 3 4 5</div>
+          <div class="pstat think">Thinking…</div>
+        </div>
+        <div class="pcell">
+          <div class="pname"><span class="tick t-vol"></span>Voltaire</div>
+          <div class="phand">Ø 1 2 3 4 5</div>
+          <div class="pstat">Submitted</div>
+        </div>
+        <div class="pcell">
+          <div class="pname"><span class="tick t-mech"></span>Mechano</div>
+          <div class="phand">Ø 1 2 3 4 5</div>
+          <div class="pstat">Submitted</div>
+        </div>
+        <div class="pcell">
+          <div class="pname"><span class="tick t-dan"></span>Data Dan</div>
+          <div class="phand">Ø 1 2 3 4 5</div>
+          <div class="pstat">Submitted</div>
+        </div>
+      </section>
+
+      <button class="btn ghost skipbtn">Skip waiting, auto-play who's left</button>
+
+      <div class="rowlabel">
+        <span class="sc">Your hand</span>
+      </div>
+      <section class="hand">
+        <div class="ncard"><span class="num">Ø</span></div>
+        <div class="ncard"><span class="num">1</span></div>
+        <div class="ncard"><span class="num">2</span></div>
+        <div class="ncard"><span class="num">3</span></div>
+        <div class="ncard"><span class="num">4</span></div>
+        <div class="ncard sel"><span class="num">5</span><span class="pick">your pick</span></div>
+      </section>
+
+      <button class="btn primary lockin">Lock it in</button>
+    </div>
+  </main>
+
+  <!-- ============ 4 · REVEAL : the dark spread ============ -->
+  <main data-screen="reveal">
+    <div class="page">
+      <div class="rev-top">
+        <div class="rev-rule"><i>✳</i></div>
+        <span class="sc">Turn 2</span>
+        <h2 class="rev-head">Reveal</h2>
+      </div>
+
+      <div class="played">
+        <span class="sc">Ben played</span><br>
+        <div class="pow-plate">
+          <span class="tg">=</span>
+          <span class="sc">Jinx</span>
+        </div>
+      </div>
+
+      <section class="plates">
+        <figure class="plate">
+          <figcaption><span class="tick t-ben"></span><span class="sc">Ben</span></figcaption>
+          <div class="ncard">
+            <span class="num">5</span>
+            <span class="kill"><i>Cancelled</i></span>
+          </div>
+          <div class="outcome"><span class="pts">0</span><span class="sc lbl">Cancelled</span></div>
+        </figure>
+        <figure class="plate">
+          <figcaption><span class="tick t-vol"></span><span class="sc">Voltaire</span></figcaption>
+          <div class="ncard">
+            <span class="num">Ø</span>
+          </div>
+          <div class="outcome"><span class="pts">0</span><span class="sc lbl alive">the lone zero</span></div>
+        </figure>
+        <figure class="plate">
+          <figcaption><span class="tick t-mech"></span><span class="sc">Mechano</span></figcaption>
+          <div class="ncard">
+            <span class="num">5</span>
+            <span class="kill"><i>Cancelled</i></span>
+          </div>
+          <div class="outcome"><span class="pts">0</span><span class="sc lbl">Cancelled</span></div>
+        </figure>
+        <figure class="plate">
+          <figcaption><span class="tick t-dan"></span><span class="sc">Data Dan</span></figcaption>
+          <div class="ncard">
+            <span class="num">3</span>
+            <span class="kill"><i>Cancelled</i></span>
+          </div>
+          <div class="outcome"><span class="pts">0</span><span class="sc lbl">Cancelled</span></div>
+        </figure>
+      </section>
+
+      <button class="btn primary rev-continue">Continue</button>
+    </div>
+  </main>
+
+  <!-- ============ 5 · END : the closing statement ============ -->
+  <main data-screen="end">
+    <div class="orn" aria-hidden="true">
+      <span style="top: 3%; left: 7%; font-size: 30px; transform: rotate(-14deg);">✳</span>
+      <span class="r" style="top: 6%; right: 10%; font-size: 22px; transform: rotate(10deg);">✳</span>
+      <span style="top: 13%; right: 28%; font-size: 17px; transform: rotate(-6deg);">†</span>
+      <span style="top: 19%; left: 16%; font-size: 24px; transform: rotate(18deg);">§</span>
+      <span class="r" style="top: 26%; right: 6%; font-size: 34px; transform: rotate(-10deg); font-style: italic;">Ø</span>
+      <span style="top: 33%; left: 5%; font-size: 19px; transform: rotate(8deg);">❧</span>
+      <span style="top: 41%; right: 14%; font-size: 26px; transform: rotate(14deg);">✳</span>
+      <span class="r" style="top: 49%; left: 11%; font-size: 18px; transform: rotate(-18deg);">†</span>
+      <span style="top: 56%; right: 7%; font-size: 21px; transform: rotate(6deg);">§</span>
+      <span style="top: 63%; left: 6%; font-size: 28px; transform: rotate(-8deg); font-style: italic;">Ø</span>
+      <span class="r" style="top: 70%; right: 22%; font-size: 16px; transform: rotate(12deg);">✳</span>
+      <span style="top: 78%; left: 14%; font-size: 20px; transform: rotate(-12deg);">❧</span>
+      <span style="top: 85%; right: 9%; font-size: 24px; transform: rotate(16deg);">†</span>
+      <span class="r" style="top: 91%; left: 8%; font-size: 19px; transform: rotate(-6deg);">§</span>
+    </div>
+    <div class="page">
+      <div class="end-eyebrow"><span class="sc">Game Over</span></div>
+
+      <h2 class="end-head">You<br>won<span class="stop">.</span></h2>
+
+      <div class="end-sub">
+        <table class="score">
+          <thead>
+            <tr>
+              <th></th><th>R1</th><th>R2</th><th>R3</th><th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="win">
+              <td><span class="who"><span class="rank">1</span><span class="tick t-ben"></span>Ben <em>(you)</em></span></td>
+              <td>5</td><td>9</td><td>6</td><td class="tot">20</td>
+            </tr>
+            <tr>
+              <td><span class="who"><span class="rank">2</span><span class="tick t-dan"></span>Data Dan</span></td>
+              <td>5</td><td>4</td><td>3</td><td class="tot">12</td>
+            </tr>
+            <tr>
+              <td><span class="who"><span class="rank">3</span><span class="tick t-vol"></span>Voltaire</span></td>
+              <td>3</td><td>2</td><td>4</td><td class="tot">9</td>
+            </tr>
+            <tr>
+              <td><span class="who"><span class="rank">4</span><span class="tick t-mech"></span>Mechano</span></td>
+              <td>0</td><td>5</td><td>2</td><td class="tot">7</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="end-actions">
+        <button class="btn primary">Play again</button>
+        <button class="btn">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

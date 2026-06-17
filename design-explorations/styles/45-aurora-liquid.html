@@ -1,0 +1,848 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Aurora Liquid</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ============ tokens ============ */
+    :root{
+      --bg0:#14171f;
+      --bg1:#1d2230;
+      --ink:#eef2f9;
+      --muted:rgba(228,235,247,.64);
+      --faint:rgba(228,235,247,.42);
+      --line:rgba(255,255,255,.11);
+      --accent:#5aa2ff;
+      --accent-soft:rgba(90,162,255,.16);
+      --ben:#ff8d7a; --vol:#7fb0ff; --mech:#ecc25d; --dan:#54d8a3;
+      --shadow:0 18px 36px rgba(4,6,11,.52), 0 4px 12px rgba(4,6,11,.36);
+      --rim:
+        inset 0 1px 0 rgba(255,255,255,.30),
+        inset 1px 0 0 rgba(255,255,255,.10),
+        inset 0 -1px 0 rgba(4,6,11,.52),
+        inset -1px 0 0 rgba(4,6,11,.28);
+    }
+    *{ box-sizing:border-box; margin:0; padding:0; }
+    html{ background:var(--bg0); }
+    body{
+      font-family:"Outfit",ui-sans-serif,sans-serif;
+      color:var(--ink);
+      -webkit-font-smoothing:antialiased;
+      background-color:var(--bg0);
+      background-image:
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.04 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>"),
+        radial-gradient(120% 70% at 82% -8%, rgba(90,162,255,.10), transparent 56%),
+        radial-gradient(90% 56% at 6% 110%, rgba(90,162,255,.06), transparent 62%),
+        linear-gradient(168deg, #171b26 0%, #14171f 42%, #1d2230 100%);
+      background-size:160px 160px, 100% 100%, 100% 100%, 100% 100%;
+      background-repeat:repeat, no-repeat, no-repeat, no-repeat;
+      background-attachment:scroll, fixed, fixed, fixed;
+    }
+    main[data-screen]{ min-height:100vh; position:relative; }
+    .wrap{ max-width:420px; margin:0 auto; padding:22px 20px 30px; position:relative; }
+
+    /* ============ shared glass surface ============ */
+    .glass{
+      position:relative;
+      background:
+        linear-gradient(115deg, rgba(255,255,255,.13), rgba(255,255,255,.025) 26%, rgba(255,255,255,0) 46%),
+        rgba(255,255,255,.05);
+      border:1px solid var(--line);
+      border-radius:24px;
+      box-shadow:var(--rim), var(--shadow);
+    }
+    .grad-text{
+      background:linear-gradient(105deg,#dcebff 6%,#8fc0ff 48%,#5aa2ff 96%);
+      -webkit-background-clip:text; background-clip:text;
+      color:transparent;
+    }
+    .micro{
+      font-size:11px; font-weight:700; letter-spacing:.22em;
+      text-transform:uppercase; color:var(--faint);
+    }
+    .seclabel{
+      font-size:11px; font-weight:700; letter-spacing:.22em;
+      text-transform:uppercase; color:var(--faint);
+      margin:0 4px 10px;
+    }
+
+    /* ============ buttons ============ */
+    .btn{
+      display:flex; align-items:center; justify-content:center;
+      width:100%; min-height:56px; border-radius:999px;
+      font-family:"Outfit",sans-serif; font-size:17px; font-weight:700;
+      color:var(--ink); cursor:pointer;
+      border:1px solid var(--line);
+      background:
+        linear-gradient(115deg, rgba(255,255,255,.14), rgba(255,255,255,.03) 30%, rgba(255,255,255,0) 52%),
+        rgba(255,255,255,.05);
+      box-shadow:var(--rim), 0 14px 28px rgba(4,6,11,.45), 0 3px 10px rgba(4,6,11,.3);
+    }
+    .btn.primary{
+      border:1px solid rgba(170,208,255,.55);
+      background:
+        linear-gradient(115deg, rgba(255,255,255,.38), rgba(255,255,255,.08) 32%, rgba(255,255,255,0) 52%),
+        linear-gradient(180deg, #6cb0ff, #3f87f2);
+      color:#081326; font-weight:800; letter-spacing:.01em;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.65),
+        inset 0 -1px 0 rgba(13,42,92,.5),
+        0 14px 30px rgba(63,135,242,.34),
+        0 4px 14px rgba(4,6,11,.4);
+    }
+    .btn.ghost{
+      background:rgba(255,255,255,.025);
+      border:1px dashed rgba(255,255,255,.2);
+      color:var(--muted); font-size:12px; font-weight:700;
+      letter-spacing:.14em; text-transform:uppercase;
+      min-height:46px; box-shadow:none;
+    }
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      min-height:42px; padding:0 18px; border-radius:999px;
+      background:
+        linear-gradient(115deg, rgba(255,255,255,.13), rgba(255,255,255,.03) 34%, rgba(255,255,255,0) 56%),
+        rgba(255,255,255,.05);
+      border:1px solid var(--line);
+      font-family:"Outfit",sans-serif; font-size:14px; font-weight:600; color:var(--ink);
+      cursor:pointer;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.26), inset 0 -1px 0 rgba(4,6,11,.42), 0 8px 18px rgba(4,6,11,.32);
+    }
+    .pill.tiny{
+      min-height:30px; padding:0 11px; font-size:10px; font-weight:800;
+      letter-spacing:.12em; color:var(--muted); box-shadow:inset 0 1px 0 rgba(255,255,255,.2), inset 0 -1px 0 rgba(4,6,11,.4);
+    }
+    .pill.danger{ color:#ff9e92; border-color:rgba(255,141,122,.34); }
+
+    /* ============ switcher ============ */
+    #switcher a{
+      width:30px; height:30px; display:grid; place-items:center;
+      border-radius:10px; background:rgba(20,24,34,.82);
+      border:1px solid var(--line); color:var(--muted);
+      font:700 12px "Outfit",sans-serif; text-decoration:none;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.14);
+    }
+
+    /* ============ HOME ============ */
+    .beam{
+      position:absolute; inset:0; pointer-events:none;
+      background:
+        linear-gradient(118deg, transparent 26%, rgba(150,195,255,.05) 40%, rgba(225,238,255,.09) 50%, rgba(150,195,255,.04) 60%, transparent 74%),
+        radial-gradient(58% 30% at 50% 34%, rgba(90,162,255,.10), transparent 72%);
+    }
+    .home-wrap{ min-height:100vh; display:flex; flex-direction:column; }
+    .home-top{ display:flex; justify-content:flex-end; }
+    .iconbtn{
+      width:44px; height:44px; border-radius:50%;
+      display:grid; place-items:center; cursor:pointer;
+      color:var(--muted);
+      background:
+        linear-gradient(115deg, rgba(255,255,255,.16), rgba(255,255,255,.03) 40%, rgba(255,255,255,0) 60%),
+        rgba(255,255,255,.05);
+      border:1px solid var(--line);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.28), inset 0 -1px 0 rgba(4,6,11,.42), 0 8px 18px rgba(4,6,11,.32);
+    }
+    .home-hero{
+      flex:1; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; text-align:center;
+      position:relative; padding:30px 0 18px;
+    }
+    .wordmark{
+      position:relative; font-size:66px; font-weight:900;
+      letter-spacing:.04em; line-height:1;
+      filter:drop-shadow(0 12px 32px rgba(90,162,255,.30));
+    }
+    .wordmark .w1{ color:#f4f7fd; }
+    .wordmark .w2{
+      background:linear-gradient(100deg,#c4dcff 4%,#7cb4ff 52%,#4f97f5 98%);
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+    .tagline{
+      margin-top:16px; font-size:13px; font-weight:500;
+      letter-spacing:.3em; text-transform:uppercase; color:var(--muted);
+    }
+    .home-fan{ display:flex; justify-content:center; margin-top:40px; position:relative; }
+    .mini-card{
+      width:42px; height:56px; border-radius:13px; margin:0 -2px;
+      display:grid; place-items:center;
+      font-family:"Sora",sans-serif; font-weight:700; font-size:18px;
+      color:rgba(240,245,255,.92); text-shadow:0 2px 6px rgba(4,6,11,.5);
+      background:
+        linear-gradient(115deg, rgba(255,255,255,.18), rgba(255,255,255,.04) 36%, rgba(255,255,255,0) 58%),
+        rgba(255,255,255,.055);
+      border:1px solid var(--line);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.32), inset 0 -1px 0 rgba(4,6,11,.5), 0 10px 20px rgba(4,6,11,.45);
+    }
+    .mini-card:nth-child(1){ transform:rotate(-12deg) translateY(9px); }
+    .mini-card:nth-child(2){ transform:rotate(-7deg) translateY(3px); }
+    .mini-card:nth-child(3){ transform:rotate(-2deg) translateY(0); }
+    .mini-card:nth-child(4){ transform:rotate(3deg) translateY(0); }
+    .mini-card:nth-child(5){ transform:rotate(8deg) translateY(4px); }
+    .mini-card:nth-child(6){ transform:rotate(13deg) translateY(10px); }
+    .home-actions{ display:flex; flex-direction:column; gap:12px; padding-bottom:16px; }
+
+    /* ============ LOBBY ============ */
+    .topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+    .code-panel{ padding:26px 20px 21px; text-align:center; margin-bottom:24px; border-radius:26px; }
+    .code{
+      font-family:"Sora",sans-serif; font-size:56px; font-weight:800;
+      letter-spacing:.2em; text-indent:.2em; line-height:1;
+      filter:drop-shadow(0 4px 18px rgba(90,162,255,.35));
+    }
+    .hint{ margin-top:9px; font-size:12px; letter-spacing:.1em; color:var(--faint); }
+    .players{ list-style:none; display:flex; flex-direction:column; gap:10px; margin-bottom:24px; }
+    .prow{ border-radius:999px; padding:9px 16px 9px 10px; display:flex; align-items:center; gap:12px; }
+    .avatar{
+      width:38px; height:38px; border-radius:50%; flex:none;
+      display:grid; place-items:center;
+      font-weight:800; font-size:15px; color:#10141d;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.5), inset 0 -2px 4px rgba(4,6,11,.3), 0 4px 10px rgba(4,6,11,.35);
+    }
+    .avatar.ben{ background:linear-gradient(150deg,#ffb9aa,#f0705a); }
+    .avatar.vol{ background:linear-gradient(150deg,#b9d4ff,#5f95e8); }
+    .avatar.mech{ background:linear-gradient(150deg,#f5dfa3,#d9a83e); }
+    .avatar.dan{ background:linear-gradient(150deg,#a4ecd0,#2eb87f); }
+    .pname{ font-size:16px; font-weight:600; flex:1; }
+    .badges{ display:flex; gap:6px; align-items:center; }
+    .badge{
+      font-size:9.5px; font-weight:800; letter-spacing:.12em;
+      padding:4px 9px; border-radius:999px; border:1px solid transparent;
+    }
+    .badge.host{ color:#bcd8ff; border-color:rgba(90,162,255,.45); background:rgba(90,162,255,.13); }
+    .badge.you{ color:#e7edf8; border-color:rgba(255,255,255,.28); background:rgba(255,255,255,.09); }
+    .badge.bot{ color:rgba(220,230,245,.6); border-color:rgba(255,255,255,.16); background:rgba(255,255,255,.04); }
+    .dot{
+      width:8px; height:8px; border-radius:50%; flex:none;
+      background:#54d8a3; box-shadow:0 0 8px rgba(84,216,163,.85);
+    }
+    .setrow{
+      border-radius:22px; padding:12px 14px; margin-bottom:10px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .setlabel{ font-size:15px; font-weight:600; }
+    .stepper{ display:flex; align-items:center; gap:14px; }
+    .stepbtn{
+      width:38px; height:38px; border-radius:50%; cursor:pointer;
+      background:
+        linear-gradient(115deg, rgba(255,255,255,.16), rgba(255,255,255,.04) 44%, rgba(255,255,255,0) 64%),
+        rgba(255,255,255,.06);
+      border:1px solid var(--line);
+      color:var(--ink); font-size:18px; font-weight:600;
+      display:grid; place-items:center;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.3), inset 0 -1px 0 rgba(4,6,11,.45);
+    }
+    .stepval{ font-family:"Sora",sans-serif; font-weight:700; font-size:18px; min-width:18px; text-align:center; }
+    .setcol{ border-radius:22px; padding:14px; margin-bottom:20px; }
+    .setcol .setlabel{ margin-bottom:11px; }
+    .seg{
+      display:flex; gap:3px; padding:3px; border-radius:999px;
+      background:rgba(8,10,16,.46); border:1px solid rgba(255,255,255,.09);
+      box-shadow:inset 0 2px 6px rgba(4,6,11,.5);
+    }
+    .seg button{
+      flex:1; min-height:40px; border:none; border-radius:999px;
+      background:transparent; color:var(--muted); cursor:pointer;
+      font-family:"Outfit",sans-serif; font-size:13.5px; font-weight:600;
+    }
+    .seg button.on{
+      background:
+        linear-gradient(115deg, rgba(255,255,255,.34), rgba(255,255,255,.06) 38%, rgba(255,255,255,0) 58%),
+        linear-gradient(180deg, #6cb0ff, #3f87f2);
+      color:#081326; font-weight:800;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.6), inset 0 -1px 0 rgba(13,42,92,.45), 0 4px 12px rgba(63,135,242,.4);
+    }
+    .helper{ font-size:12.5px; color:var(--faint); margin-top:9px; }
+
+    /* ============ GAME ============ */
+    .ghead{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:16px; }
+    .gmeta{
+      font-family:"Sora",sans-serif; font-size:13.5px; font-weight:800;
+      letter-spacing:.03em; color:var(--ink); white-space:nowrap;
+    }
+    .gmeta .dim{ color:var(--faint); font-weight:600; }
+    .gmeta .codesm{ color:var(--muted); font-weight:700; letter-spacing:.14em; margin-left:6px; }
+    .gbtns{ display:flex; gap:5px; }
+    .scoregrid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:20px; }
+    .schip{ border-radius:999px; min-height:46px; padding:0 15px; display:flex; align-items:center; gap:9px; }
+    .schip .sdot{ width:9px; height:9px; border-radius:50%; flex:none; background:currentColor; box-shadow:0 0 8px currentColor; }
+    .schip .nm{ flex:1; font-size:14px; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .schip .sc{ font-family:"Sora",sans-serif; font-weight:800; font-size:17px; color:var(--ink); }
+    .c-ben{ color:var(--ben); } .c-vol{ color:var(--vol); } .c-mech{ color:var(--mech); } .c-dan{ color:var(--dan); }
+    .poolhead{ display:flex; justify-content:space-between; align-items:baseline; margin:0 4px 10px; }
+    .poolcount{ font-family:"Sora",sans-serif; font-size:13px; font-weight:700; color:var(--muted); }
+    .banner{
+      border-radius:999px;
+      border:1px solid rgba(122,178,255,.5);
+      background:
+        linear-gradient(115deg, rgba(255,255,255,.12), rgba(255,255,255,.02) 36%, rgba(255,255,255,0) 56%),
+        rgba(90,162,255,.09);
+      padding:12px 14px; text-align:center; margin-bottom:10px;
+      box-shadow:inset 0 1px 0 rgba(220,238,255,.34), inset 0 -1px 0 rgba(4,6,11,.4), 0 0 20px rgba(90,162,255,.16), 0 8px 18px rgba(4,6,11,.3);
+    }
+    .banner span{
+      font-size:11.5px; font-weight:800; letter-spacing:.22em;
+      color:#a8ccff; text-shadow:0 0 14px rgba(90,162,255,.5);
+    }
+    .powergrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px; }
+    .power{
+      position:relative; border-radius:20px; padding:15px 6px 12px;
+      display:flex; flex-direction:column; align-items:center; gap:8px;
+      background:
+        linear-gradient(115deg, rgba(255,255,255,.14), rgba(255,255,255,.03) 32%, rgba(255,255,255,0) 54%),
+        rgba(255,255,255,.045);
+      border:1px solid var(--line);
+      box-shadow:var(--rim), 0 12px 24px rgba(4,6,11,.42);
+      cursor:pointer;
+    }
+    .power .glyph{
+      font-family:"Sora",sans-serif; font-size:25px; font-weight:800; line-height:1;
+      color:rgb(var(--pc)); text-shadow:0 0 12px rgba(var(--pc),.45), 0 2px 5px rgba(4,6,11,.5);
+    }
+    .power .pnamel{
+      font-size:10px; font-weight:700; letter-spacing:.1em;
+      text-transform:uppercase; color:var(--muted); text-align:center;
+    }
+    .power.swap{ --pc:79,209,197; } .power.sab{ --pc:244,124,116; }
+    .power.jinx{ --pc:217,140,184; } .power.plus{ --pc:96,214,158; }
+    .power.wild{ --pc:167,139,250; } .power.drain{ --pc:232,181,74; }
+    .power.sel{
+      border:1.5px solid rgba(140,190,255,.85); padding:14.5px 5.5px 11.5px;
+      background:
+        linear-gradient(115deg, rgba(255,255,255,.22), rgba(255,255,255,.05) 34%, rgba(255,255,255,0) 56%),
+        rgba(90,162,255,.10);
+      box-shadow:
+        inset 0 1px 0 rgba(225,240,255,.5),
+        inset 0 -1px 0 rgba(4,6,11,.4),
+        0 0 0 4px rgba(90,162,255,.13),
+        0 0 24px rgba(90,162,255,.32),
+        0 14px 26px rgba(4,6,11,.5);
+      transform:translateY(-3px);
+    }
+    .power.sel .pnamel{ color:#d6e7ff; }
+    .pstat{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+    .pcard{ border-radius:20px; padding:11px 14px; }
+    .pcard .ptop{ display:flex; align-items:center; gap:7px; }
+    .pcard .pdot{ width:10px; height:10px; border-radius:50%; flex:none; background:currentColor; box-shadow:0 0 8px currentColor; }
+    .pcard .pn{ font-size:14px; font-weight:600; color:var(--ink); white-space:nowrap; }
+    .pcard .yo{ font-size:11px; color:var(--faint); font-weight:500; }
+    .pstatus{ margin-top:6px; font-size:10px; font-weight:800; letter-spacing:.16em; }
+    .pstatus.think{ color:#f0cd84; text-shadow:0 0 10px rgba(236,194,93,.4); }
+    .pstatus.sub{ color:#8fc0ff; text-shadow:0 0 10px rgba(90,162,255,.4); }
+    .handread{
+      margin-top:6px; font-family:"Sora",sans-serif; font-size:11px;
+      font-weight:600; letter-spacing:.24em; color:var(--faint);
+    }
+    .skipbtn{ margin-bottom:22px; }
+    .hand{ display:grid; grid-template-columns:repeat(6,1fr); gap:8px; padding-top:8px; margin-bottom:18px; }
+    .num{
+      position:relative; height:88px; border-radius:18px;
+      display:grid; place-items:center; cursor:pointer;
+      font-family:"Sora",sans-serif; font-size:27px; font-weight:800;
+      color:#f3f7fe; text-shadow:0 3px 8px rgba(4,6,11,.55);
+      background:
+        linear-gradient(115deg, rgba(255,255,255,.17), rgba(255,255,255,.04) 34%, rgba(255,255,255,0) 56%),
+        rgba(255,255,255,.05);
+      border:1px solid var(--line);
+      box-shadow:var(--rim), 0 10px 22px rgba(4,6,11,.45);
+    }
+    .num.sel{
+      border:1.5px solid rgba(150,196,255,.9);
+      background:
+        linear-gradient(115deg, rgba(255,255,255,.30), rgba(255,255,255,.06) 34%, rgba(255,255,255,0) 56%),
+        linear-gradient(180deg, rgba(90,162,255,.22), rgba(90,162,255,.10));
+      box-shadow:
+        inset 0 1px 0 rgba(230,242,255,.55),
+        inset 0 -1px 0 rgba(4,6,11,.4),
+        0 0 0 4px rgba(90,162,255,.14),
+        0 0 26px rgba(90,162,255,.4),
+        0 14px 26px rgba(4,6,11,.55);
+      transform:translateY(-7px);
+      color:#fff; text-shadow:0 0 16px rgba(170,210,255,.9), 0 3px 8px rgba(4,6,11,.5);
+    }
+
+    /* ============ REVEAL ============ */
+    main[data-screen="reveal"]{
+      background:
+        radial-gradient(82% 48% at 50% 32%, rgba(90,162,255,.09), transparent 70%),
+        radial-gradient(60% 34% at 50% 80%, rgba(90,162,255,.05), transparent 70%);
+    }
+    .reveal-wrap{
+      min-height:100vh; max-width:420px; margin:0 auto;
+      display:flex; flex-direction:column; justify-content:center;
+      padding:36px 20px;
+    }
+    .reyebrow{ text-align:center; margin-bottom:26px; letter-spacing:.3em; color:var(--muted); }
+    .played-label{ text-align:center; margin-bottom:12px; }
+    .playedcard{
+      width:96px; margin:0 auto 30px; border-radius:20px;
+      padding:16px 8px 12px;
+      display:flex; flex-direction:column; align-items:center; gap:8px;
+      background:
+        linear-gradient(115deg, rgba(255,255,255,.18), rgba(255,255,255,.04) 34%, rgba(255,255,255,0) 56%),
+        rgba(255,255,255,.055);
+      border:1px solid rgba(255,255,255,.16);
+      box-shadow:var(--rim), 0 14px 28px rgba(4,6,11,.5);
+    }
+    .playedcard .glyph{
+      font-family:"Sora",sans-serif; font-size:30px; font-weight:800; line-height:1;
+      color:#dfa2c4; text-shadow:0 0 14px rgba(217,140,184,.5), 0 2px 6px rgba(4,6,11,.5);
+    }
+    .playedcard .pnamel{
+      font-size:10px; font-weight:800; letter-spacing:.18em;
+      text-transform:uppercase; color:var(--muted);
+    }
+    .rgrid{
+      display:grid; grid-template-columns:1fr 1fr;
+      gap:20px 12px; margin-bottom:32px; justify-items:center;
+    }
+    .rcell{ position:relative; display:flex; flex-direction:column; align-items:center; gap:9px; }
+    .rname{ font-size:11px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); }
+    .rcard{
+      position:relative; width:106px; height:132px; border-radius:24px;
+      display:grid; place-items:center; overflow:hidden;
+      font-family:"Sora",sans-serif; font-size:44px; font-weight:800;
+    }
+    /* condensation: the cancelled card fogs up; one wiped streak keeps the numeral crisp */
+    .rcard.fog{
+      background:
+        linear-gradient(115deg, rgba(255,255,255,.14), rgba(255,255,255,.03) 30%, rgba(255,255,255,0) 52%),
+        rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow:var(--rim), 0 14px 28px rgba(4,6,11,.5);
+      color:rgba(238,244,255,.95);
+      text-shadow:0 3px 9px rgba(4,6,11,.5);
+    }
+    .rcard.fog::before{
+      content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+      background:radial-gradient(150% 110% at 50% 0%, rgba(226,235,246,.34), rgba(226,235,246,.18) 52%, rgba(226,235,246,.27) 100%);
+      backdrop-filter:blur(2.4px);
+      -webkit-backdrop-filter:blur(2.4px);
+      -webkit-mask:linear-gradient(115deg, #000 0 33%, rgba(0,0,0,.2) 38%, transparent 42% 60%, rgba(0,0,0,.2) 64%, #000 69% 100%);
+      mask:linear-gradient(115deg, #000 0 33%, rgba(0,0,0,.2) 38%, transparent 42% 60%, rgba(0,0,0,.2) 64%, #000 69% 100%);
+    }
+    .rcard.fog::after{
+      content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+      background:
+        linear-gradient(115deg, transparent 33.5%, rgba(255,255,255,.26) 36.5%, transparent 39.5%, transparent 62.5%, rgba(255,255,255,.2) 65.5%, transparent 68.5%),
+        radial-gradient(circle 3px at 16px 18px, rgba(255,255,255,.55) 0 40%, rgba(255,255,255,.18) 75%, transparent 100%),
+        radial-gradient(circle 2px at 30px 40px, rgba(255,255,255,.42) 0 40%, rgba(255,255,255,.14) 75%, transparent 100%),
+        radial-gradient(circle 3.4px at 12px 62px, rgba(255,255,255,.5) 0 40%, rgba(255,255,255,.16) 75%, transparent 100%),
+        radial-gradient(circle 2.3px at 26px 88px, rgba(255,255,255,.4) 0 40%, rgba(255,255,255,.13) 75%, transparent 100%),
+        radial-gradient(circle 2.8px at 15px 112px, rgba(255,255,255,.46) 0 40%, rgba(255,255,255,.15) 75%, transparent 100%),
+        radial-gradient(circle 3.2px at 88px 24px, rgba(255,255,255,.5) 0 40%, rgba(255,255,255,.16) 75%, transparent 100%),
+        radial-gradient(circle 2px at 95px 52px, rgba(255,255,255,.4) 0 40%, rgba(255,255,255,.13) 75%, transparent 100%),
+        radial-gradient(circle 3.6px at 80px 78px, rgba(255,255,255,.52) 0 40%, rgba(255,255,255,.17) 75%, transparent 100%),
+        radial-gradient(circle 2.4px at 92px 102px, rgba(255,255,255,.42) 0 40%, rgba(255,255,255,.14) 75%, transparent 100%),
+        radial-gradient(circle 2.1px at 76px 118px, rgba(255,255,255,.38) 0 40%, rgba(255,255,255,.12) 75%, transparent 100%);
+    }
+    /* the lone zero: a clear lens that focuses light */
+    .rcard.lens{
+      background:
+        linear-gradient(115deg, rgba(255,255,255,.32), rgba(255,255,255,.07) 30%, rgba(255,255,255,0) 50%, rgba(255,255,255,.09) 90%),
+        radial-gradient(130% 90% at 50% 115%, rgba(90,162,255,.30), transparent 62%),
+        rgba(255,255,255,.07);
+      border:1px solid rgba(190,220,255,.6);
+      color:#ffffff;
+      text-shadow:0 0 18px rgba(196,224,255,.95), 0 0 42px rgba(90,162,255,.8);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.65),
+        inset 1px 0 0 rgba(255,255,255,.2),
+        inset 0 -1px 0 rgba(58,108,190,.45),
+        0 0 26px rgba(90,162,255,.38),
+        0 0 64px rgba(90,162,255,.2),
+        0 20px 28px -8px rgba(120,180,255,.45),
+        0 16px 32px rgba(4,6,11,.5);
+    }
+    .rcard.lens::before{
+      content:""; position:absolute; inset:0; pointer-events:none;
+      background:
+        radial-gradient(40% 28% at 50% 60%, rgba(196,228,255,.30), transparent 72%),
+        radial-gradient(64% 5% at 50% 90%, rgba(226,242,255,.5), transparent 80%);
+    }
+    .caustic{
+      position:absolute; left:50%; top:146px; transform:translateX(-50%);
+      width:90px; height:17px; border-radius:50%; pointer-events:none;
+      background:radial-gradient(52% 68% at 50% 45%, rgba(236,246,255,.85), rgba(122,180,255,.45) 46%, transparent 74%);
+      filter:blur(2.5px);
+    }
+    .rout{ display:flex; flex-direction:column; align-items:center; gap:3px; min-height:34px; }
+    .rzero{ font-family:"Sora",sans-serif; font-weight:800; font-size:15px; color:rgba(206,220,238,.6); }
+    .rcancel{
+      font-size:10px; font-weight:800; letter-spacing:.26em; color:rgba(216,229,245,.82);
+      text-shadow:0 0 10px rgba(190,210,235,.3);
+    }
+    .rsafe{
+      font-family:"Sora",sans-serif; font-weight:800; font-size:16px; color:#a8ccff;
+      text-shadow:0 0 13px rgba(90,162,255,.75);
+    }
+
+    /* ============ END ============ */
+    main[data-screen="end"]{
+      position:relative; overflow:hidden;
+      background:
+        radial-gradient(72% 38% at 50% 4%, rgba(90,162,255,.13), transparent 70%),
+        radial-gradient(56% 30% at 14% 44%, rgba(150,195,255,.05), transparent 70%);
+    }
+    .gl{
+      position:absolute; pointer-events:none;
+      background:
+        radial-gradient(50% 7% at 50% 50%, rgba(255,255,255,.95), transparent 78%),
+        radial-gradient(7% 50% at 50% 50%, rgba(255,255,255,.9), transparent 78%),
+        radial-gradient(18% 18% at 50% 50%, rgba(220,238,255,.8), transparent 80%);
+    }
+    .gl.blue{
+      background:
+        radial-gradient(50% 7% at 50% 50%, rgba(150,198,255,.95), transparent 78%),
+        radial-gradient(7% 50% at 50% 50%, rgba(150,198,255,.9), transparent 78%),
+        radial-gradient(18% 18% at 50% 50%, rgba(90,162,255,.7), transparent 80%);
+    }
+    .end-wrap{
+      min-height:100vh; max-width:420px; margin:0 auto;
+      display:flex; flex-direction:column; padding:46px 20px 30px;
+      position:relative;
+    }
+    .end-hero{ text-align:center; margin-bottom:34px; }
+    .end-hero .micro{ letter-spacing:.32em; margin-bottom:14px; display:block; }
+    .wonline{
+      font-size:56px; font-weight:900; line-height:1;
+      filter:drop-shadow(0 10px 28px rgba(90,162,255,.35));
+    }
+    .wonline .w1{ color:#f4f7fd; }
+    .wonline .w2{
+      background:linear-gradient(100deg,#c4dcff 4%,#7cb4ff 52%,#4f97f5 98%);
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+    .thead{
+      display:grid; grid-template-columns:1fr 32px 32px 32px 54px;
+      align-items:center; padding:0 18px; margin-bottom:9px;
+    }
+    .thead .h{ font-size:10px; font-weight:800; letter-spacing:.14em; color:var(--faint); text-align:center; }
+    .thead .h.tot{ text-align:right; }
+    .trow{
+      display:grid; grid-template-columns:1fr 32px 32px 32px 54px;
+      align-items:center; min-height:58px; padding:0 18px;
+      border-radius:999px; margin-bottom:10px;
+    }
+    .trow .who{ display:flex; align-items:center; gap:9px; min-width:0; }
+    .trow .rk{ width:14px; font-family:"Sora",sans-serif; font-weight:700; font-size:13px; color:var(--faint); }
+    .trow .pdot{ width:10px; height:10px; border-radius:50%; flex:none; background:currentColor; box-shadow:0 0 8px currentColor; }
+    .trow .pn{ font-size:15px; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .trow .yo{ font-size:11px; color:var(--faint); font-weight:500; }
+    .trow .r{ font-family:"Sora",sans-serif; font-size:13px; font-weight:600; color:var(--muted); text-align:center; }
+    .trow .tt{ font-family:"Sora",sans-serif; font-size:19px; font-weight:800; text-align:right; color:var(--ink); }
+    .trow.win{
+      border:1.5px solid rgba(150,196,255,.85);
+      background:
+        linear-gradient(115deg, rgba(255,255,255,.24), rgba(255,255,255,.05) 30%, rgba(255,255,255,0) 52%),
+        rgba(90,162,255,.11);
+      box-shadow:
+        inset 0 1px 0 rgba(225,240,255,.5),
+        inset 0 -1px 0 rgba(4,6,11,.4),
+        0 0 0 4px rgba(90,162,255,.12),
+        0 0 26px rgba(90,162,255,.3),
+        0 12px 26px rgba(4,6,11,.5);
+    }
+    .trow.win .rk{ color:#bcd8ff; text-shadow:0 0 9px rgba(90,162,255,.6); }
+    .trow.win .tt{
+      background:linear-gradient(105deg,#e4f0ff 5%,#8fc0ff 60%,#5aa2ff 100%);
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+    .end-actions{ margin-top:auto; display:flex; flex-direction:column; gap:12px; padding-top:30px; }
+
+    /* ============ flourish (humans only; shots capture resting state) ============ */
+    @media (prefers-reduced-motion: no-preference){
+      @keyframes beamBreathe{ 0%,100%{ opacity:1; } 50%{ opacity:.55; } }
+      .beam{ animation:beamBreathe 9s ease-in-out infinite; }
+      @keyframes selGlow{
+        0%,100%{ box-shadow:inset 0 1px 0 rgba(230,242,255,.55), inset 0 -1px 0 rgba(4,6,11,.4), 0 0 0 4px rgba(90,162,255,.14), 0 0 26px rgba(90,162,255,.4), 0 14px 26px rgba(4,6,11,.55); }
+        50%{ box-shadow:inset 0 1px 0 rgba(230,242,255,.55), inset 0 -1px 0 rgba(4,6,11,.4), 0 0 0 4px rgba(90,162,255,.2), 0 0 38px rgba(90,162,255,.6), 0 14px 26px rgba(4,6,11,.55); }
+      }
+      .num.sel{ animation:selGlow 2.6s ease-in-out infinite; }
+      @keyframes lensPulse{
+        0%,100%{ box-shadow:inset 0 1px 0 rgba(255,255,255,.65), inset 1px 0 0 rgba(255,255,255,.2), inset 0 -1px 0 rgba(58,108,190,.45), 0 0 26px rgba(90,162,255,.38), 0 0 64px rgba(90,162,255,.2), 0 20px 28px -8px rgba(120,180,255,.45), 0 16px 32px rgba(4,6,11,.5); }
+        50%{ box-shadow:inset 0 1px 0 rgba(255,255,255,.65), inset 1px 0 0 rgba(255,255,255,.2), inset 0 -1px 0 rgba(58,108,190,.45), 0 0 38px rgba(90,162,255,.58), 0 0 88px rgba(90,162,255,.32), 0 20px 32px -8px rgba(120,180,255,.6), 0 16px 32px rgba(4,6,11,.5); }
+      }
+      .rcard.lens{ animation:lensPulse 3s ease-in-out infinite; }
+      @keyframes causticShimmer{ 0%,100%{ opacity:1; transform:translateX(-50%) scaleX(1); } 50%{ opacity:.7; transform:translateX(-50%) scaleX(.92); } }
+      .caustic{ animation:causticShimmer 3s ease-in-out infinite; }
+      @keyframes thinkBlink{ 0%,100%{ opacity:1; } 50%{ opacity:.45; } }
+      .pstatus.think{ animation:thinkBlink 1.4s ease-in-out infinite; }
+      @keyframes dotPulse{ 0%,100%{ box-shadow:0 0 8px rgba(84,216,163,.85); } 50%{ box-shadow:0 0 3px rgba(84,216,163,.45); } }
+      .dot{ animation:dotPulse 2.2s ease-in-out infinite; }
+      @keyframes glTwinkle{ 0%,100%{ opacity:1; } 50%{ opacity:.35; } }
+      .gl{ animation:glTwinkle 4s ease-in-out infinite; }
+      .gl:nth-of-type(2n){ animation-duration:5.5s; animation-delay:-1.5s; }
+      .gl:nth-of-type(3n){ animation-duration:4.8s; animation-delay:-3s; }
+    }
+  </style>
+</head>
+<body>
+  <main data-screen="home">
+    <div class="beam"></div>
+    <div class="wrap home-wrap">
+      <div class="home-top">
+        <button class="iconbtn" aria-label="Mute sounds">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg>
+        </button>
+      </div>
+      <div class="home-hero">
+        <h1 class="wordmark"><span class="w1">CAN</span><span class="w2">CEL</span></h1>
+        <p class="tagline">a number-picking party game</p>
+        <div class="home-fan">
+          <div class="mini-card">Ø</div>
+          <div class="mini-card">1</div>
+          <div class="mini-card">2</div>
+          <div class="mini-card">3</div>
+          <div class="mini-card">4</div>
+          <div class="mini-card">5</div>
+        </div>
+      </div>
+      <div class="home-actions">
+        <button class="btn primary">New game</button>
+        <button class="btn">Single player</button>
+        <button class="btn">Join with code</button>
+      </div>
+    </div>
+  </main>
+
+  <main data-screen="lobby">
+    <div class="wrap">
+      <header class="topbar">
+        <button class="pill">← Leave</button>
+        <button class="pill">Rules</button>
+      </header>
+      <section class="glass code-panel">
+        <div class="code grad-text">DN2H</div>
+        <div class="hint">press to copy</div>
+      </section>
+      <div class="seclabel">Players · 4</div>
+      <ul class="players">
+        <li class="glass prow">
+          <div class="avatar ben">B</div>
+          <div class="pname">Ben</div>
+          <div class="badges"><span class="badge host">HOST</span><span class="badge you">YOU</span><span class="dot"></span></div>
+        </li>
+        <li class="glass prow">
+          <div class="avatar vol">V</div>
+          <div class="pname">Voltaire</div>
+          <div class="badges"><span class="badge bot">BOT</span><span class="dot"></span></div>
+        </li>
+        <li class="glass prow">
+          <div class="avatar mech">M</div>
+          <div class="pname">Mechano</div>
+          <div class="badges"><span class="badge bot">BOT</span><span class="dot"></span></div>
+        </li>
+        <li class="glass prow">
+          <div class="avatar dan">D</div>
+          <div class="pname">Data Dan</div>
+          <div class="badges"><span class="badge bot">BOT</span><span class="dot"></span></div>
+        </li>
+      </ul>
+      <section class="glass setrow">
+        <div class="setlabel">Rounds</div>
+        <div class="stepper">
+          <button class="stepbtn">−</button>
+          <div class="stepval">3</div>
+          <button class="stepbtn">+</button>
+        </div>
+      </section>
+      <section class="glass setrow">
+        <div class="setlabel">AI players</div>
+        <div class="stepper">
+          <button class="stepbtn">−</button>
+          <div class="stepval">3</div>
+          <button class="stepbtn">+</button>
+        </div>
+      </section>
+      <section class="glass setcol">
+        <div class="setlabel">Power-ups</div>
+        <div class="seg">
+          <button>None</button>
+          <button class="on">Random</button>
+          <button>Choose</button>
+        </div>
+        <p class="helper">A fresh random pool each round.</p>
+      </section>
+      <button class="btn primary">Start game</button>
+    </div>
+  </main>
+
+  <main data-screen="game">
+    <div class="wrap">
+      <header class="ghead">
+        <div class="gmeta">R1<span class="dim">/3</span> · T2<span class="dim">/6</span><span class="codesm">DN2H</span></div>
+        <div class="gbtns">
+          <button class="pill tiny">RULES</button>
+          <button class="pill tiny">LEAVE</button>
+          <button class="pill tiny danger">END GAME</button>
+        </div>
+      </header>
+      <div class="scoregrid">
+        <div class="glass schip c-ben"><span class="sdot"></span><span class="nm">Ben</span><span class="sc">4</span></div>
+        <div class="glass schip c-vol"><span class="sdot"></span><span class="nm">Voltaire</span><span class="sc">0</span></div>
+        <div class="glass schip c-mech"><span class="sdot"></span><span class="nm">Mechano</span><span class="sc">2</span></div>
+        <div class="glass schip c-dan"><span class="sdot"></span><span class="nm">Data Dan</span><span class="sc">5</span></div>
+      </div>
+      <div class="poolhead">
+        <div class="micro">Power-ups remaining</div>
+        <div class="poolcount">6 / 6</div>
+      </div>
+      <div class="banner"><span>YOUR TURN, PRESS TO SELECT</span></div>
+      <div class="powergrid">
+        <div class="power swap"><div class="glyph">⇄</div><div class="pnamel">Swap Hands</div></div>
+        <div class="power sab"><div class="glyph">✖</div><div class="pnamel">Sabotage</div></div>
+        <div class="power jinx sel"><div class="glyph">=</div><div class="pnamel">Jinx</div></div>
+        <div class="power plus"><div class="glyph">+2</div><div class="pnamel">Plus Two</div></div>
+        <div class="power wild"><div class="glyph">?</div><div class="pnamel">Wild</div></div>
+        <div class="power drain"><div class="glyph">↧</div><div class="pnamel">Drain</div></div>
+      </div>
+      <div class="seclabel">Players · Power picker: Ben</div>
+      <div class="pstat">
+        <div class="glass pcard c-ben">
+          <div class="ptop"><span class="pdot"></span><span class="pn">Ben</span><span class="yo">(you)</span></div>
+          <div class="handread">Ø 1 2 3 4 5</div>
+          <div class="pstatus think">THINKING…</div>
+        </div>
+        <div class="glass pcard c-vol">
+          <div class="ptop"><span class="pdot"></span><span class="pn">Voltaire</span></div>
+          <div class="handread">Ø 1 2 3 4 5</div>
+          <div class="pstatus sub">SUBMITTED</div>
+        </div>
+        <div class="glass pcard c-mech">
+          <div class="ptop"><span class="pdot"></span><span class="pn">Mechano</span></div>
+          <div class="handread">Ø 1 2 3 4 5</div>
+          <div class="pstatus sub">SUBMITTED</div>
+        </div>
+        <div class="glass pcard c-dan">
+          <div class="ptop"><span class="pdot"></span><span class="pn">Data Dan</span></div>
+          <div class="handread">Ø 1 2 3 4 5</div>
+          <div class="pstatus sub">SUBMITTED</div>
+        </div>
+      </div>
+      <button class="btn ghost skipbtn">SKIP WAITING, AUTO-PLAY WHO'S LEFT</button>
+      <div class="seclabel">Your hand</div>
+      <div class="hand">
+        <div class="num">Ø</div>
+        <div class="num">1</div>
+        <div class="num">2</div>
+        <div class="num">3</div>
+        <div class="num">4</div>
+        <div class="num sel">5</div>
+      </div>
+      <button class="btn primary">Lock it in</button>
+    </div>
+  </main>
+
+  <main data-screen="reveal">
+    <div class="reveal-wrap">
+      <div class="micro reyebrow">Turn 2 Reveal</div>
+      <div class="micro played-label">Ben played</div>
+      <div class="playedcard">
+        <div class="glyph">=</div>
+        <div class="pnamel">Jinx</div>
+      </div>
+      <div class="rgrid">
+        <div class="rcell">
+          <div class="rname">Ben</div>
+          <div class="rcard fog">5</div>
+          <div class="rout"><span class="rzero">0</span><span class="rcancel">CANCELLED</span></div>
+        </div>
+        <div class="rcell">
+          <div class="rname">Voltaire</div>
+          <div class="rcard lens">Ø</div>
+          <div class="caustic"></div>
+          <div class="rout"><span class="rsafe">0</span></div>
+        </div>
+        <div class="rcell">
+          <div class="rname">Mechano</div>
+          <div class="rcard fog">5</div>
+          <div class="rout"><span class="rzero">0</span><span class="rcancel">CANCELLED</span></div>
+        </div>
+        <div class="rcell">
+          <div class="rname">Data Dan</div>
+          <div class="rcard fog">3</div>
+          <div class="rout"><span class="rzero">0</span><span class="rcancel">CANCELLED</span></div>
+        </div>
+      </div>
+      <button class="btn primary">Continue</button>
+    </div>
+  </main>
+
+  <main data-screen="end">
+    <i class="gl"      style="top:5%;  left:10%; width:22px; height:22px; opacity:.6;"></i>
+    <i class="gl blue" style="top:8%;  left:80%; width:16px; height:16px; opacity:.7;"></i>
+    <i class="gl"      style="top:13%; left:32%; width:10px; height:10px; opacity:.75;"></i>
+    <i class="gl blue" style="top:17%; left:88%; width:26px; height:26px; opacity:.5;"></i>
+    <i class="gl"      style="top:22%; left:6%;  width:14px; height:14px; opacity:.55;"></i>
+    <i class="gl blue" style="top:27%; left:64%; width:11px; height:11px; opacity:.65;"></i>
+    <i class="gl"      style="top:34%; left:16%; width:18px; height:18px; opacity:.4;"></i>
+    <i class="gl blue" style="top:39%; left:90%; width:13px; height:13px; opacity:.6;"></i>
+    <i class="gl"      style="top:48%; left:5%;  width:24px; height:24px; opacity:.35;"></i>
+    <i class="gl blue" style="top:53%; left:74%; width:9px;  height:9px;  opacity:.7;"></i>
+    <i class="gl"      style="top:62%; left:24%; width:13px; height:13px; opacity:.45;"></i>
+    <i class="gl blue" style="top:66%; left:92%; width:18px; height:18px; opacity:.45;"></i>
+    <i class="gl"      style="top:74%; left:11%; width:11px; height:11px; opacity:.55;"></i>
+    <i class="gl blue" style="top:80%; left:63%; width:22px; height:22px; opacity:.35;"></i>
+    <i class="gl"      style="top:87%; left:30%; width:13px; height:13px; opacity:.5;"></i>
+    <i class="gl blue" style="top:91%; left:85%; width:15px; height:15px; opacity:.5;"></i>
+    <div class="end-wrap">
+      <div class="end-hero">
+        <span class="micro">Game over</span>
+        <h2 class="wonline"><span class="w1">You </span><span class="w2">won.</span></h2>
+      </div>
+      <div class="thead">
+        <div></div>
+        <div class="h">R1</div>
+        <div class="h">R2</div>
+        <div class="h">R3</div>
+        <div class="h tot">TOTAL</div>
+      </div>
+      <div class="trow win c-ben">
+        <div class="who"><span class="rk">1</span><span class="pdot"></span><span class="pn">Ben</span><span class="yo">(you)</span></div>
+        <div class="r">5</div><div class="r">9</div><div class="r">6</div><div class="tt">20</div>
+      </div>
+      <div class="glass trow c-dan">
+        <div class="who"><span class="rk">2</span><span class="pdot"></span><span class="pn">Data Dan</span></div>
+        <div class="r">5</div><div class="r">4</div><div class="r">3</div><div class="tt">12</div>
+      </div>
+      <div class="glass trow c-vol">
+        <div class="who"><span class="rk">3</span><span class="pdot"></span><span class="pn">Voltaire</span></div>
+        <div class="r">3</div><div class="r">2</div><div class="r">4</div><div class="tt">9</div>
+      </div>
+      <div class="glass trow c-mech">
+        <div class="who"><span class="rk">4</span><span class="pdot"></span><span class="pn">Mechano</span></div>
+        <div class="r">0</div><div class="r">5</div><div class="r">2</div><div class="tt">7</div>
+      </div>
+      <div class="end-actions">
+        <button class="btn primary">Play again</button>
+        <button class="btn">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

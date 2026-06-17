@@ -1,0 +1,885 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Ember Liquid</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ============ tokens ============ */
+    :root{
+      --bg0:#0a090f;
+      --bg1:#150c0d;
+      --ink:#f9efe4;
+      --muted:rgba(247,233,218,.66);
+      --faint:rgba(247,233,218,.44);
+      --line:rgba(255,235,214,.13);
+      --coral:#ff5b3a;
+      --amber:#ffa94d;
+      --accent-soft:rgba(255,107,61,.16);
+      --ben:#ff8a70; --vol:#9db1e8; --mech:#ffc35e; --dan:#a9cf85;
+      --shadow:0 18px 36px rgba(8,4,3,.54), 0 4px 12px rgba(8,4,3,.38);
+      --rim:
+        inset 0 1px 0 rgba(255,243,228,.30),
+        inset 1px 0 0 rgba(255,240,222,.10),
+        inset 0 -1px 0 rgba(10,4,3,.55),
+        inset -1px 0 0 rgba(10,4,3,.30);
+    }
+    *{ box-sizing:border-box; margin:0; padding:0; }
+    html{ background:var(--bg0); }
+    body{
+      font-family:"Outfit",ui-sans-serif,sans-serif;
+      color:var(--ink);
+      -webkit-font-smoothing:antialiased;
+      background-color:var(--bg0);
+      background-image:
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 0.92 0 0 0 0 0.8 0 0 0 0.04 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>"),
+        radial-gradient(110% 56% at 50% 112%, rgba(255,91,58,.13), transparent 62%),
+        radial-gradient(70% 40% at 96% 102%, rgba(255,169,77,.09), transparent 64%),
+        radial-gradient(60% 34% at 2% 96%, rgba(232,150,44,.08), transparent 62%),
+        radial-gradient(90% 48% at 86% -6%, rgba(255,140,70,.055), transparent 58%),
+        radial-gradient(66% 38% at 6% -4%, rgba(255,91,58,.04), transparent 60%),
+        linear-gradient(172deg, #0a090f 0%, #0e0a0e 46%, #150c0d 100%);
+      background-size:160px 160px, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+      background-repeat:repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+      background-attachment:scroll, fixed, fixed, fixed, fixed, fixed, fixed;
+    }
+    main[data-screen]{ min-height:100vh; position:relative; }
+    .wrap{ max-width:420px; margin:0 auto; padding:22px 20px 30px; position:relative; }
+
+    /* ============ shared glass surface ============ */
+    .glass{
+      position:relative;
+      background:
+        linear-gradient(115deg, rgba(255,243,228,.13), rgba(255,238,220,.025) 26%, rgba(255,235,214,0) 46%),
+        rgba(255,240,224,.05);
+      border:1px solid var(--line);
+      border-radius:24px;
+      box-shadow:var(--rim), var(--shadow);
+    }
+    .grad-text{
+      background:linear-gradient(105deg,#ffe9d0 6%,#ffb061 48%,#ff5b3a 96%);
+      -webkit-background-clip:text; background-clip:text;
+      color:transparent;
+    }
+    .micro{
+      font-size:11px; font-weight:700; letter-spacing:.22em;
+      text-transform:uppercase; color:var(--faint);
+    }
+    .seclabel{
+      font-size:11px; font-weight:700; letter-spacing:.22em;
+      text-transform:uppercase; color:var(--faint);
+      margin:0 4px 10px;
+    }
+
+    /* ============ buttons ============ */
+    .btn{
+      display:flex; align-items:center; justify-content:center;
+      width:100%; min-height:56px; border-radius:999px;
+      font-family:"Outfit",sans-serif; font-size:17px; font-weight:700;
+      color:var(--ink); cursor:pointer;
+      border:1px solid var(--line);
+      background:
+        linear-gradient(115deg, rgba(255,243,228,.14), rgba(255,238,220,.03) 30%, rgba(255,235,214,0) 52%),
+        rgba(255,240,224,.05);
+      box-shadow:var(--rim), 0 14px 28px rgba(8,4,3,.45), 0 3px 10px rgba(8,4,3,.3);
+    }
+    /* ember-lit clear glass capsule: rim-lit and glowing warm, not a solid slab */
+    .btn.primary{
+      border:1.5px solid transparent;
+      background:
+        linear-gradient(115deg, rgba(255,248,238,.24), rgba(255,242,228,.05) 30%, rgba(255,238,220,0) 52%) padding-box,
+        radial-gradient(92% 96% at 50% 138%, rgba(255,130,58,.32), rgba(255,91,58,.08) 58%, transparent 80%) padding-box,
+        linear-gradient(rgba(255,107,61,.07), rgba(255,107,61,.07)) padding-box,
+        linear-gradient(115deg, rgba(255,214,165,.95), rgba(255,91,58,.85) 46%, rgba(255,169,77,.9)) border-box;
+      color:#fff3e6; font-weight:800; letter-spacing:.01em;
+      text-shadow:0 0 16px rgba(255,150,84,.65), 0 1px 3px rgba(20,6,3,.5);
+      box-shadow:
+        inset 0 1px 0 rgba(255,243,226,.6),
+        inset 0 -1px 0 rgba(70,18,8,.55),
+        0 0 26px rgba(255,107,61,.30),
+        0 14px 30px rgba(255,91,58,.22),
+        0 4px 14px rgba(8,4,3,.42);
+    }
+    .btn.ghost{
+      background:rgba(255,240,224,.025);
+      border:1px dashed rgba(255,235,214,.2);
+      color:var(--muted); font-size:12px; font-weight:700;
+      letter-spacing:.14em; text-transform:uppercase;
+      min-height:46px; box-shadow:none;
+    }
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      min-height:42px; padding:0 18px; border-radius:999px;
+      background:
+        linear-gradient(115deg, rgba(255,243,228,.13), rgba(255,238,220,.03) 34%, rgba(255,235,214,0) 56%),
+        rgba(255,240,224,.05);
+      border:1px solid var(--line);
+      font-family:"Outfit",sans-serif; font-size:14px; font-weight:600; color:var(--ink);
+      cursor:pointer;
+      box-shadow:inset 0 1px 0 rgba(255,243,228,.26), inset 0 -1px 0 rgba(10,4,3,.45), 0 8px 18px rgba(8,4,3,.32);
+    }
+    .pill.tiny{
+      min-height:30px; padding:0 11px; font-size:10px; font-weight:800;
+      letter-spacing:.12em; color:var(--muted); box-shadow:inset 0 1px 0 rgba(255,243,228,.2), inset 0 -1px 0 rgba(10,4,3,.42);
+    }
+    .pill.danger{ color:#ffa493; border-color:rgba(255,124,98,.36); }
+
+    /* ============ switcher ============ */
+    #switcher a{
+      width:30px; height:30px; display:grid; place-items:center;
+      border-radius:10px; background:rgba(26,16,13,.82);
+      border:1px solid var(--line); color:var(--muted);
+      font:700 12px "Outfit",sans-serif; text-decoration:none;
+      box-shadow:inset 0 1px 0 rgba(255,243,228,.14);
+    }
+
+    /* ============ HOME ============ */
+    .beam{
+      position:absolute; inset:0; pointer-events:none;
+      background:
+        linear-gradient(118deg, transparent 26%, rgba(255,190,130,.035) 40%, rgba(255,240,222,.065) 50%, rgba(255,180,120,.03) 60%, transparent 74%),
+        radial-gradient(58% 30% at 50% 34%, rgba(255,122,62,.08), transparent 72%);
+    }
+    .home-wrap{ min-height:100vh; display:flex; flex-direction:column; }
+    .home-top{ display:flex; justify-content:flex-end; }
+    .iconbtn{
+      width:44px; height:44px; border-radius:50%;
+      display:grid; place-items:center; cursor:pointer;
+      color:var(--muted);
+      background:
+        linear-gradient(115deg, rgba(255,243,228,.16), rgba(255,238,220,.03) 40%, rgba(255,235,214,0) 60%),
+        rgba(255,240,224,.05);
+      border:1px solid var(--line);
+      box-shadow:inset 0 1px 0 rgba(255,243,228,.28), inset 0 -1px 0 rgba(10,4,3,.45), 0 8px 18px rgba(8,4,3,.32);
+    }
+    .home-hero{
+      flex:1; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; text-align:center;
+      position:relative; padding:30px 0 18px;
+    }
+    .wordmark{
+      position:relative; font-size:66px; font-weight:900;
+      letter-spacing:.04em; line-height:1;
+      filter:drop-shadow(0 12px 32px rgba(255,107,61,.32));
+    }
+    .wordmark .w1{ color:#fdf5ec; }
+    .wordmark .w2{
+      background:linear-gradient(100deg,#ffd9ae 4%,#ff9a55 52%,#ff5b3a 98%);
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+    .tagline{
+      margin-top:16px; font-size:13px; font-weight:500;
+      letter-spacing:.3em; text-transform:uppercase; color:var(--muted);
+    }
+    .home-fan{ display:flex; justify-content:center; margin-top:40px; position:relative; }
+    .mini-card{
+      width:42px; height:56px; border-radius:13px; margin:0 -2px;
+      display:grid; place-items:center;
+      font-family:"Sora",sans-serif; font-weight:700; font-size:18px;
+      color:rgba(255,246,236,.92); text-shadow:0 2px 6px rgba(8,4,3,.5);
+      background:
+        linear-gradient(115deg, rgba(255,243,228,.18), rgba(255,238,220,.04) 36%, rgba(255,235,214,0) 58%),
+        rgba(255,240,224,.055);
+      border:1px solid var(--line);
+      box-shadow:inset 0 1px 0 rgba(255,243,228,.32), inset 0 -1px 0 rgba(10,4,3,.5), 0 10px 20px rgba(8,4,3,.45);
+    }
+    .mini-card:nth-child(1){ transform:rotate(-12deg) translateY(9px); }
+    .mini-card:nth-child(2){ transform:rotate(-7deg) translateY(3px); }
+    .mini-card:nth-child(3){ transform:rotate(-2deg) translateY(0); }
+    .mini-card:nth-child(4){ transform:rotate(3deg) translateY(0); }
+    .mini-card:nth-child(5){ transform:rotate(8deg) translateY(4px); }
+    .mini-card:nth-child(6){ transform:rotate(13deg) translateY(10px); }
+    .home-actions{ display:flex; flex-direction:column; gap:12px; padding-bottom:16px; }
+
+    /* ============ LOBBY ============ */
+    .topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+    .code-panel{ padding:26px 20px 21px; text-align:center; margin-bottom:24px; border-radius:26px; }
+    .code{
+      font-family:"Sora",sans-serif; font-size:56px; font-weight:800;
+      letter-spacing:.2em; text-indent:.2em; line-height:1;
+      filter:drop-shadow(0 4px 18px rgba(255,122,62,.4));
+    }
+    .hint{ margin-top:9px; font-size:12px; letter-spacing:.1em; color:var(--faint); }
+    .players{ list-style:none; display:flex; flex-direction:column; gap:10px; margin-bottom:24px; }
+    .prow{ border-radius:999px; padding:9px 16px 9px 10px; display:flex; align-items:center; gap:12px; }
+    .avatar{
+      width:38px; height:38px; border-radius:50%; flex:none;
+      display:grid; place-items:center;
+      font-weight:800; font-size:15px; color:#1f0e08;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.5), inset 0 -2px 4px rgba(10,4,3,.3), 0 4px 10px rgba(8,4,3,.35);
+    }
+    .avatar.ben{ background:linear-gradient(150deg,#ffb9a0,#f4674a); }
+    .avatar.vol{ background:linear-gradient(150deg,#c4cfeb,#7d92cb); }
+    .avatar.mech{ background:linear-gradient(150deg,#ffe1a0,#e8a02c); }
+    .avatar.dan{ background:linear-gradient(150deg,#cfe3b0,#8cba6a); }
+    .pname{ font-size:16px; font-weight:600; flex:1; }
+    .badges{ display:flex; gap:6px; align-items:center; }
+    .badge{
+      font-size:9.5px; font-weight:800; letter-spacing:.12em;
+      padding:4px 9px; border-radius:999px; border:1px solid transparent;
+    }
+    .badge.host{ color:#ffe2ae; border-color:rgba(255,193,98,.45); background:rgba(255,176,77,.12); }
+    .badge.you{ color:#f9ede0; border-color:rgba(255,235,214,.28); background:rgba(255,240,224,.09); }
+    .badge.bot{ color:rgba(244,228,210,.6); border-color:rgba(255,235,214,.16); background:rgba(255,240,224,.04); }
+    .dot{
+      width:8px; height:8px; border-radius:50%; flex:none;
+      background:#9fd584; box-shadow:0 0 8px rgba(159,213,132,.85);
+    }
+    .setrow{
+      border-radius:22px; padding:12px 14px; margin-bottom:10px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .setlabel{ font-size:15px; font-weight:600; }
+    .stepper{ display:flex; align-items:center; gap:14px; }
+    .stepbtn{
+      width:38px; height:38px; border-radius:50%; cursor:pointer;
+      background:
+        linear-gradient(115deg, rgba(255,243,228,.16), rgba(255,238,220,.04) 44%, rgba(255,235,214,0) 64%),
+        rgba(255,240,224,.06);
+      border:1px solid var(--line);
+      color:var(--ink); font-size:18px; font-weight:600;
+      display:grid; place-items:center;
+      box-shadow:inset 0 1px 0 rgba(255,243,228,.3), inset 0 -1px 0 rgba(10,4,3,.45);
+    }
+    .stepval{ font-family:"Sora",sans-serif; font-weight:700; font-size:18px; min-width:18px; text-align:center; }
+    .setcol{ border-radius:22px; padding:14px; margin-bottom:20px; }
+    .setcol .setlabel{ margin-bottom:11px; }
+    .seg{
+      display:flex; gap:3px; padding:3px; border-radius:999px;
+      background:rgba(20,10,8,.46); border:1px solid rgba(255,235,214,.09);
+      box-shadow:inset 0 2px 6px rgba(8,4,3,.5);
+    }
+    .seg button{
+      flex:1; min-height:40px; border:none; border-radius:999px;
+      background:transparent; color:var(--muted); cursor:pointer;
+      font-family:"Outfit",sans-serif; font-size:13.5px; font-weight:600;
+    }
+    .seg button.on{
+      background:
+        linear-gradient(115deg, rgba(255,246,234,.30), rgba(255,240,224,.06) 38%, rgba(255,236,216,0) 58%),
+        linear-gradient(180deg, rgba(255,107,61,.34), rgba(255,140,60,.16));
+      color:#ffe9d4; font-weight:800;
+      box-shadow:
+        inset 0 0 0 1px rgba(255,158,102,.55),
+        inset 0 1px 0 rgba(255,240,222,.5),
+        inset 0 -1px 0 rgba(70,18,8,.4),
+        0 4px 12px rgba(255,107,61,.3);
+    }
+    .helper{ font-size:12.5px; color:var(--faint); margin-top:9px; }
+
+    /* ============ GAME ============ */
+    .ghead{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:16px; }
+    .gmeta{
+      font-family:"Sora",sans-serif; font-size:13.5px; font-weight:800;
+      letter-spacing:.03em; color:var(--ink); white-space:nowrap;
+    }
+    .gmeta .dim{ color:var(--faint); font-weight:600; }
+    .gmeta .codesm{ color:var(--muted); font-weight:700; letter-spacing:.14em; margin-left:6px; }
+    .gbtns{ display:flex; gap:5px; }
+    .scoregrid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:20px; }
+    .schip{ border-radius:999px; min-height:46px; padding:0 15px; display:flex; align-items:center; gap:9px; }
+    .schip .sdot{ width:9px; height:9px; border-radius:50%; flex:none; background:currentColor; box-shadow:0 0 8px currentColor; }
+    .schip .nm{ flex:1; font-size:14px; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .schip .sc{ font-family:"Sora",sans-serif; font-weight:800; font-size:17px; color:var(--ink); }
+    .c-ben{ color:var(--ben); } .c-vol{ color:var(--vol); } .c-mech{ color:var(--mech); } .c-dan{ color:var(--dan); }
+    .poolhead{ display:flex; justify-content:space-between; align-items:baseline; margin:0 4px 10px; }
+    .poolcount{ font-family:"Sora",sans-serif; font-size:13px; font-weight:700; color:var(--muted); }
+    .banner{
+      border-radius:999px;
+      border:1px solid rgba(255,160,104,.5);
+      background:
+        linear-gradient(115deg, rgba(255,243,228,.12), rgba(255,238,220,.02) 36%, rgba(255,235,214,0) 56%),
+        rgba(255,107,61,.09);
+      padding:12px 14px; text-align:center; margin-bottom:10px;
+      box-shadow:inset 0 1px 0 rgba(255,228,200,.34), inset 0 -1px 0 rgba(10,4,3,.4), 0 0 20px rgba(255,107,61,.18), 0 8px 18px rgba(8,4,3,.3);
+    }
+    .banner span{
+      font-size:11.5px; font-weight:800; letter-spacing:.22em;
+      color:#ffc9a0; text-shadow:0 0 14px rgba(255,122,62,.55);
+    }
+    .powergrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px; }
+    .power{
+      position:relative; border-radius:20px; padding:15px 6px 12px;
+      display:flex; flex-direction:column; align-items:center; gap:8px;
+      background:
+        linear-gradient(115deg, rgba(255,243,228,.14), rgba(255,238,220,.03) 32%, rgba(255,235,214,0) 54%),
+        rgba(255,240,224,.045);
+      border:1px solid var(--line);
+      box-shadow:var(--rim), 0 12px 24px rgba(8,4,3,.42);
+      cursor:pointer;
+    }
+    .power .glyph{
+      font-family:"Sora",sans-serif; font-size:25px; font-weight:800; line-height:1;
+      color:rgb(var(--pc)); text-shadow:0 0 12px rgba(var(--pc),.45), 0 2px 5px rgba(8,4,3,.5);
+    }
+    .power .pnamel{
+      font-size:10px; font-weight:700; letter-spacing:.1em;
+      text-transform:uppercase; color:var(--muted); text-align:center;
+    }
+    .power.swap{ --pc:92,201,188; } .power.sab{ --pc:255,110,92; }
+    .power.jinx{ --pc:244,150,170; } .power.plus{ --pc:126,213,142; }
+    .power.wild{ --pc:186,156,250; } .power.drain{ --pc:255,178,82; }
+    .power.sel{
+      border:1.5px solid rgba(255,168,112,.85); padding:14.5px 5.5px 11.5px;
+      background:
+        linear-gradient(115deg, rgba(255,246,234,.22), rgba(255,240,224,.05) 34%, rgba(255,236,216,0) 56%),
+        rgba(255,107,61,.10);
+      box-shadow:
+        inset 0 1px 0 rgba(255,236,214,.5),
+        inset 0 -1px 0 rgba(10,4,3,.4),
+        0 0 0 4px rgba(255,107,61,.13),
+        0 0 24px rgba(255,107,61,.32),
+        0 14px 26px rgba(8,4,3,.5);
+      transform:translateY(-3px);
+    }
+    .power.sel .pnamel{ color:#ffdcc2; }
+    .pstat{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+    .pcard{ border-radius:20px; padding:11px 14px; }
+    .pcard .ptop{ display:flex; align-items:center; gap:7px; }
+    .pcard .pdot{ width:10px; height:10px; border-radius:50%; flex:none; background:currentColor; box-shadow:0 0 8px currentColor; }
+    .pcard .pn{ font-size:14px; font-weight:600; color:var(--ink); white-space:nowrap; }
+    .pcard .yo{ font-size:11px; color:var(--faint); font-weight:500; }
+    .pstatus{ margin-top:6px; font-size:10px; font-weight:800; letter-spacing:.16em; }
+    .pstatus.think{ color:#ffd58e; text-shadow:0 0 10px rgba(255,193,98,.45); }
+    .pstatus.sub{ color:#b8dba0; text-shadow:0 0 10px rgba(150,210,120,.4); }
+    .handread{
+      margin-top:6px; font-family:"Sora",sans-serif; font-size:11px;
+      font-weight:600; letter-spacing:.24em; color:var(--faint);
+    }
+    .skipbtn{ margin-bottom:22px; }
+    .hand{ display:grid; grid-template-columns:repeat(6,1fr); gap:8px; padding-top:8px; margin-bottom:18px; }
+    .num{
+      position:relative; height:88px; border-radius:18px;
+      display:grid; place-items:center; cursor:pointer;
+      font-family:"Sora",sans-serif; font-size:27px; font-weight:800;
+      color:#fdf4ea; text-shadow:0 3px 8px rgba(8,4,3,.55);
+      background:
+        linear-gradient(115deg, rgba(255,243,228,.17), rgba(255,238,220,.04) 34%, rgba(255,235,214,0) 56%),
+        rgba(255,240,224,.05);
+      border:1px solid var(--line);
+      box-shadow:var(--rim), 0 10px 22px rgba(8,4,3,.45);
+    }
+    .num.sel{
+      border:1.5px solid rgba(255,178,122,.9);
+      background:
+        linear-gradient(115deg, rgba(255,248,238,.30), rgba(255,242,228,.06) 34%, rgba(255,238,220,0) 56%),
+        linear-gradient(180deg, rgba(255,107,61,.24), rgba(255,150,70,.10));
+      box-shadow:
+        inset 0 1px 0 rgba(255,240,222,.55),
+        inset 0 -1px 0 rgba(10,4,3,.4),
+        0 0 0 4px rgba(255,107,61,.14),
+        0 0 26px rgba(255,107,61,.42),
+        0 14px 26px rgba(8,4,3,.55);
+      transform:translateY(-7px);
+      color:#fff; text-shadow:0 0 16px rgba(255,206,160,.95), 0 3px 8px rgba(8,4,3,.5);
+    }
+
+    /* ============ REVEAL ============ */
+    main[data-screen="reveal"]{
+      background:
+        radial-gradient(82% 48% at 50% 32%, rgba(255,122,62,.07), transparent 70%),
+        radial-gradient(60% 34% at 50% 84%, rgba(255,169,77,.045), transparent 70%);
+    }
+    .reveal-wrap{
+      min-height:100vh; max-width:420px; margin:0 auto;
+      display:flex; flex-direction:column; justify-content:center;
+      padding:36px 20px;
+    }
+    .reyebrow{ text-align:center; margin-bottom:26px; letter-spacing:.3em; color:var(--muted); }
+    .played-label{ text-align:center; margin-bottom:12px; }
+    .playedcard{
+      width:96px; margin:0 auto 30px; border-radius:20px;
+      padding:16px 8px 12px;
+      display:flex; flex-direction:column; align-items:center; gap:8px;
+      background:
+        linear-gradient(115deg, rgba(255,243,228,.18), rgba(255,238,220,.04) 34%, rgba(255,235,214,0) 56%),
+        rgba(255,240,224,.055);
+      border:1px solid rgba(255,235,214,.16);
+      box-shadow:var(--rim), 0 14px 28px rgba(8,4,3,.5);
+    }
+    .playedcard .glyph{
+      font-family:"Sora",sans-serif; font-size:30px; font-weight:800; line-height:1;
+      color:#f7a4b4; text-shadow:0 0 14px rgba(244,150,170,.55), 0 2px 6px rgba(8,4,3,.5);
+    }
+    .playedcard .pnamel{
+      font-size:10px; font-weight:800; letter-spacing:.18em;
+      text-transform:uppercase; color:var(--muted);
+    }
+    .rgrid{
+      display:grid; grid-template-columns:1fr 1fr;
+      gap:20px 12px; margin-bottom:32px; justify-items:center;
+    }
+    .rcell{ position:relative; display:flex; flex-direction:column; align-items:center; gap:9px; }
+    .rname{ font-size:11px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); }
+    .rcard{
+      position:relative; width:106px; height:132px; border-radius:24px;
+      display:grid; place-items:center; overflow:hidden;
+      font-family:"Sora",sans-serif; font-size:44px; font-weight:800;
+    }
+    /* condensation: the warmth has left this card; cold glass fogged with warm-grey breath,
+       one wiped streak keeps the numeral crisp */
+    .rcard.fog{
+      background:
+        linear-gradient(115deg, rgba(230,232,238,.12), rgba(226,228,234,.03) 30%, rgba(222,224,232,0) 52%),
+        rgba(214,218,228,.045);
+      border:1px solid rgba(206,210,220,.15);
+      box-shadow:
+        inset 0 1px 0 rgba(232,234,240,.26),
+        inset 1px 0 0 rgba(228,230,236,.08),
+        inset 0 -1px 0 rgba(8,6,10,.55),
+        inset -1px 0 0 rgba(8,6,10,.3),
+        0 14px 28px rgba(8,4,3,.5);
+      color:rgba(228,227,230,.94);
+      text-shadow:0 3px 9px rgba(8,6,10,.5);
+    }
+    .rcard.fog::before{
+      content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+      background:radial-gradient(150% 110% at 50% 0%, rgba(212,204,196,.36), rgba(208,200,192,.20) 52%, rgba(206,198,190,.28) 100%);
+      backdrop-filter:blur(2.4px);
+      -webkit-backdrop-filter:blur(2.4px);
+      -webkit-mask:linear-gradient(115deg, #000 0 33%, rgba(0,0,0,.2) 38%, transparent 42% 60%, rgba(0,0,0,.2) 64%, #000 69% 100%);
+      mask:linear-gradient(115deg, #000 0 33%, rgba(0,0,0,.2) 38%, transparent 42% 60%, rgba(0,0,0,.2) 64%, #000 69% 100%);
+    }
+    .rcard.fog::after{
+      content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+      background:
+        linear-gradient(115deg, transparent 33.5%, rgba(255,250,242,.24) 36.5%, transparent 39.5%, transparent 62.5%, rgba(255,248,238,.18) 65.5%, transparent 68.5%),
+        radial-gradient(circle 3px at 16px 18px, rgba(244,238,230,.55) 0 40%, rgba(244,238,230,.18) 75%, transparent 100%),
+        radial-gradient(circle 2px at 30px 40px, rgba(244,238,230,.42) 0 40%, rgba(244,238,230,.14) 75%, transparent 100%),
+        radial-gradient(circle 3.4px at 12px 62px, rgba(244,238,230,.5) 0 40%, rgba(244,238,230,.16) 75%, transparent 100%),
+        radial-gradient(circle 2.3px at 26px 88px, rgba(244,238,230,.4) 0 40%, rgba(244,238,230,.13) 75%, transparent 100%),
+        radial-gradient(circle 2.8px at 15px 112px, rgba(244,238,230,.46) 0 40%, rgba(244,238,230,.15) 75%, transparent 100%),
+        radial-gradient(circle 3.2px at 88px 24px, rgba(244,238,230,.5) 0 40%, rgba(244,238,230,.16) 75%, transparent 100%),
+        radial-gradient(circle 2px at 95px 52px, rgba(244,238,230,.4) 0 40%, rgba(244,238,230,.13) 75%, transparent 100%),
+        radial-gradient(circle 3.6px at 80px 78px, rgba(244,238,230,.52) 0 40%, rgba(244,238,230,.17) 75%, transparent 100%),
+        radial-gradient(circle 2.4px at 92px 102px, rgba(244,238,230,.42) 0 40%, rgba(244,238,230,.14) 75%, transparent 100%),
+        radial-gradient(circle 2.1px at 76px 118px, rgba(244,238,230,.38) 0 40%, rgba(244,238,230,.12) 75%, transparent 100%);
+    }
+    /* the lone zero: a clear lens that focuses firelight */
+    .rcard.lens{
+      background:
+        linear-gradient(115deg, rgba(255,248,238,.34), rgba(255,242,228,.08) 30%, rgba(255,238,220,0) 50%, rgba(255,200,140,.10) 90%),
+        radial-gradient(130% 90% at 50% 115%, rgba(255,130,58,.36), transparent 62%),
+        rgba(255,240,226,.07);
+      border:1px solid rgba(255,206,156,.65);
+      color:#ffffff;
+      text-shadow:0 0 18px rgba(255,238,216,.95), 0 0 42px rgba(255,130,58,.85);
+      box-shadow:
+        inset 0 1px 0 rgba(255,246,232,.68),
+        inset 1px 0 0 rgba(255,240,224,.2),
+        inset 0 -1px 0 rgba(190,82,40,.5),
+        0 0 26px rgba(255,107,61,.4),
+        0 0 64px rgba(255,107,61,.22),
+        0 20px 28px -8px rgba(255,150,70,.5),
+        0 16px 32px rgba(8,4,3,.5);
+    }
+    .rcard.lens::before{
+      content:""; position:absolute; inset:0; pointer-events:none;
+      background:
+        radial-gradient(40% 28% at 50% 60%, rgba(255,226,184,.40), transparent 72%),
+        radial-gradient(64% 5% at 50% 90%, rgba(255,246,232,.65), transparent 80%);
+    }
+    .caustic{
+      position:absolute; left:50%; top:146px; transform:translateX(-50%);
+      width:90px; height:17px; border-radius:50%; pointer-events:none;
+      background:radial-gradient(52% 68% at 50% 45%, rgba(255,248,238,.9), rgba(255,150,70,.5) 46%, transparent 74%);
+      filter:blur(2.5px);
+    }
+    .rout{ display:flex; flex-direction:column; align-items:center; gap:3px; min-height:34px; }
+    .rzero{ font-family:"Sora",sans-serif; font-weight:800; font-size:15px; color:rgba(226,212,200,.6); }
+    .rcancel{
+      font-size:10px; font-weight:800; letter-spacing:.26em; color:rgba(232,218,206,.82);
+      text-shadow:0 0 10px rgba(216,202,190,.3);
+    }
+    .rsafe{
+      font-family:"Sora",sans-serif; font-weight:800; font-size:16px; color:#ffd9a0;
+      text-shadow:0 0 13px rgba(255,150,70,.8);
+    }
+
+    /* ============ END ============ */
+    main[data-screen="end"]{
+      position:relative; overflow:hidden;
+      background:
+        radial-gradient(72% 38% at 50% 4%, rgba(255,122,62,.10), transparent 70%),
+        radial-gradient(56% 30% at 14% 44%, rgba(255,169,77,.045), transparent 70%);
+    }
+    .gl{
+      position:absolute; pointer-events:none;
+      background:
+        radial-gradient(50% 7% at 50% 50%, rgba(255,248,238,.95), transparent 78%),
+        radial-gradient(7% 50% at 50% 50%, rgba(255,244,230,.9), transparent 78%),
+        radial-gradient(18% 18% at 50% 50%, rgba(255,224,190,.8), transparent 80%);
+    }
+    .gl.amber{
+      background:
+        radial-gradient(50% 7% at 50% 50%, rgba(255,184,120,.95), transparent 78%),
+        radial-gradient(7% 50% at 50% 50%, rgba(255,170,100,.9), transparent 78%),
+        radial-gradient(18% 18% at 50% 50%, rgba(255,120,62,.7), transparent 80%);
+    }
+    .end-wrap{
+      min-height:100vh; max-width:420px; margin:0 auto;
+      display:flex; flex-direction:column; padding:46px 20px 30px;
+      position:relative;
+    }
+    .end-hero{ text-align:center; margin-bottom:34px; }
+    .end-hero .micro{ letter-spacing:.32em; margin-bottom:14px; display:block; }
+    .wonline{
+      font-size:56px; font-weight:900; line-height:1;
+      filter:drop-shadow(0 10px 28px rgba(255,107,61,.35));
+    }
+    .wonline .w1{ color:#fdf5ec; }
+    .wonline .w2{
+      background:linear-gradient(100deg,#ffd9ae 4%,#ff9a55 52%,#ff5b3a 98%);
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+    .thead{
+      display:grid; grid-template-columns:1fr 32px 32px 32px 54px;
+      align-items:center; padding:0 18px; margin-bottom:9px;
+    }
+    .thead .h{ font-size:10px; font-weight:800; letter-spacing:.14em; color:var(--faint); text-align:center; }
+    .thead .h.tot{ text-align:right; }
+    .trow{
+      display:grid; grid-template-columns:1fr 32px 32px 32px 54px;
+      align-items:center; min-height:58px; padding:0 18px;
+      border-radius:999px; margin-bottom:10px;
+    }
+    .trow .who{ display:flex; align-items:center; gap:9px; min-width:0; }
+    .trow .rk{ width:14px; font-family:"Sora",sans-serif; font-weight:700; font-size:13px; color:var(--faint); }
+    .trow .pdot{ width:10px; height:10px; border-radius:50%; flex:none; background:currentColor; box-shadow:0 0 8px currentColor; }
+    .trow .pn{ font-size:15px; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .trow .yo{ font-size:11px; color:var(--faint); font-weight:500; }
+    .trow .r{ font-family:"Sora",sans-serif; font-size:13px; font-weight:600; color:var(--muted); text-align:center; }
+    .trow .tt{ font-family:"Sora",sans-serif; font-size:19px; font-weight:800; text-align:right; color:var(--ink); }
+    .trow.win{
+      border:1.5px solid rgba(255,168,112,.85);
+      background:
+        linear-gradient(115deg, rgba(255,246,234,.24), rgba(255,240,224,.05) 30%, rgba(255,236,216,0) 52%),
+        rgba(255,107,61,.11);
+      box-shadow:
+        inset 0 1px 0 rgba(255,236,214,.5),
+        inset 0 -1px 0 rgba(10,4,3,.4),
+        0 0 0 4px rgba(255,107,61,.12),
+        0 0 26px rgba(255,107,61,.3),
+        0 12px 26px rgba(8,4,3,.5);
+    }
+    .trow.win .rk{ color:#ffd9ae; text-shadow:0 0 9px rgba(255,122,62,.6); }
+    .trow.win .tt{
+      background:linear-gradient(105deg,#ffe9d0 5%,#ffb061 60%,#ff5b3a 100%);
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+    .end-actions{ margin-top:auto; display:flex; flex-direction:column; gap:12px; padding-top:30px; }
+
+    /* ============ press feedback (interaction-only; resting state unchanged) ============ */
+    .btn, .pill, .stepbtn, .iconbtn, .seg button, .power, .num{ -webkit-tap-highlight-color:transparent; }
+    .btn:active{ transform:translateY(2px) scale(.985); }
+    .pill:active, .stepbtn:active, .iconbtn:active, .seg button:active{ transform:translateY(1px) scale(.95); }
+    .power:active{ transform:scale(.96); }
+    .power.sel:active{ transform:translateY(-2px) scale(.96); }
+    .num:active{ transform:scale(.95); }
+    .num.sel:active{ transform:translateY(-5px) scale(.96); }
+
+    /* ============ flourish (humans only; shots capture resting state) ============ */
+    @media (prefers-reduced-motion: no-preference){
+      .btn, .pill, .stepbtn, .iconbtn, .seg button, .power, .num{
+        transition:transform .13s cubic-bezier(.34,1.56,.64,1), box-shadow .18s ease;
+      }
+      @keyframes beamBreathe{ 0%,100%{ opacity:1; } 50%{ opacity:.55; } }
+      .beam{ animation:beamBreathe 9s ease-in-out infinite; }
+      @keyframes selGlow{
+        0%,100%{ box-shadow:inset 0 1px 0 rgba(255,240,222,.55), inset 0 -1px 0 rgba(10,4,3,.4), 0 0 0 4px rgba(255,107,61,.14), 0 0 26px rgba(255,107,61,.42), 0 14px 26px rgba(8,4,3,.55); }
+        50%{ box-shadow:inset 0 1px 0 rgba(255,240,222,.55), inset 0 -1px 0 rgba(10,4,3,.4), 0 0 0 4px rgba(255,107,61,.2), 0 0 38px rgba(255,107,61,.62), 0 14px 26px rgba(8,4,3,.55); }
+      }
+      .num.sel{ animation:selGlow 2.6s ease-in-out infinite; }
+      @keyframes lensPulse{
+        0%,100%{ box-shadow:inset 0 1px 0 rgba(255,246,232,.68), inset 1px 0 0 rgba(255,240,224,.2), inset 0 -1px 0 rgba(190,82,40,.5), 0 0 26px rgba(255,107,61,.4), 0 0 64px rgba(255,107,61,.22), 0 20px 28px -8px rgba(255,150,70,.5), 0 16px 32px rgba(8,4,3,.5); }
+        50%{ box-shadow:inset 0 1px 0 rgba(255,246,232,.68), inset 1px 0 0 rgba(255,240,224,.2), inset 0 -1px 0 rgba(190,82,40,.5), 0 0 38px rgba(255,130,58,.6), 0 0 88px rgba(255,107,61,.34), 0 20px 32px -8px rgba(255,165,80,.65), 0 16px 32px rgba(8,4,3,.5); }
+      }
+      .rcard.lens{ animation:lensPulse 3s ease-in-out infinite; }
+      @keyframes causticShimmer{ 0%,100%{ opacity:1; transform:translateX(-50%) scaleX(1); } 50%{ opacity:.7; transform:translateX(-50%) scaleX(.92); } }
+      .caustic{ animation:causticShimmer 3s ease-in-out infinite; }
+      @keyframes thinkBlink{ 0%,100%{ opacity:1; } 50%{ opacity:.45; } }
+      .pstatus.think{ animation:thinkBlink 1.4s ease-in-out infinite; }
+      @keyframes dotPulse{ 0%,100%{ box-shadow:0 0 8px rgba(159,213,132,.85); } 50%{ box-shadow:0 0 3px rgba(159,213,132,.45); } }
+      .dot{ animation:dotPulse 2.2s ease-in-out infinite; }
+      @keyframes glTwinkle{ 0%,100%{ opacity:1; transform:scale(1); } 50%{ opacity:.25; transform:scale(.6); } }
+      .gl{ animation:glTwinkle 2.8s ease-in-out infinite; }
+      .gl:nth-of-type(2n){ animation-duration:3.8s; animation-delay:-1.4s; }
+      .gl:nth-of-type(3n){ animation-duration:3.2s; animation-delay:-2.1s; }
+    }
+  </style>
+</head>
+<body>
+  <main data-screen="home">
+    <div class="beam"></div>
+    <div class="wrap home-wrap">
+      <div class="home-top">
+        <button class="iconbtn" aria-label="Mute sounds">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg>
+        </button>
+      </div>
+      <div class="home-hero">
+        <h1 class="wordmark"><span class="w1">CAN</span><span class="w2">CEL</span></h1>
+        <p class="tagline">a number-picking party game</p>
+        <div class="home-fan">
+          <div class="mini-card">Ø</div>
+          <div class="mini-card">1</div>
+          <div class="mini-card">2</div>
+          <div class="mini-card">3</div>
+          <div class="mini-card">4</div>
+          <div class="mini-card">5</div>
+        </div>
+      </div>
+      <div class="home-actions">
+        <button class="btn primary">New game</button>
+        <button class="btn">Single player</button>
+        <button class="btn">Join with code</button>
+      </div>
+    </div>
+  </main>
+
+  <main data-screen="lobby">
+    <div class="wrap">
+      <header class="topbar">
+        <button class="pill">← Leave</button>
+        <button class="pill">Rules</button>
+      </header>
+      <section class="glass code-panel">
+        <div class="code grad-text">DN2H</div>
+        <div class="hint">press to copy</div>
+      </section>
+      <div class="seclabel">Players · 4</div>
+      <ul class="players">
+        <li class="glass prow">
+          <div class="avatar ben">B</div>
+          <div class="pname">Ben</div>
+          <div class="badges"><span class="badge host">HOST</span><span class="badge you">YOU</span><span class="dot"></span></div>
+        </li>
+        <li class="glass prow">
+          <div class="avatar vol">V</div>
+          <div class="pname">Voltaire</div>
+          <div class="badges"><span class="badge bot">BOT</span><span class="dot"></span></div>
+        </li>
+        <li class="glass prow">
+          <div class="avatar mech">M</div>
+          <div class="pname">Mechano</div>
+          <div class="badges"><span class="badge bot">BOT</span><span class="dot"></span></div>
+        </li>
+        <li class="glass prow">
+          <div class="avatar dan">D</div>
+          <div class="pname">Data Dan</div>
+          <div class="badges"><span class="badge bot">BOT</span><span class="dot"></span></div>
+        </li>
+      </ul>
+      <section class="glass setrow">
+        <div class="setlabel">Rounds</div>
+        <div class="stepper">
+          <button class="stepbtn">−</button>
+          <div class="stepval">3</div>
+          <button class="stepbtn">+</button>
+        </div>
+      </section>
+      <section class="glass setrow">
+        <div class="setlabel">AI players</div>
+        <div class="stepper">
+          <button class="stepbtn">−</button>
+          <div class="stepval">3</div>
+          <button class="stepbtn">+</button>
+        </div>
+      </section>
+      <section class="glass setcol">
+        <div class="setlabel">Power-ups</div>
+        <div class="seg">
+          <button>None</button>
+          <button class="on">Random</button>
+          <button>Choose</button>
+        </div>
+        <p class="helper">A fresh random pool each round.</p>
+      </section>
+      <button class="btn primary">Start game</button>
+    </div>
+  </main>
+
+  <main data-screen="game">
+    <div class="wrap">
+      <header class="ghead">
+        <div class="gmeta">R1<span class="dim">/3</span> · T2<span class="dim">/6</span><span class="codesm">DN2H</span></div>
+        <div class="gbtns">
+          <button class="pill tiny">RULES</button>
+          <button class="pill tiny">LEAVE</button>
+          <button class="pill tiny danger">END GAME</button>
+        </div>
+      </header>
+      <div class="scoregrid">
+        <div class="glass schip c-ben"><span class="sdot"></span><span class="nm">Ben</span><span class="sc">4</span></div>
+        <div class="glass schip c-vol"><span class="sdot"></span><span class="nm">Voltaire</span><span class="sc">0</span></div>
+        <div class="glass schip c-mech"><span class="sdot"></span><span class="nm">Mechano</span><span class="sc">2</span></div>
+        <div class="glass schip c-dan"><span class="sdot"></span><span class="nm">Data Dan</span><span class="sc">5</span></div>
+      </div>
+      <div class="poolhead">
+        <div class="micro">Power-ups remaining</div>
+        <div class="poolcount">6 / 6</div>
+      </div>
+      <div class="banner"><span>YOUR TURN, PRESS TO SELECT</span></div>
+      <div class="powergrid">
+        <div class="power swap"><div class="glyph">⇄</div><div class="pnamel">Swap Hands</div></div>
+        <div class="power sab"><div class="glyph">✖</div><div class="pnamel">Sabotage</div></div>
+        <div class="power jinx sel"><div class="glyph">=</div><div class="pnamel">Jinx</div></div>
+        <div class="power plus"><div class="glyph">+2</div><div class="pnamel">Plus Two</div></div>
+        <div class="power wild"><div class="glyph">?</div><div class="pnamel">Wild</div></div>
+        <div class="power drain"><div class="glyph">↧</div><div class="pnamel">Drain</div></div>
+      </div>
+      <div class="seclabel">Players · Power picker: Ben</div>
+      <div class="pstat">
+        <div class="glass pcard c-ben">
+          <div class="ptop"><span class="pdot"></span><span class="pn">Ben</span><span class="yo">(you)</span></div>
+          <div class="handread">Ø 1 2 3 4 5</div>
+          <div class="pstatus think">THINKING…</div>
+        </div>
+        <div class="glass pcard c-vol">
+          <div class="ptop"><span class="pdot"></span><span class="pn">Voltaire</span></div>
+          <div class="handread">Ø 1 2 3 4 5</div>
+          <div class="pstatus sub">SUBMITTED</div>
+        </div>
+        <div class="glass pcard c-mech">
+          <div class="ptop"><span class="pdot"></span><span class="pn">Mechano</span></div>
+          <div class="handread">Ø 1 2 3 4 5</div>
+          <div class="pstatus sub">SUBMITTED</div>
+        </div>
+        <div class="glass pcard c-dan">
+          <div class="ptop"><span class="pdot"></span><span class="pn">Data Dan</span></div>
+          <div class="handread">Ø 1 2 3 4 5</div>
+          <div class="pstatus sub">SUBMITTED</div>
+        </div>
+      </div>
+      <button class="btn ghost skipbtn">SKIP WAITING, AUTO-PLAY WHO'S LEFT</button>
+      <div class="seclabel">Your hand</div>
+      <div class="hand">
+        <div class="num">Ø</div>
+        <div class="num">1</div>
+        <div class="num">2</div>
+        <div class="num">3</div>
+        <div class="num">4</div>
+        <div class="num sel">5</div>
+      </div>
+      <button class="btn primary">Lock it in</button>
+    </div>
+  </main>
+
+  <main data-screen="reveal">
+    <div class="reveal-wrap">
+      <div class="micro reyebrow">Turn 2 Reveal</div>
+      <div class="micro played-label">Ben played</div>
+      <div class="playedcard">
+        <div class="glyph">=</div>
+        <div class="pnamel">Jinx</div>
+      </div>
+      <div class="rgrid">
+        <div class="rcell">
+          <div class="rname">Ben</div>
+          <div class="rcard fog">5</div>
+          <div class="rout"><span class="rzero">0</span><span class="rcancel">CANCELLED</span></div>
+        </div>
+        <div class="rcell">
+          <div class="rname">Voltaire</div>
+          <div class="rcard lens">Ø</div>
+          <div class="caustic"></div>
+          <div class="rout"><span class="rsafe">0</span></div>
+        </div>
+        <div class="rcell">
+          <div class="rname">Mechano</div>
+          <div class="rcard fog">5</div>
+          <div class="rout"><span class="rzero">0</span><span class="rcancel">CANCELLED</span></div>
+        </div>
+        <div class="rcell">
+          <div class="rname">Data Dan</div>
+          <div class="rcard fog">3</div>
+          <div class="rout"><span class="rzero">0</span><span class="rcancel">CANCELLED</span></div>
+        </div>
+      </div>
+      <button class="btn primary">Continue</button>
+    </div>
+  </main>
+
+  <main data-screen="end">
+    <i class="gl"       style="top:5%;  left:10%; width:28px; height:28px; opacity:.7;"></i>
+    <i class="gl amber" style="top:8%;  left:80%; width:21px; height:21px; opacity:.8;"></i>
+    <i class="gl"       style="top:13%; left:32%; width:13px; height:13px; opacity:.85;"></i>
+    <i class="gl amber" style="top:17%; left:88%; width:33px; height:33px; opacity:.6;"></i>
+    <i class="gl"       style="top:22%; left:6%;  width:18px; height:18px; opacity:.65;"></i>
+    <i class="gl amber" style="top:27%; left:64%; width:14px; height:14px; opacity:.75;"></i>
+    <i class="gl"       style="top:34%; left:16%; width:23px; height:23px; opacity:.5;"></i>
+    <i class="gl amber" style="top:39%; left:90%; width:17px; height:17px; opacity:.7;"></i>
+    <i class="gl"       style="top:48%; left:5%;  width:30px; height:30px; opacity:.45;"></i>
+    <i class="gl amber" style="top:53%; left:74%; width:12px; height:12px; opacity:.8;"></i>
+    <i class="gl"       style="top:62%; left:24%; width:17px; height:17px; opacity:.55;"></i>
+    <i class="gl amber" style="top:66%; left:92%; width:23px; height:23px; opacity:.55;"></i>
+    <i class="gl"       style="top:74%; left:11%; width:14px; height:14px; opacity:.65;"></i>
+    <i class="gl amber" style="top:80%; left:63%; width:28px; height:28px; opacity:.45;"></i>
+    <i class="gl"       style="top:87%; left:30%; width:17px; height:17px; opacity:.6;"></i>
+    <i class="gl amber" style="top:91%; left:85%; width:19px; height:19px; opacity:.6;"></i>
+    <i class="gl"       style="top:3%;  left:52%; width:15px; height:15px; opacity:.8;"></i>
+    <i class="gl amber" style="top:44%; left:88%; width:16px; height:16px; opacity:.6;"></i>
+    <i class="gl"       style="top:57%; left:14%; width:20px; height:20px; opacity:.5;"></i>
+    <i class="gl amber" style="top:70%; left:78%; width:14px; height:14px; opacity:.65;"></i>
+    <i class="gl"       style="top:83%; left:8%;  width:22px; height:22px; opacity:.5;"></i>
+    <i class="gl amber" style="top:94%; left:55%; width:16px; height:16px; opacity:.6;"></i>
+    <div class="end-wrap">
+      <div class="end-hero">
+        <span class="micro">Game over</span>
+        <h2 class="wonline"><span class="w1">You </span><span class="w2">won.</span></h2>
+      </div>
+      <div class="thead">
+        <div></div>
+        <div class="h">R1</div>
+        <div class="h">R2</div>
+        <div class="h">R3</div>
+        <div class="h tot">TOTAL</div>
+      </div>
+      <div class="trow win c-ben">
+        <div class="who"><span class="rk">1</span><span class="pdot"></span><span class="pn">Ben</span><span class="yo">(you)</span></div>
+        <div class="r">5</div><div class="r">9</div><div class="r">6</div><div class="tt">20</div>
+      </div>
+      <div class="glass trow c-dan">
+        <div class="who"><span class="rk">2</span><span class="pdot"></span><span class="pn">Data Dan</span></div>
+        <div class="r">5</div><div class="r">4</div><div class="r">3</div><div class="tt">12</div>
+      </div>
+      <div class="glass trow c-vol">
+        <div class="who"><span class="rk">3</span><span class="pdot"></span><span class="pn">Voltaire</span></div>
+        <div class="r">3</div><div class="r">2</div><div class="r">4</div><div class="tt">9</div>
+      </div>
+      <div class="glass trow c-mech">
+        <div class="who"><span class="rk">4</span><span class="pdot"></span><span class="pn">Mechano</span></div>
+        <div class="r">0</div><div class="r">5</div><div class="r">2</div><div class="tt">7</div>
+      </div>
+      <div class="end-actions">
+        <button class="btn primary">Play again</button>
+        <button class="btn">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

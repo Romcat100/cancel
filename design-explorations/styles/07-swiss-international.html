@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Swiss International</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400..900&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+    #switcher a { width: 26px; height: 26px; display: grid; place-items: center; background: #fafafa; border: 1px solid #111; color: #111; font: 700 12px/1 "Archivo", sans-serif; text-decoration: none; }
+
+    /* ============ Swiss International ============ */
+    :root {
+      --paper: #fafafa;
+      --ink: #111;
+      --red: #e30613;
+      --grey: #767676;
+      --hair: 1px solid #111;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { background: var(--paper); }
+    body {
+      font-family: "Archivo", sans-serif;
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    main { width: 100%; max-width: 420px; margin: 0 auto; min-height: 100vh; background: var(--paper); }
+    .page { padding: 26px 24px 44px; }
+    .red { color: var(--red); }
+    .dim { color: var(--grey); }
+
+    /* --- shared furniture --- */
+    .sect { margin-top: 30px; border-top: var(--hair); padding-top: 10px; }
+    .slabel {
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .snum { color: var(--red); margin-right: 8px; font-variant-numeric: tabular-nums; }
+    .redtick { width: 30px; height: 4px; background: var(--red); }
+
+    .sw { width: 13px; height: 13px; flex: none; display: inline-block; }
+    .sw.ben { background: var(--red); }
+    .sw.vol { background: var(--ink); }
+    .sw.mec { background: #fff; border: 2px solid var(--ink); }
+    .sw.dan { background: var(--grey); }
+
+    .btn {
+      display: flex; justify-content: space-between; align-items: center;
+      width: 100%; padding: 17px 18px;
+      font-family: inherit; font-size: 17px; font-weight: 800; letter-spacing: -.01em;
+      color: var(--ink); background: none; border: var(--hair); border-radius: 0; cursor: pointer;
+      text-align: left;
+    }
+    .btn + .btn { margin-top: 10px; }
+    .btn.primary { background: var(--red); border-color: var(--red); color: #fff; }
+    .btn.ghost {
+      border: 1px solid var(--grey); color: var(--grey);
+      font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+      justify-content: center; padding: 14px;
+    }
+    .mini {
+      font-family: inherit; font-size: 10px; font-weight: 800; letter-spacing: .12em;
+      text-transform: uppercase; border: var(--hair); border-radius: 0; background: none;
+      padding: 12px; color: var(--ink); cursor: pointer; line-height: 1;
+    }
+    .mini.redline { color: var(--red); border-color: var(--red); }
+
+    /* ============ 1. HOME ============ */
+    .home { display: flex; flex-direction: column; min-height: 100vh; }
+    .numstrip {
+      display: grid; grid-template-columns: repeat(6, 1fr);
+      border-top: var(--hair); border-bottom: var(--hair);
+    }
+    .numstrip span {
+      border-left: var(--hair); padding: 12px 0 10px 12px;
+      font-size: 26px; font-weight: 900; line-height: 1; letter-spacing: -.02em;
+    }
+    .numstrip span:first-child { border-left: none; }
+    .strip-caption {
+      margin-top: 10px; font-size: 9px; font-weight: 700; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--grey); line-height: 1.8; max-width: 320px;
+    }
+    .home-hero { margin-top: 64px; }
+    .wordmark {
+      font-size: 144px; font-weight: 900; line-height: .82; letter-spacing: -.05em;
+      text-transform: uppercase;
+    }
+    .tagline { margin-top: 24px; font-size: 17px; font-weight: 500; letter-spacing: .01em; }
+    .tagline::before {
+      content: ""; display: inline-block; width: 12px; height: 12px;
+      background: var(--red); margin-right: 12px;
+    }
+    .home-spacer { flex: 1 1 40px; min-height: 40px; }
+
+    /* ============ 2. LOBBY ============ */
+    .topbar { display: flex; justify-content: space-between; margin-bottom: 36px; }
+    .codeblock { }
+    .codelabel {
+      margin-top: 14px; font-size: 10px; font-weight: 800; letter-spacing: .16em;
+      text-transform: uppercase; color: var(--grey);
+    }
+    .roomcode { font-size: 104px; font-weight: 900; line-height: .95; letter-spacing: -.04em; margin: 2px 0 8px; }
+    .hint { font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--grey); }
+
+    .prow { display: flex; align-items: center; gap: 12px; padding: 15px 0; }
+    .prow + .prow { border-top: var(--hair); }
+    .pname { font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+    .badges { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+    .badge {
+      font-size: 8px; font-weight: 800; letter-spacing: .12em; padding: 4px 6px;
+      border: var(--hair); text-transform: uppercase;
+    }
+    .badge.host { background: var(--ink); color: #fff; }
+    .badge.you { background: var(--red); border-color: var(--red); color: #fff; }
+    .badge.bot { color: var(--grey); border-color: var(--grey); }
+    .onl { width: 7px; height: 7px; background: var(--red); margin-left: 4px; }
+
+    .setrow { display: flex; align-items: center; padding: 12px 0; }
+    .setrow + .setrow, .setcol { border-top: var(--hair); }
+    .setname { font-size: 15px; font-weight: 700; }
+    .stepper { margin-left: auto; display: flex; border: var(--hair); }
+    .stepbtn {
+      width: 46px; height: 46px; display: grid; place-items: center;
+      font-family: inherit; font-size: 20px; font-weight: 700; background: none; border: none; cursor: pointer;
+    }
+    .stepval {
+      width: 46px; height: 46px; display: grid; place-items: center;
+      font-size: 19px; font-weight: 900; border-left: var(--hair); border-right: var(--hair);
+      font-variant-numeric: tabular-nums;
+    }
+    .setcol { padding: 14px 0 0; }
+    .seg { display: grid; grid-template-columns: repeat(3, 1fr); border: var(--hair); margin-top: 12px; }
+    .seg button {
+      font-family: inherit; padding: 14px 0; font-size: 14px; font-weight: 700;
+      background: none; border: none; border-left: var(--hair); cursor: pointer; color: var(--ink);
+    }
+    .seg button:first-child { border-left: none; }
+    .seg button.on { background: var(--red); color: #fff; }
+    .helper { margin-top: 10px; font-size: 11px; font-weight: 500; color: var(--grey); }
+    .startbtn { margin-top: 36px; font-size: 18px; padding: 19px 18px; }
+
+    /* ============ 3. GAME ============ */
+    .ghead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .gmeta {
+      font-size: 16px; font-weight: 900; letter-spacing: -.01em; white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+    .gmeta .dim { font-weight: 700; }
+    .gbtns { display: flex; gap: 5px; }
+    .gbtns .mini { padding: 10px 8px; font-size: 8.5px; white-space: nowrap; }
+
+    .score4 { margin-top: 16px; border: var(--hair); display: grid; grid-template-columns: repeat(4, 1fr); }
+    .scell { padding: 9px 8px 7px; border-left: var(--hair); }
+    .scell:first-child { border-left: none; }
+    .scell .nm {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 8.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap;
+    }
+    .scell .sw { width: 8px; height: 8px; }
+    .scell .sw.mec { border-width: 1px; }
+    .scell .pts { font-size: 30px; font-weight: 900; line-height: 1.05; margin-top: 2px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+
+    .turnbar {
+      background: var(--red); color: #fff; padding: 12px;
+      font-size: 10px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase;
+    }
+    .pool { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+    .pcard {
+      position: relative; border: var(--hair); background: #fff; height: 86px; padding: 9px 10px;
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .pidx { position: absolute; top: 9px; right: 10px; font-size: 8px; font-weight: 700; color: var(--grey); letter-spacing: .08em; }
+    .pglyph { font-size: 24px; font-weight: 900; line-height: 1; }
+    .plabel { font-size: 8.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    .pcard.sel { background: var(--red); border-color: var(--red); color: #fff; }
+    .pcard.sel .pidx, .pcard.sel .pglyph { color: #fff; }
+
+    .pstat { border: var(--hair); display: grid; grid-template-columns: 1fr 1fr; }
+    .pcell { padding: 10px 12px 11px; border-left: var(--hair); border-top: var(--hair); }
+    .pcell:nth-child(-n+2) { border-top: none; }
+    .pcell:nth-child(odd) { border-left: none; }
+    .pn { display: flex; align-items: center; gap: 7px; font-size: 13.5px; font-weight: 700; white-space: nowrap; }
+    .pn .sw { width: 10px; height: 10px; }
+    .pn .sw.mec { border-width: 1.5px; }
+    .youtag { font-size: 10px; color: var(--grey); font-weight: 600; }
+    .phand { margin-top: 5px; font-size: 10px; font-weight: 600; letter-spacing: .3em; color: var(--grey); font-variant-numeric: tabular-nums; }
+    .pstatus { margin-top: 7px; font-size: 9px; font-weight: 800; letter-spacing: .14em; }
+    .pstatus::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; background: var(--ink); }
+    .pstatus.think { color: var(--red); }
+    .pstatus.think::before { background: var(--red); }
+    .skipbtn { margin-top: 10px; }
+
+    .hand { border: var(--hair); display: grid; grid-template-columns: repeat(3, 1fr); }
+    .ncard { position: relative; background: #fff; height: 152px; border-left: var(--hair); border-top: var(--hair); }
+    .ncard:nth-child(3n+1) { border-left: none; }
+    .ncard:nth-child(-n+3) { border-top: none; }
+    .ntick { position: absolute; top: 12px; left: 12px; width: 18px; height: 3px; background: var(--red); }
+    .ncorner { position: absolute; top: 21px; left: 12px; font-size: 11px; font-weight: 800; }
+    .nbig { position: absolute; left: 10px; bottom: 4px; font-size: 86px; font-weight: 900; line-height: .95; letter-spacing: -.05em; }
+    .ncard.sel { background: var(--red); }
+    .ncard.sel .ntick { background: #fff; }
+    .ncard.sel .ncorner, .ncard.sel .nbig { color: #fff; }
+    .lockbtn { margin-top: 14px; font-size: 18px; padding: 19px 18px; }
+
+    /* ============ 4. REVEAL (inverted) ============ */
+    main.dark { background: var(--ink); color: var(--paper); }
+    main.dark .page { padding-top: 48px; }
+    .rev-eyebrow {
+      display: flex; align-items: center; gap: 14px;
+      font-size: 10px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase;
+    }
+    .rev-eyebrow::before { content: ""; width: 30px; height: 4px; background: var(--red); flex: none; }
+    .played { margin-top: 38px; }
+    .rlabel { font-size: 10px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; color: var(--grey); }
+    .jcard {
+      margin-top: 12px; width: 108px; height: 124px; border: 1px solid var(--paper);
+      padding: 11px 12px; display: flex; flex-direction: column; justify-content: space-between;
+      position: relative;
+    }
+    .jcard .pglyph { font-size: 36px; color: var(--red); }
+    .jcard .plabel { color: var(--paper); font-size: 9px; }
+    .jcard .pidx { color: var(--grey); }
+
+    .rgrid { margin-top: 34px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px 14px; }
+    .rname {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+    }
+    .rname .sw { width: 9px; height: 9px; }
+    .rname .sw.vol { border: 1px solid var(--paper); }
+    .rname .sw.mec { border-width: 1.5px; }
+    .rcard { position: relative; margin-top: 8px; background: #fff; color: var(--ink); height: 148px; }
+    .rcard .nbig { font-size: 80px; }
+    .strike { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .strike line { stroke: var(--red); stroke-width: 3.5; }
+    .rout { margin-top: 9px; display: flex; align-items: baseline; gap: 10px; }
+    .rpts { font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums; }
+    .rpts.dead { color: var(--grey); }
+    .rcanc { font-size: 9px; font-weight: 800; letter-spacing: .18em; color: var(--red); text-transform: uppercase; }
+    .contbtn { margin-top: 38px; font-size: 18px; padding: 19px 18px; }
+
+    /* ============ 5. END ============ */
+    main[data-screen="end"] { position: relative; overflow: hidden; }
+    .endwrap { position: relative; z-index: 1; }
+    .cf { position: absolute; z-index: 0; transform: rotate(var(--r, 0deg)); }
+    .cf.r { background: var(--red); } .cf.k { background: var(--ink); } .cf.g { background: var(--grey); }
+    .c1  { --r: 24deg;  top: 54px;  left: 336px; width: 6px;  height: 18px; }
+    .c2  { --r: 45deg;  top: 128px; left: 384px; width: 10px; height: 10px; }
+    .c3  { --r: -28deg; top: 30px;  left: 226px; width: 4px;  height: 16px; }
+    .c4  { --r: 12deg;  top: 96px;  left: 286px; width: 12px; height: 5px;  }
+    .c5  { --r: -45deg; top: 196px; left: 356px; width: 8px;  height: 8px;  }
+    .c6  { --r: 60deg;  top: 236px; left: 300px; width: 5px;  height: 16px; }
+    .c7  { --r: -15deg; top: 286px; left: 382px; width: 6px;  height: 14px; }
+    .c8  { --r: 30deg;  top: 174px; left: 252px; width: 7px;  height: 7px;  }
+    .c9  { --r: -60deg; top: 70px;  left: 184px; width: 5px;  height: 14px; }
+    .c10 { --r: 18deg;  top: 642px; left: 38px;  width: 6px;  height: 16px; }
+    .c11 { --r: -36deg; top: 700px; left: 372px; width: 9px;  height: 9px;  }
+    .c12 { --r: 52deg;  top: 760px; left: 196px; width: 5px;  height: 14px; }
+    .c13 { --r: -20deg; top: 636px; left: 330px; width: 4px;  height: 14px; }
+    .c14 { --r: 40deg;  top: 716px; left: 92px;  width: 8px;  height: 8px;  }
+    .c15 { --r: -50deg; top: 806px; left: 318px; width: 6px;  height: 16px; }
+    .c16 { --r: 8deg;   top: 812px; left: 56px;  width: 10px; height: 4px;  }
+    .c17 { --r: 70deg;  top: 318px; left: 24px;  width: 5px;  height: 14px; }
+    .c18 { --r: -12deg; top: 252px; left: 60px;  width: 7px;  height: 7px;  }
+    .endbrow {
+      display: flex; align-items: center; gap: 14px; margin-top: 14px;
+      font-size: 10px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase;
+    }
+    .endbrow::before { content: ""; width: 30px; height: 4px; background: var(--red); flex: none; }
+    .winline { margin-top: 22px; font-size: 110px; font-weight: 900; line-height: .88; letter-spacing: -.05em; }
+    .tbl { margin-top: 44px; border-top: var(--hair); }
+    .thead, .trow { display: grid; grid-template-columns: 22px 16px 1fr 34px 34px 34px 56px; column-gap: 6px; align-items: center; }
+    .thead { padding: 10px 0 8px; font-size: 8.5px; font-weight: 800; letter-spacing: .14em; color: var(--grey); text-transform: uppercase; }
+    .thead span:nth-child(n+4) { text-align: right; }
+    .trow { padding: 14px 0; border-top: var(--hair); }
+    .trank { font-size: 15px; font-weight: 900; color: var(--grey); font-variant-numeric: tabular-nums; }
+    .trow.win .trank { color: var(--red); }
+    .tname { font-size: 15px; font-weight: 700; white-space: nowrap; letter-spacing: -.01em; }
+    .trr { text-align: right; font-size: 13.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .ttot { text-align: right; font-size: 21px; font-weight: 900; font-variant-numeric: tabular-nums; }
+    .trow.win .ttot { color: var(--red); }
+    .endbtns { margin-top: 40px; }
+    .endbtns .btn.primary { font-size: 18px; padding: 19px 18px; }
+
+    @media (prefers-reduced-motion: no-preference) {
+      @keyframes rise {
+        from { opacity: 0; transform: translateY(12px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      [data-screen].active .page > * { animation: rise .45s cubic-bezier(.2, .7, .3, 1) both; }
+      [data-screen].active .page > *:nth-child(2) { animation-delay: .05s; }
+      [data-screen].active .page > *:nth-child(3) { animation-delay: .1s; }
+      [data-screen].active .page > *:nth-child(4) { animation-delay: .15s; }
+      [data-screen].active .page > *:nth-child(5) { animation-delay: .2s; }
+      [data-screen].active .page > *:nth-child(6) { animation-delay: .25s; }
+      [data-screen].active .page > *:nth-child(7) { animation-delay: .3s; }
+      @keyframes drawline { from { stroke-dashoffset: 240; } to { stroke-dashoffset: 0; } }
+      .strike line { stroke-dasharray: 240; animation: drawline .5s .45s ease-out both; }
+      @keyframes fall {
+        from { opacity: 0; transform: translateY(-16px) rotate(var(--r, 0deg)); }
+        to   { opacity: 1; transform: translateY(0) rotate(var(--r, 0deg)); }
+      }
+      .cf { animation: fall .7s ease-out both; }
+      .cf:nth-of-type(even) { animation-delay: .15s; }
+      .cf:nth-of-type(3n) { animation-delay: .3s; }
+    }
+  </style>
+</head>
+<body>
+  <main data-screen="home">
+    <div class="page home">
+      <div>
+        <div class="numstrip" aria-hidden="true">
+          <span class="red">Ø</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+        </div>
+        <p class="strip-caption">Matching numbers cancel out. The lone Ø cancels everyone.</p>
+      </div>
+      <header class="home-hero">
+        <h1 class="wordmark">Can<br><span class="red">c</span>el</h1>
+        <p class="tagline">a number-picking party game</p>
+      </header>
+      <div class="home-spacer"></div>
+      <div>
+        <button class="btn primary">New game <span>&#8594;</span></button>
+        <button class="btn">Single player <span>&#8594;</span></button>
+        <button class="btn">Join with code <span>&#8594;</span></button>
+      </div>
+    </div>
+  </main>
+
+  <main data-screen="lobby">
+    <div class="page">
+      <div class="topbar">
+        <button class="mini">&#8592; Leave</button>
+        <button class="mini">Rules</button>
+      </div>
+      <section class="codeblock">
+        <div class="redtick"></div>
+        <div class="codelabel">Room code</div>
+        <div class="roomcode">DN2H</div>
+        <div class="hint">press to copy</div>
+      </section>
+      <section class="sect">
+        <div class="slabel"><span><span class="snum">01</span>Players &middot; 4</span></div>
+        <div class="prow">
+          <i class="sw ben"></i><span class="pname">Ben</span>
+          <span class="badges"><span class="badge host">Host</span><span class="badge you">You</span><i class="onl"></i></span>
+        </div>
+        <div class="prow">
+          <i class="sw vol"></i><span class="pname">Voltaire</span>
+          <span class="badges"><span class="badge bot">Bot</span><i class="onl"></i></span>
+        </div>
+        <div class="prow">
+          <i class="sw mec"></i><span class="pname">Mechano</span>
+          <span class="badges"><span class="badge bot">Bot</span><i class="onl"></i></span>
+        </div>
+        <div class="prow">
+          <i class="sw dan"></i><span class="pname">Data Dan</span>
+          <span class="badges"><span class="badge bot">Bot</span><i class="onl"></i></span>
+        </div>
+      </section>
+      <section class="sect">
+        <div class="slabel"><span><span class="snum">02</span>Settings</span></div>
+        <div class="setrow">
+          <span class="setname">Rounds</span>
+          <span class="stepper"><button class="stepbtn">&#8722;</button><span class="stepval">3</span><button class="stepbtn">+</button></span>
+        </div>
+        <div class="setrow">
+          <span class="setname">AI players</span>
+          <span class="stepper"><button class="stepbtn">&#8722;</button><span class="stepval">3</span><button class="stepbtn">+</button></span>
+        </div>
+        <div class="setcol">
+          <span class="setname">Power-ups</span>
+          <div class="seg">
+            <button>None</button><button class="on">Random</button><button>Choose</button>
+          </div>
+          <p class="helper">A fresh random pool each round.</p>
+        </div>
+      </section>
+      <button class="btn primary startbtn">Start game <span>&#8594;</span></button>
+    </div>
+  </main>
+
+  <main data-screen="game">
+    <div class="page">
+      <div class="ghead">
+        <div class="gmeta">R1<span class="dim">/3</span> &middot; T2<span class="dim">/6</span> &middot; <span class="dim">DN2H</span></div>
+        <div class="gbtns">
+          <button class="mini">Rules</button>
+          <button class="mini">Leave</button>
+          <button class="mini redline">End game</button>
+        </div>
+      </div>
+      <div class="score4">
+        <div class="scell"><div class="nm"><i class="sw ben"></i>Ben</div><div class="pts">4</div></div>
+        <div class="scell"><div class="nm"><i class="sw vol"></i>Voltaire</div><div class="pts">0</div></div>
+        <div class="scell"><div class="nm"><i class="sw mec"></i>Mechano</div><div class="pts">2</div></div>
+        <div class="scell"><div class="nm"><i class="sw dan"></i>Data Dan</div><div class="pts">5</div></div>
+      </div>
+      <section class="sect">
+        <div class="slabel"><span><span class="snum">01</span>Power-ups remaining</span><span>6 / 6</span></div>
+        <div class="turnbar">Your turn, press to select</div>
+        <div class="pool">
+          <div class="pcard"><span class="pidx">01</span><span class="pglyph">&#8644;</span><span class="plabel">Swap Hands</span></div>
+          <div class="pcard"><span class="pidx">02</span><span class="pglyph red">&#10006;</span><span class="plabel">Sabotage</span></div>
+          <div class="pcard sel"><span class="pidx">03</span><span class="pglyph">=</span><span class="plabel">Jinx</span></div>
+          <div class="pcard"><span class="pidx">04</span><span class="pglyph">+2</span><span class="plabel">Plus Two</span></div>
+          <div class="pcard"><span class="pidx">05</span><span class="pglyph">?</span><span class="plabel">Wild</span></div>
+          <div class="pcard"><span class="pidx">06</span><span class="pglyph red">&#8615;</span><span class="plabel">Drain</span></div>
+        </div>
+      </section>
+      <section class="sect">
+        <div class="slabel"><span><span class="snum">02</span>Players &middot; Power picker: Ben</span></div>
+        <div class="pstat">
+          <div class="pcell">
+            <div class="pn"><i class="sw ben"></i>Ben <span class="youtag">(you)</span></div>
+            <div class="phand">&Oslash; 1 2 3 4 5</div>
+            <div class="pstatus think">Thinking&#8230;</div>
+          </div>
+          <div class="pcell">
+            <div class="pn"><i class="sw vol"></i>Voltaire</div>
+            <div class="phand">&Oslash; 1 2 3 4 5</div>
+            <div class="pstatus">Submitted</div>
+          </div>
+          <div class="pcell">
+            <div class="pn"><i class="sw mec"></i>Mechano</div>
+            <div class="phand">&Oslash; 1 2 3 4 5</div>
+            <div class="pstatus">Submitted</div>
+          </div>
+          <div class="pcell">
+            <div class="pn"><i class="sw dan"></i>Data Dan</div>
+            <div class="phand">&Oslash; 1 2 3 4 5</div>
+            <div class="pstatus">Submitted</div>
+          </div>
+        </div>
+        <button class="btn ghost skipbtn">Skip waiting, auto-play who&#8217;s left</button>
+      </section>
+      <section class="sect">
+        <div class="slabel"><span><span class="snum">03</span>Your hand</span><span class="dim">Pick one</span></div>
+        <div class="hand">
+          <div class="ncard"><i class="ntick"></i><span class="ncorner">&Oslash;</span><span class="nbig">&Oslash;</span></div>
+          <div class="ncard"><i class="ntick"></i><span class="ncorner">1</span><span class="nbig">1</span></div>
+          <div class="ncard"><i class="ntick"></i><span class="ncorner">2</span><span class="nbig">2</span></div>
+          <div class="ncard"><i class="ntick"></i><span class="ncorner">3</span><span class="nbig">3</span></div>
+          <div class="ncard"><i class="ntick"></i><span class="ncorner">4</span><span class="nbig">4</span></div>
+          <div class="ncard sel"><i class="ntick"></i><span class="ncorner">5</span><span class="nbig">5</span></div>
+        </div>
+      </section>
+      <button class="btn primary lockbtn">Lock it in <span>&#8594;</span></button>
+    </div>
+  </main>
+
+  <main data-screen="reveal" class="dark">
+    <div class="page">
+      <div class="rev-eyebrow">Turn 2 reveal</div>
+      <section class="played">
+        <div class="rlabel">Ben played</div>
+        <div class="jcard"><span class="pidx">03</span><span class="pglyph">=</span><span class="plabel">Jinx</span></div>
+      </section>
+      <div class="rgrid">
+        <div>
+          <div class="rname"><i class="sw ben"></i>Ben</div>
+          <div class="rcard">
+            <i class="ntick"></i><span class="ncorner">5</span><span class="nbig">5</span>
+            <svg class="strike" viewBox="0 0 100 148" preserveAspectRatio="none" aria-hidden="true">
+              <line x1="5" y1="143" x2="95" y2="5" vector-effect="non-scaling-stroke"/>
+            </svg>
+          </div>
+          <div class="rout"><span class="rpts dead">0</span><span class="rcanc">Cancelled</span></div>
+        </div>
+        <div>
+          <div class="rname"><i class="sw vol"></i>Voltaire</div>
+          <div class="rcard">
+            <i class="ntick"></i><span class="ncorner">&Oslash;</span><span class="nbig red">&Oslash;</span>
+          </div>
+          <div class="rout"><span class="rpts">0</span></div>
+        </div>
+        <div>
+          <div class="rname"><i class="sw mec"></i>Mechano</div>
+          <div class="rcard">
+            <i class="ntick"></i><span class="ncorner">5</span><span class="nbig">5</span>
+            <svg class="strike" viewBox="0 0 100 148" preserveAspectRatio="none" aria-hidden="true">
+              <line x1="5" y1="143" x2="95" y2="5" vector-effect="non-scaling-stroke"/>
+            </svg>
+          </div>
+          <div class="rout"><span class="rpts dead">0</span><span class="rcanc">Cancelled</span></div>
+        </div>
+        <div>
+          <div class="rname"><i class="sw dan"></i>Data Dan</div>
+          <div class="rcard">
+            <i class="ntick"></i><span class="ncorner">3</span><span class="nbig">3</span>
+            <svg class="strike" viewBox="0 0 100 148" preserveAspectRatio="none" aria-hidden="true">
+              <line x1="5" y1="143" x2="95" y2="5" vector-effect="non-scaling-stroke"/>
+            </svg>
+          </div>
+          <div class="rout"><span class="rpts dead">0</span><span class="rcanc">Cancelled</span></div>
+        </div>
+      </div>
+      <button class="btn primary contbtn">Continue <span>&#8594;</span></button>
+    </div>
+  </main>
+
+  <main data-screen="end">
+    <i class="cf r c1"></i><i class="cf k c2"></i><i class="cf g c3"></i><i class="cf r c4"></i>
+    <i class="cf k c5"></i><i class="cf r c6"></i><i class="cf g c7"></i><i class="cf r c8"></i>
+    <i class="cf k c9"></i><i class="cf r c10"></i><i class="cf g c11"></i><i class="cf k c12"></i>
+    <i class="cf r c13"></i><i class="cf r c14"></i><i class="cf g c15"></i><i class="cf k c16"></i>
+    <i class="cf r c17"></i><i class="cf k c18"></i>
+    <div class="page endwrap">
+      <div class="endbrow">Game over</div>
+      <h2 class="winline">You<br><span class="red">won.</span></h2>
+      <div class="tbl">
+        <div class="thead">
+          <span></span><span></span><span></span><span>R1</span><span>R2</span><span>R3</span><span>Total</span>
+        </div>
+        <div class="trow win">
+          <span class="trank">1</span><i class="sw ben"></i>
+          <span class="tname">Ben <span class="youtag">(you)</span></span>
+          <span class="trr">5</span><span class="trr">9</span><span class="trr">6</span><span class="ttot">20</span>
+        </div>
+        <div class="trow">
+          <span class="trank">2</span><i class="sw dan"></i>
+          <span class="tname">Data Dan</span>
+          <span class="trr">5</span><span class="trr">4</span><span class="trr">3</span><span class="ttot">12</span>
+        </div>
+        <div class="trow">
+          <span class="trank">3</span><i class="sw vol"></i>
+          <span class="tname">Voltaire</span>
+          <span class="trr">3</span><span class="trr">2</span><span class="trr">4</span><span class="ttot">9</span>
+        </div>
+        <div class="trow">
+          <span class="trank">4</span><i class="sw mec"></i>
+          <span class="tname">Mechano</span>
+          <span class="trr">0</span><span class="trr">5</span><span class="trr">2</span><span class="ttot">7</span>
+        </div>
+      </div>
+      <div class="endbtns">
+        <button class="btn primary">Play again <span>&#8594;</span></button>
+        <button class="btn">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

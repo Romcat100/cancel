@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Nebula Drift</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@400;500;700&family=Sora:wght@200;300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+    #switcher a { width: 26px; height: 26px; display: grid; place-items: center; font: 600 11px "Sora", sans-serif; color: rgba(238,240,251,.55); background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14); border-radius: 8px; text-decoration: none; }
+
+    /* ============ Nebula Drift ============ */
+    :root {
+      --bg0: #070a1c;
+      --bg1: #11173a;
+      --magenta: #d2499d;
+      --teal: #3ec6c0;
+      --indigo: #5b4fd2;
+      --ink: #eef0fb;
+      --dim: rgba(238,240,251,.66);
+      --faint: rgba(238,240,251,.40);
+      --panel: rgba(255,255,255,.04);
+      --line: rgba(255,255,255,.11);
+      --ben: #ff8e72;   --ben-r: 255,142,114;
+      --vol: #85a8ff;   --vol-r: 133,168,255;
+      --mec: #ffd47e;   --mec-r: 255,212,126;
+      --dan: #6fe3a8;   --dan-r: 111,227,168;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { background: #0b1030 linear-gradient(180deg, #070a1c 0%, #0b1030 48%, #11173a 100%); overflow-x: hidden; }
+    body {
+      font-family: "Alegreya Sans", ui-sans-serif, sans-serif;
+      color: var(--ink);
+      position: relative; z-index: 0;
+      min-height: 100vh;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    /* nebula dust clouds */
+    body::before {
+      content: ""; position: absolute; inset: -140px; z-index: -2; pointer-events: none;
+      background:
+        radial-gradient(46% 30% at 16% 10%, rgba(210,73,157,.30), transparent 70%),
+        radial-gradient(52% 34% at 90% 24%, rgba(62,198,192,.17), transparent 70%),
+        radial-gradient(62% 38% at 52% 58%, rgba(91,79,210,.30), transparent 72%),
+        radial-gradient(36% 24% at 8% 76%, rgba(210,73,157,.13), transparent 70%),
+        radial-gradient(42% 28% at 88% 90%, rgba(62,198,192,.11), transparent 70%);
+      filter: blur(46px) saturate(1.15);
+    }
+    /* starfield: three repeating dot layers at different tile sizes */
+    body::after {
+      content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+      background-image:
+        radial-gradient(1px 1px at 12px 44px, rgba(255,255,255,.75), transparent 50%),
+        radial-gradient(1px 1px at 67px 132px, rgba(255,255,255,.5), transparent 50%),
+        radial-gradient(1px 1px at 109px 23px, rgba(212,228,255,.65), transparent 50%),
+        radial-gradient(1px 1px at 156px 88px, rgba(255,255,255,.42), transparent 50%),
+        radial-gradient(1px 1px at 198px 167px, rgba(255,255,255,.6), transparent 50%),
+        radial-gradient(1px 1px at 41px 203px, rgba(228,238,255,.5), transparent 50%),
+        radial-gradient(1px 1px at 233px 51px, rgba(255,255,255,.38), transparent 50%),
+        radial-gradient(1px 1px at 130px 219px, rgba(255,255,255,.55), transparent 50%),
+        radial-gradient(1.4px 1.4px at 184px 14px, rgba(255,247,222,.8), transparent 50%),
+        radial-gradient(1.4px 1.4px at 38px 99px, rgba(214,231,255,.7), transparent 50%),
+        radial-gradient(1.4px 1.4px at 257px 178px, rgba(255,255,255,.75), transparent 50%),
+        radial-gradient(2px 2px at 95px 287px, rgba(255,255,255,.9), transparent 50%),
+        radial-gradient(7px 7px at 95px 287px, rgba(190,212,255,.18), transparent 60%),
+        radial-gradient(2px 2px at 311px 74px, rgba(255,244,224,.92), transparent 50%),
+        radial-gradient(7px 7px at 311px 74px, rgba(255,232,190,.16), transparent 60%);
+      background-size:
+        263px 263px, 263px 263px, 263px 263px, 263px 263px, 263px 263px, 263px 263px, 263px 263px, 263px 263px,
+        331px 331px, 331px 331px, 331px 331px,
+        417px 417px, 417px 417px, 417px 417px, 417px 417px;
+    }
+    main[data-screen] { position: relative; }
+
+    .screen { max-width: 420px; margin: 0 auto; padding: 22px 18px 46px; position: relative; }
+    .center { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; }
+
+    button { font-family: inherit; cursor: pointer; color: inherit; background: none; border: none; }
+
+    /* ---- shared pieces ---- */
+    .btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; min-height: 54px; border-radius: 16px;
+      font: 600 17px "Sora", sans-serif; letter-spacing: .02em;
+    }
+    .btn.primary {
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.24);
+      background: linear-gradient(135deg, #d2499d 0%, #6f55d8 62%, #4a7fd0 120%);
+      box-shadow: 0 0 22px rgba(210,73,157,.30), 0 12px 36px rgba(91,79,210,.35), inset 0 1px 0 rgba(255,255,255,.28);
+      text-shadow: 0 1px 6px rgba(20,8,40,.5);
+    }
+    .btn.ghost {
+      color: var(--ink);
+      background: rgba(255,255,255,.045);
+      border: 1px solid rgba(255,255,255,.15);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+    }
+    .pill { width: auto; min-height: 42px; padding: 0 18px; border-radius: 999px; font-size: 14px; font-weight: 500; }
+    .seclabel {
+      font: 600 10.5px "Sora", sans-serif; letter-spacing: .32em; text-transform: uppercase;
+      color: var(--faint); margin: 22px 2px 10px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+    }
+    .eyebrow {
+      font: 600 11px "Sora", sans-serif; letter-spacing: .42em; text-transform: uppercase;
+      color: var(--faint); text-align: center;
+    }
+
+    /* player identity */
+    .pl-ben { --pc: var(--ben); --pcr: var(--ben-r); }
+    .pl-vol { --pc: var(--vol); --pcr: var(--vol-r); }
+    .pl-mec { --pc: var(--mec); --pcr: var(--mec-r); }
+    .pl-dan { --pc: var(--dan); --pcr: var(--dan-r); }
+
+    /* ---- number cards: dark glass, starlight numerals, stellar-class hues ---- */
+    .rank-z { --rk: 222,168,255; --rkc: #f1e2ff; }  /* Ø  violet-white anomaly */
+    .rank-1 { --rk: 130,165,255; --rkc: #bdd0ff; }  /* 1  blue */
+    .rank-2 { --rk: 193,216,255; --rkc: #e4eeff; }  /* 2  blue-white */
+    .rank-3 { --rk: 255,253,244; --rkc: #fffdf6; }  /* 3  white */
+    .rank-4 { --rk: 255,212,126; --rkc: #ffe6ae; }  /* 4  gold */
+    .rank-5 { --rk: 255,138,92;  --rkc: #ffb89b; }  /* 5  orange-red */
+    .ncard {
+      position: relative; aspect-ratio: 43 / 58; border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.13);
+      background:
+        radial-gradient(80% 55% at 50% 40%, rgba(var(--rk), .14), transparent 75%),
+        linear-gradient(168deg, rgba(255,255,255,.075), rgba(255,255,255,.015) 70%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 6px 18px rgba(3,5,18,.45);
+      display: grid; place-items: center;
+    }
+    .ncard .num {
+      font: 200 30px "Sora", sans-serif; color: var(--rkc);
+      text-shadow: 0 0 8px rgba(var(--rk), .9), 0 0 22px rgba(var(--rk), .5), 0 0 44px rgba(var(--rk), .22);
+    }
+    .ncard.sel {
+      transform: translateY(-7px);
+      border-color: rgba(var(--rk), .6);
+      box-shadow:
+        0 0 16px rgba(var(--rk), .38), 0 0 40px rgba(var(--rk), .20),
+        0 14px 26px rgba(3,5,18,.55), inset 0 1px 0 rgba(255,255,255,.12);
+    }
+    .orbit {
+      position: absolute; left: 50%; top: 50%; width: 150%; height: 46%;
+      border: 1px solid rgba(255,255,255,.5); border-radius: 50%;
+      transform: translate(-50%,-50%) rotate(-24deg);
+      pointer-events: none;
+    }
+    .orbit .moon {
+      position: absolute; left: 2%; top: 55%; width: 5px; height: 5px; border-radius: 50%;
+      background: #fff; box-shadow: 0 0 7px rgba(255,255,255,.95);
+    }
+
+    /* ---- power cards ---- */
+    .pw-swap  { --pk: 62,198,192;  --pkc: #9ff0eb; }
+    .pw-sab   { --pk: 255,99,120;  --pkc: #ffb1bd; }
+    .pw-jinx  { --pk: 244,114,182; --pkc: #fbcfe8; }
+    .pw-plus  { --pk: 111,227,168; --pkc: #c2f5da; }
+    .pw-wild  { --pk: 139,123,240; --pkc: #cfc6ff; }
+    .pw-drain { --pk: 255,200,87;  --pkc: #ffe3a3; }
+    .pcard {
+      position: relative;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;
+      min-height: 88px; border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.12);
+      background:
+        radial-gradient(90% 70% at 50% 32%, rgba(var(--pk), .11), transparent 75%),
+        linear-gradient(168deg, rgba(255,255,255,.06), rgba(255,255,255,.012));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 6px 18px rgba(3,5,18,.4);
+    }
+    .pcard .glyph {
+      font: 300 23px "Sora", sans-serif; color: var(--pkc);
+      text-shadow: 0 0 10px rgba(var(--pk), .85), 0 0 26px rgba(var(--pk), .4);
+    }
+    .pcard .pname {
+      font: 600 9.5px "Sora", sans-serif; letter-spacing: .17em; text-transform: uppercase;
+      color: var(--dim); text-align: center; padding: 0 4px;
+    }
+    .pcard.sel {
+      transform: translateY(-4px);
+      border-color: rgba(var(--pk), .65);
+      box-shadow: 0 0 16px rgba(var(--pk), .4), 0 0 42px rgba(var(--pk), .2), 0 12px 24px rgba(3,5,18,.5), inset 0 1px 0 rgba(255,255,255,.14);
+    }
+    .pcard .orbit { width: 120%; height: 52%; }
+
+    /* ================= HOME ================= */
+    .mute {
+      position: absolute; top: 16px; right: 16px; width: 42px; height: 42px;
+      border-radius: 50%; display: grid; place-items: center;
+      background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14);
+      color: var(--dim);
+    }
+    .wordmark-wrap { position: relative; text-align: center; padding: 26px 0 6px; }
+    .orbit-svg { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); overflow: visible; }
+    .wordmark {
+      position: relative;
+      font: 200 54px "Sora", sans-serif; letter-spacing: .12em; text-indent: .12em;
+    }
+    .wordmark .wm-a {
+      color: #fdfdff;
+      text-shadow: 0 0 12px rgba(214,228,255,.65), 0 0 44px rgba(150,170,255,.30);
+    }
+    .wordmark .wm-b {
+      background: linear-gradient(108deg, #ef7cc0 8%, #9b7bf0 55%, #57d6cf 100%);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      filter: drop-shadow(0 0 14px rgba(210,73,157,.4));
+    }
+    .tagline {
+      margin-top: 14px; text-align: center;
+      font: 600 11.5px "Sora", sans-serif; letter-spacing: .34em; text-transform: uppercase;
+      color: var(--dim);
+    }
+    .home-deco { display: block; margin: 30px auto 34px; overflow: visible; }
+    .stack { display: flex; flex-direction: column; gap: 12px; }
+
+    /* ================= LOBBY ================= */
+    .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .codebox { text-align: center; margin: 22px 0 4px; }
+    .code {
+      font: 200 52px "Sora", sans-serif; letter-spacing: .3em; text-indent: .3em; color: #fff;
+      text-shadow: 0 0 16px rgba(196,210,255,.6), 0 0 52px rgba(124,140,255,.32);
+    }
+    .hint {
+      margin-top: 4px;
+      font: 500 10.5px "Sora", sans-serif; letter-spacing: .32em; text-transform: uppercase;
+      color: var(--faint);
+    }
+    .constellation { position: relative; padding: 14px 16px; }
+    .clines { position: absolute; inset: 0; z-index: 0; }
+    .prow {
+      position: relative; z-index: 1;
+      display: flex; align-items: center; gap: 12px; height: 56px; margin-bottom: 16px;
+    }
+    .prow:last-child { margin-bottom: 0; }
+    .pstar {
+      position: relative; flex: none; width: 44px; height: 44px; border-radius: 50%;
+      display: grid; place-items: center;
+      font: 600 16px "Sora", sans-serif; color: var(--pc);
+      background: radial-gradient(circle at 50% 42%, rgba(var(--pcr), .38), rgba(var(--pcr), .06) 72%);
+      border: 1px solid rgba(var(--pcr), .55);
+      box-shadow: 0 0 14px rgba(var(--pcr), .45), 0 0 36px rgba(var(--pcr), .16);
+    }
+    .pstar::after {
+      content: "✦"; position: absolute; top: -7px; right: -5px;
+      font-size: 10px; color: var(--pc); text-shadow: 0 0 6px rgba(var(--pcr), .9);
+    }
+    .pname-lg { font: 500 17px "Alegreya Sans", sans-serif; }
+    .badges { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+    .badge {
+      font: 700 9px "Sora", sans-serif; letter-spacing: .18em;
+      padding: 4px 8px; border-radius: 999px; border: 1px solid;
+    }
+    .badge.host { color: #ffd47e; border-color: rgba(255,212,126,.4); background: rgba(255,212,126,.08); }
+    .badge.you  { color: #eef0fb; border-color: rgba(255,255,255,.32); background: rgba(255,255,255,.08); }
+    .badge.bot  { color: #a8b4ff; border-color: rgba(150,165,255,.35); background: rgba(150,165,255,.08); }
+    .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: #6fe3a8; box-shadow: 0 0 8px rgba(111,227,168,.8); }
+
+    .setrow { display: flex; align-items: center; gap: 12px; padding: 13px 16px; margin-bottom: 12px; }
+    .setlabel { flex: 1; font: 500 16px "Alegreya Sans", sans-serif; }
+    .step { display: flex; align-items: center; gap: 14px; }
+    .stepbtn {
+      width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center;
+      background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.17);
+      font: 300 20px "Sora", sans-serif; color: var(--ink); line-height: 1;
+    }
+    .stepval { font: 600 18px "Sora", sans-serif; min-width: 18px; text-align: center; }
+    .powerset { padding: 15px 16px 13px; margin-bottom: 22px; }
+    .seg {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+      background: rgba(255,255,255,.04); border: 1px solid var(--line);
+      border-radius: 999px; padding: 4px; margin: 12px 0 10px;
+    }
+    .seg button { min-height: 38px; border-radius: 999px; font: 600 13px "Sora", sans-serif; color: var(--dim); }
+    .seg .on {
+      color: #fff;
+      background: linear-gradient(135deg, #d2499d, #6f55d8);
+      box-shadow: 0 0 14px rgba(210,73,157,.35), inset 0 1px 0 rgba(255,255,255,.25);
+    }
+    .helper { font-size: 14px; color: var(--dim); }
+
+    /* ================= GAME ================= */
+    .gamehead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .crumbs { font: 600 14px "Sora", sans-serif; letter-spacing: .06em; white-space: nowrap; }
+    .crumbs .lo { color: var(--faint); font-weight: 400; }
+    .crumbs .code-sm { color: var(--faint); font-weight: 600; letter-spacing: .14em; margin-left: 2px; }
+    .headbtns { display: flex; gap: 6px; }
+    .hbtn {
+      font: 600 9px "Sora", sans-serif; letter-spacing: .14em;
+      padding: 9px 10px; border-radius: 999px;
+      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.14);
+      color: var(--dim); white-space: nowrap;
+    }
+    .hbtn.danger { color: #ffb1a3; border-color: rgba(255,140,110,.38); }
+    .chips { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 16px; }
+    .chip {
+      display: flex; align-items: center; gap: 9px; padding: 10px 14px; border-radius: 999px;
+      background: var(--panel); border: 1px solid var(--line);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+    }
+    .chip .star { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--pc); box-shadow: 0 0 9px rgba(var(--pcr), .9); }
+    .chip .cname { flex: 1; font: 500 14.5px "Alegreya Sans", sans-serif; color: var(--ink); }
+    .chip .cscore { font: 600 16px "Sora", sans-serif; }
+    .poolhead { display: flex; align-items: baseline; justify-content: space-between; }
+    .poolhead .seclabel { margin: 22px 2px 10px; }
+    .poolcount { font: 600 12px "Sora", sans-serif; letter-spacing: .22em; color: var(--dim); }
+    .turnbanner {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      padding: 11px 8px; margin-bottom: 10px;
+      border: 1px solid rgba(244,114,182,.35); border-radius: 999px;
+      background: rgba(244,114,182,.07);
+      box-shadow: 0 0 20px rgba(244,114,182,.12), inset 0 1px 0 rgba(255,255,255,.06);
+      font: 600 10.5px "Sora", sans-serif; letter-spacing: .26em; text-transform: uppercase; color: #fbcfe8;
+      text-align: center;
+    }
+    .turnbanner::before, .turnbanner::after { content: "✦"; font-size: 10px; color: rgba(244,114,182,.85); letter-spacing: 0; }
+    .powergrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+    .statusgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; padding: 14px 16px; }
+    .scell { padding: 7px 0; }
+    .sname { font: 500 15px "Alegreya Sans", sans-serif; color: var(--pc); }
+    .sname .yu { color: var(--faint); font-size: 13px; }
+    .shand { font: 300 10.5px "Sora", sans-serif; letter-spacing: .24em; color: var(--faint); margin: 3px 0 4px; }
+    .sstat { font: 600 9.5px "Sora", sans-serif; letter-spacing: .26em; }
+    .sstat.thinking { color: var(--ben); text-shadow: 0 0 10px rgba(var(--ben-r), .5); }
+    .sstat.submitted { color: #7fe0d8; }
+    .skip {
+      min-height: 46px; margin-top: 12px; border-radius: 999px;
+      font: 600 10.5px "Sora", sans-serif; letter-spacing: .22em; text-transform: uppercase;
+      color: var(--faint);
+    }
+    .hand { display: grid; grid-template-columns: repeat(6, 1fr); gap: 9px; margin: 14px 0 24px; }
+    .hand .ncard .num { font-size: 27px; }
+
+    /* ================= REVEAL ================= */
+    .reveal-dim {
+      position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(120% 70% at 50% 38%, rgba(7,10,28,0) 30%, rgba(3,5,16,.66) 100%);
+    }
+    .reveal-col { display: flex; flex-direction: column; align-items: center; gap: 0; }
+    .playedlabel {
+      margin: 26px 0 14px;
+      font: 600 11px "Sora", sans-serif; letter-spacing: .42em; text-transform: uppercase;
+      color: var(--ben); text-shadow: 0 0 12px rgba(var(--ben-r), .45);
+    }
+    .reveal-power {
+      width: 98px; min-height: 116px;
+      border-color: rgba(244,114,182,.55);
+      box-shadow: 0 0 18px rgba(244,114,182,.35), 0 0 52px rgba(244,114,182,.16), 0 10px 26px rgba(3,5,18,.5), inset 0 1px 0 rgba(255,255,255,.12);
+    }
+    .reveal-power .glyph { font-size: 30px; }
+    .results {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 22px 18px;
+      width: 100%; max-width: 304px; margin: 30px auto 34px;
+    }
+    .result { display: flex; flex-direction: column; align-items: center; gap: 9px; }
+    .result .ncard { width: 84px; }
+    .rname { font: 600 10px "Sora", sans-serif; letter-spacing: .3em; text-transform: uppercase; color: var(--pc); }
+    .outcome { text-align: center; min-height: 38px; }
+    .outcome b { font: 300 20px "Sora", sans-serif; color: var(--dim); }
+    .outcome .live { color: #fff; text-shadow: 0 0 10px rgba(222,168,255,.8), 0 0 30px rgba(192,132,252,.4); }
+    .outcome span { display: block; margin-top: 2px; font: 600 8.5px "Sora", sans-serif; letter-spacing: .3em; color: rgba(238,240,251,.42); }
+    /* a star goes out */
+    .ncard.dead {
+      border-color: rgba(255,255,255,.07);
+      background: linear-gradient(168deg, rgba(255,255,255,.028), rgba(255,255,255,.005));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+    }
+    .ncard.dead .num { color: #cfd4ea; opacity: .62; text-shadow: none; }
+    .ncard.dead .core {
+      position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px;
+      border-radius: 50%; background: rgba(235,238,255,.6); box-shadow: 0 0 7px rgba(235,238,255,.35);
+    }
+    .ncard.dead .ring {
+      position: absolute; left: 50%; top: 50%; border-radius: 50%;
+      transform: translate(-50%,-50%); border: 1px solid rgba(235,238,255,.2);
+    }
+    .ncard.dead .r1 { width: 26px; height: 26px; }
+    .ncard.dead .r2 { width: 46px; height: 46px; border-color: rgba(235,238,255,.08); }
+    /* the Ø goes supernova */
+    .ncard.nova {
+      border-color: rgba(255,244,255,.7);
+      background:
+        radial-gradient(85% 60% at 50% 44%, rgba(243,232,255,.30), rgba(210,73,157,.10) 62%, transparent 82%),
+        linear-gradient(168deg, rgba(255,255,255,.12), rgba(255,255,255,.03));
+      box-shadow:
+        0 0 18px rgba(238,222,255,.55), 0 0 52px rgba(192,132,252,.4), 0 0 92px rgba(210,73,157,.3),
+        inset 0 1px 0 rgba(255,255,255,.3);
+    }
+    .ncard.nova .num {
+      color: #fff;
+      text-shadow: 0 0 6px #fff, 0 0 18px #e9d5ff, 0 0 40px #c084fc, 0 0 72px rgba(210,73,157,.8);
+    }
+    .ncard.nova::before, .ncard.nova::after { content: ""; position: absolute; left: 50%; top: 50%; pointer-events: none; }
+    .ncard.nova::before {
+      width: 144%; height: 1px; transform: translate(-50%,-50%);
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.7), transparent);
+    }
+    .ncard.nova::after {
+      width: 1px; height: 132%; transform: translate(-50%,-50%);
+      background: linear-gradient(180deg, transparent, rgba(255,255,255,.6), transparent);
+    }
+
+    /* ================= END ================= */
+    .fx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+    .streak {
+      position: absolute; width: 86px; height: 2px; border-radius: 2px;
+      background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.8));
+      transform: rotate(-34deg);
+    }
+    .streak::after {
+      content: ""; position: absolute; right: -2px; top: 50%; width: 4px; height: 4px; margin-top: -2px;
+      border-radius: 50%; background: #fff; box-shadow: 0 0 8px #fff, 0 0 18px rgba(190,212,255,.8);
+    }
+    .streak.gold { background: linear-gradient(90deg, rgba(255,212,126,0), rgba(255,222,160,.85)); }
+    .streak.gold::after { background: #ffe5ad; box-shadow: 0 0 8px #ffd47e, 0 0 18px rgba(255,212,126,.7); }
+    .streak.pink { background: linear-gradient(90deg, rgba(244,114,182,0), rgba(250,180,218,.8)); }
+    .streak.pink::after { background: #fbcfe8; box-shadow: 0 0 8px #f472b6, 0 0 18px rgba(244,114,182,.7); }
+    .streak.teal { background: linear-gradient(90deg, rgba(62,198,192,0), rgba(140,235,230,.8)); }
+    .streak.teal::after { background: #9ff0eb; box-shadow: 0 0 8px #3ec6c0, 0 0 18px rgba(62,198,192,.7); }
+    .spark { position: absolute; font-size: 12px; color: #ffd47e; text-shadow: 0 0 9px currentColor; }
+    .win-constellation { display: block; margin: 20px auto 6px; overflow: visible; }
+    .wonline { text-align: center; font: 300 46px "Sora", sans-serif; letter-spacing: .01em; }
+    .wonline .w1 { color: #fdfdff; text-shadow: 0 0 14px rgba(214,228,255,.55), 0 0 50px rgba(150,170,255,.25); }
+    .wonline .w2 {
+      background: linear-gradient(108deg, #ffe2b8 5%, #ff8e72 90%);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      filter: drop-shadow(0 0 16px rgba(255,142,114,.45));
+    }
+    .scoretable { padding: 8px 14px 10px; margin: 28px 0 26px; position: relative; z-index: 1; }
+    .trow, .thead {
+      display: grid; grid-template-columns: 20px 1fr 32px 32px 32px 52px;
+      align-items: center; gap: 2px; padding: 12px 4px;
+    }
+    .thead { padding: 10px 4px 4px; font: 600 9px "Sora", sans-serif; letter-spacing: .22em; color: var(--faint); }
+    .thead i { font-style: normal; text-align: right; }
+    .trow + .trow { border-top: 1px solid rgba(255,255,255,.06); }
+    .trow .rk { font: 300 13px "Sora", sans-serif; color: var(--faint); }
+    .trow .who { display: flex; align-items: center; gap: 9px; min-width: 0; }
+    .trow .who .star { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--pc); box-shadow: 0 0 9px rgba(var(--pcr), .9); }
+    .trow .who .nm { font: 500 15px "Alegreya Sans", sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .trow .who .yu { color: var(--faint); font-size: 12.5px; }
+    .trow .r { font: 400 13px "Sora", sans-serif; color: var(--dim); text-align: right; }
+    .trow .tot { font: 600 17px "Sora", sans-serif; text-align: right; }
+    .trow.win {
+      margin: 4px -7px; padding: 12px 11px;
+      border: 1px solid rgba(255,170,140,.32); border-radius: 13px;
+      background: linear-gradient(90deg, rgba(255,142,114,.10), rgba(255,142,114,.02));
+      box-shadow: 0 0 20px rgba(255,142,114,.12), inset 0 1px 0 rgba(255,255,255,.07);
+    }
+    .trow.win + .trow { border-top: none; }
+    .trow.win .tot { color: #ffd2ad; text-shadow: 0 0 12px rgba(255,160,110,.5); }
+    .endstack { display: flex; flex-direction: column; gap: 12px; position: relative; z-index: 1; }
+
+    /* ---- flourishes: motion only for those who allow it ---- */
+    @media (prefers-reduced-motion: no-preference) {
+      @keyframes twinkle { 50% { opacity: .62; } }
+      body::after { animation: twinkle 7s ease-in-out infinite; }
+      @keyframes drift {
+        to { transform: translate3d(26px, -18px, 0) scale(1.05); }
+      }
+      body::before { animation: drift 90s ease-in-out infinite alternate; }
+      @keyframes orbitspin {
+        from { transform: translate(-50%,-50%) rotate(-24deg); }
+        to   { transform: translate(-50%,-50%) rotate(336deg); }
+      }
+      .orbit { animation: orbitspin 12s linear infinite; }
+      @keyframes bannerglow {
+        50% { box-shadow: 0 0 30px rgba(244,114,182,.28), inset 0 1px 0 rgba(255,255,255,.06); }
+      }
+      .turnbanner { animation: bannerglow 3.2s ease-in-out infinite; }
+      @keyframes novapulse {
+        50% { box-shadow: 0 0 26px rgba(238,222,255,.75), 0 0 70px rgba(192,132,252,.55), 0 0 110px rgba(210,73,157,.4), inset 0 1px 0 rgba(255,255,255,.3); }
+      }
+      .ncard.nova { animation: novapulse 3.4s ease-in-out infinite; }
+      @keyframes disperse {
+        from { transform: translate(-50%,-50%) scale(.55); opacity: .5; }
+        to   { transform: translate(-50%,-50%) scale(1.55); opacity: 0; }
+      }
+      .ncard.dead .r2 { animation: disperse 2.8s ease-out infinite; }
+      @keyframes shoot {
+        0%   { transform: translate(-46px, 30px) rotate(-34deg); opacity: 0; }
+        12%  { opacity: 1; }
+        70%  { opacity: 1; }
+        100% { transform: translate(70px, -48px) rotate(-34deg); opacity: 0; }
+      }
+      .streak { animation: shoot 4.6s ease-out infinite; }
+      .streak:nth-of-type(2) { animation-delay: 1.2s; }
+      .streak:nth-of-type(3) { animation-delay: 2.3s; }
+      .streak:nth-of-type(4) { animation-delay: .6s; }
+      .streak:nth-of-type(5) { animation-delay: 3.1s; }
+      .streak:nth-of-type(6) { animation-delay: 1.8s; }
+      @keyframes sparkle { 50% { opacity: .35; transform: scale(.8); } }
+      .spark { animation: sparkle 2.6s ease-in-out infinite; }
+      .spark:nth-of-type(odd) { animation-delay: 1.3s; }
+      @keyframes starpulse {
+        50% { box-shadow: 0 0 22px rgba(var(--pcr), .6), 0 0 50px rgba(var(--pcr), .24); }
+      }
+      .pstar { animation: starpulse 4.4s ease-in-out infinite; }
+      .btn, .pcard, .ncard, .hbtn, .stepbtn { transition: transform .16s ease, box-shadow .22s ease, filter .2s ease; }
+      .btn.primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+      .btn.ghost:hover, .hbtn:hover, .stepbtn:hover { box-shadow: 0 0 14px rgba(160,180,255,.18), inset 0 1px 0 rgba(255,255,255,.1); }
+      .ncard:hover, .pcard:hover { transform: translateY(-3px); }
+      .ncard.sel:hover { transform: translateY(-8px); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ 1 · HOME ============ -->
+  <main data-screen="home">
+    <div class="screen center">
+      <button class="mute" aria-label="Mute sounds">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 5 6 9H3v6h3l5 4V5z"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/>
+        </svg>
+      </button>
+      <div class="wordmark-wrap">
+        <svg class="orbit-svg" width="360" height="140" viewBox="0 0 360 140">
+          <ellipse cx="180" cy="70" rx="172" ry="40" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="1" transform="rotate(-7 180 70)"/>
+          <circle cx="48" cy="98" r="3" fill="#3ec6c0"/>
+          <circle cx="48" cy="98" r="7" fill="rgba(62,198,192,.25)"/>
+          <circle cx="318" cy="42" r="2" fill="#d2499d"/>
+          <circle cx="318" cy="42" r="5" fill="rgba(210,73,157,.3)"/>
+        </svg>
+        <h1 class="wordmark"><span class="wm-a">CAN</span><span class="wm-b">CEL</span></h1>
+      </div>
+      <p class="tagline">a number-picking party game</p>
+      <svg class="home-deco" width="250" height="64" viewBox="0 0 250 64">
+        <polyline points="12,46 58,18 112,38 168,12 204,34 240,22" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="1"/>
+        <circle cx="12" cy="46" r="2" fill="#ff8e72"/><circle cx="12" cy="46" r="5" fill="rgba(255,142,114,.22)"/>
+        <circle cx="58" cy="18" r="2.4" fill="#fdfdff"/><circle cx="58" cy="18" r="6" fill="rgba(255,255,255,.18)"/>
+        <circle cx="112" cy="38" r="1.8" fill="#85a8ff"/><circle cx="112" cy="38" r="5" fill="rgba(133,168,255,.22)"/>
+        <circle cx="168" cy="12" r="2.2" fill="#ffd47e"/><circle cx="168" cy="12" r="6" fill="rgba(255,212,126,.2)"/>
+        <circle cx="204" cy="34" r="1.6" fill="#6fe3a8"/><circle cx="204" cy="34" r="4.5" fill="rgba(111,227,168,.2)"/>
+        <circle cx="240" cy="22" r="2" fill="#d8c6ff"/><circle cx="240" cy="22" r="5" fill="rgba(190,160,255,.2)"/>
+      </svg>
+      <div class="stack">
+        <button class="btn primary">New game</button>
+        <button class="btn ghost">Single player</button>
+        <button class="btn ghost">Join with code</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ 2 · LOBBY ============ -->
+  <main data-screen="lobby">
+    <div class="screen">
+      <header class="topbar">
+        <button class="btn ghost pill">← Leave</button>
+        <button class="btn ghost pill">Rules</button>
+      </header>
+      <section class="codebox">
+        <div class="code">DN2H</div>
+        <div class="hint">press to copy</div>
+      </section>
+      <div class="seclabel">Players · 4</div>
+      <section class="panel constellation">
+        <svg class="clines" width="100%" height="100%">
+          <line x1="42" y1="42" x2="122" y2="114" stroke="rgba(255,255,255,.26)" stroke-width="1"/>
+          <line x1="122" y1="114" x2="68" y2="186" stroke="rgba(255,255,255,.26)" stroke-width="1"/>
+          <line x1="68" y1="186" x2="148" y2="258" stroke="rgba(255,255,255,.26)" stroke-width="1"/>
+          <circle cx="82" cy="78" r="1.3" fill="rgba(255,255,255,.6)"/>
+          <circle cx="95" cy="150" r="1.3" fill="rgba(255,255,255,.6)"/>
+          <circle cx="108" cy="222" r="1.3" fill="rgba(255,255,255,.6)"/>
+          <circle cx="258" cy="48" r="1.6" fill="rgba(255,255,255,.4)"/>
+          <circle cx="305" cy="206" r="1.4" fill="rgba(255,255,255,.35)"/>
+        </svg>
+        <div class="prow pl-ben" style="margin-left:4px">
+          <span class="pstar">B</span>
+          <span class="pname-lg">Ben</span>
+          <span class="badges"><span class="badge host">HOST</span><span class="badge you">YOU</span><span class="dot"></span></span>
+        </div>
+        <div class="prow pl-vol" style="margin-left:84px">
+          <span class="pstar">V</span>
+          <span class="pname-lg">Voltaire</span>
+          <span class="badges"><span class="badge bot">BOT</span><span class="dot"></span></span>
+        </div>
+        <div class="prow pl-mec" style="margin-left:30px">
+          <span class="pstar">M</span>
+          <span class="pname-lg">Mechano</span>
+          <span class="badges"><span class="badge bot">BOT</span><span class="dot"></span></span>
+        </div>
+        <div class="prow pl-dan" style="margin-left:110px">
+          <span class="pstar">D</span>
+          <span class="pname-lg">Data Dan</span>
+          <span class="badges"><span class="badge bot">BOT</span><span class="dot"></span></span>
+        </div>
+      </section>
+      <div class="seclabel">Settings</div>
+      <section class="panel setrow">
+        <span class="setlabel">Rounds</span>
+        <span class="step"><button class="stepbtn">−</button><span class="stepval">3</span><button class="stepbtn">+</button></span>
+      </section>
+      <section class="panel setrow">
+        <span class="setlabel">AI players</span>
+        <span class="step"><button class="stepbtn">−</button><span class="stepval">3</span><button class="stepbtn">+</button></span>
+      </section>
+      <section class="panel powerset">
+        <span class="setlabel">Power-ups</span>
+        <div class="seg">
+          <button>None</button>
+          <button class="on">Random</button>
+          <button>Choose</button>
+        </div>
+        <p class="helper">A fresh random pool each round.</p>
+      </section>
+      <button class="btn primary">Start game</button>
+    </div>
+  </main>
+
+  <!-- ============ 3 · GAME ============ -->
+  <main data-screen="game">
+    <div class="screen">
+      <header class="gamehead">
+        <div class="crumbs">R1<span class="lo">/3</span> <span class="lo">·</span> T2<span class="lo">/6</span> <span class="code-sm">DN2H</span></div>
+        <div class="headbtns">
+          <button class="hbtn">RULES</button>
+          <button class="hbtn">LEAVE</button>
+          <button class="hbtn danger">END GAME</button>
+        </div>
+      </header>
+      <section class="chips">
+        <div class="chip pl-ben"><span class="star"></span><span class="cname">Ben</span><span class="cscore">4</span></div>
+        <div class="chip pl-vol"><span class="star"></span><span class="cname">Voltaire</span><span class="cscore">0</span></div>
+        <div class="chip pl-mec"><span class="star"></span><span class="cname">Mechano</span><span class="cscore">2</span></div>
+        <div class="chip pl-dan"><span class="star"></span><span class="cname">Data Dan</span><span class="cscore">5</span></div>
+      </section>
+      <div class="poolhead">
+        <div class="seclabel">Power-ups remaining</div>
+        <span class="poolcount">6 / 6</span>
+      </div>
+      <div class="turnbanner">Your turn, press to select</div>
+      <section class="powergrid">
+        <button class="pcard pw-swap"><span class="glyph">⇄</span><span class="pname">Swap Hands</span></button>
+        <button class="pcard pw-sab"><span class="glyph">✖</span><span class="pname">Sabotage</span></button>
+        <button class="pcard pw-jinx sel"><span class="orbit"><span class="moon"></span></span><span class="glyph">=</span><span class="pname">Jinx</span></button>
+        <button class="pcard pw-plus"><span class="glyph">+2</span><span class="pname">Plus Two</span></button>
+        <button class="pcard pw-wild"><span class="glyph">?</span><span class="pname">Wild</span></button>
+        <button class="pcard pw-drain"><span class="glyph">↧</span><span class="pname">Drain</span></button>
+      </section>
+      <div class="seclabel">Players · Power picker: Ben</div>
+      <section class="panel statusgrid">
+        <div class="scell pl-ben">
+          <div class="sname">Ben <span class="yu">(you)</span></div>
+          <div class="shand">Ø 1 2 3 4 5</div>
+          <div class="sstat thinking">THINKING…</div>
+        </div>
+        <div class="scell pl-vol">
+          <div class="sname">Voltaire</div>
+          <div class="shand">Ø 1 2 3 4 5</div>
+          <div class="sstat submitted">SUBMITTED</div>
+        </div>
+        <div class="scell pl-mec">
+          <div class="sname">Mechano</div>
+          <div class="shand">Ø 1 2 3 4 5</div>
+          <div class="sstat submitted">SUBMITTED</div>
+        </div>
+        <div class="scell pl-dan">
+          <div class="sname">Data Dan</div>
+          <div class="shand">Ø 1 2 3 4 5</div>
+          <div class="sstat submitted">SUBMITTED</div>
+        </div>
+      </section>
+      <button class="btn ghost skip">Skip waiting, auto-play who's left</button>
+      <div class="seclabel">Your hand</div>
+      <section class="hand">
+        <button class="ncard rank-z"><span class="num">Ø</span></button>
+        <button class="ncard rank-1"><span class="num">1</span></button>
+        <button class="ncard rank-2"><span class="num">2</span></button>
+        <button class="ncard rank-3"><span class="num">3</span></button>
+        <button class="ncard rank-4"><span class="num">4</span></button>
+        <button class="ncard rank-5 sel"><span class="orbit"><span class="moon"></span></span><span class="num">5</span></button>
+      </section>
+      <button class="btn primary">Lock it in</button>
+    </div>
+  </main>
+
+  <!-- ============ 4 · REVEAL ============ -->
+  <main data-screen="reveal">
+    <div class="reveal-dim"></div>
+    <div class="screen center">
+      <div class="reveal-col">
+        <div class="eyebrow">Turn 2 reveal</div>
+        <div class="playedlabel">Ben played</div>
+        <div class="pcard pw-jinx reveal-power"><span class="glyph">=</span><span class="pname">Jinx</span></div>
+        <section class="results">
+          <div class="result pl-ben">
+            <div class="rname">Ben</div>
+            <div class="ncard rank-5 dead"><span class="num">5</span><span class="core"></span><span class="ring r1"></span><span class="ring r2"></span></div>
+            <div class="outcome"><b>0</b><span>CANCELLED</span></div>
+          </div>
+          <div class="result pl-vol">
+            <div class="rname">Voltaire</div>
+            <div class="ncard rank-z nova"><span class="num">Ø</span></div>
+            <div class="outcome"><b class="live">0</b></div>
+          </div>
+          <div class="result pl-mec">
+            <div class="rname">Mechano</div>
+            <div class="ncard rank-5 dead"><span class="num">5</span><span class="core"></span><span class="ring r1"></span><span class="ring r2"></span></div>
+            <div class="outcome"><b>0</b><span>CANCELLED</span></div>
+          </div>
+          <div class="result pl-dan">
+            <div class="rname">Data Dan</div>
+            <div class="ncard rank-3 dead"><span class="num">3</span><span class="core"></span><span class="ring r1"></span><span class="ring r2"></span></div>
+            <div class="outcome"><b>0</b><span>CANCELLED</span></div>
+          </div>
+        </section>
+        <button class="btn primary">Continue</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ 5 · END ============ -->
+  <main data-screen="end">
+    <div class="fx">
+      <span class="streak" style="top:7%; left:6%"></span>
+      <span class="streak gold" style="top:13%; left:64%"></span>
+      <span class="streak pink" style="top:30%; left:78%"></span>
+      <span class="streak teal" style="top:46%; left:4%"></span>
+      <span class="streak" style="top:72%; left:70%"></span>
+      <span class="streak gold" style="top:86%; left:12%"></span>
+      <span class="spark" style="top:9%; left:42%; color:#fdfdff">✦</span>
+      <span class="spark" style="top:17%; left:14%; color:#ffd47e; font-size:9px">✦</span>
+      <span class="spark" style="top:24%; left:88%; color:#85a8ff">✦</span>
+      <span class="spark" style="top:39%; left:30%; color:#f472b6; font-size:10px">✦</span>
+      <span class="spark" style="top:52%; left:84%; color:#6fe3a8; font-size:9px">✦</span>
+      <span class="spark" style="top:60%; left:8%; color:#fdfdff; font-size:14px">✦</span>
+      <span class="spark" style="top:69%; left:38%; color:#ffd47e; font-size:8px">✦</span>
+      <span class="spark" style="top:80%; left:80%; color:#d8c6ff">✦</span>
+      <span class="spark" style="top:90%; left:52%; color:#3ec6c0; font-size:10px">✦</span>
+    </div>
+    <div class="screen center">
+      <div class="eyebrow">Game over</div>
+      <svg class="win-constellation" width="224" height="64" viewBox="0 0 224 64">
+        <polyline points="16,46 62,14 112,34 162,10 208,40 112,56 16,46" fill="none" stroke="rgba(255,222,178,.5)" stroke-width="1"/>
+        <circle cx="16" cy="46" r="2.4" fill="#ffe9c9"/><circle cx="16" cy="46" r="6" fill="rgba(255,222,178,.25)"/>
+        <circle cx="62" cy="14" r="2.8" fill="#fff4dd"/><circle cx="62" cy="14" r="7" fill="rgba(255,233,201,.28)"/>
+        <circle cx="112" cy="34" r="2.2" fill="#ffe9c9"/><circle cx="112" cy="34" r="6" fill="rgba(255,222,178,.25)"/>
+        <circle cx="162" cy="10" r="3" fill="#fff8e8"/><circle cx="162" cy="10" r="8" fill="rgba(255,238,208,.3)"/>
+        <circle cx="208" cy="40" r="2.4" fill="#ffe9c9"/><circle cx="208" cy="40" r="6" fill="rgba(255,222,178,.25)"/>
+        <circle cx="112" cy="56" r="2" fill="#ffdfb0"/><circle cx="112" cy="56" r="5" fill="rgba(255,212,126,.22)"/>
+      </svg>
+      <h2 class="wonline"><span class="w1">You</span> <span class="w2">won.</span></h2>
+      <section class="panel scoretable">
+        <div class="thead"><i></i><i></i><i>R1</i><i>R2</i><i>R3</i><i>TOTAL</i></div>
+        <div class="trow win pl-ben">
+          <span class="rk">1</span>
+          <span class="who"><span class="star"></span><span class="nm">Ben <span class="yu">(you)</span></span></span>
+          <span class="r">5</span><span class="r">9</span><span class="r">6</span><span class="tot">20</span>
+        </div>
+        <div class="trow pl-dan">
+          <span class="rk">2</span>
+          <span class="who"><span class="star"></span><span class="nm">Data Dan</span></span>
+          <span class="r">5</span><span class="r">4</span><span class="r">3</span><span class="tot">12</span>
+        </div>
+        <div class="trow pl-vol">
+          <span class="rk">3</span>
+          <span class="who"><span class="star"></span><span class="nm">Voltaire</span></span>
+          <span class="r">3</span><span class="r">2</span><span class="r">4</span><span class="tot">9</span>
+        </div>
+        <div class="trow pl-mec">
+          <span class="rk">4</span>
+          <span class="who"><span class="star"></span><span class="nm">Mechano</span></span>
+          <span class="r">0</span><span class="r">5</span><span class="r">2</span><span class="tot">7</span>
+        </div>
+      </section>
+      <div class="endstack">
+        <button class="btn primary">Play again</button>
+        <button class="btn ghost">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

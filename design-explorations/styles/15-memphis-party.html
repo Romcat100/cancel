@@ -1,0 +1,961 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Memphis Party</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Bungee&family=Rubik:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ============ MEMPHIS PARTY ============ */
+    :root {
+      --cream: #f7f1e1;
+      --pink: #ff4f9a;
+      --aqua: #2fd6c3;
+      --yellow: #ffd23f;
+      --purple: #7b5ea7;
+      --ink: #111111;
+      --rose: #ff5757;
+      --emerald: #1ec47e;
+      --amber: #ffa226;
+      --dim: #5d564a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--cream); }
+    body {
+      font-family: 'Rubik', sans-serif;
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+    button { font: inherit; color: inherit; cursor: pointer; background: none; border: none; }
+    main[data-screen] {
+      position: relative;
+      overflow: hidden;
+      max-width: 420px;
+      margin: 0 auto;
+      min-height: 100vh;
+      padding: 26px 18px 90px;
+    }
+    .content { position: relative; z-index: 1; }
+
+    /* ---- switcher ---- */
+    #switcher a {
+      width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+      background: #fff; border: 2px solid var(--ink); border-radius: 9px;
+      font-weight: 800; font-size: 13px; color: var(--ink); text-decoration: none;
+      box-shadow: 2px 2px 0 var(--pink);
+    }
+
+    /* ---- deco shape kit (all statically positioned) ---- */
+    .deco { position: absolute; z-index: 0; pointer-events: none; }
+    .dc { border-radius: 50%; border: 3px solid var(--ink); }
+    .dring { border-radius: 50%; border: 8px solid var(--pink); box-shadow: 0 0 0 3px var(--ink), inset 0 0 0 3px var(--ink); }
+    .dring.aq { border-color: var(--aqua); }
+    .dring.yl { border-color: var(--yellow); }
+    .dqc { border: 3px solid var(--ink); border-radius: 100% 0 0 0; }
+    .dsq { border: 3px solid var(--ink); }
+    .ddots {
+      background-image: radial-gradient(var(--ink) 1.6px, transparent 1.7px);
+      background-size: 13px 13px;
+    }
+    .ddots.pk { background-image: radial-gradient(var(--pink) 2px, transparent 2.1px); }
+    .ddots.aq { background-image: radial-gradient(var(--aqua) 2px, transparent 2.1px); }
+    .ddots.round { border-radius: 50%; }
+    .dplus { background:
+      linear-gradient(var(--pink), var(--pink)) center/100% 26% no-repeat,
+      linear-gradient(var(--pink), var(--pink)) center/26% 100% no-repeat; }
+    .dplus.aq { background:
+      linear-gradient(var(--aqua), var(--aqua)) center/100% 26% no-repeat,
+      linear-gradient(var(--aqua), var(--aqua)) center/26% 100% no-repeat; }
+    .dplus.yl { background:
+      linear-gradient(var(--yellow), var(--yellow)) center/100% 26% no-repeat,
+      linear-gradient(var(--yellow), var(--yellow)) center/26% 100% no-repeat; }
+    .bg-pink { background: var(--pink); }
+    .bg-aqua { background: var(--aqua); }
+    .bg-yellow { background: var(--yellow); }
+    .bg-purple { background: var(--purple); }
+    svg.tri { overflow: visible; }
+    svg.tri path { stroke: var(--ink); stroke-width: 4; stroke-linejoin: round; }
+    svg.tri.pk path { fill: var(--pink); }
+    svg.tri.aq path { fill: var(--aqua); }
+    svg.tri.yl path { fill: var(--yellow); }
+    svg.tri.pu path { fill: var(--purple); }
+    svg.squig path { fill: none; stroke: var(--ink); stroke-width: 5; stroke-linecap: round; }
+    svg.squig.pk path { stroke: var(--pink); }
+    svg.squig.aq path { stroke: var(--aqua); }
+    svg.zig path { fill: none; stroke: var(--ink); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+    svg.zig.pu path { stroke: var(--purple); }
+    svg.zig.yl path { stroke: var(--yellow); }
+
+    /* ---- shared UI ---- */
+    .panel {
+      background: #fff;
+      border: 3px solid var(--ink);
+      border-radius: 16px;
+      box-shadow: 6px 6px 0 var(--aqua);
+    }
+    .tilt-l { transform: rotate(-1.2deg); }
+    .tilt-r { transform: rotate(1.1deg); }
+    .btn {
+      display: block; width: 100%;
+      padding: 16px 18px;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 18px;
+      text-align: center;
+      background: #fff;
+      border: 3px solid var(--ink);
+      border-radius: 16px;
+      box-shadow: 5px 5px 0 var(--aqua);
+    }
+    .btn.primary { background: var(--yellow); box-shadow: 6px 6px 0 var(--pink); }
+    .btn.shadow-purple { box-shadow: 5px 5px 0 var(--purple); }
+    .btn.shadow-pink { box-shadow: 5px 5px 0 var(--pink); }
+    .ribbon {
+      display: inline-block;
+      background: var(--ink);
+      color: var(--cream);
+      font-weight: 800;
+      font-size: 12px;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      padding: 8px 16px;
+      transform: rotate(-1.5deg);
+      box-shadow: 4px 4px 0 var(--yellow);
+    }
+    .seclabel {
+      font-weight: 800;
+      font-size: 12px;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--ink);
+      margin: 22px 4px 10px;
+    }
+    .chipbtn {
+      background: #fff;
+      border: 2.5px solid var(--ink);
+      border-radius: 999px;
+      padding: 9px 16px;
+      font-weight: 800;
+      font-size: 14px;
+      box-shadow: 3px 3px 0 var(--aqua);
+    }
+    .chipbtn.pkz { box-shadow: 3px 3px 0 var(--pink); }
+
+    /* avatars */
+    .av {
+      width: 40px; height: 40px; flex: none;
+      display: flex; align-items: center; justify-content: center;
+      border: 2.5px solid var(--ink);
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 16px;
+      color: var(--ink);
+    }
+    .av b { font-weight: 400; }
+    .av.circle { border-radius: 50%; }
+    .av.diamond { transform: rotate(45deg); border-radius: 8px; width: 34px; height: 34px; margin: 3px; }
+    .av.diamond b { transform: rotate(-45deg); }
+    .av.squarish { border-radius: 9px; transform: rotate(-6deg); }
+    .av.squarish b { transform: rotate(6deg); }
+    .av.leaf { border-radius: 0 50% 50% 50%; }
+    .av.sm { width: 30px; height: 30px; font-size: 12px; }
+    .av.sm.diamond { width: 25px; height: 25px; margin: 2.5px; }
+    .c-ben { background: var(--pink); }
+    .c-volt { background: var(--purple); color: #fff; }
+    .c-mech { background: var(--yellow); }
+    .c-dan { background: var(--aqua); }
+
+    .dot-on { width: 13px; height: 13px; border-radius: 50%; background: var(--emerald); border: 2px solid var(--ink); display: inline-block; flex: none; }
+
+    .badge {
+      display: inline-block; font-style: normal;
+      font-weight: 800; font-size: 9.5px; letter-spacing: 1.2px;
+      border: 2px solid var(--ink); border-radius: 999px;
+      padding: 3px 8px;
+    }
+    .badge.host { background: var(--yellow); }
+    .badge.you { background: var(--pink); }
+    .badge.bot { background: var(--purple); color: #fff; }
+
+    /* ================= HOME ================= */
+    .home-wrap { padding-top: 64px; text-align: center; }
+    .iconbtn {
+      position: absolute; top: 0; right: 2px;
+      width: 44px; height: 44px;
+      background: #fff; border: 2.5px solid var(--ink); border-radius: 50%;
+      box-shadow: 3px 3px 0 var(--purple);
+      font-size: 17px; line-height: 1;
+    }
+    .iconbtn .slash {
+      position: absolute; left: 8px; top: 19px; width: 23px; height: 3.5px;
+      background: var(--ink); transform: rotate(-40deg); border-radius: 2px;
+    }
+    .wordmark { display: flex; justify-content: center; gap: 0; margin: 26px 0 8px; }
+    .wl { position: relative; width: 60px; height: 76px; display: flex; align-items: center; justify-content: center; }
+    .wl b {
+      position: relative; z-index: 1;
+      font-family: 'Bungee', sans-serif; font-weight: 400;
+      font-size: 44px; color: var(--ink); line-height: 1;
+    }
+    .ws { position: absolute; z-index: 0; }
+    .ws.circle { width: 52px; height: 52px; border-radius: 50%; border: 3px solid var(--ink); }
+    .ws.square { width: 46px; height: 46px; border: 3px solid var(--ink); transform: rotate(10deg); }
+    .ws.qc { width: 50px; height: 50px; border: 3px solid var(--ink); border-radius: 100% 0 0 0; transform: rotate(8deg); }
+    .ws.tri { width: 58px; height: 52px; }
+    .w1 { transform: rotate(-7deg) translateY(2px); }
+    .w2 { transform: rotate(4deg) translateY(8px); }
+    .w3 { transform: rotate(-3deg) translateY(-3px); }
+    .w4 { transform: rotate(5deg) translateY(6px); }
+    .w5 { transform: rotate(-5deg) translateY(0); }
+    .w6 { transform: rotate(3deg) translateY(4px); }
+    .w6 svg { position: absolute; bottom: 2px; left: -2px; width: 62px; height: 14px; z-index: 0; }
+    .home-tagline { margin: 18px 0 0; }
+    .home-btns { margin: 52px auto 0; max-width: 330px; display: grid; gap: 22px; text-align: center; }
+
+    /* home deco */
+    .hA { top: 54px; right: -20px; width: 74px; height: 74px; transform: rotate(12deg); }
+    .hB { top: 116px; left: -16px; width: 120px; height: 92px; transform: rotate(-9deg); }
+    .hC { top: 34px; left: 34px; width: 44px; height: 40px; transform: rotate(16deg); }
+    .hD { top: 308px; right: 26px; width: 110px; height: 22px; transform: rotate(-6deg); }
+    .hE { bottom: 96px; left: -30px; width: 104px; height: 104px; transform: rotate(14deg); }
+    .hF { bottom: 215px; right: 22px; width: 34px; height: 34px; transform: rotate(18deg); }
+    .hG { bottom: 44px; left: 130px; width: 130px; height: 20px; transform: rotate(2deg); }
+    .hH { top: 470px; left: 24px; width: 26px; height: 26px; }
+    .hI { bottom: 120px; right: 64px; width: 42px; height: 38px; transform: rotate(-22deg); }
+    .hJ { top: 540px; right: -14px; width: 80px; height: 64px; transform: rotate(8deg); }
+    .hK { bottom: 320px; left: 26px; width: 56px; height: 12px; transform: rotate(-14deg); }
+
+    /* ================= LOBBY ================= */
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+    .code-panel { padding: 18px 16px 16px; text-align: center; margin: 0 2px; }
+    .code-label { font-weight: 800; font-size: 10.5px; letter-spacing: 3px; color: var(--dim); }
+    .code-tiles { display: flex; justify-content: center; gap: 10px; margin: 12px 0 10px; }
+    .ct {
+      width: 56px; height: 62px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Bungee', sans-serif; font-weight: 400; font-size: 30px;
+      border: 3px solid var(--ink); border-radius: 12px; color: var(--ink);
+    }
+    .ct.t1 { background: var(--pink); transform: rotate(-4deg); box-shadow: 3px 3px 0 var(--ink); }
+    .ct.t2 { background: var(--aqua); transform: rotate(3deg); box-shadow: 3px 3px 0 var(--ink); }
+    .ct.t3 { background: var(--yellow); transform: rotate(-2deg); box-shadow: 3px 3px 0 var(--ink); }
+    .ct.t4 { background: var(--purple); color: #fff; transform: rotate(4deg); box-shadow: 3px 3px 0 var(--ink); }
+    .code-hint { font-weight: 500; font-size: 12.5px; color: var(--dim); letter-spacing: 1px; }
+
+    .players { list-style: none; display: grid; gap: 12px; margin: 0 2px; }
+    .prow {
+      display: flex; align-items: center; gap: 12px;
+      background: #fff; border: 2.5px solid var(--ink); border-radius: 14px;
+      padding: 10px 14px;
+    }
+    .prow:nth-child(odd) { transform: rotate(-0.8deg); box-shadow: 4px 4px 0 var(--yellow); }
+    .prow:nth-child(even) { transform: rotate(0.8deg); box-shadow: 4px 4px 0 var(--aqua); }
+    .prow:nth-child(3) { box-shadow: 4px 4px 0 var(--pink); }
+    .prow:nth-child(4) { box-shadow: 4px 4px 0 var(--purple); }
+    .pname { font-weight: 800; font-size: 16px; flex: 1; }
+    .badges { display: flex; align-items: center; gap: 6px; }
+
+    .srow {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 16px; margin: 0 2px 14px;
+      border-radius: 14px;
+    }
+    .srow .panelhead { font-weight: 800; font-size: 15px; }
+    .stepper { display: flex; align-items: center; gap: 12px; }
+    .step {
+      width: 44px; height: 44px;
+      background: var(--cream); border: 2.5px solid var(--ink); border-radius: 12px;
+      font-family: 'Archivo Black', sans-serif; font-size: 18px;
+      box-shadow: 3px 3px 0 var(--ink);
+    }
+    .sval { font-family: 'Archivo Black', sans-serif; font-size: 20px; min-width: 22px; text-align: center; }
+    .srow.stack { flex-direction: column; align-items: stretch; gap: 11px; }
+    .seg { display: flex; border: 2.5px solid var(--ink); border-radius: 12px; overflow: hidden; background: var(--cream); }
+    .seg button {
+      flex: 1; padding: 11px 0;
+      font-weight: 800; font-size: 13.5px;
+      border-right: 2.5px solid var(--ink);
+      color: var(--dim);
+    }
+    .seg button:last-child { border-right: none; }
+    .seg button.on { background: var(--pink); color: var(--ink); font-weight: 800; }
+    .helper { font-size: 13px; font-weight: 500; color: var(--dim); }
+    .lobby-start { margin: 26px 2px 0; }
+
+    .lA { top: 168px; right: -22px; width: 76px; height: 60px; transform: rotate(10deg); }
+    .lB { bottom: 168px; left: -26px; width: 88px; height: 88px; transform: rotate(-6deg); }
+    .lC { top: 84px; left: -8px; width: 40px; height: 36px; transform: rotate(-18deg); }
+    .lD { bottom: 60px; right: 30px; width: 96px; height: 20px; transform: rotate(-5deg); }
+    .lE { top: 480px; right: 6px; width: 24px; height: 24px; transform: rotate(20deg); }
+
+    /* ================= GAME ================= */
+    .ghead { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .gmeta { font-family: 'Archivo Black', sans-serif; font-size: 14px; letter-spacing: .5px; display: flex; align-items: center; gap: 7px; }
+    .gmeta i { font-style: normal; color: var(--dim); font-family: 'Rubik', sans-serif; font-weight: 700; }
+    .gcode { background: var(--yellow); border: 2px solid var(--ink); border-radius: 8px; padding: 2px 7px; font-size: 12px; transform: rotate(-2deg); display: inline-block; }
+    .gbtns { display: flex; gap: 6px; }
+    .mini {
+      font-weight: 800; font-size: 9.5px; letter-spacing: 1px;
+      background: #fff; border: 2px solid var(--ink); border-radius: 9px;
+      padding: 7px 9px; box-shadow: 2px 2px 0 var(--aqua);
+    }
+    .mini.danger { box-shadow: 2px 2px 0 var(--rose); }
+    .scorechips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+    .schip {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: #fff; border: 2.5px solid var(--ink); border-radius: 999px;
+      padding: 6px 7px 6px 11px;
+      font-weight: 800; font-size: 13.5px;
+    }
+    .schip:nth-child(odd) { transform: rotate(-1deg); }
+    .schip:nth-child(even) { transform: rotate(1deg); }
+    .seat { width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--ink); display: inline-block; flex: none; }
+    .schip b {
+      min-width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center;
+      background: var(--ink); color: var(--cream); border-radius: 7px;
+      font-family: 'Archivo Black', sans-serif; font-weight: 400; font-size: 12px;
+    }
+
+    .pool {
+      padding: 14px 12px 16px; margin: 0 2px;
+      background-color: #fff;
+      background-image: radial-gradient(rgba(17,17,17,.10) 1.5px, transparent 1.6px);
+      background-size: 14px 14px;
+    }
+    .poolhead { display: flex; justify-content: space-between; align-items: center; padding: 0 4px; }
+    .plabel { font-weight: 800; font-size: 10.5px; letter-spacing: 2px; color: var(--dim); }
+    .pcount { font-family: 'Archivo Black', sans-serif; font-size: 13px; }
+    .turn-banner {
+      margin: 11px 2px 14px;
+      background: var(--yellow);
+      border: 3px solid var(--ink);
+      border-radius: 10px;
+      box-shadow: 4px 4px 0 var(--purple);
+      transform: rotate(-1deg);
+      font-family: 'Archivo Black', sans-serif; font-size: 12.5px; letter-spacing: 1px;
+      text-align: center; padding: 10px 6px;
+    }
+    .powergrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 10px; padding: 2px; }
+    .pcard {
+      position: relative;
+      background: var(--cream);
+      border: 2.5px solid var(--ink); border-radius: 12px;
+      padding: 11px 4px 9px;
+      display: flex; flex-direction: column; align-items: center; gap: 7px;
+      min-height: 88px;
+    }
+    .pcard:nth-child(odd) { transform: rotate(-1deg); }
+    .pcard:nth-child(even) { transform: rotate(1deg); }
+    .pglyph {
+      width: 40px; height: 40px; flex: none;
+      display: flex; align-items: center; justify-content: center;
+      border: 2.5px solid var(--ink); border-radius: 50%;
+      font-family: 'Archivo Black', sans-serif; font-size: 16px; color: var(--ink);
+    }
+    .pglyph.teal { background: var(--aqua); }
+    .pglyph.rosec { background: var(--rose); }
+    .pglyph.pinkc { background: var(--pink); }
+    .pglyph.emeraldc { background: var(--emerald); }
+    .pglyph.violetc { background: var(--purple); color: #fff; }
+    .pglyph.amberc { background: var(--amber); }
+    .pn { font-weight: 800; font-size: 10.5px; letter-spacing: .4px; text-align: center; }
+    .pcard.sel {
+      background: #fff;
+      border-width: 3px;
+      transform: rotate(-2deg) translateY(-4px);
+      box-shadow: 5px 5px 0 var(--pink);
+    }
+    .pcard.sel::after {
+      content: "✓";
+      position: absolute; top: -11px; right: -9px;
+      width: 25px; height: 25px;
+      background: var(--pink); border: 2.5px solid var(--ink); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 13px; color: var(--ink);
+    }
+
+    .statuspanel { padding: 14px 12px; margin: 18px 2px 0; box-shadow: 6px 6px 0 var(--yellow); }
+    .statuspanel .seclabel { margin: 0 2px 12px; font-size: 10.5px; letter-spacing: 2px; color: var(--dim); }
+    .statuspanel .seclabel b { color: var(--ink); }
+    .stgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .strow {
+      border: 2.5px solid var(--ink); border-radius: 12px;
+      background: var(--cream);
+      padding: 9px 9px 10px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .strow:nth-child(odd) { transform: rotate(-0.7deg); }
+    .strow:nth-child(even) { transform: rotate(0.7deg); }
+    .stname { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13px; }
+    .stname i { font-style: normal; font-weight: 500; color: var(--dim); font-size: 11px; }
+    .hand-ro { font-weight: 700; font-size: 11px; letter-spacing: 2.5px; color: #4c463b; }
+    .stchip {
+      align-self: flex-start;
+      font-weight: 800; font-size: 9px; letter-spacing: 1.2px;
+      border: 2px solid var(--ink); border-radius: 999px;
+      padding: 3px 8px;
+    }
+    .stchip.think { background: var(--yellow); }
+    .stchip.done { background: var(--aqua); }
+    .ghost {
+      display: block; width: 100%;
+      margin-top: 13px;
+      border: 2.5px dashed var(--ink); border-radius: 12px;
+      padding: 11px 8px;
+      font-weight: 800; font-size: 10.5px; letter-spacing: 1.4px;
+      color: var(--dim); background: transparent;
+    }
+
+    .handlabel { margin: 26px 6px 4px; }
+    .handrow { display: flex; justify-content: center; gap: 9px; padding: 22px 0 10px; }
+    .ncard {
+      position: relative; z-index: 0;
+      width: 56px; height: 78px; flex: none;
+      background: #fff;
+      border: 3px solid var(--ink); border-radius: 11px;
+      font-family: 'Archivo Black', sans-serif; font-size: 30px; color: var(--ink);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 3px 3px 0 var(--ink);
+    }
+    .ncard::before { content: ""; position: absolute; z-index: -1; }
+    .ncard.k0::before { width: 26px; height: 26px; top: -11px; left: -10px; background: var(--pink); border: 2.5px solid var(--ink); border-radius: 50%; }
+    .ncard.k1::before { width: 28px; height: 25px; top: -13px; right: -10px; background: var(--aqua); clip-path: polygon(50% 0, 100% 100%, 0 100%); transform: rotate(14deg); }
+    .ncard.k2::before { width: 27px; height: 27px; bottom: -10px; left: -10px; background: var(--yellow); border: 2.5px solid var(--ink); border-radius: 0 0 0 100%; }
+    .ncard.k3::before { width: 21px; height: 21px; bottom: -9px; right: -8px; background: var(--purple); border: 2.5px solid var(--ink); transform: rotate(18deg); }
+    .ncard.k4::before { width: 32px; height: 32px; top: -13px; left: -9px; border-radius: 50%; background-image: radial-gradient(var(--pink) 2.2px, transparent 2.3px); background-size: 9px 9px; }
+    .ncard.k5::before { width: 26px; height: 26px; top: -12px; right: -11px; border-radius: 50%; border: 6px solid var(--aqua); box-shadow: 0 0 0 2px var(--ink), inset 0 0 0 2px var(--ink); }
+    .ncard.k0 { color: var(--pink); }
+    .ncard.k0, .ncard.k2, .ncard.k4 { transform: rotate(-2deg); }
+    .ncard.k1, .ncard.k3 { transform: rotate(2deg); }
+    .ncard.sel {
+      transform: rotate(-3deg) translateY(-9px);
+      box-shadow: 6px 6px 0 var(--pink);
+      color: var(--ink);
+    }
+    .ncard.sel::after {
+      content: ""; position: absolute; z-index: -2;
+      width: 118px; height: 118px;
+      left: 50%; top: 50%; transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background-image: radial-gradient(var(--pink) 2px, transparent 2.1px);
+      background-size: 11px 11px;
+      opacity: .65;
+    }
+    .lockbtn { margin: 16px 2px 0; }
+
+    .gA { top: 252px; right: -18px; width: 48px; height: 44px; transform: rotate(24deg); }
+    .gB { bottom: 30px; left: -14px; width: 70px; height: 56px; transform: rotate(-8deg); }
+    .gC { bottom: 36px; right: 22px; width: 84px; height: 18px; transform: rotate(4deg); }
+
+    /* ================= REVEAL ================= */
+    .rev-wrap { text-align: center; padding-top: 28px; }
+    .rev-played { margin: 30px 0 8px; }
+    .rp-label { display: block; font-weight: 800; font-size: 11.5px; letter-spacing: 3px; color: var(--dim); margin-bottom: 14px; }
+    .powerbig {
+      display: inline-flex; flex-direction: column; align-items: center; gap: 8px;
+      background: #fff; border: 3px solid var(--ink); border-radius: 14px;
+      box-shadow: 6px 6px 0 var(--pink);
+      padding: 14px 22px 12px;
+      transform: rotate(2deg);
+    }
+    .powerbig .pglyph { width: 46px; height: 46px; font-size: 19px; }
+    .powerbig b { font-family: 'Archivo Black', sans-serif; font-weight: 400; font-size: 13px; letter-spacing: 1.5px; }
+    .revgrid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 24px 16px;
+      margin: 30px 6px 8px;
+      text-align: initial;
+    }
+    .rcard {
+      position: relative;
+      background: #fff;
+      border: 3px solid var(--ink); border-radius: 14px;
+      padding: 18px 10px 13px;
+      text-align: center;
+    }
+    .rcard.t-l { transform: rotate(-1.4deg); box-shadow: 5px 5px 0 var(--yellow); }
+    .rcard.t-r { transform: rotate(1.4deg); box-shadow: 5px 5px 0 var(--purple); }
+    .rcard.zerohero { box-shadow: 5px 5px 0 var(--aqua); }
+    .rname {
+      position: absolute; top: -13px; left: 12px;
+      font-weight: 800; font-size: 10px; letter-spacing: 1.2px;
+      border: 2px solid var(--ink); border-radius: 999px;
+      padding: 3px 9px;
+      transform: rotate(-2deg);
+    }
+    .rnumwrap { position: relative; height: 92px; display: flex; align-items: center; justify-content: center; }
+    .rnum { font-family: 'Archivo Black', sans-serif; font-size: 58px; line-height: 1; }
+    .zerohero .rnum { color: var(--purple); }
+    .burstwrap { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 132px; height: 132px; z-index: 0; }
+    .burstwrap polygon { fill: var(--yellow); stroke: var(--ink); stroke-width: 3; }
+    .rnumwrap > .rnum { position: relative; z-index: 1; }
+    .scribble { position: absolute; left: 8%; top: 2px; width: 84%; height: 92px; z-index: 2; }
+    .scribble path { fill: none; stroke: var(--ink); stroke-width: 5; stroke-linecap: round; }
+    .zbanner {
+      position: absolute; left: -10%; width: 120%; top: 60px; z-index: 3;
+      height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--ink); color: var(--cream);
+      font-family: 'Archivo Black', sans-serif; font-size: 12px; letter-spacing: 1.5px;
+      transform: rotate(-6deg);
+      clip-path: polygon(0 22%,4.5% 0,9% 22%,13.5% 0,18% 22%,22.5% 0,27% 22%,31.5% 0,36% 22%,40.5% 0,45% 22%,49.5% 0,54% 22%,58.5% 0,63% 22%,67.5% 0,72% 22%,76.5% 0,81% 22%,85.5% 0,90% 22%,94.5% 0,99% 22%,100% 22%,100% 78%,95.5% 100%,91% 78%,86.5% 100%,82% 78%,77.5% 100%,73% 78%,68.5% 100%,64% 78%,59.5% 100%,55% 78%,50.5% 100%,46% 78%,41.5% 100%,37% 78%,32.5% 100%,28% 78%,23.5% 100%,19% 78%,14.5% 100%,10% 78%,5.5% 100%,1% 78%,0 78%);
+    }
+    .rcard.flip2 .zbanner { transform: rotate(5deg); }
+    .rpts {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 30px; height: 26px; padding: 0 9px;
+      margin-top: 6px;
+      background: var(--cream); border: 2.5px solid var(--ink); border-radius: 9px;
+      font-family: 'Archivo Black', sans-serif; font-size: 13px;
+    }
+    .zerohero .rpts { background: var(--yellow); transform: rotate(-3deg); box-shadow: 2px 2px 0 var(--ink); }
+    .rev-continue { max-width: 330px; margin: 26px auto 0; }
+
+    .rA { top: -56px; left: -56px; width: 220px; height: 220px; border-radius: 50%; transform: rotate(8deg); }
+    .rB { top: 88px; right: -16px; width: 56px; height: 50px; transform: rotate(-14deg); }
+    .rC { bottom: 116px; left: -24px; width: 84px; height: 84px; transform: rotate(12deg); }
+    .rD { bottom: 54px; right: 24px; width: 104px; height: 22px; transform: rotate(-7deg); }
+    .rE { top: 318px; left: 8px; width: 30px; height: 30px; transform: rotate(12deg); }
+    .rF { top: 200px; right: 40px; width: 64px; height: 13px; transform: rotate(10deg); }
+
+    /* ================= END ================= */
+    .end-wrap { text-align: center; padding-top: 46px; }
+    .won {
+      font-family: 'Bungee', sans-serif; font-weight: 400;
+      font-size: 58px; line-height: 1.05;
+      color: var(--ink);
+      text-shadow: 5px 5px 0 var(--aqua);
+      margin: 22px 0 6px;
+    }
+    .won span {
+      color: var(--pink);
+      -webkit-text-stroke: 2.5px var(--ink);
+      text-shadow: 5px 5px 0 var(--yellow);
+    }
+    .endtable { margin: 34px 2px 0; padding: 16px 13px 13px; text-align: initial; box-shadow: 6px 6px 0 var(--purple); }
+    .thead, .trow {
+      display: grid;
+      grid-template-columns: 28px 1fr 30px 30px 30px 52px;
+      gap: 5px; align-items: center;
+    }
+    .thead {
+      padding: 0 11px 8px;
+      font-weight: 800; font-size: 10px; letter-spacing: 1.6px; color: var(--dim);
+      text-align: center;
+    }
+    .thead b:last-child { text-align: right; }
+    .trow {
+      position: relative;
+      background: var(--cream);
+      border: 2.5px solid var(--ink); border-radius: 13px;
+      padding: 9px 11px;
+      margin-bottom: 9px;
+      font-weight: 700; font-size: 14px;
+    }
+    .trow:last-child { margin-bottom: 0; }
+    .trow:nth-child(odd) { transform: rotate(0.6deg); }
+    .trow:nth-child(even) { transform: rotate(-0.6deg); }
+    .trow .r { text-align: center; font-weight: 700; font-size: 13.5px; color: #4c463b; }
+    .trow .tot { text-align: right; font-family: 'Archivo Black', sans-serif; font-size: 18px; }
+    .rank {
+      width: 26px; height: 26px;
+      display: flex; align-items: center; justify-content: center;
+      border: 2.5px solid var(--ink); border-radius: 50%;
+      font-family: 'Archivo Black', sans-serif; font-size: 12px;
+    }
+    .rank.r2 { border-radius: 7px; transform: rotate(-8deg); }
+    .rank.r3 { border-radius: 0 50% 50% 50%; }
+    .rank.r4 { border-radius: 50% 0 50% 50%; }
+    .tnm { display: flex; align-items: center; gap: 7px; font-weight: 800; font-size: 14.5px; }
+    .tnm i { font-style: normal; font-weight: 500; color: var(--dim); font-size: 11.5px; }
+    .trow.winner {
+      background: var(--yellow);
+      border-width: 3px;
+      box-shadow: 4px 4px 0 var(--pink);
+      transform: rotate(-1deg);
+    }
+    .trow.winner::after {
+      content: "★";
+      position: absolute; top: -16px; right: -8px;
+      font-size: 24px; line-height: 1;
+      color: var(--pink);
+      -webkit-text-stroke: 2px var(--ink);
+      transform: rotate(14deg);
+    }
+    .end-btns { margin: 30px 2px 0; display: grid; gap: 20px; }
+
+    /* end confetti, all fixed positions */
+    .eA { top: 58px; left: 16px; width: 30px; height: 27px; transform: rotate(-18deg); }
+    .eB { top: 40px; right: 52px; width: 22px; height: 22px; }
+    .eC { top: 130px; right: -12px; width: 64px; height: 64px; transform: rotate(10deg); }
+    .eD { top: 188px; left: -18px; width: 70px; height: 14px; transform: rotate(-24deg); }
+    .eE { top: 102px; left: 120px; width: 18px; height: 18px; transform: rotate(30deg); }
+    .eF { top: 246px; right: 56px; width: 26px; height: 23px; transform: rotate(38deg); }
+    .eG { bottom: 250px; left: -20px; width: 72px; height: 58px; transform: rotate(-10deg); }
+    .eH { bottom: 282px; right: -16px; width: 58px; height: 58px; transform: rotate(16deg); }
+    .eI { bottom: 168px; left: 56px; width: 60px; height: 12px; transform: rotate(14deg); }
+    .eJ { bottom: 186px; right: 70px; width: 24px; height: 24px; transform: rotate(-12deg); }
+    .eK { bottom: 78px; left: 22px; width: 28px; height: 25px; transform: rotate(50deg); }
+    .eL { bottom: 44px; right: 36px; width: 78px; height: 16px; transform: rotate(-8deg); }
+    .eM { top: 320px; left: 30px; width: 20px; height: 20px; transform: rotate(22deg); }
+    .eN { top: 330px; right: 26px; width: 30px; height: 9px; transform: rotate(-30deg); }
+    .eO { bottom: 130px; right: 140px; width: 16px; height: 16px; }
+    .eP { top: 60px; left: 240px; width: 36px; height: 8px; transform: rotate(40deg); }
+
+    /* ---- flourish animations (reduced-motion safe) ---- */
+    @media (prefers-reduced-motion: no-preference) {
+      @keyframes bob { from { translate: 0 0; } to { translate: 0 -7px; } }
+      @keyframes bobx { from { translate: 0 0; } to { translate: 5px -5px; } }
+      @keyframes halo { from { opacity: .4; } to { opacity: .75; } }
+      @keyframes ribswing { from { rotate: -2.5deg; } to { rotate: 1deg; } }
+      .wl { animation: bob 2.4s ease-in-out infinite alternate; }
+      .w2 { animation-delay: .2s; } .w3 { animation-delay: .4s; }
+      .w4 { animation-delay: .6s; } .w5 { animation-delay: .8s; } .w6 { animation-delay: 1s; }
+      .deco { animation: bobx 3.6s ease-in-out infinite alternate; }
+      .hB, .lB, .rA, .eC, .eG { animation-duration: 4.8s; }
+      .ncard.sel::after { animation: halo 1.4s ease-in-out infinite alternate; }
+      .zbanner { animation: ribswing 1.8s ease-in-out infinite alternate; }
+      .trow.winner::after { animation: bob 1.6s ease-in-out infinite alternate; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ 1. HOME ============ -->
+  <main data-screen="home">
+    <svg class="deco tri yl hC" viewBox="0 0 60 54"><path d="M30 4 L56 50 L4 50 Z"/></svg>
+    <span class="deco dring hA"></span>
+    <span class="deco ddots hB"></span>
+    <svg class="deco squig hD" viewBox="0 0 120 22"><path d="M3 11 Q13 1 23 11 T43 11 T63 11 T83 11 T103 11 T117 11"/></svg>
+    <span class="deco dqc bg-purple hE"></span>
+    <span class="deco dplus aq hF"></span>
+    <svg class="deco zig hG" viewBox="0 0 120 18"><path d="M2 14 L14 4 L26 14 L38 4 L50 14 L62 4 L74 14 L86 4 L98 14 L110 4 L118 11"/></svg>
+    <span class="deco dc bg-yellow hH"></span>
+    <svg class="deco tri pu hI" viewBox="0 0 60 54"><path d="M30 4 L56 50 L4 50 Z"/></svg>
+    <span class="deco ddots aq hJ"></span>
+    <svg class="deco squig pk hK" viewBox="0 0 120 22"><path d="M3 11 Q13 1 23 11 T43 11 T63 11 T83 11 T103 11 T117 11"/></svg>
+
+    <div class="content home-wrap">
+      <button class="iconbtn" aria-label="Mute sounds">♪<span class="slash"></span></button>
+      <div class="wordmark" role="img" aria-label="CANCEL">
+        <span class="wl w1"><i class="ws circle bg-pink"></i><b>C</b></span>
+        <span class="wl w2"><svg class="ws tri aq" viewBox="0 0 60 54"><path d="M30 4 L56 50 L4 50 Z"/></svg><b>A</b></span>
+        <span class="wl w3"><i class="ws square bg-yellow"></i><b>N</b></span>
+        <span class="wl w4"><i class="ws circle bg-purple"></i><b>C</b></span>
+        <span class="wl w5"><i class="ws qc bg-pink"></i><b>E</b></span>
+        <span class="wl w6"><svg class="squig aq" viewBox="0 0 120 22"><path d="M3 11 Q13 1 23 11 T43 11 T63 11 T83 11 T103 11 T117 11"/></svg><b>L</b></span>
+      </div>
+      <div class="home-tagline"><span class="ribbon">a number-picking party game</span></div>
+      <div class="home-btns">
+        <button class="btn primary tilt-l">New game</button>
+        <button class="btn tilt-r">Single player</button>
+        <button class="btn shadow-purple tilt-l">Join with code</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ 2. LOBBY ============ -->
+  <main data-screen="lobby">
+    <span class="deco ddots lA"></span>
+    <span class="deco dring aq lB"></span>
+    <svg class="deco tri pk lC" viewBox="0 0 60 54"><path d="M30 4 L56 50 L4 50 Z"/></svg>
+    <svg class="deco squig lD" viewBox="0 0 120 22"><path d="M3 11 Q13 1 23 11 T43 11 T63 11 T83 11 T103 11 T117 11"/></svg>
+    <span class="deco dplus yl lE"></span>
+
+    <div class="content">
+      <div class="topbar">
+        <button class="chipbtn">← Leave</button>
+        <button class="chipbtn pkz">Rules</button>
+      </div>
+
+      <section class="code-panel panel tilt-l">
+        <div class="code-label">ROOM CODE</div>
+        <div class="code-tiles">
+          <b class="ct t1">D</b><b class="ct t2">N</b><b class="ct t3">2</b><b class="ct t4">H</b>
+        </div>
+        <div class="code-hint">press to copy</div>
+      </section>
+
+      <h2 class="seclabel">Players · 4</h2>
+      <ul class="players">
+        <li class="prow">
+          <span class="av circle c-ben"><b>B</b></span>
+          <b class="pname">Ben</b>
+          <span class="badges"><i class="badge host">HOST</i><i class="badge you">YOU</i><span class="dot-on"></span></span>
+        </li>
+        <li class="prow">
+          <span class="av diamond c-volt"><b>V</b></span>
+          <b class="pname">Voltaire</b>
+          <span class="badges"><i class="badge bot">BOT</i><span class="dot-on"></span></span>
+        </li>
+        <li class="prow">
+          <span class="av squarish c-mech"><b>M</b></span>
+          <b class="pname">Mechano</b>
+          <span class="badges"><i class="badge bot">BOT</i><span class="dot-on"></span></span>
+        </li>
+        <li class="prow">
+          <span class="av leaf c-dan"><b>D</b></span>
+          <b class="pname">Data Dan</b>
+          <span class="badges"><i class="badge bot">BOT</i><span class="dot-on"></span></span>
+        </li>
+      </ul>
+
+      <h2 class="seclabel">Settings</h2>
+      <div class="srow panel tilt-r">
+        <b class="panelhead">Rounds</b>
+        <div class="stepper"><button class="step">−</button><b class="sval">3</b><button class="step">+</button></div>
+      </div>
+      <div class="srow panel tilt-l">
+        <b class="panelhead">AI players</b>
+        <div class="stepper"><button class="step">−</button><b class="sval">3</b><button class="step">+</button></div>
+      </div>
+      <div class="srow stack panel tilt-r">
+        <b class="panelhead">Power-ups</b>
+        <div class="seg">
+          <button>None</button><button class="on">Random</button><button>Choose</button>
+        </div>
+        <span class="helper">A fresh random pool each round.</span>
+      </div>
+
+      <button class="btn primary lobby-start tilt-l">Start game</button>
+    </div>
+  </main>
+
+  <!-- ============ 3. GAME ============ -->
+  <main data-screen="game">
+    <svg class="deco tri aq gA" viewBox="0 0 60 54"><path d="M30 4 L56 50 L4 50 Z"/></svg>
+    <span class="deco ddots pk gB"></span>
+    <svg class="deco zig pu gC" viewBox="0 0 120 18"><path d="M2 14 L14 4 L26 14 L38 4 L50 14 L62 4 L74 14 L86 4 L98 14 L110 4 L118 11"/></svg>
+
+    <div class="content">
+      <header class="ghead">
+        <div class="gmeta"><span>R1<i>/3</i></span><i>·</i><span>T2<i>/6</i></span><span class="gcode">DN2H</span></div>
+        <div class="gbtns">
+          <button class="mini">RULES</button>
+          <button class="mini">LEAVE</button>
+          <button class="mini danger">END GAME</button>
+        </div>
+      </header>
+
+      <div class="scorechips">
+        <span class="schip"><i class="seat c-ben"></i>Ben<b>4</b></span>
+        <span class="schip"><i class="seat c-volt"></i>Voltaire<b>0</b></span>
+        <span class="schip"><i class="seat c-mech"></i>Mechano<b>2</b></span>
+        <span class="schip"><i class="seat c-dan"></i>Data Dan<b>5</b></span>
+      </div>
+
+      <section class="pool panel tilt-l">
+        <div class="poolhead">
+          <span class="plabel">POWER-UPS REMAINING</span>
+          <b class="pcount">6 / 6</b>
+        </div>
+        <div class="turn-banner">YOUR TURN, PRESS TO SELECT</div>
+        <div class="powergrid">
+          <button class="pcard"><span class="pglyph teal">⇄</span><span class="pn">Swap Hands</span></button>
+          <button class="pcard"><span class="pglyph rosec">✖</span><span class="pn">Sabotage</span></button>
+          <button class="pcard sel"><span class="pglyph pinkc">=</span><span class="pn">Jinx</span></button>
+          <button class="pcard"><span class="pglyph emeraldc">+2</span><span class="pn">Plus Two</span></button>
+          <button class="pcard"><span class="pglyph violetc">?</span><span class="pn">Wild</span></button>
+          <button class="pcard"><span class="pglyph amberc">↧</span><span class="pn">Drain</span></button>
+        </div>
+      </section>
+
+      <section class="statuspanel panel tilt-r">
+        <h3 class="seclabel">PLAYERS · POWER PICKER: <b>BEN</b></h3>
+        <div class="stgrid">
+          <div class="strow">
+            <span class="stname"><span class="av sm circle c-ben"><b>B</b></span>Ben <i>(you)</i></span>
+            <span class="hand-ro">Ø 1 2 3 4 5</span>
+            <span class="stchip think">THINKING…</span>
+          </div>
+          <div class="strow">
+            <span class="stname"><span class="av sm diamond c-volt"><b>V</b></span>Voltaire</span>
+            <span class="hand-ro">Ø 1 2 3 4 5</span>
+            <span class="stchip done">SUBMITTED</span>
+          </div>
+          <div class="strow">
+            <span class="stname"><span class="av sm squarish c-mech"><b>M</b></span>Mechano</span>
+            <span class="hand-ro">Ø 1 2 3 4 5</span>
+            <span class="stchip done">SUBMITTED</span>
+          </div>
+          <div class="strow">
+            <span class="stname"><span class="av sm leaf c-dan"><b>D</b></span>Data Dan</span>
+            <span class="hand-ro">Ø 1 2 3 4 5</span>
+            <span class="stchip done">SUBMITTED</span>
+          </div>
+        </div>
+        <button class="ghost">SKIP WAITING, AUTO-PLAY WHO'S LEFT</button>
+      </section>
+
+      <h3 class="seclabel handlabel">YOUR HAND</h3>
+      <div class="handrow">
+        <button class="ncard k0">Ø</button>
+        <button class="ncard k1">1</button>
+        <button class="ncard k2">2</button>
+        <button class="ncard k3">3</button>
+        <button class="ncard k4">4</button>
+        <button class="ncard k5 sel">5</button>
+      </div>
+
+      <button class="btn primary lockbtn tilt-l">Lock it in</button>
+    </div>
+  </main>
+
+  <!-- ============ 4. REVEAL ============ -->
+  <main data-screen="reveal">
+    <span class="deco ddots round rA"></span>
+    <svg class="deco tri yl rB" viewBox="0 0 60 54"><path d="M30 4 L56 50 L4 50 Z"/></svg>
+    <span class="deco dring rC"></span>
+    <svg class="deco squig rD" viewBox="0 0 120 22"><path d="M3 11 Q13 1 23 11 T43 11 T63 11 T83 11 T103 11 T117 11"/></svg>
+    <span class="deco dplus aq rE"></span>
+    <svg class="deco zig yl rF" viewBox="0 0 120 18"><path d="M2 14 L14 4 L26 14 L38 4 L50 14 L62 4 L74 14 L86 4 L98 14 L110 4 L118 11"/></svg>
+
+    <div class="content rev-wrap">
+      <span class="ribbon">TURN 2 REVEAL</span>
+
+      <div class="rev-played">
+        <span class="rp-label">BEN PLAYED</span>
+        <div class="powerbig">
+          <span class="pglyph pinkc">=</span>
+          <b>JINX</b>
+        </div>
+      </div>
+
+      <div class="revgrid">
+        <div class="rcard t-l">
+          <span class="rname c-ben">BEN</span>
+          <div class="rnumwrap">
+            <b class="rnum">5</b>
+            <svg class="scribble" viewBox="0 0 120 90" aria-hidden="true">
+              <path d="M14 48 C8 18 40 6 68 10 C98 14 114 34 106 56 C98 76 62 84 36 76 C20 70 13 60 18 50"/>
+              <path d="M14 70 C42 46 78 52 106 18"/>
+            </svg>
+            <span class="zbanner">CANCELLED</span>
+          </div>
+          <span class="rpts">0</span>
+        </div>
+
+        <div class="rcard t-r zerohero">
+          <span class="rname c-volt">VOLTAIRE</span>
+          <div class="rnumwrap">
+            <svg class="burstwrap" viewBox="0 0 150 150" aria-hidden="true">
+              <polygon points="145,75 113.6,85.4 135.6,110 103.3,103.3 110,135.6 85.4,113.6 75,145 64.6,113.6 40,135.6 46.7,103.3 14.4,110 36.4,85.4 5,75 36.4,64.6 14.4,40 46.7,46.7 40,14.4 64.6,36.4 75,5 85.4,36.4 110,14.4 103.3,46.7 135.6,40 113.6,64.6"/>
+            </svg>
+            <b class="rnum">Ø</b>
+          </div>
+          <span class="rpts">0</span>
+        </div>
+
+        <div class="rcard t-l flip2">
+          <span class="rname c-mech">MECHANO</span>
+          <div class="rnumwrap">
+            <b class="rnum">5</b>
+            <svg class="scribble" viewBox="0 0 120 90" aria-hidden="true">
+              <path d="M14 48 C8 18 40 6 68 10 C98 14 114 34 106 56 C98 76 62 84 36 76 C20 70 13 60 18 50"/>
+              <path d="M14 70 C42 46 78 52 106 18"/>
+            </svg>
+            <span class="zbanner">CANCELLED</span>
+          </div>
+          <span class="rpts">0</span>
+        </div>
+
+        <div class="rcard t-r">
+          <span class="rname c-dan">DATA DAN</span>
+          <div class="rnumwrap">
+            <b class="rnum">3</b>
+            <svg class="scribble" viewBox="0 0 120 90" aria-hidden="true">
+              <path d="M14 48 C8 18 40 6 68 10 C98 14 114 34 106 56 C98 76 62 84 36 76 C20 70 13 60 18 50"/>
+              <path d="M14 70 C42 46 78 52 106 18"/>
+            </svg>
+            <span class="zbanner">CANCELLED</span>
+          </div>
+          <span class="rpts">0</span>
+        </div>
+      </div>
+
+      <button class="btn primary rev-continue tilt-l">Continue</button>
+    </div>
+  </main>
+
+  <!-- ============ 5. END ============ -->
+  <main data-screen="end">
+    <svg class="deco tri pk eA" viewBox="0 0 60 54"><path d="M30 4 L56 50 L4 50 Z"/></svg>
+    <span class="deco dc bg-aqua eB"></span>
+    <span class="deco ddots eC"></span>
+    <svg class="deco squig eD" viewBox="0 0 120 22"><path d="M3 11 Q13 1 23 11 T43 11 T63 11 T83 11 T103 11 T117 11"/></svg>
+    <span class="deco dsq bg-yellow eE"></span>
+    <svg class="deco tri pu eF" viewBox="0 0 60 54"><path d="M30 4 L56 50 L4 50 Z"/></svg>
+    <span class="deco ddots aq eG"></span>
+    <span class="deco dring yl eH"></span>
+    <svg class="deco zig eI" viewBox="0 0 120 18"><path d="M2 14 L14 4 L26 14 L38 4 L50 14 L62 4 L74 14 L86 4 L98 14 L110 4 L118 11"/></svg>
+    <span class="deco dplus eJ"></span>
+    <svg class="deco tri aq eK" viewBox="0 0 60 54"><path d="M30 4 L56 50 L4 50 Z"/></svg>
+    <svg class="deco squig pk eL" viewBox="0 0 120 22"><path d="M3 11 Q13 1 23 11 T43 11 T63 11 T83 11 T103 11 T117 11"/></svg>
+    <span class="deco dc bg-pink eM"></span>
+    <svg class="deco squig aq eN" viewBox="0 0 120 22"><path d="M3 11 Q13 1 23 11 T43 11 T63 11 T83 11 T103 11 T117 11"/></svg>
+    <span class="deco dc bg-purple eO"></span>
+    <svg class="deco zig pu eP" viewBox="0 0 120 18"><path d="M2 14 L14 4 L26 14 L38 4 L50 14 L62 4 L74 14 L86 4 L98 14 L110 4 L118 11"/></svg>
+
+    <div class="content end-wrap">
+      <span class="ribbon">GAME OVER</span>
+      <h1 class="won">You <span>won.</span></h1>
+
+      <section class="endtable panel tilt-l">
+        <div class="thead">
+          <b></b><b></b><b>R1</b><b>R2</b><b>R3</b><b>TOTAL</b>
+        </div>
+        <div class="trow winner">
+          <b class="rank c-ben">1</b>
+          <span class="tnm">Ben <i>(you)</i></span>
+          <span class="r">5</span><span class="r">9</span><span class="r">6</span>
+          <b class="tot">20</b>
+        </div>
+        <div class="trow">
+          <b class="rank r2 c-dan">2</b>
+          <span class="tnm">Data Dan</span>
+          <span class="r">5</span><span class="r">4</span><span class="r">3</span>
+          <b class="tot">12</b>
+        </div>
+        <div class="trow">
+          <b class="rank r3 c-volt">3</b>
+          <span class="tnm">Voltaire</span>
+          <span class="r">3</span><span class="r">2</span><span class="r">4</span>
+          <b class="tot">9</b>
+        </div>
+        <div class="trow">
+          <b class="rank r4 c-mech">4</b>
+          <span class="tnm">Mechano</span>
+          <span class="r">0</span><span class="r">5</span><span class="r">2</span>
+          <b class="tot">7</b>
+        </div>
+      </section>
+
+      <div class="end-btns">
+        <button class="btn primary tilt-l">Play again</button>
+        <button class="btn shadow-pink tilt-r">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

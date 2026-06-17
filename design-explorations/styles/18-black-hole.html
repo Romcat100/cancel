@@ -1,0 +1,1034 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Black Hole</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;700;800&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+    #switcher a { font: 600 11px/1 "IBM Plex Mono", monospace; color: #ffb56b; text-decoration: none;
+      border: 1px solid rgba(255,150,80,.4); border-radius: 6px; padding: 5px 7px; background: #000; }
+
+    /* ===================== base / world ===================== */
+    :root {
+      --hot: #ff6a00;
+      --warm: #ffb56b;
+      --white: #fff7ec;
+      --dim: #cbb49d;
+      --dimmer: #8d7a68;
+      --hairline: rgba(255,158,82,.32);
+      --panel: rgba(255,120,40,.04);
+      --ben: #ff6a4d;
+      --vol: #7d8df8;
+      --mech: #f5c044;
+      --dan: #3ddc97;
+      --teal: #2fd9c0;
+      --rose: #ff4d6a;
+      --pink: #ff7ad1;
+      --emerald: #3ce08f;
+      --violet: #a883ff;
+      --amber: #ffb13d;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { background: #000; }
+    body {
+      background: #000;
+      color: var(--white);
+      font-family: "Manrope", sans-serif;
+      min-height: 100vh;
+      overflow-x: clip;
+      position: relative;
+      -webkit-font-smoothing: antialiased;
+    }
+    /* starfield: two static box-shadow layers, absolute so full-page shots stay coherent */
+    body::before, body::after {
+      content: "";
+      position: absolute;
+      top: -9px; left: -9px;
+      width: 2px; height: 2px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::before { /* bright layer */
+      box-shadow:
+        27px 43px 0 0 rgba(255,243,229,.85), 66px 151px 0 0 rgba(255,243,229,.6),
+        105px 70px 0 0 rgba(255,243,229,.8), 142px 27px 0 0 rgba(255,243,229,.55),
+        175px 219px 0 0 rgba(255,243,229,.7), 213px 93px 0 0 rgba(255,243,229,.5),
+        256px 49px 0 0 rgba(255,243,229,.85), 295px 159px 0 0 rgba(255,243,229,.6),
+        336px 85px 0 0 rgba(255,243,229,.75), 377px 35px 0 0 rgba(255,243,229,.55),
+        410px 127px 0 0 rgba(255,243,229,.7), 40px 265px 0 0 rgba(255,243,229,.6),
+        127px 309px 0 0 rgba(255,243,229,.5), 221px 271px 0 0 rgba(255,243,229,.65),
+        314px 247px 0 0 rgba(255,243,229,.55), 392px 297px 0 0 rgba(255,243,229,.7),
+        55px 397px 0 0 rgba(255,243,229,.6), 164px 429px 0 0 rgba(255,243,229,.5),
+        267px 380px 0 0 rgba(255,243,229,.7), 360px 442px 0 0 rgba(255,243,229,.55),
+        33px 517px 0 0 rgba(255,243,229,.65), 108px 558px 0 0 rgba(255,243,229,.5),
+        199px 509px 0 0 rgba(255,243,229,.6), 291px 549px 0 0 rgba(255,243,229,.7),
+        378px 501px 0 0 rgba(255,243,229,.5), 67px 637px 0 0 rgba(255,243,229,.6),
+        155px 669px 0 0 rgba(255,243,229,.55), 247px 619px 0 0 rgba(255,243,229,.7),
+        339px 677px 0 0 rgba(255,243,229,.5), 407px 584px 0 0 rgba(255,243,229,.6),
+        23px 732px 0 0 rgba(255,243,229,.55), 129px 779px 0 0 rgba(255,243,229,.65),
+        226px 743px 0 0 rgba(255,243,229,.5), 319px 799px 0 0 rgba(255,243,229,.6),
+        399px 725px 0 0 rgba(255,243,229,.55), 79px 860px 0 0 rgba(255,243,229,.6),
+        193px 875px 0 0 rgba(255,243,229,.5), 309px 851px 0 0 rgba(255,243,229,.65),
+        405px 881px 0 0 rgba(255,243,229,.55), 60px 958px 0 0 rgba(255,243,229,.6),
+        211px 1004px 0 0 rgba(255,243,229,.5), 351px 962px 0 0 rgba(255,243,229,.6),
+        118px 1090px 0 0 rgba(255,243,229,.55), 286px 1131px 0 0 rgba(255,243,229,.6),
+        30px 1180px 0 0 rgba(255,243,229,.5), 384px 1208px 0 0 rgba(255,243,229,.55);
+    }
+    body::after { /* faint layer */
+      width: 1px; height: 1px;
+      box-shadow:
+        14px 95px 0 0 rgba(255,214,170,.4), 49px 22px 0 0 rgba(255,214,170,.35),
+        88px 188px 0 0 rgba(255,214,170,.4), 121px 124px 0 0 rgba(255,214,170,.3),
+        158px 60px 0 0 rgba(255,214,170,.4), 191px 167px 0 0 rgba(255,214,170,.3),
+        233px 19px 0 0 rgba(255,214,170,.4), 274px 119px 0 0 rgba(255,214,170,.35),
+        317px 181px 0 0 rgba(255,214,170,.4), 355px 132px 0 0 rgba(255,214,170,.3),
+        397px 62px 0 0 rgba(255,214,170,.4), 19px 333px 0 0 rgba(255,214,170,.35),
+        96px 238px 0 0 rgba(255,214,170,.3), 183px 348px 0 0 rgba(255,214,170,.4),
+        262px 311px 0 0 rgba(255,214,170,.3), 343px 351px 0 0 rgba(255,214,170,.4),
+        404px 233px 0 0 rgba(255,214,170,.35), 79px 458px 0 0 rgba(255,214,170,.3),
+        140px 392px 0 0 rgba(255,214,170,.4), 233px 444px 0 0 rgba(255,214,170,.3),
+        328px 411px 0 0 rgba(255,214,170,.4), 14px 581px 0 0 rgba(255,214,170,.35),
+        86px 522px 0 0 rgba(255,214,170,.3), 173px 575px 0 0 rgba(255,214,170,.4),
+        265px 488px 0 0 rgba(255,214,170,.3), 359px 564px 0 0 rgba(255,214,170,.4),
+        47px 686px 0 0 rgba(255,214,170,.35), 137px 626px 0 0 rgba(255,214,170,.3),
+        228px 691px 0 0 rgba(255,214,170,.4), 308px 633px 0 0 rgba(255,214,170,.3),
+        383px 663px 0 0 rgba(255,214,170,.35), 33px 808px 0 0 rgba(255,214,170,.4),
+        103px 745px 0 0 rgba(255,214,170,.3), 197px 815px 0 0 rgba(255,214,170,.4),
+        277px 766px 0 0 rgba(255,214,170,.3), 364px 826px 0 0 rgba(255,214,170,.35),
+        144px 902px 0 0 rgba(255,214,170,.3), 254px 887px 0 0 rgba(255,214,170,.4),
+        93px 1022px 0 0 rgba(255,214,170,.35), 327px 1056px 0 0 rgba(255,214,170,.3),
+        180px 1147px 0 0 rgba(255,214,170,.35), 56px 1242px 0 0 rgba(255,214,170,.3),
+        300px 1226px 0 0 rgba(255,214,170,.35);
+    }
+
+    main {
+      max-width: 420px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+    }
+
+    /* ===================== shared atoms ===================== */
+    .mono { font-family: "IBM Plex Mono", monospace; }
+    .label {
+      font: 600 10.5px/1.4 "IBM Plex Mono", monospace;
+      letter-spacing: .28em;
+      text-transform: uppercase;
+      color: var(--dimmer);
+    }
+    .panel {
+      border: 1px solid var(--hairline);
+      border-top-color: rgba(255,220,180,.45);
+      background: var(--panel);
+      border-radius: 14px;
+      box-shadow: 0 0 18px rgba(255,106,0,.07), inset 0 0 24px rgba(255,106,0,.04);
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      min-height: 54px;
+      border-radius: 12px;
+      font: 700 17px/1 "Syne", sans-serif;
+      letter-spacing: .02em;
+      cursor: pointer;
+      padding: 16px 18px;
+    }
+    .btn-primary {
+      border: 1px solid rgba(255,255,255,.55);
+      background: linear-gradient(105deg, #fff6e8 0%, #ffb56b 28%, #ff6a00 72%, #cd4400 100%);
+      color: #190700;
+      box-shadow: 0 0 26px rgba(255,106,0,.45), 0 0 70px rgba(255,106,0,.18);
+      text-shadow: 0 1px 0 rgba(255,255,255,.25);
+    }
+    .btn-ghost {
+      border: 1px solid var(--hairline);
+      background: rgba(255,120,40,.03);
+      color: var(--white);
+      box-shadow: inset 0 0 16px rgba(255,106,0,.05);
+    }
+    .chipbtn {
+      font: 600 11px/1 "IBM Plex Mono", monospace;
+      letter-spacing: .08em;
+      color: var(--dim);
+      background: rgba(255,120,40,.04);
+      border: 1px solid var(--hairline);
+      border-radius: 999px;
+      padding: 10px 14px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .topbar { display: flex; justify-content: space-between; align-items: center; }
+
+    /* ----- event horizon component ----- */
+    .bh { position: absolute; pointer-events: none; }
+    .bh .acc {
+      position: absolute; inset: 0; border-radius: 50%;
+      background: radial-gradient(closest-side,
+        #000 0 52.5%,
+        rgba(255,255,255,.95) 55%,
+        #ffb56b 60%,
+        #ff6a00 67.5%,
+        rgba(255,90,0,.32) 77%,
+        transparent 91%);
+      transform: scaleY(.86);
+      filter: blur(.4px);
+    }
+    .bh .glowfield {
+      position: absolute; inset: -30%; border-radius: 50%;
+      background: radial-gradient(closest-side, rgba(255,106,0,.22), rgba(255,106,0,.07) 55%, transparent 75%);
+      transform: scaleY(.86);
+    }
+    .bh .photon {
+      position: absolute; inset: 22.2%; border-radius: 50%;
+      border: 1.5px solid rgba(255,255,255,.95);
+      transform: scaleY(.86);
+      box-shadow: 0 0 9px rgba(255,255,255,.9), inset 0 0 7px rgba(255,255,255,.6);
+    }
+    .lens {
+      position: absolute; border: 1px solid transparent; border-radius: 50%;
+      pointer-events: none;
+    }
+    .bentstar {
+      position: absolute; width: 12px; height: 2px; border-radius: 2px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.75), transparent);
+      pointer-events: none;
+    }
+
+    /* ----- number cards: the heroes ----- */
+    .ncard {
+      position: relative;
+      width: 56px; height: 78px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,170,100,.4);
+      background:
+        radial-gradient(130% 90% at 50% -10%, rgba(255,150,70,.12), transparent 55%),
+        #060403;
+      display: flex; align-items: center; justify-content: center;
+      font: 700 30px/1 "Syne", sans-serif;
+      color: #fff3e4;
+      text-shadow: 0 0 9px rgba(255,190,120,.95), 0 0 26px rgba(255,106,0,.55);
+      box-shadow: inset 0 0 12px rgba(255,106,0,.08);
+      cursor: pointer;
+    }
+    .ncard.zero { color: #ffd9b8; }
+    .ncard.sel {
+      border-color: rgba(255,255,255,.9);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.55),
+        0 0 18px rgba(255,140,40,.75),
+        0 0 44px rgba(255,90,0,.35),
+        inset 0 0 14px rgba(255,150,70,.22);
+      transform: translateY(-7px);
+      text-shadow: 0 0 10px #fff, 0 0 30px rgba(255,120,20,.9);
+    }
+    .ncard.sel::after { /* micro accretion ring under the chosen card */
+      content: "";
+      position: absolute; left: 50%; bottom: -16px;
+      width: 78px; height: 22px; border-radius: 50%;
+      background: radial-gradient(closest-side,
+        transparent 44%, rgba(255,255,255,.9) 53%, #ffb56b 63%, rgba(255,106,0,.55) 74%, transparent 89%);
+      transform: translateX(-50%) scaleY(.46);
+      filter: blur(.3px);
+    }
+
+    /* ----- power cards ----- */
+    .pcard {
+      position: relative;
+      height: 88px;
+      border-radius: 10px;
+      background:
+        radial-gradient(130% 90% at 50% -10%, rgba(255,255,255,.05), transparent 55%),
+        #060403;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 7px;
+      cursor: pointer;
+    }
+    .pcard .glyph { font: 700 22px/1 "Syne", sans-serif; }
+    .pcard .pname {
+      font: 600 8px/1.15 "IBM Plex Mono", monospace;
+      letter-spacing: .06em; text-transform: uppercase;
+      text-align: center; padding: 0 2px;
+    }
+    .pc-teal    { border: 1px solid rgba(47,217,192,.45); }
+    .pc-teal    .glyph { color: var(--teal); text-shadow: 0 0 10px rgba(47,217,192,.8); }
+    .pc-teal    .pname { color: rgba(47,217,192,.85); }
+    .pc-rose    { border: 1px solid rgba(255,77,106,.45); }
+    .pc-rose    .glyph { color: var(--rose); text-shadow: 0 0 10px rgba(255,77,106,.8); }
+    .pc-rose    .pname { color: rgba(255,77,106,.9); }
+    .pc-pink    { border: 1px solid rgba(255,122,209,.5); }
+    .pc-pink    .glyph { color: var(--pink); text-shadow: 0 0 10px rgba(255,122,209,.85); }
+    .pc-pink    .pname { color: rgba(255,122,209,.9); }
+    .pc-emerald { border: 1px solid rgba(60,224,143,.45); }
+    .pc-emerald .glyph { color: var(--emerald); text-shadow: 0 0 10px rgba(60,224,143,.8); }
+    .pc-emerald .pname { color: rgba(60,224,143,.85); }
+    .pc-violet  { border: 1px solid rgba(168,131,255,.5); }
+    .pc-violet  .glyph { color: var(--violet); text-shadow: 0 0 10px rgba(168,131,255,.85); }
+    .pc-violet  .pname { color: rgba(168,131,255,.9); }
+    .pc-amber   { border: 1px solid rgba(255,177,61,.5); }
+    .pc-amber   .glyph { color: var(--amber); text-shadow: 0 0 10px rgba(255,177,61,.85); }
+    .pc-amber   .pname { color: rgba(255,177,61,.9); }
+    .pcard.sel {
+      border-color: rgba(255,255,255,.95);
+      transform: translateY(-6px);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.5),
+        0 0 16px rgba(255,122,209,.7),
+        0 0 40px rgba(255,80,180,.3);
+    }
+    .pcard.sel::after { /* pink-hot micro ring */
+      content: "";
+      position: absolute; left: 50%; bottom: -15px;
+      width: 70px; height: 20px; border-radius: 50%;
+      background: radial-gradient(closest-side,
+        transparent 44%, rgba(255,255,255,.9) 53%, #ff9ade 63%, rgba(255,80,180,.5) 74%, transparent 89%);
+      transform: translateX(-50%) scaleY(.46);
+    }
+
+    /* seat avatars / dots */
+    .seat {
+      width: 34px; height: 34px; border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      font: 700 14px/1 "Syne", sans-serif; color: #0a0502;
+      flex: none;
+    }
+    .seat-ben  { background: var(--ben);  box-shadow: 0 0 12px rgba(255,106,77,.55); }
+    .seat-vol  { background: var(--vol);  box-shadow: 0 0 12px rgba(125,141,248,.55); }
+    .seat-mech { background: var(--mech); box-shadow: 0 0 12px rgba(245,192,68,.55); }
+    .seat-dan  { background: var(--dan);  box-shadow: 0 0 12px rgba(61,220,151,.55); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+    .dot-on { background: #5dff9f; box-shadow: 0 0 8px rgba(93,255,159,.8); }
+    .cdot-ben  { background: var(--ben);  box-shadow: 0 0 7px rgba(255,106,77,.8); }
+    .cdot-vol  { background: var(--vol);  box-shadow: 0 0 7px rgba(125,141,248,.8); }
+    .cdot-mech { background: var(--mech); box-shadow: 0 0 7px rgba(245,192,68,.8); }
+    .cdot-dan  { background: var(--dan);  box-shadow: 0 0 7px rgba(61,220,151,.8); }
+    .badge {
+      font: 600 9px/1 "IBM Plex Mono", monospace;
+      letter-spacing: .12em;
+      border-radius: 999px;
+      padding: 4px 8px;
+      border: 1px solid rgba(255,200,150,.35);
+      color: var(--dim);
+      flex: none;
+    }
+    .badge-host { color: #ffc46e; border-color: rgba(255,196,110,.55); box-shadow: 0 0 8px rgba(255,177,61,.25); }
+    .badge-you  { color: #fff; border-color: rgba(255,255,255,.45); }
+    .badge-bot  { color: #9fa9f8; border-color: rgba(125,141,248,.5); }
+
+    /* =====================  1 · HOME  ===================== */
+    .home-hero { position: relative; height: 452px; margin: 6px -16px 0; overflow-x: clip; }
+    .bh-hero { width: 300px; height: 300px; left: calc(50% - 150px); top: 124px; }
+    .bh-hero .lens-1 { inset: -26px; border-top-color: rgba(255,235,215,.22); transform: rotate(16deg) scaleY(.9); }
+    .bh-hero .lens-2 { inset: -52px; border-top-color: rgba(255,210,170,.13); transform: rotate(-24deg) scaleY(.92); }
+    .bh-hero .lens-3 { inset: -12px; border-right-color: rgba(255,255,255,.16); transform: rotate(38deg) scaleY(.88); }
+    .bh-hero .bs-1 { left: -16px; top: 96px;  transform: rotate(34deg); }
+    .bh-hero .bs-2 { right: -22px; top: 132px; transform: rotate(-28deg); opacity: .7; }
+    .bh-hero .bs-3 { left: 40px; bottom: -8px; transform: rotate(12deg); opacity: .5; }
+    .word {
+      position: absolute; top: 28px; left: 0; right: 0;
+      display: flex; justify-content: center; gap: 3px;
+      font: 800 58px/1 "Syne", sans-serif;
+      color: #fff6e9;
+    }
+    .word span {
+      display: inline-block;
+      text-shadow: 0 0 16px rgba(255,160,70,.85), 0 0 46px rgba(255,90,0,.5);
+    }
+    .word span:nth-child(1) { transform: rotate(-16deg) translateY(27px); }
+    .word span:nth-child(2) { transform: rotate(-9.5deg) translateY(9px); }
+    .word span:nth-child(3) { transform: rotate(-3deg) translateY(1px); }
+    .word span:nth-child(4) { transform: rotate(3deg) translateY(1px); }
+    .word span:nth-child(5) { transform: rotate(9.5deg) translateY(9px); color: #ffc188; }
+    .word span:nth-child(6) { transform: rotate(16deg) translateY(27px); color: #ffc188; }
+    .word-mirror {
+      top: 352px;
+      transform: scaleY(-.4) scaleX(1.45);
+      filter: blur(3px);
+      opacity: .34;
+      color: var(--warm);
+      -webkit-mask-image: linear-gradient(to top, #000 0%, rgba(0,0,0,.5) 45%, transparent 88%);
+      mask-image: linear-gradient(to top, #000 0%, rgba(0,0,0,.5) 45%, transparent 88%);
+    }
+    .word-mirror span { text-shadow: 0 0 20px rgba(255,106,0,.9); }
+    .tagline {
+      margin: 8px 0 30px;
+      text-align: center;
+      font: 500 11px/1.5 "IBM Plex Mono", monospace;
+      letter-spacing: .42em;
+      text-transform: uppercase;
+      color: var(--dim);
+      text-shadow: 0 0 12px rgba(255,106,0,.35);
+    }
+    .home-actions { display: flex; flex-direction: column; gap: 12px; }
+
+    /* =====================  2 · LOBBY  ===================== */
+    .roomcode { position: relative; text-align: center; padding: 38px 0 30px; }
+    .roomcode .orbit {
+      position: absolute; left: 50%; top: 56%;
+      border: 1px solid rgba(255,170,100,.28); border-radius: 50%;
+      pointer-events: none;
+    }
+    .orbit-a { width: 290px; height: 86px; transform: translate(-50%, -50%) rotate(-4deg); border-color: rgba(255,200,150,.3); }
+    .orbit-b { width: 340px; height: 110px; transform: translate(-50%, -50%) rotate(-4deg); border-color: rgba(255,150,80,.14); }
+    .roomcode .code {
+      font: 800 58px/1 "Syne", sans-serif;
+      letter-spacing: .14em;
+      color: #fff6e9;
+      text-shadow: 0 0 18px rgba(255,160,70,.8), 0 0 52px rgba(255,90,0,.45);
+    }
+    .roomcode .hint {
+      margin-top: 12px;
+      font: 500 10px/1 "IBM Plex Mono", monospace;
+      letter-spacing: .3em; text-transform: uppercase;
+      color: var(--dimmer);
+    }
+    .block { margin-top: 22px; }
+    .block > .label { display: block; margin-bottom: 10px; }
+    .players { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .prow {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+    }
+    .prow .pname { font: 700 15px/1 "Manrope", sans-serif; color: var(--white); margin-right: auto; }
+    .setrow {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 14px;
+      margin-top: 8px;
+    }
+    .set-name { font: 700 14px/1.2 "Manrope", sans-serif; }
+    .stepper { display: flex; align-items: center; gap: 4px; }
+    .stepper button {
+      width: 44px; height: 40px;
+      border: 1px solid var(--hairline); border-radius: 10px;
+      background: rgba(255,120,40,.05);
+      color: var(--warm);
+      font: 600 18px/1 "IBM Plex Mono", monospace;
+      cursor: pointer;
+    }
+    .stepper .val {
+      min-width: 38px; text-align: center;
+      font: 600 18px/1 "IBM Plex Mono", monospace;
+      color: #fff6e9; text-shadow: 0 0 10px rgba(255,160,70,.7);
+    }
+    .setcol { flex-direction: column; align-items: stretch; gap: 10px; }
+    .seg { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    .seg button {
+      height: 42px;
+      border: 1px solid var(--hairline); border-radius: 10px;
+      background: transparent; color: var(--dim);
+      font: 600 13px/1 "Manrope", sans-serif;
+      cursor: pointer;
+    }
+    .seg button.on {
+      border-color: rgba(255,255,255,.6);
+      color: #190700;
+      background: linear-gradient(105deg, #ffe9d2, #ffb56b 45%, #ff7c14);
+      box-shadow: 0 0 16px rgba(255,106,0,.4);
+      font-weight: 800;
+    }
+    .helper { font: 400 11.5px/1.5 "IBM Plex Mono", monospace; color: var(--dimmer); }
+    .lobby-start { margin-top: 24px; }
+
+    /* =====================  3 · GAME  ===================== */
+    .gtop { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .gmeta {
+      font: 600 13px/1 "IBM Plex Mono", monospace;
+      color: var(--dim); letter-spacing: .04em;
+      white-space: nowrap;
+    }
+    .gmeta b { color: #fff6e9; font-weight: 600; text-shadow: 0 0 8px rgba(255,160,70,.6); }
+    .gbtns { display: flex; gap: 5px; }
+    .gbtns .chipbtn { padding: 8px 9px; font-size: 9px; }
+    .gbtns .danger { color: #ff8d70; border-color: rgba(255,106,77,.45); }
+    .scoreboard {
+      margin-top: 14px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 7px;
+    }
+    .schip {
+      display: flex; align-items: center; gap: 8px;
+      border: 1px solid var(--hairline);
+      background: var(--panel);
+      border-radius: 10px;
+      padding: 9px 12px;
+    }
+    .schip .nm { font: 700 13px/1 "Manrope", sans-serif; margin-right: auto; }
+    .schip .sc { font: 600 15px/1 "IBM Plex Mono", monospace; color: #fff6e9; text-shadow: 0 0 8px rgba(255,160,70,.6); }
+    .poolhead {
+      margin-top: 18px;
+      display: flex; justify-content: space-between; align-items: baseline;
+    }
+    .poolhead .count { font: 600 12px/1 "IBM Plex Mono", monospace; color: var(--warm); }
+    .turnbanner {
+      margin-top: 10px;
+      border: 1px solid rgba(255,196,110,.5);
+      border-radius: 10px;
+      background: linear-gradient(100deg, rgba(255,106,0,.16), rgba(255,106,0,.04) 60%);
+      box-shadow: 0 0 18px rgba(255,106,0,.18), inset 0 0 18px rgba(255,106,0,.08);
+      padding: 11px 12px;
+      text-align: center;
+      font: 600 10.5px/1.4 "IBM Plex Mono", monospace;
+      letter-spacing: .24em;
+      color: #ffd9ae;
+      text-shadow: 0 0 10px rgba(255,106,0,.6);
+    }
+    .pool {
+      margin-top: 14px;
+      display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px;
+      padding: 14px 10px 18px;
+    }
+    .statusgrid {
+      margin-top: 12px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px 8px;
+    }
+    .strow { display: flex; gap: 9px; align-items: flex-start; }
+    .strow .seat { width: 30px; height: 30px; font-size: 12px; margin-top: 2px; }
+    .strow .who { font: 700 13.5px/1.2 "Manrope", sans-serif; }
+    .strow .who small { font: 500 11px/1 "Manrope", sans-serif; color: var(--dimmer); }
+    .strow .hand {
+      margin-top: 3px;
+      font: 500 10.5px/1 "IBM Plex Mono", monospace;
+      letter-spacing: .22em; color: var(--dimmer);
+    }
+    .strow .st {
+      margin-top: 5px;
+      font: 600 9.5px/1 "IBM Plex Mono", monospace;
+      letter-spacing: .2em;
+    }
+    .st-think { color: #ffc46e; text-shadow: 0 0 8px rgba(255,177,61,.5); }
+    .st-sub { color: #6ee7c8; text-shadow: 0 0 8px rgba(61,220,151,.4); }
+    .skipghost {
+      margin-top: 14px;
+      width: 100%;
+      min-height: 44px;
+      border: 1px dashed rgba(255,158,82,.4);
+      border-radius: 10px;
+      background: transparent;
+      color: var(--dimmer);
+      font: 600 10px/1.4 "IBM Plex Mono", monospace;
+      letter-spacing: .22em;
+      cursor: pointer;
+    }
+    .handwrap { margin-top: 20px; }
+    .handrow {
+      margin-top: 14px;
+      display: flex; justify-content: center; gap: 11px;
+      padding-bottom: 16px;
+    }
+    .lockin { margin-top: 14px; }
+
+    /* =====================  4 · REVEAL  ===================== */
+    .rv-eyebrow {
+      margin-top: 14px;
+      text-align: center;
+      font: 600 11px/1 "IBM Plex Mono", monospace;
+      letter-spacing: .42em; text-transform: uppercase;
+      color: var(--dim);
+      text-shadow: 0 0 12px rgba(255,106,0,.4);
+    }
+    .rv-played { margin-top: 22px; text-align: center; }
+    .rv-played .label { display: block; margin-bottom: 12px; }
+    .rv-played .pcard {
+      width: 78px; height: 102px; margin: 0 auto;
+      box-shadow: 0 0 18px rgba(255,122,209,.35);
+    }
+    .rv-played .pcard .glyph { font-size: 30px; }
+    .rv-played .pcard .pname { font-size: 9px; }
+    .gfield { position: relative; height: 470px; margin-top: 18px; }
+    .bh-rv { width: 158px; height: 158px; left: calc(50% - 79px); top: 168px; }
+    .bh-rv .lens-1 { inset: -18px; border-top-color: rgba(255,235,215,.22); transform: rotate(22deg) scaleY(.9); }
+    .bh-rv .lens-2 { inset: -34px; border-bottom-color: rgba(255,210,170,.14); transform: rotate(-12deg) scaleY(.92); }
+    .bh-rv .bs-1 { left: -10px; top: 48px; transform: rotate(40deg); opacity: .6; }
+    .bh-rv .bs-2 { right: -14px; bottom: 36px; transform: rotate(-30deg); opacity: .5; }
+    .rslot {
+      position: absolute; width: 124px;
+      display: flex; flex-direction: column; align-items: center; gap: 7px;
+    }
+    .rname {
+      font: 600 10px/1 "IBM Plex Mono", monospace;
+      letter-spacing: .26em;
+    }
+    .rn-ben { color: var(--ben); } .rn-vol { color: var(--vol); }
+    .rn-mech { color: var(--mech); } .rn-dan { color: var(--dan); }
+    .fall { position: relative; }
+    .smear {
+      position: absolute; left: 50%; top: 55%;
+      height: 3px; border-radius: 3px;
+      transform-origin: left center;
+      background: linear-gradient(90deg, rgba(255,200,150,.55), rgba(255,140,60,.28) 55%, transparent);
+      pointer-events: none;
+    }
+    .smear.wide {
+      height: 13px; filter: blur(5px); opacity: .5;
+      background: linear-gradient(90deg, rgba(255,160,80,.5), rgba(255,106,0,.22) 55%, transparent);
+    }
+    .fall .ncard { cursor: default; }
+    .doomed .ncard {
+      filter: brightness(.58) saturate(.75);
+      box-shadow: none;
+    }
+    .rs-ben  { left: 4px; top: 0; }
+    .rs-ben  .ncard { transform: rotate(12deg) scale(1.07, .9) skewX(-5deg); }
+    .rs-ben  .smear        { width: 132px; transform: rotate(52deg); }
+    .rs-ben  .smear.wide   { width: 112px; transform: rotate(52deg); }
+    .rs-mech { right: 4px; top: 0; }
+    .rs-mech .ncard { transform: rotate(-12deg) scale(1.07, .9) skewX(5deg); }
+    .rs-mech .smear        { width: 132px; transform: rotate(128deg); }
+    .rs-mech .smear.wide   { width: 112px; transform: rotate(128deg); }
+    .rs-dan  { left: 4px; bottom: 4px; }
+    .rs-dan  .ncard { transform: rotate(7deg) scale(1.05, .92) skewX(4deg); }
+    .rs-dan  .smear        { width: 126px; transform: rotate(-46deg); }
+    .rs-dan  .smear.wide   { width: 106px; transform: rotate(-46deg); }
+    .rs-vol  { right: 4px; bottom: 4px; }
+    .rs-vol .ncard {
+      border: 1.5px solid rgba(255,255,255,.95);
+      box-shadow: 0 0 14px rgba(255,255,255,.45), 0 0 36px rgba(255,150,60,.3);
+      text-shadow: 0 0 10px #fff, 0 0 30px rgba(255,150,60,.8);
+    }
+    .cancelled {
+      font: 600 10px/1 "IBM Plex Mono", monospace;
+      letter-spacing: .32em;
+      color: #ff8d3f;
+      text-shadow: 0 0 9px rgba(255,106,0,.65);
+      white-space: nowrap;
+    }
+    .rs-ben  .cancelled { transform: scaleX(1.28) rotate(4deg); }
+    .rs-mech .cancelled { transform: scaleX(1.28) rotate(-4deg); }
+    .rs-dan  .cancelled { transform: scaleX(1.28) rotate(2deg); }
+    .pts0 {
+      font: 600 12px/1 "IBM Plex Mono", monospace;
+      color: var(--dimmer);
+    }
+    .doomed .pts0 { opacity: .8; }
+    .survive0 {
+      font: 800 22px/1 "Syne", sans-serif;
+      color: #fff6e9;
+      text-shadow: 0 0 12px #fff, 0 0 34px rgba(255,150,60,.8);
+    }
+    .rv-continue { margin-top: 10px; }
+
+    /* =====================  5 · END  ===================== */
+    .endwrap { position: relative; }
+    .cf { position: absolute; pointer-events: none; z-index: 0; }
+    .cs {
+      width: 56px; height: 2px; border-radius: 2px;
+      background: linear-gradient(90deg, transparent, rgba(255,200,150,.85), transparent);
+    }
+    .cs-ben  { background: linear-gradient(90deg, transparent, rgba(255,106,77,.85), transparent); }
+    .cs-vol  { background: linear-gradient(90deg, transparent, rgba(125,141,248,.8), transparent); }
+    .cs-mech { background: linear-gradient(90deg, transparent, rgba(245,192,68,.85), transparent); }
+    .cs-dan  { background: linear-gradient(90deg, transparent, rgba(61,220,151,.8), transparent); }
+    .cp {
+      width: 4px; height: 4px; border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 9px 2px rgba(255,160,80,.8);
+    }
+    .end-eyebrow { margin-top: 36px; }
+    .won {
+      margin: 14px 0 30px;
+      text-align: center;
+      font: 800 56px/1.05 "Syne", sans-serif;
+      color: #fff6e9;
+      text-shadow: 0 0 20px rgba(255,160,70,.85), 0 0 60px rgba(255,90,0,.5);
+    }
+    .won em { font-style: normal; color: #ffa24f; }
+    .scoretable { padding: 14px 12px; position: relative; z-index: 1; }
+    .thead, .trow {
+      display: grid;
+      grid-template-columns: 16px 30px 1fr 28px 28px 28px 48px;
+      gap: 6px;
+      align-items: center;
+    }
+    .thead {
+      padding: 0 10px 10px;
+      font: 600 9.5px/1 "IBM Plex Mono", monospace;
+      letter-spacing: .18em; color: var(--dimmer);
+      text-align: right;
+    }
+    .thead .hspan { grid-column: 1 / 4; }
+    .trow {
+      padding: 11px 10px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+    }
+    .trow .rank { font: 600 12px/1 "IBM Plex Mono", monospace; color: var(--dimmer); }
+    .trow .seat { width: 28px; height: 28px; font-size: 11px; }
+    .trow .tname { font: 700 14px/1.2 "Manrope", sans-serif; }
+    .trow .tname small { font-weight: 500; color: var(--dimmer); font-size: 11px; }
+    .trow .r { font: 500 12.5px/1 "IBM Plex Mono", monospace; color: var(--dim); text-align: right; }
+    .trow .tot { font: 600 17px/1 "IBM Plex Mono", monospace; color: #fff6e9; text-align: right; text-shadow: 0 0 8px rgba(255,160,70,.6); }
+    .trow.winner {
+      border-color: rgba(255,220,180,.75);
+      background: linear-gradient(100deg, rgba(255,106,0,.18), rgba(255,106,0,.05) 60%);
+      box-shadow: 0 0 16px rgba(255,140,50,.45), 0 0 44px rgba(255,106,0,.18), inset 0 0 16px rgba(255,140,50,.12);
+    }
+    .trow.winner .tot { text-shadow: 0 0 10px #fff, 0 0 26px rgba(255,120,20,.9); }
+    .end-actions { margin-top: 26px; display: flex; flex-direction: column; gap: 12px; position: relative; z-index: 1; }
+
+    /* ===================== motion (flourish only) ===================== */
+    @media (prefers-reduced-motion: no-preference) {
+      @keyframes accBreathe {
+        0%, 100% { filter: blur(.4px) brightness(1); }
+        50% { filter: blur(.4px) brightness(1.22); }
+      }
+      @keyframes photonShimmer {
+        0%, 100% { box-shadow: 0 0 9px rgba(255,255,255,.9), inset 0 0 7px rgba(255,255,255,.6); }
+        50% { box-shadow: 0 0 16px rgba(255,255,255,1), inset 0 0 11px rgba(255,255,255,.85); }
+      }
+      @keyframes thinkBlink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: .35; }
+      }
+      @keyframes ringFlicker {
+        0%, 100% { opacity: 1; transform: translateX(-50%) scaleY(.46); }
+        50% { opacity: .7; transform: translateX(-50%) scaleY(.52); }
+      }
+      @keyframes smearPull {
+        0%, 100% { opacity: 1; }
+        50% { opacity: .55; }
+      }
+      @keyframes sparkTwinkle {
+        0%, 100% { opacity: 1; }
+        50% { opacity: .3; }
+      }
+      @keyframes wordGlow {
+        0%, 100% { text-shadow: 0 0 16px rgba(255,160,70,.85), 0 0 46px rgba(255,90,0,.5); }
+        50% { text-shadow: 0 0 22px rgba(255,190,110,1), 0 0 60px rgba(255,90,0,.7); }
+      }
+      .bh .acc { animation: accBreathe 5.5s ease-in-out infinite; }
+      .bh .photon { animation: photonShimmer 3.5s ease-in-out infinite; }
+      .word span { animation: wordGlow 4.5s ease-in-out infinite; }
+      .st-think { animation: thinkBlink 1.4s ease-in-out infinite; }
+      .ncard.sel::after, .pcard.sel::after { animation: ringFlicker 2.6s ease-in-out infinite; }
+      .smear { animation: smearPull 2.2s ease-in-out infinite; }
+      .cp { animation: sparkTwinkle 2.8s ease-in-out infinite; }
+      .cf:nth-child(odd) .cp, .cp:nth-child(odd) { animation-delay: 1.2s; }
+      .btn, .ncard, .pcard, .seg button, .chipbtn { transition: transform .15s ease, box-shadow .2s ease; }
+      .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 34px rgba(255,106,0,.6), 0 0 90px rgba(255,106,0,.25); }
+      .ncard:hover, .pcard:hover { transform: translateY(-3px); }
+      .ncard.sel:hover { transform: translateY(-8px); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ 1 · HOME ============ -->
+  <main data-screen="home">
+    <div class="home-hero">
+      <div class="bh bh-hero">
+        <span class="glowfield"></span>
+        <span class="lens lens-1"></span>
+        <span class="lens lens-2"></span>
+        <span class="lens lens-3"></span>
+        <span class="acc"></span>
+        <span class="photon"></span>
+        <span class="bentstar bs-1"></span>
+        <span class="bentstar bs-2"></span>
+        <span class="bentstar bs-3"></span>
+      </div>
+      <h1 class="word" aria-label="CANCEL">
+        <span>C</span><span>A</span><span>N</span><span>C</span><span>E</span><span>L</span>
+      </h1>
+      <div class="word word-mirror" aria-hidden="true">
+        <span>C</span><span>A</span><span>N</span><span>C</span><span>E</span><span>L</span>
+      </div>
+    </div>
+    <p class="tagline">a number-picking party game</p>
+    <div class="home-actions">
+      <button class="btn btn-primary">New game</button>
+      <button class="btn btn-ghost">Single player</button>
+      <button class="btn btn-ghost">Join with code</button>
+    </div>
+  </main>
+
+  <!-- ============ 2 · LOBBY ============ -->
+  <main data-screen="lobby">
+    <header class="topbar">
+      <button class="chipbtn">← Leave</button>
+      <button class="chipbtn">Rules</button>
+    </header>
+    <section class="roomcode">
+      <span class="orbit orbit-b"></span>
+      <span class="orbit orbit-a"></span>
+      <div class="code">DN2H</div>
+      <div class="hint">press to copy</div>
+    </section>
+    <section class="block">
+      <h2 class="label">Players · 4</h2>
+      <ul class="players">
+        <li class="prow panel">
+          <span class="seat seat-ben">B</span>
+          <span class="pname">Ben</span>
+          <span class="badge badge-host">HOST</span>
+          <span class="badge badge-you">YOU</span>
+          <span class="dot dot-on"></span>
+        </li>
+        <li class="prow panel">
+          <span class="seat seat-vol">V</span>
+          <span class="pname">Voltaire</span>
+          <span class="badge badge-bot">BOT</span>
+          <span class="dot dot-on"></span>
+        </li>
+        <li class="prow panel">
+          <span class="seat seat-mech">M</span>
+          <span class="pname">Mechano</span>
+          <span class="badge badge-bot">BOT</span>
+          <span class="dot dot-on"></span>
+        </li>
+        <li class="prow panel">
+          <span class="seat seat-dan">D</span>
+          <span class="pname">Data Dan</span>
+          <span class="badge badge-bot">BOT</span>
+          <span class="dot dot-on"></span>
+        </li>
+      </ul>
+    </section>
+    <section class="block">
+      <div class="setrow panel">
+        <div class="set-name">Rounds</div>
+        <div class="stepper">
+          <button>−</button><span class="val">3</span><button>+</button>
+        </div>
+      </div>
+      <div class="setrow panel">
+        <div class="set-name">AI players</div>
+        <div class="stepper">
+          <button>−</button><span class="val">3</span><button>+</button>
+        </div>
+      </div>
+      <div class="setrow setcol panel">
+        <div class="set-name">Power-ups</div>
+        <div class="seg">
+          <button>None</button><button class="on">Random</button><button>Choose</button>
+        </div>
+        <p class="helper">A fresh random pool each round.</p>
+      </div>
+    </section>
+    <button class="btn btn-primary lobby-start">Start game</button>
+  </main>
+
+  <!-- ============ 3 · GAME ============ -->
+  <main data-screen="game">
+    <header class="gtop">
+      <div class="gmeta"><b>R1</b>/3 · <b>T2</b>/6 · DN2H</div>
+      <div class="gbtns">
+        <button class="chipbtn">RULES</button>
+        <button class="chipbtn">LEAVE</button>
+        <button class="chipbtn danger">END GAME</button>
+      </div>
+    </header>
+    <section class="scoreboard">
+      <div class="schip"><span class="dot cdot-ben"></span><span class="nm">Ben</span><span class="sc">4</span></div>
+      <div class="schip"><span class="dot cdot-vol"></span><span class="nm">Voltaire</span><span class="sc">0</span></div>
+      <div class="schip"><span class="dot cdot-mech"></span><span class="nm">Mechano</span><span class="sc">2</span></div>
+      <div class="schip"><span class="dot cdot-dan"></span><span class="nm">Data Dan</span><span class="sc">5</span></div>
+    </section>
+    <div class="poolhead">
+      <span class="label">Power-ups remaining</span>
+      <span class="count">6 / 6</span>
+    </div>
+    <div class="turnbanner">YOUR TURN, PRESS TO SELECT</div>
+    <section class="pool panel">
+      <div class="pcard pc-teal"><span class="glyph">⇄</span><span class="pname">Swap Hands</span></div>
+      <div class="pcard pc-rose"><span class="glyph">✖</span><span class="pname">Sabotage</span></div>
+      <div class="pcard pc-pink sel"><span class="glyph">=</span><span class="pname">Jinx</span></div>
+      <div class="pcard pc-emerald"><span class="glyph">+2</span><span class="pname">Plus Two</span></div>
+      <div class="pcard pc-violet"><span class="glyph">?</span><span class="pname">Wild</span></div>
+      <div class="pcard pc-amber"><span class="glyph">↧</span><span class="pname">Drain</span></div>
+    </section>
+    <div class="block">
+      <h2 class="label">Players · Power picker: Ben</h2>
+      <div class="statusgrid">
+        <div class="strow">
+          <span class="seat seat-ben">B</span>
+          <div>
+            <div class="who">Ben <small>(you)</small></div>
+            <div class="hand">Ø 1 2 3 4 5</div>
+            <div class="st st-think">THINKING…</div>
+          </div>
+        </div>
+        <div class="strow">
+          <span class="seat seat-vol">V</span>
+          <div>
+            <div class="who">Voltaire</div>
+            <div class="hand">Ø 1 2 3 4 5</div>
+            <div class="st st-sub">SUBMITTED</div>
+          </div>
+        </div>
+        <div class="strow">
+          <span class="seat seat-mech">M</span>
+          <div>
+            <div class="who">Mechano</div>
+            <div class="hand">Ø 1 2 3 4 5</div>
+            <div class="st st-sub">SUBMITTED</div>
+          </div>
+        </div>
+        <div class="strow">
+          <span class="seat seat-dan">D</span>
+          <div>
+            <div class="who">Data Dan</div>
+            <div class="hand">Ø 1 2 3 4 5</div>
+            <div class="st st-sub">SUBMITTED</div>
+          </div>
+        </div>
+      </div>
+      <button class="skipghost">SKIP WAITING, AUTO-PLAY WHO'S LEFT</button>
+    </div>
+    <section class="handwrap">
+      <h2 class="label">Your hand</h2>
+      <div class="handrow">
+        <div class="ncard zero">Ø</div>
+        <div class="ncard">1</div>
+        <div class="ncard">2</div>
+        <div class="ncard">3</div>
+        <div class="ncard">4</div>
+        <div class="ncard sel">5</div>
+      </div>
+    </section>
+    <button class="btn btn-primary lockin">Lock it in</button>
+  </main>
+
+  <!-- ============ 4 · REVEAL ============ -->
+  <main data-screen="reveal">
+    <div class="rv-eyebrow">Turn 2 Reveal</div>
+    <section class="rv-played">
+      <span class="label">Ben played</span>
+      <div class="pcard pc-pink"><span class="glyph">=</span><span class="pname">Jinx</span></div>
+    </section>
+    <section class="gfield">
+      <div class="bh bh-rv">
+        <span class="glowfield"></span>
+        <span class="lens lens-1"></span>
+        <span class="lens lens-2"></span>
+        <span class="acc"></span>
+        <span class="photon"></span>
+        <span class="bentstar bs-1"></span>
+        <span class="bentstar bs-2"></span>
+      </div>
+      <div class="rslot rs-ben doomed">
+        <div class="rname rn-ben">BEN</div>
+        <div class="fall">
+          <span class="smear wide"></span>
+          <span class="smear"></span>
+          <div class="ncard">5</div>
+        </div>
+        <div class="pts0">0</div>
+        <div class="cancelled">CANCELLED</div>
+      </div>
+      <div class="rslot rs-vol">
+        <div class="rname rn-vol">VOLTAIRE</div>
+        <div class="fall">
+          <div class="ncard zero">Ø</div>
+        </div>
+        <div class="survive0">0</div>
+      </div>
+      <div class="rslot rs-mech doomed">
+        <div class="rname rn-mech">MECHANO</div>
+        <div class="fall">
+          <span class="smear wide"></span>
+          <span class="smear"></span>
+          <div class="ncard">5</div>
+        </div>
+        <div class="pts0">0</div>
+        <div class="cancelled">CANCELLED</div>
+      </div>
+      <div class="rslot rs-dan doomed">
+        <div class="rname rn-dan">DATA DAN</div>
+        <div class="fall">
+          <span class="smear wide"></span>
+          <span class="smear"></span>
+          <div class="ncard">3</div>
+        </div>
+        <div class="pts0">0</div>
+        <div class="cancelled">CANCELLED</div>
+      </div>
+    </section>
+    <button class="btn btn-primary rv-continue">Continue</button>
+  </main>
+
+  <!-- ============ 5 · END ============ -->
+  <main data-screen="end">
+    <div class="endwrap">
+      <span class="cf" style="left: 8%; top: 30px; transform: rotate(24deg);"><span class="cs"></span></span>
+      <span class="cf" style="left: 62%; top: 14px; transform: rotate(-32deg);"><span class="cs cs-ben"></span></span>
+      <span class="cf" style="left: 80%; top: 96px; transform: rotate(40deg);"><span class="cs cs-mech"></span></span>
+      <span class="cf" style="left: 4%; top: 150px; transform: rotate(-18deg);"><span class="cs cs-vol"></span></span>
+      <span class="cf" style="left: 38%; top: 60px; transform: rotate(60deg);"><span class="cs cs-dan"></span></span>
+      <span class="cf" style="left: 70%; top: 210px; transform: rotate(-50deg);"><span class="cs"></span></span>
+      <span class="cf" style="left: 14%; top: 264px; transform: rotate(34deg);"><span class="cs cs-mech"></span></span>
+      <span class="cf" style="left: 86%; top: 320px; transform: rotate(12deg);"><span class="cs cs-ben"></span></span>
+      <span class="cf" style="left: 6%; top: 420px; transform: rotate(-42deg);"><span class="cs cs-dan"></span></span>
+      <span class="cf" style="left: 76%; top: 480px; transform: rotate(28deg);"><span class="cs cs-vol"></span></span>
+      <span class="cf" style="left: 30%; top: 540px; transform: rotate(-22deg);"><span class="cs"></span></span>
+      <span class="cf" style="left: 22%; top: 22px;"><span class="cp"></span></span>
+      <span class="cf" style="left: 50%; top: 110px;"><span class="cp"></span></span>
+      <span class="cf" style="left: 91%; top: 50px;"><span class="cp"></span></span>
+      <span class="cf" style="left: 10%; top: 330px;"><span class="cp"></span></span>
+      <span class="cf" style="left: 88%; top: 230px;"><span class="cp"></span></span>
+      <span class="cf" style="left: 46%; top: 500px;"><span class="cp"></span></span>
+      <span class="cf" style="left: 64%; top: 410px;"><span class="cp"></span></span>
+      <span class="cf" style="left: 18%; top: 580px;"><span class="cp"></span></span>
+
+      <div class="rv-eyebrow end-eyebrow">Game Over</div>
+      <h1 class="won">You <em>won.</em></h1>
+      <section class="scoretable panel">
+        <div class="thead">
+          <span class="hspan"></span><span>R1</span><span>R2</span><span>R3</span><span>TOTAL</span>
+        </div>
+        <div class="trow winner">
+          <span class="rank">1</span>
+          <span class="seat seat-ben">B</span>
+          <span class="tname">Ben <small>(you)</small></span>
+          <span class="r">5</span><span class="r">9</span><span class="r">6</span><span class="tot">20</span>
+        </div>
+        <div class="trow">
+          <span class="rank">2</span>
+          <span class="seat seat-dan">D</span>
+          <span class="tname">Data Dan</span>
+          <span class="r">5</span><span class="r">4</span><span class="r">3</span><span class="tot">12</span>
+        </div>
+        <div class="trow">
+          <span class="rank">3</span>
+          <span class="seat seat-vol">V</span>
+          <span class="tname">Voltaire</span>
+          <span class="r">3</span><span class="r">2</span><span class="r">4</span><span class="tot">9</span>
+        </div>
+        <div class="trow">
+          <span class="rank">4</span>
+          <span class="seat seat-mech">M</span>
+          <span class="tname">Mechano</span>
+          <span class="r">0</span><span class="r">5</span><span class="r">2</span><span class="tot">7</span>
+        </div>
+      </section>
+      <div class="end-actions">
+        <button class="btn btn-primary">Play again</button>
+        <button class="btn btn-ghost">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

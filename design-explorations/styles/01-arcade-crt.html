@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Arcade CRT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+    #switcher a {
+      font-family: "Press Start 2P", monospace; font-size: 10px; color: #54f7ff;
+      text-decoration: none; border: 1px solid #1c4a55; padding: 4px 6px; background: #050810;
+    }
+
+    :root {
+      --crt-black: #03040a;
+      --crt-deep: #070b18;
+      --panel: #0a1024;
+      --line: #1b2c54;
+      --cyan: #54f7ff;
+      --magenta: #ff4fd8;
+      --yellow: #ffe44f;
+      --green: #5dff6e;
+      --orange: #ff7a3c;
+      --red: #ff3b5e;
+      --violet: #b98aff;
+      --teal: #3affd4;
+      --dim: #7e92c9;
+    }
+
+    * { box-sizing: border-box; margin: 0; }
+    html { background: var(--crt-black); }
+    body {
+      font-family: "VT323", monospace;
+      font-size: 20px;
+      color: #d8e6ff;
+      background:
+        radial-gradient(ellipse 120% 90% at 50% -10%, #11204a 0%, var(--crt-deep) 45%, var(--crt-black) 100%);
+      min-height: 100vh;
+    }
+    /* CRT scanlines + vignette over everything */
+    body::after {
+      content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 500;
+      background:
+        repeating-linear-gradient(0deg, rgba(0,0,0,0.22) 0px, rgba(0,0,0,0.22) 1px, transparent 1px, transparent 3px),
+        radial-gradient(ellipse 95% 85% at 50% 50%, transparent 55%, rgba(0,0,0,0.55) 100%);
+    }
+
+    .wrap { max-width: 420px; margin: 0 auto; padding: 20px 16px 56px; min-height: 100vh; }
+
+    .px { font-family: "Press Start 2P", monospace; }
+
+    /* ---- shared atoms -------------------------------------------------- */
+    .btn {
+      display: block; width: 100%; text-align: center; cursor: pointer;
+      font-family: "Press Start 2P", monospace; font-size: 13px; line-height: 1.4;
+      padding: 18px 12px; margin: 0 0 14px;
+      color: var(--cyan); background: #061021;
+      border: 2px solid var(--cyan); border-radius: 2px;
+      box-shadow: 0 0 14px rgba(84,247,255,0.35), inset 0 0 12px rgba(84,247,255,0.12);
+      text-shadow: 0 0 6px rgba(84,247,255,0.8);
+    }
+    .btn.primary {
+      color: #0a0408; background: var(--magenta); border-color: #ff9bea;
+      box-shadow: 0 0 22px rgba(255,79,216,0.65), inset 0 -4px 0 rgba(0,0,0,0.25);
+      text-shadow: none;
+    }
+    .btn.ghost {
+      font-size: 9px; padding: 12px; color: var(--dim); border-color: var(--line);
+      box-shadow: none; text-shadow: none;
+    }
+    .minibtn {
+      font-family: "Press Start 2P", monospace; font-size: 8px; color: var(--cyan);
+      border: 1px solid var(--line); background: #050a18; padding: 7px 8px; border-radius: 2px;
+    }
+    .label {
+      font-family: "Press Start 2P", monospace; font-size: 9px; letter-spacing: 1px;
+      color: var(--dim); margin: 22px 0 10px;
+    }
+    .label .lit { color: var(--yellow); text-shadow: 0 0 8px rgba(255,228,79,0.8); }
+    .panel {
+      background: var(--panel); border: 2px solid var(--line); border-radius: 4px; padding: 12px;
+      box-shadow: inset 0 0 18px rgba(0,0,0,0.55);
+    }
+
+    /* neon player colors */
+    .c-ben { color: var(--orange); text-shadow: 0 0 7px rgba(255,122,60,0.8); }
+    .c-vol { color: var(--cyan); text-shadow: 0 0 7px rgba(84,247,255,0.8); }
+    .c-mec { color: var(--yellow); text-shadow: 0 0 7px rgba(255,228,79,0.8); }
+    .c-dan { color: var(--green); text-shadow: 0 0 7px rgba(93,255,110,0.8); }
+
+    /* ---- HOME ----------------------------------------------------------- */
+    .home-marquee { text-align: center; padding-top: 46px; }
+    .home-marquee .top {
+      font-family: "Press Start 2P", monospace; font-size: 10px; color: var(--yellow);
+      letter-spacing: 3px; text-shadow: 0 0 8px rgba(255,228,79,0.9); margin-bottom: 26px;
+    }
+    .wordmark {
+      font-family: "Press Start 2P", monospace; font-size: 44px; line-height: 1.05;
+      letter-spacing: 2px;
+      color: var(--magenta);
+      text-shadow:
+        0 0 6px rgba(255,79,216,0.9), 0 0 24px rgba(255,79,216,0.65),
+        4px 4px 0 #4a0d3c;
+    }
+    .wordmark .alt {
+      color: var(--cyan);
+      text-shadow: 0 0 6px rgba(84,247,255,0.9), 0 0 24px rgba(84,247,255,0.6), 4px 4px 0 #0c3a4a;
+    }
+    .tagline {
+      margin: 22px 0 8px; font-size: 22px; color: var(--dim); letter-spacing: 2px; text-transform: uppercase;
+    }
+    .coin {
+      font-family: "Press Start 2P", monospace; font-size: 9px; color: var(--yellow);
+      margin: 26px 0 34px; text-shadow: 0 0 8px rgba(255,228,79,0.8);
+    }
+    .grid-floor {
+      height: 130px; margin: 36px -16px 0; position: relative; overflow: hidden;
+    }
+    .grid-floor::before {
+      content: ""; position: absolute; inset: 0;
+      background:
+        linear-gradient(transparent 0%, rgba(255,79,216,0.12) 100%),
+        repeating-linear-gradient(90deg, rgba(255,79,216,0.5) 0 1px, transparent 1px 42px),
+        repeating-linear-gradient(0deg, rgba(255,79,216,0.5) 0 1px, transparent 1px 26px);
+      transform: perspective(220px) rotateX(58deg) scale(1.6);
+      transform-origin: 50% 0;
+    }
+
+    /* ---- LOBBY ---------------------------------------------------------- */
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .roomcode { text-align: center; margin-top: 26px; }
+    .roomcode .code {
+      font-family: "Press Start 2P", monospace; font-size: 40px; letter-spacing: 10px;
+      color: var(--yellow);
+      text-shadow: 0 0 10px rgba(255,228,79,0.95), 0 0 36px rgba(255,228,79,0.5), 3px 3px 0 #4a3a08;
+    }
+    .roomcode .hint { color: var(--dim); font-size: 18px; letter-spacing: 2px; margin-top: 8px; text-transform: uppercase; }
+    .roster { list-style: none; padding: 0; }
+    .roster li {
+      display: flex; align-items: center; gap: 10px;
+      border: 2px solid var(--line); background: var(--panel); border-radius: 4px;
+      padding: 10px 12px; margin-bottom: 8px;
+    }
+    .seat {
+      font-family: "Press Start 2P", monospace; font-size: 12px; width: 34px; height: 34px;
+      display: grid; place-items: center; border-radius: 2px; flex: none;
+      background: #04060f; border: 2px solid currentColor;
+      box-shadow: 0 0 10px currentColor;
+    }
+    .roster .name { font-size: 22px; letter-spacing: 1px; flex: 1; }
+    .tag {
+      font-family: "Press Start 2P", monospace; font-size: 7px; padding: 4px 5px;
+      border: 1px solid currentColor; border-radius: 2px; margin-left: 4px;
+    }
+    .tag.host { color: var(--yellow); }
+    .tag.you  { color: var(--magenta); }
+    .tag.bot  { color: var(--dim); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); flex: none; }
+    .setting {
+      display: flex; align-items: center; justify-content: space-between;
+      border: 2px solid var(--line); background: var(--panel); border-radius: 4px;
+      padding: 12px; margin-bottom: 10px;
+    }
+    .setting .what { font-size: 21px; letter-spacing: 1px; }
+    .stepper { display: flex; align-items: center; gap: 12px; }
+    .stepper .pm {
+      font-family: "Press Start 2P", monospace; font-size: 12px; width: 34px; height: 34px;
+      display: grid; place-items: center; color: var(--cyan);
+      background: #04060f; border: 2px solid var(--line); border-radius: 2px;
+    }
+    .stepper .val { font-family: "Press Start 2P", monospace; font-size: 16px; color: var(--yellow); text-shadow: 0 0 8px rgba(255,228,79,0.8); }
+    .seg { display: flex; gap: 6px; margin-top: 10px; }
+    .seg span {
+      flex: 1; text-align: center; font-family: "Press Start 2P", monospace; font-size: 8px;
+      padding: 10px 4px; border: 2px solid var(--line); color: var(--dim); border-radius: 2px;
+    }
+    .seg .on {
+      color: #0a0408; background: var(--magenta); border-color: #ff9bea;
+      box-shadow: 0 0 14px rgba(255,79,216,0.6);
+    }
+    .helper { color: var(--dim); font-size: 18px; margin-top: 8px; letter-spacing: 1px; }
+
+    /* ---- GAME ----------------------------------------------------------- */
+    .hud { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; flex-wrap: wrap; }
+    .hud .stat { font-family: "Press Start 2P", monospace; font-size: 11px; color: var(--cyan); text-shadow: 0 0 6px rgba(84,247,255,0.7); }
+    .hud .stat b { color: var(--yellow); }
+    .hud .btns { display: flex; gap: 5px; }
+    .scorebar { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 14px; }
+    .scorebar .chip {
+      display: flex; justify-content: space-between; align-items: center;
+      border: 2px solid var(--line); background: var(--panel); border-radius: 3px; padding: 7px 10px;
+    }
+    .scorebar .chip .nm { font-size: 19px; }
+    .scorebar .chip .sc { font-family: "Press Start 2P", monospace; font-size: 13px; }
+    .pool-banner {
+      font-family: "Press Start 2P", monospace; font-size: 8px; text-align: center;
+      color: var(--yellow); text-shadow: 0 0 8px rgba(255,228,79,0.8); margin-bottom: 10px; letter-spacing: 1px;
+    }
+    .pool { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .pcard {
+      width: 62px; height: 80px; border-radius: 4px; flex: none;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;
+      background: #04060f; border: 2px solid currentColor;
+      box-shadow: 0 0 10px currentColor, inset 0 0 10px rgba(0,0,0,0.6);
+    }
+    .pcard .g { font-family: "Press Start 2P", monospace; font-size: 15px; }
+    .pcard .n { font-family: "Press Start 2P", monospace; font-size: 6px; letter-spacing: 0; text-align: center; line-height: 1.5; }
+    .p-teal   { color: var(--teal); }
+    .p-red    { color: var(--red); }
+    .p-pink   { color: var(--magenta); }
+    .p-green  { color: var(--green); }
+    .p-violet { color: var(--violet); }
+    .p-amber  { color: var(--orange); }
+    .pcard.sel {
+      transform: translateY(-6px);
+      box-shadow: 0 0 22px currentColor, 0 0 44px currentColor, inset 0 0 12px rgba(0,0,0,0.4);
+      background: #0d1326;
+    }
+    .pcard.sel::after { content: "▲"; font-size: 11px; margin-top: -4px; }
+    .statusgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .status {
+      border: 2px solid var(--line); background: var(--panel); border-radius: 3px; padding: 8px 10px;
+    }
+    .status .nm { font-size: 19px; }
+    .status .st { font-family: "Press Start 2P", monospace; font-size: 7px; margin-top: 5px; color: var(--green); }
+    .status .st.wait { color: var(--magenta); }
+    .status .mini { color: var(--dim); font-size: 16px; letter-spacing: 3px; margin-top: 4px; }
+    .hand { display: flex; flex-wrap: wrap; gap: 9px; justify-content: center; }
+    .ncard {
+      width: 56px; height: 74px; border-radius: 4px; flex: none;
+      display: grid; place-items: center;
+      font-family: "Press Start 2P", monospace; font-size: 22px;
+      color: var(--cyan); background: #04060f; border: 2px solid var(--cyan);
+      box-shadow: 0 0 10px rgba(84,247,255,0.5), inset 0 0 12px rgba(0,0,0,0.6);
+      text-shadow: 0 0 8px rgba(84,247,255,0.9);
+    }
+    .ncard.zero { color: var(--red); border-color: var(--red); box-shadow: 0 0 10px rgba(255,59,94,0.5), inset 0 0 12px rgba(0,0,0,0.6); text-shadow: 0 0 8px rgba(255,59,94,0.9); }
+    .ncard.sel {
+      color: #0a0408; background: var(--yellow); border-color: #fff3a8; text-shadow: none;
+      transform: translateY(-8px);
+      box-shadow: 0 0 24px rgba(255,228,79,0.85), 0 0 48px rgba(255,228,79,0.45);
+    }
+
+    /* ---- REVEAL --------------------------------------------------------- */
+    .reveal-stage { text-align: center; padding-top: 34px; }
+    .eyebrow {
+      font-family: "Press Start 2P", monospace; font-size: 10px; letter-spacing: 2px;
+      color: var(--yellow); text-shadow: 0 0 8px rgba(255,228,79,0.85);
+    }
+    .played { margin: 18px 0 6px; color: var(--dim); font-size: 20px; letter-spacing: 2px; text-transform: uppercase; }
+    .reveal-power { display: inline-flex; margin: 8px 0 26px; }
+    .rgrid { display: grid; grid-template-columns: repeat(2, 132px); gap: 18px 22px; justify-content: center; }
+    .rslot .who { font-family: "Press Start 2P", monospace; font-size: 8px; margin-bottom: 8px; }
+    .rcard {
+      width: 92px; height: 120px; margin: 0 auto; border-radius: 5px;
+      display: grid; place-items: center;
+      font-family: "Press Start 2P", monospace; font-size: 34px;
+      color: var(--cyan); background: #04060f; border: 3px solid var(--cyan);
+      box-shadow: 0 0 16px rgba(84,247,255,0.55), inset 0 0 14px rgba(0,0,0,0.5);
+      text-shadow: 0 0 10px rgba(84,247,255,0.9);
+      position: relative;
+    }
+    .rcard.dead { opacity: 0.62; }
+    .rcard.zero {
+      color: var(--green); border-color: var(--green);
+      box-shadow: 0 0 22px rgba(93,255,110,0.8), 0 0 48px rgba(93,255,110,0.4), inset 0 0 14px rgba(0,0,0,0.5);
+      text-shadow: 0 0 12px rgba(93,255,110,1);
+    }
+    .stamp {
+      position: absolute; left: 50%; top: 74%; transform: translate(-50%,-50%) rotate(-12deg);
+      font-family: "Press Start 2P", monospace; font-size: 9px; color: var(--red);
+      border: 2px solid var(--red); padding: 5px 6px; background: rgba(10,2,6,0.85);
+      text-shadow: 0 0 8px rgba(255,59,94,0.9); box-shadow: 0 0 12px rgba(255,59,94,0.6);
+      letter-spacing: 1px;
+    }
+    .outcome { font-family: "Press Start 2P", monospace; font-size: 8px; margin-top: 8px; color: var(--red); }
+    .outcome.alive { color: var(--green); }
+
+    /* ---- END ------------------------------------------------------------ */
+    .end-stage { text-align: center; padding-top: 40px; position: relative; }
+    .end-title {
+      font-family: "Press Start 2P", monospace; font-size: 34px; line-height: 1.25; margin-top: 14px;
+      color: var(--yellow);
+      text-shadow: 0 0 8px rgba(255,228,79,0.95), 0 0 34px rgba(255,228,79,0.55), 4px 4px 0 #4a3a08;
+    }
+    .scoretable { margin: 30px 0 8px; border-collapse: collapse; width: 100%; }
+    .scoretable th {
+      font-family: "Press Start 2P", monospace; font-size: 7px; color: var(--dim);
+      padding: 6px 4px; text-align: right; border-bottom: 2px solid var(--line); letter-spacing: 1px;
+    }
+    .scoretable th:first-child, .scoretable td:first-child { text-align: left; }
+    .scoretable td { padding: 10px 4px; text-align: right; font-size: 20px; border-bottom: 1px solid #11203f; }
+    .scoretable .rank { font-family: "Press Start 2P", monospace; font-size: 10px; color: var(--dim); }
+    .scoretable .tot { font-family: "Press Start 2P", monospace; font-size: 14px; color: var(--yellow); text-shadow: 0 0 7px rgba(255,228,79,0.8); }
+    .scoretable tr.winner td { background: rgba(255,228,79,0.07); }
+    .confetti { position: absolute; inset: 0; pointer-events: none; }
+    .confetti i { position: absolute; width: 7px; height: 7px; }
+
+    /* blink/flicker flourishes for humans only */
+    @media (prefers-reduced-motion: no-preference) {
+      .coin, .pool-banner { animation: blink 1.1s steps(2, start) infinite; }
+      @keyframes blink { to { visibility: hidden; } }
+      .wordmark { animation: hum 3.2s ease-in-out infinite; }
+      @keyframes hum {
+        0%, 100% { text-shadow: 0 0 6px rgba(255,79,216,0.9), 0 0 24px rgba(255,79,216,0.65), 4px 4px 0 #4a0d3c; }
+        50% { text-shadow: 0 0 10px rgba(255,79,216,1), 0 0 44px rgba(255,79,216,0.9), 4px 4px 0 #4a0d3c; }
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================== HOME ============================== -->
+  <main data-screen="home">
+    <div class="wrap">
+      <div class="home-marquee">
+        <div class="top">★ HI-SCORE 000020 ★</div>
+        <h1 class="wordmark">CAN<span class="alt">CEL</span></h1>
+        <p class="tagline">a number-picking party game</p>
+        <p class="coin">CREDIT 1 · INSERT COIN</p>
+        <a class="btn primary" href="#lobby">New game</a>
+        <a class="btn" href="#lobby">Single player</a>
+        <a class="btn" href="#lobby">Join with code</a>
+        <div class="grid-floor"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================== LOBBY ============================= -->
+  <main data-screen="lobby">
+    <div class="wrap">
+      <div class="topbar">
+        <span class="minibtn">← LEAVE</span>
+        <span class="minibtn">RULES</span>
+      </div>
+
+      <div class="roomcode">
+        <div class="code">DN2H</div>
+        <div class="hint">press to copy</div>
+      </div>
+
+      <div class="label">PLAYERS · <span class="lit">4</span></div>
+      <ul class="roster">
+        <li><span class="seat c-ben">B</span><span class="name c-ben">Ben</span><span class="tag host">HOST</span><span class="tag you">YOU</span><span class="dot"></span></li>
+        <li><span class="seat c-vol">V</span><span class="name c-vol">Voltaire</span><span class="tag bot">BOT</span><span class="dot"></span></li>
+        <li><span class="seat c-mec">M</span><span class="name c-mec">Mechano</span><span class="tag bot">BOT</span><span class="dot"></span></li>
+        <li><span class="seat c-dan">D</span><span class="name c-dan">Data Dan</span><span class="tag bot">BOT</span><span class="dot"></span></li>
+      </ul>
+
+      <div class="label">MACHINE SETTINGS</div>
+      <div class="setting">
+        <span class="what">Rounds</span>
+        <span class="stepper"><span class="pm">−</span><span class="val">3</span><span class="pm">+</span></span>
+      </div>
+      <div class="setting">
+        <span class="what">AI players</span>
+        <span class="stepper"><span class="pm">−</span><span class="val">3</span><span class="pm">+</span></span>
+      </div>
+      <div class="panel">
+        <span class="what">Power-ups</span>
+        <div class="seg"><span>None</span><span class="on">Random</span><span>Choose</span></div>
+        <p class="helper">A fresh random pool each round.</p>
+      </div>
+
+      <div style="height:18px"></div>
+      <a class="btn primary" href="#game">Start game</a>
+    </div>
+  </main>
+
+  <!-- ============================== GAME ============================== -->
+  <main data-screen="game">
+    <div class="wrap">
+      <div class="hud">
+        <span class="stat">R<b>1</b>/3 · T<b>2</b>/6 · DN2H</span>
+        <span class="btns">
+          <span class="minibtn">RULES</span><span class="minibtn">LEAVE</span><span class="minibtn">END GAME</span>
+        </span>
+      </div>
+
+      <div class="scorebar">
+        <div class="chip"><span class="nm c-ben">Ben</span><span class="sc c-ben">04</span></div>
+        <div class="chip"><span class="nm c-vol">Voltaire</span><span class="sc c-vol">00</span></div>
+        <div class="chip"><span class="nm c-mec">Mechano</span><span class="sc c-mec">02</span></div>
+        <div class="chip"><span class="nm c-dan">Data Dan</span><span class="sc c-dan">05</span></div>
+      </div>
+
+      <div class="label">POWER-UPS REMAINING · <span class="lit">6 / 6</span></div>
+      <div class="panel">
+        <div class="pool-banner">YOUR TURN · PRESS TO SELECT</div>
+        <div class="pool">
+          <div class="pcard p-teal"><span class="g">⇄</span><span class="n">SWAP<br>HANDS</span></div>
+          <div class="pcard p-red"><span class="g">✖</span><span class="n">SABOTAGE</span></div>
+          <div class="pcard p-pink sel"><span class="g">=</span><span class="n">JINX</span></div>
+          <div class="pcard p-green"><span class="g">+2</span><span class="n">PLUS TWO</span></div>
+          <div class="pcard p-violet"><span class="g">?</span><span class="n">WILD</span></div>
+          <div class="pcard p-amber"><span class="g">↧</span><span class="n">DRAIN</span></div>
+        </div>
+      </div>
+
+      <div class="label">PLAYERS · POWER PICKER: <span class="lit">BEN</span></div>
+      <div class="statusgrid">
+        <div class="status"><span class="nm c-ben">Ben <small>(you)</small></span><div class="mini">Ø 1 2 3 4 5</div><div class="st wait">THINKING…</div></div>
+        <div class="status"><span class="nm c-vol">Voltaire</span><div class="mini">Ø 1 2 4 5</div><div class="st">SUBMITTED</div></div>
+        <div class="status"><span class="nm c-mec">Mechano</span><div class="mini">1 2 3 4 5</div><div class="st">SUBMITTED</div></div>
+        <div class="status"><span class="nm c-dan">Data Dan</span><div class="mini">Ø 1 2 3 5</div><div class="st">SUBMITTED</div></div>
+      </div>
+      <div style="height:10px"></div>
+      <span class="btn ghost">SKIP WAITING · AUTO-PLAY WHO'S LEFT</span>
+
+      <div class="label">YOUR HAND</div>
+      <div class="hand">
+        <div class="ncard zero">Ø</div>
+        <div class="ncard">1</div>
+        <div class="ncard">2</div>
+        <div class="ncard">3</div>
+        <div class="ncard">4</div>
+        <div class="ncard sel">5</div>
+      </div>
+
+      <div style="height:18px"></div>
+      <a class="btn primary" href="#reveal">Lock it in</a>
+    </div>
+  </main>
+
+  <!-- ============================== REVEAL ============================ -->
+  <main data-screen="reveal">
+    <div class="wrap">
+      <div class="reveal-stage">
+        <div class="eyebrow">TURN 2 REVEAL</div>
+        <p class="played">BEN PLAYED</p>
+        <div class="reveal-power">
+          <div class="pcard p-pink sel"><span class="g">=</span><span class="n">JINX</span></div>
+        </div>
+
+        <div class="rgrid">
+          <div class="rslot">
+            <div class="who c-ben">BEN</div>
+            <div class="rcard dead">5<span class="stamp">CANCELLED</span></div>
+            <div class="outcome">CANCELLED</div>
+          </div>
+          <div class="rslot">
+            <div class="who c-vol">VOLTAIRE</div>
+            <div class="rcard zero">Ø</div>
+            <div class="outcome alive">0</div>
+          </div>
+          <div class="rslot">
+            <div class="who c-mec">MECHANO</div>
+            <div class="rcard dead">5<span class="stamp">CANCELLED</span></div>
+            <div class="outcome">CANCELLED</div>
+          </div>
+          <div class="rslot">
+            <div class="who c-dan">DATA DAN</div>
+            <div class="rcard dead">3<span class="stamp">CANCELLED</span></div>
+            <div class="outcome">CANCELLED</div>
+          </div>
+        </div>
+
+        <div style="height:30px"></div>
+        <a class="btn primary" href="#end">Continue</a>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================== END =============================== -->
+  <main data-screen="end">
+    <div class="wrap">
+      <div class="end-stage">
+        <div class="confetti">
+          <i style="left:6%;  top:4%;  background:#ff4fd8"></i>
+          <i style="left:18%; top:12%; background:#54f7ff"></i>
+          <i style="left:31%; top:2%;  background:#ffe44f"></i>
+          <i style="left:44%; top:15%; background:#5dff6e"></i>
+          <i style="left:58%; top:5%;  background:#ff7a3c"></i>
+          <i style="left:71%; top:13%; background:#ff4fd8"></i>
+          <i style="left:84%; top:3%;  background:#54f7ff"></i>
+          <i style="left:93%; top:11%; background:#ffe44f"></i>
+          <i style="left:10%; top:24%; background:#5dff6e"></i>
+          <i style="left:88%; top:26%; background:#ff7a3c"></i>
+          <i style="left:25%; top:33%; background:#54f7ff"></i>
+          <i style="left:70%; top:36%; background:#ffe44f"></i>
+          <i style="left:5%;  top:48%; background:#ff4fd8"></i>
+          <i style="left:94%; top:52%; background:#5dff6e"></i>
+          <i style="left:15%; top:65%; background:#ffe44f"></i>
+          <i style="left:82%; top:68%; background:#54f7ff"></i>
+          <i style="left:38%; top:76%; background:#ff7a3c"></i>
+          <i style="left:62%; top:80%; background:#ff4fd8"></i>
+          <i style="left:8%;  top:88%; background:#54f7ff"></i>
+          <i style="left:90%; top:90%; background:#ffe44f"></i>
+        </div>
+
+        <div class="eyebrow">GAME OVER</div>
+        <h1 class="end-title">You won.</h1>
+
+        <table class="scoretable">
+          <tr><th></th><th></th><th>R1</th><th>R2</th><th>R3</th><th>TOTAL</th></tr>
+          <tr class="winner">
+            <td class="rank">1</td><td class="c-ben">Ben <small>(you)</small></td>
+            <td>5</td><td>9</td><td>6</td><td class="tot">20</td>
+          </tr>
+          <tr>
+            <td class="rank">2</td><td class="c-dan">Data Dan</td>
+            <td>5</td><td>4</td><td>3</td><td class="tot">12</td>
+          </tr>
+          <tr>
+            <td class="rank">3</td><td class="c-vol">Voltaire</td>
+            <td>3</td><td>2</td><td>4</td><td class="tot">9</td>
+          </tr>
+          <tr>
+            <td class="rank">4</td><td class="c-mec">Mechano</td>
+            <td>0</td><td>5</td><td>2</td><td class="tot">7</td>
+          </tr>
+        </table>
+
+        <div style="height:26px"></div>
+        <a class="btn primary" href="#home">Play again</a>
+        <a class="btn ghost" href="#home">Leave room</a>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

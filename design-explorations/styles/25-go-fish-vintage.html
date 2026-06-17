@@ -1,0 +1,1036 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Go Fish Vintage</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ============ Go Fish Vintage ============ */
+    :root {
+      --paper: #f8f1e0;
+      --paper-hi: #fdf8ea;
+      --paper-lo: #efe3c8;
+      --ink: #33455e;
+      --ink-soft: rgba(51, 69, 94, .66);
+      --red: #cf5c4f;
+      --red-deep: #ad4a3f;
+      --teal: #4f8f8b;
+      --teal-deep: #3e7672;
+      --mustard: #d9a73e;
+      --mustard-deep: #b88c2c;
+      --green: #7d9c5f;
+      --blue: #5e7ba3;
+      --pink: #d886a3;
+      --violet: #8d80b3;
+      --emerald: #6f9a63;
+      --wood: #ad7f51;
+      --wood-deep: #936A41;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Quicksand, "Trebuchet MS", sans-serif;
+      font-weight: 500;
+      font-size: 15px;
+      line-height: 1.45;
+    }
+    /* paper mottle (under content) */
+    body::before {
+      content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(440px 320px at 10% 4%, rgba(217,167,62,.09), transparent 70%),
+        radial-gradient(540px 400px at 92% 28%, rgba(79,143,139,.09), transparent 70%),
+        radial-gradient(480px 360px at 16% 88%, rgba(207,92,79,.07), transparent 70%);
+    }
+    /* halftone dot grain (over content, very faint) */
+    body::after {
+      content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 80;
+      background-image: radial-gradient(rgba(51,69,94,.09) 1px, transparent 1.15px);
+      background-size: 7px 7px;
+      opacity: .5;
+    }
+    main { position: relative; z-index: 1; }
+    .wrap { width: min(420px, 100%); margin: 0 auto; padding: 20px 18px 60px; position: relative; }
+
+    button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+    svg { display: block; }
+
+    /* misregistered ink outline: fill sits true, the 2px ink line drifts up-left */
+    .po { position: relative; }
+    .po::before {
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      border: 2px solid var(--ink); border-radius: inherit;
+      transform: translate(-2px, -1.5px);
+    }
+
+    .eyebrow {
+      font-size: 11px; font-weight: 700; letter-spacing: .2em;
+      text-transform: uppercase; color: var(--ink-soft);
+    }
+    .ctr { text-align: center; }
+
+    .sect {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 11.5px; font-weight: 700; letter-spacing: .17em;
+      text-transform: uppercase; color: var(--ink-soft);
+      margin: 24px 0 10px;
+    }
+    .sect::before, .sect::after {
+      content: ""; height: 8px; opacity: .55;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='8'%3E%3Cpath d='M0 6 Q6 0 12 6 T24 6' fill='none' stroke='%2333455e' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") repeat-x 0 50%;
+    }
+    .sect::before { flex: 0 0 24px; }
+    .sect::after { flex: 1; }
+
+    /* ---------- buttons as printed game-box labels ---------- */
+    .btn {
+      display: block; width: 100%; min-height: 54px;
+      border-radius: 11px 13px 10px 12px;
+      font-family: "Alfa Slab One", Quicksand, serif;
+      font-weight: 400; font-size: 19px; letter-spacing: .04em;
+      padding: 14px 18px; text-align: center;
+    }
+    .btn.primary {
+      background: var(--red); color: var(--paper-hi);
+      text-shadow: 0 2px 0 rgba(90,30,20,.30);
+      box-shadow: 0 4px 0 var(--red-deep), 4px 7px 0 rgba(51,69,94,.13);
+    }
+    .btn.paper {
+      background: var(--paper-hi); color: var(--ink);
+      box-shadow: 0 3px 0 var(--paper-lo), 4px 6px 0 rgba(51,69,94,.10);
+    }
+    .btn.paper.tealish { color: var(--teal-deep); }
+    .t1 { transform: rotate(-.7deg); }
+    .t2 { transform: rotate(.6deg); }
+    .t3 { transform: rotate(-.45deg); }
+
+    .chipbtn {
+      font-size: 13px; font-weight: 700; letter-spacing: .03em;
+      background: var(--paper-hi); color: var(--ink);
+      border-radius: 9px; padding: 9px 14px; min-height: 38px;
+      box-shadow: 2px 3px 0 rgba(51,69,94,.10);
+    }
+    .ghostbtn {
+      display: block; width: 100%;
+      border: 2px dashed rgba(51,69,94,.40); border-radius: 10px;
+      color: var(--ink-soft); background: rgba(253,248,234,.5);
+      font-size: 11px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase;
+      padding: 12px 10px; margin-top: 14px; min-height: 44px;
+    }
+
+    /* ---------- oval portrait frames ---------- */
+    .oval {
+      width: 54px; height: 44px; flex: 0 0 54px;
+      border-radius: 50%; background: var(--paper-hi);
+      border: 2px solid var(--ink);
+      box-shadow: inset 0 0 0 3px var(--paper-hi), inset 0 0 0 4.5px rgba(51,69,94,.38);
+      display: grid; place-items: center; position: relative;
+    }
+    .oval > svg.ofish { width: 34px; height: auto; }
+    .oval .hat { position: absolute; width: 27px; height: auto; top: -10px; left: 3px; transform: rotate(-12deg); }
+    .oval.sm { width: 44px; height: 36px; flex: 0 0 44px; }
+    .oval.sm > svg.ofish { width: 27px; }
+    .oval.xs { width: 34px; height: 28px; flex: 0 0 34px; border-width: 1.8px; box-shadow: inset 0 0 0 2px var(--paper-hi), inset 0 0 0 3px rgba(51,69,94,.38); }
+    .oval.xs > svg.ofish { width: 21px; }
+    .seat-red { color: var(--red); }
+    .seat-blue { color: var(--blue); }
+    .seat-gold { color: var(--mustard); }
+    .seat-green { color: var(--green); }
+
+    .badge {
+      font-size: 10px; font-weight: 700; letter-spacing: .09em;
+      padding: 3px 7px; border-radius: 4px; border: 1.5px solid var(--ink);
+      text-transform: uppercase;
+    }
+    .badge.gold { background: var(--mustard); color: #463308; }
+    .badge.you { background: var(--ink); color: var(--paper-hi); }
+    .badge.bot { background: rgba(79,143,139,.16); color: var(--teal-deep); border-color: var(--teal-deep); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); border: 1.5px solid var(--ink); flex: 0 0 10px; }
+
+    /* ---------- number cards: the deck ---------- */
+    .ncard {
+      position: relative;
+      background: var(--paper-hi);
+      border-radius: 11px 13px 10px 12px;
+      color: var(--ink);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 6px; padding: 16px 6px 12px;
+      box-shadow: 3px 4px 0 rgba(51,69,94,.11);
+    }
+    .ncard::before {
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      border: 2px solid var(--ink); border-radius: inherit;
+      transform: translate(-2px, -1.5px);
+    }
+    .ncard::after {
+      content: ""; position: absolute; inset: 7px; pointer-events: none;
+      border: 1.5px solid currentColor; opacity: .38; border-radius: 7px;
+    }
+    .ncard .big {
+      font-family: "Alfa Slab One", serif; font-weight: 400;
+      font-size: 44px; line-height: .95; color: currentColor;
+    }
+    .ncard .cidx {
+      position: absolute; top: 7px; left: 10px;
+      font-family: "Alfa Slab One", serif; font-size: 13px; line-height: 1; color: currentColor;
+    }
+    .ncard .cidx.br { top: auto; left: auto; bottom: 7px; right: 10px; transform: rotate(180deg); }
+    .ncard .cfig { width: 42px; height: auto; color: currentColor; }
+    .c-red { color: var(--red); }
+    .c-teal { color: var(--teal); }
+    .c-gold { color: var(--mustard); }
+    .c-navy { color: var(--blue); }
+    .c-green { color: var(--green); }
+
+    .handgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 12px; padding: 4px 2px 2px; }
+    .handgrid .ncard { aspect-ratio: 0.74; width: 100%; }
+
+    .ncard.sel {
+      transform: translateY(-6px) rotate(-1.6deg);
+      box-shadow: 0 0 0 4px var(--mustard), 4px 8px 0 rgba(51,69,94,.16);
+    }
+    .hookpin { position: absolute; left: 50%; top: -36px; width: 26px; height: 44px; margin-left: -13px; pointer-events: none; }
+    .hookpin svg { width: 100%; height: 100%; }
+
+    /* mini cards (home fan) */
+    .ncard.mini { width: 70px; aspect-ratio: 0.74; padding: 10px 4px 8px; gap: 3px; border-radius: 8px 10px 8px 9px; }
+    .ncard.mini::after { inset: 5px; border-radius: 5px; }
+    .ncard.mini .big { font-size: 24px; }
+    .ncard.mini .cidx { font-size: 9px; top: 5px; left: 7px; }
+    .ncard.mini .cidx.br { top: auto; left: auto; bottom: 5px; right: 7px; }
+    .ncard.mini .cfig { width: 26px; }
+
+    /* dead / cancelled card */
+    .ncard.dead { background: #f2ead4; }
+    .ncard.dead .big, .ncard.dead .cidx { opacity: .42; }
+    .ncard.dead .cfig { margin-top: 2px; }
+    .stamp {
+      position: absolute; left: 50%; top: 50%; z-index: 3;
+      transform: translate(-50%, -50%) rotate(-11deg);
+      font-family: "Alfa Slab One", serif; font-size: 12.5px; letter-spacing: .09em;
+      text-transform: uppercase; color: #b04338;
+      border: 2.5px solid #b04338; border-radius: 5px;
+      padding: 3px 7px; background: rgba(248,241,224,.42);
+      mix-blend-mode: multiply;
+    }
+
+    /* ---------- power-up cards ---------- */
+    .pcard {
+      position: relative;
+      background: var(--paper-hi);
+      border-radius: 9px 11px 9px 10px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 7px; padding: 12px 4px 10px; min-height: 96px;
+      box-shadow: 3px 4px 0 rgba(51,69,94,.10);
+      width: 100%;
+    }
+    .pcard::before {
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      border: 2px solid var(--ink); border-radius: inherit;
+      transform: translate(-2px, -1.5px);
+    }
+    .pcard::after {
+      content: ""; position: absolute; inset: 6px; pointer-events: none;
+      border: 1.5px solid currentColor; opacity: .35; border-radius: 6px;
+    }
+    .pcard .glyph {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: currentColor; border: 2px solid var(--ink);
+      display: grid; place-items: center;
+    }
+    .pcard .glyph b {
+      font-family: "Alfa Slab One", Quicksand, "Segoe UI Symbol", sans-serif;
+      font-weight: 400; font-size: 16px; line-height: 1; color: var(--paper-hi);
+    }
+    .pcard .pwname {
+      font-size: 10.5px; font-weight: 700; letter-spacing: .07em;
+      text-transform: uppercase; color: var(--ink); text-align: center;
+    }
+    .pw-teal { color: var(--teal); }
+    .pw-red { color: var(--red); }
+    .pw-pink { color: var(--pink); }
+    .pw-green { color: var(--emerald); }
+    .pw-violet { color: var(--violet); }
+    .pw-amber { color: var(--mustard); }
+    .pcard.sel {
+      transform: translateY(-5px) rotate(-1.8deg);
+      box-shadow: 0 0 0 4px var(--mustard), 4px 8px 0 rgba(51,69,94,.15);
+      background: #fbeed9;
+    }
+    .powers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 10px; margin-top: 16px; }
+
+    /* ---------- switcher ---------- */
+    #switcher a {
+      width: 30px; height: 30px; display: grid; place-items: center;
+      background: var(--paper-hi); border: 2px solid var(--ink); border-radius: 50%;
+      color: var(--ink); font-size: 13px; font-weight: 700; text-decoration: none;
+      box-shadow: 2px 2px 0 rgba(51,69,94,.18);
+    }
+
+    /* =================== HOME =================== */
+    .home .mute {
+      position: absolute; top: 16px; right: 14px;
+      width: 42px; height: 42px; border-radius: 50%;
+      background: var(--paper-hi); border: 2px solid var(--ink);
+      box-shadow: 2px 3px 0 rgba(51,69,94,.12);
+      font-size: 17px; color: var(--ink); line-height: 1;
+    }
+    .home .mute i {
+      position: absolute; left: 9px; top: 19px; width: 21px; height: 2.5px;
+      background: var(--red); transform: rotate(-40deg); border-radius: 2px;
+    }
+    .signage { position: relative; padding-top: 86px; margin-top: 8px; }
+    .rope {
+      position: absolute; top: 0; width: 3px; height: 92px;
+      background: var(--wood-deep); border-radius: 2px;
+    }
+    .rope.rl { left: 26%; transform: rotate(4deg); }
+    .rope.rr { right: 26%; transform: rotate(-4deg); }
+    .sign {
+      position: relative;
+      background:
+        repeating-linear-gradient(88deg, rgba(60,38,18,.10) 0 2px, rgba(60,38,18,0) 2px 11px),
+        radial-gradient(26px 14px at 16% 24%, rgba(60,38,18,.18), transparent 70%),
+        radial-gradient(20px 12px at 86% 76%, rgba(60,38,18,.16), transparent 70%),
+        linear-gradient(175deg, var(--wood), var(--wood-deep));
+      border-radius: 14px;
+      padding: 26px 12px 24px;
+      text-align: center;
+      box-shadow: 0 6px 0 rgba(80,52,26,.45), 5px 9px 0 rgba(51,69,94,.14);
+      transform: rotate(-1deg);
+    }
+    .sign::after {
+      content: ""; position: absolute; inset: 7px; pointer-events: none;
+      border: 2px solid rgba(248,241,224,.5); border-radius: 9px;
+    }
+    .nail {
+      position: absolute; top: 9px; width: 9px; height: 9px; border-radius: 50%;
+      background: #5d4326; box-shadow: inset 1px 1px 0 rgba(248,241,224,.4); z-index: 2;
+    }
+    .nail.nl { left: 25%; }
+    .nail.nr { right: 25%; }
+    .wordmark {
+      font-family: "Alfa Slab One", serif; font-weight: 400;
+      font-size: 56px; line-height: 1; letter-spacing: .015em;
+      color: var(--paper); text-shadow: 0 3px 0 rgba(40,25,10,.42);
+    }
+    .wordmark span { color: var(--mustard); }
+    .leap { position: absolute; top: 6px; right: 38px; width: 66px; height: auto; color: var(--red); transform: scaleX(-1) rotate(33deg); z-index: 3; }
+    .lb { position: absolute; border: 2px solid rgba(79,143,139,.65); border-radius: 50%; }
+    .lb1 { width: 7px; height: 7px; top: 36px; right: 116px; }
+    .lb2 { width: 10px; height: 10px; top: 16px; right: 102px; }
+    .lb3 { width: 6px; height: 6px; top: 4px; right: 80px; }
+    .tagline {
+      text-align: center; margin: 20px 0 26px;
+      font-size: 13.5px; font-weight: 700; letter-spacing: .22em;
+      text-transform: uppercase; color: var(--ink-soft);
+    }
+    .homebtns { display: grid; gap: 16px; }
+    .fan { display: flex; justify-content: center; gap: 2px; margin: 30px 0 4px; }
+    .fan .f1 { transform: rotate(-9deg) translateY(7px); z-index: 1; }
+    .fan .f2 { transform: translateY(-1px); z-index: 2; }
+    .fan .f3 { transform: rotate(9deg) translateY(7px); z-index: 3; }
+    .shore { position: relative; margin-top: 26px; height: 74px; color: var(--teal); }
+    .wv { position: absolute; left: 0; right: 0; width: 100%; height: 12px; opacity: .75; }
+    .wv1 { top: 26px; }
+    .wv2 { top: 50px; opacity: .45; }
+    .swim { position: absolute; width: 38px; height: auto; }
+    .swim.s1 { left: 13%; top: 0; color: var(--mustard); transform: rotate(-6deg); }
+    .swim.s2 { right: 14%; top: 32px; color: var(--blue); transform: scaleX(-1) rotate(5deg); }
+    .shorebub { position: absolute; border: 2px solid rgba(79,143,139,.55); border-radius: 50%; }
+    .sb1 { width: 8px; height: 8px; left: 26%; top: 4px; }
+    .sb2 { width: 6px; height: 6px; right: 28%; top: 24px; }
+
+    /* =================== LOBBY =================== */
+    .topbar { display: flex; justify-content: space-between; align-items: center; }
+    .tagwrap { position: relative; margin-top: 34px; }
+    .string { position: absolute; top: -28px; left: 40px; width: 58px; height: 44px; z-index: 0; }
+    .roomtag {
+      display: flex; align-items: center; gap: 16px;
+      background: var(--paper-hi); border-radius: 13px;
+      padding: 16px 18px 16px 16px; width: 88%; margin: 0 auto;
+      transform: rotate(-1.2deg);
+      box-shadow: 3px 5px 0 rgba(51,69,94,.12);
+    }
+    .taghole {
+      flex: 0 0 15px; width: 15px; height: 15px; border-radius: 50%;
+      background: var(--paper); border: 2.5px solid var(--ink);
+      box-shadow: 0 0 0 4px rgba(51,69,94,.13);
+    }
+    .tagbody { flex: 1; text-align: center; }
+    .code {
+      font-family: "Alfa Slab One", serif; font-size: 46px; line-height: 1.05;
+      letter-spacing: .14em; color: var(--ink);
+      text-shadow: 3px 2px 0 rgba(207,92,79,.33);
+      margin: 2px 0 0 .14em;
+    }
+    .hint { font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+    .players { list-style: none; display: grid; gap: 10px; }
+    .prow {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--paper-hi); border-radius: 12px;
+      padding: 9px 12px; min-height: 60px;
+      box-shadow: 2px 3px 0 rgba(51,69,94,.09);
+    }
+    .pname { font-size: 16px; font-weight: 700; flex: 1; }
+    .badges { display: flex; align-items: center; gap: 6px; }
+    .settings { display: grid; gap: 10px; margin-top: 24px; }
+    .srow {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      background: var(--paper-hi); border-radius: 12px;
+      padding: 12px 14px;
+      box-shadow: 2px 3px 0 rgba(51,69,94,.09);
+    }
+    .srow.col { flex-direction: column; align-items: stretch; }
+    .slabel { font-size: 15px; font-weight: 700; }
+    .stepper { display: flex; align-items: center; gap: 12px; }
+    .stepper button {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: var(--paper); border: 2px solid var(--ink);
+      font-family: "Alfa Slab One", serif; font-size: 16px; color: var(--ink);
+      box-shadow: 2px 2px 0 rgba(51,69,94,.14);
+    }
+    .sval { font-family: "Alfa Slab One", serif; font-size: 20px; min-width: 18px; text-align: center; }
+    .seg { display: flex; gap: 7px; margin-top: 10px; }
+    .seg button {
+      flex: 1; padding: 10px 0; border-radius: 8px; min-height: 42px;
+      font-size: 13px; font-weight: 700; color: var(--ink-soft);
+      border: 2px dashed rgba(51,69,94,.35); background: transparent;
+    }
+    .seg button.on {
+      background: var(--red); color: var(--paper-hi);
+      border: 2px solid var(--ink);
+      box-shadow: 2px 2px 0 rgba(51,69,94,.18);
+    }
+    .help { font-size: 12.5px; font-weight: 600; color: var(--ink-soft); margin-top: 9px; }
+    .lobby-start { margin-top: 22px; }
+
+    /* =================== GAME =================== */
+    .ghead { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .gstats { display: flex; align-items: baseline; gap: 7px; font-family: "Alfa Slab One", serif; font-size: 15px; }
+    .gstats i { font-style: normal; font-family: Quicksand; font-weight: 700; font-size: 12px; color: var(--ink-soft); }
+    .gstats .gcode { font-size: 12px; letter-spacing: .1em; color: var(--teal-deep); margin-left: 2px; }
+    .gbtns { display: flex; gap: 6px; }
+    .tiny {
+      font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      background: var(--paper-hi); border: 1.8px solid var(--ink); border-radius: 7px;
+      padding: 6px 8px; color: var(--ink);
+      box-shadow: 1.5px 2px 0 rgba(51,69,94,.14);
+    }
+    .tiny.danger { color: var(--red-deep); border-color: var(--red-deep); }
+    .scorechips { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+    .chip {
+      display: flex; align-items: center; gap: 7px;
+      background: var(--paper-hi); border-radius: 9px;
+      padding: 7px 11px; box-shadow: 2px 3px 0 rgba(51,69,94,.08);
+    }
+    .chip svg { width: 23px; height: auto; flex: 0 0 23px; }
+    .chip span { font-size: 13.5px; font-weight: 700; }
+    .chip b { margin-left: auto; font-family: "Alfa Slab One", serif; font-weight: 400; font-size: 16px; }
+    .poolrow { display: flex; align-items: center; justify-content: space-between; margin: 20px 2px 0; }
+    .poolnum { font-family: "Alfa Slab One", serif; font-weight: 400; font-size: 14px; }
+    .turnbanner { margin-top: 12px; }
+    .banner {
+      background: var(--mustard);
+      border-radius: 8px;
+      text-align: center; padding: 10px 8px;
+      font-family: "Alfa Slab One", serif; font-size: 12.5px; letter-spacing: .12em;
+      text-transform: uppercase; color: #463308;
+    }
+    .bunt { width: 86%; height: 10px; margin: 0 auto; display: block; }
+    .pgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    .pmini {
+      display: flex; align-items: flex-start; gap: 9px;
+      background: var(--paper-hi); border-radius: 11px;
+      padding: 9px 9px 10px; box-shadow: 2px 3px 0 rgba(51,69,94,.08);
+    }
+    .pmini .oval { margin-top: 2px; }
+    .pmname { font-size: 13.5px; font-weight: 700; line-height: 1.2; }
+    .pmname i { font-style: normal; font-weight: 600; font-size: 11px; color: var(--ink-soft); }
+    .handro { font-size: 10.5px; font-weight: 700; letter-spacing: .24em; color: var(--ink-soft); margin-top: 3px; white-space: nowrap; }
+    .status {
+      display: inline-block; margin-top: 6px;
+      font-size: 9.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+      padding: 3px 7px; border-radius: 4px; border: 1.5px solid;
+    }
+    .status.think { color: #8a6210; border-color: #bb8a1f; background: rgba(217,167,62,.18); }
+    .status.sub { color: var(--teal-deep); border-color: var(--teal-deep); background: rgba(79,143,139,.13); }
+    .lockin { margin-top: 22px; }
+
+    /* =================== REVEAL =================== */
+    .playedlbl { margin: 18px 0 10px; }
+    .played { display: flex; justify-content: center; }
+    .played .pcard { width: 104px; min-height: 104px; }
+    .played .pcard .glyph { width: 42px; height: 42px; }
+    .played .pcard .glyph b { font-size: 18px; }
+    .stage { position: relative; margin-top: 22px; padding: 18px 0 10px; }
+    .pond {
+      position: absolute; inset: -6px -14px;
+      background: radial-gradient(58% 52% at 50% 47%, rgba(79,143,139,.30), rgba(79,143,139,.15) 58%, rgba(79,143,139,0) 80%);
+      border-radius: 46%;
+    }
+    .ripple { position: absolute; border: 2px solid rgba(79,143,139,.32); border-radius: 50%; }
+    .rp1 { width: 64px; height: 18px; left: 8px; top: 36px; }
+    .rp2 { width: 48px; height: 14px; right: 14px; bottom: 48px; }
+    .pbub { position: absolute; color: rgba(79,143,139,.7); }
+    .pb1 { width: 13px; left: 22px; bottom: 86px; }
+    .pb2 { width: 9px; right: 30px; top: 70px; }
+    .pb3 { width: 11px; right: 52px; top: 44px; }
+    .rgrid {
+      position: relative;
+      display: grid; grid-template-columns: repeat(2, 136px);
+      justify-content: center; gap: 20px 26px;
+    }
+    .rcell { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .rname {
+      font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+      padding: 3px 9px; border-radius: 5px; border: 1.5px solid currentColor;
+      background: rgba(253,248,234,.75);
+    }
+    .nm-red { color: var(--red-deep); }
+    .nm-blue { color: #4a6档288; }
+    .rsize { width: 116px; aspect-ratio: 0.74; }
+    .rsize .big { font-size: 40px; }
+    .zerocard { box-shadow: 0 0 0 4px var(--mustard), 4px 7px 0 rgba(51,69,94,.15); transform: rotate(1.4deg); }
+    .tilt-l { transform: rotate(-2deg); }
+    .tilt-r { transform: rotate(2.2deg); }
+    .pts { font-family: "Alfa Slab One", serif; font-size: 19px; color: var(--ink-soft); line-height: 1; }
+    .pts.zp { color: var(--teal-deep); font-size: 23px; }
+    .reveal-cta { margin-top: 26px; }
+
+    /* =================== END =================== */
+    .endwrap { overflow: hidden; }
+    .confetti { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+    .cfx { position: absolute; opacity: .62; }
+    .cbx { position: absolute; border: 2px solid rgba(79,143,139,.5); border-radius: 50%; opacity: .8; }
+    .endhero {
+      font-family: "Alfa Slab One", serif; font-weight: 400;
+      font-size: 47px; line-height: 1.05; text-align: center;
+      margin: 10px 0 22px; color: var(--ink);
+    }
+    .endhero span { color: var(--red); text-shadow: 3px 3px 0 rgba(79,143,139,.38); }
+    .trophy { display: flex; justify-content: center; margin-bottom: 28px; position: relative; z-index: 1; }
+    .board {
+      position: relative; width: 252px; height: 128px;
+      border-radius: 50%;
+      background:
+        repeating-linear-gradient(91deg, rgba(60,38,18,.10) 0 2px, rgba(60,38,18,0) 2px 12px),
+        linear-gradient(170deg, var(--wood), var(--wood-deep));
+      box-shadow: 0 5px 0 rgba(80,52,26,.45), 5px 8px 0 rgba(51,69,94,.13);
+    }
+    .board::after {
+      content: ""; position: absolute; inset: 8px; pointer-events: none;
+      border: 2px solid rgba(248,241,224,.45); border-radius: 50%;
+    }
+    .screw { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: #5d4326; box-shadow: inset 1px 1px 0 rgba(248,241,224,.4); z-index: 2; }
+    .screw.s1 { left: 14px; top: 50%; margin-top: -4px; }
+    .screw.s2 { right: 14px; top: 50%; margin-top: -4px; }
+    .mount { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -56%); }
+    .tfish { width: 120px; height: auto; color: var(--red); transform: rotate(-4deg); }
+    .mount .hat { position: absolute; width: 44px; height: auto; left: 2px; top: -22px; transform: rotate(-14deg); }
+    .brass {
+      position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
+      background: var(--mustard); border: 2px solid var(--ink); border-radius: 6px;
+      font-family: "Alfa Slab One", serif; font-size: 13px; color: #463308;
+      padding: 2px 12px; z-index: 2;
+    }
+    .scoretable {
+      background: var(--paper-hi); border-radius: 14px;
+      padding: 12px 12px 10px; position: relative; z-index: 1;
+      box-shadow: 3px 4px 0 rgba(51,69,94,.10);
+    }
+    .thead, .trow {
+      display: grid; grid-template-columns: 22px 38px 1fr 27px 27px 27px 50px;
+      align-items: center; gap: 4px;
+    }
+    .thead { padding: 0 6px 8px; font-size: 10px; font-weight: 700; letter-spacing: .12em; color: var(--ink-soft); }
+    .thead .sp { grid-column: 1 / 4; }
+    .thead span { text-align: center; }
+    .trow { padding: 9px 6px; border-top: 1.5px dashed rgba(51,69,94,.20); }
+    .trow:nth-child(2) { border-top: none; }
+    .trow .rk { text-align: center; font-family: "Alfa Slab One", serif; font-size: 13px; color: var(--ink-soft); }
+    .trow .tname { font-size: 14px; font-weight: 700; padding-left: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .trow .tname i { font-style: normal; font-weight: 600; font-size: 11px; color: var(--ink-soft); }
+    .trow .rs { text-align: center; font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+    .trow .tot { text-align: center; font-family: "Alfa Slab One", serif; font-weight: 400; font-size: 18px; color: var(--ink); }
+    .trow.win {
+      background: rgba(217,167,62,.18); border-radius: 10px; border-top: none;
+      box-shadow: inset 0 0 0 2px var(--mustard);
+    }
+    .trow.win .rk { color: #8a6210; }
+    .endbtns { display: grid; gap: 14px; margin-top: 24px; position: relative; z-index: 1; }
+
+    /* ---------- flourish motion (never in screenshots) ---------- */
+    @media (prefers-reduced-motion: no-preference) {
+      .btn, .chipbtn, .tiny, .pcard, .ncard, .seg button, .stepper button { transition: transform .15s ease, box-shadow .15s ease; }
+      .btn:active { transform: translateY(2px); }
+      .leap { animation: gf-leap 3.6s ease-in-out infinite; }
+      .swim.s1 { animation: gf-bob 4.2s ease-in-out infinite; }
+      .swim.s2 { animation: gf-bob 5s ease-in-out infinite reverse; }
+      .status.think { animation: gf-blink 1.6s ease-in-out infinite; }
+      .ncard.sel .hookpin, .pcard.sel .hookpin { animation: gf-bob 2.8s ease-in-out infinite; }
+      .cbx, .pbub { animation: gf-rise 4.6s ease-in-out infinite alternate; }
+      .cfx { animation: gf-bob 5.4s ease-in-out infinite; }
+      @keyframes gf-leap { 50% { translate: 0 -7px; } }
+      @keyframes gf-bob { 50% { translate: 0 -5px; } }
+      @keyframes gf-rise { to { translate: 0 -8px; } }
+      @keyframes gf-blink { 50% { opacity: .55; } }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- shared vintage-deck illustrations -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <g id="fish">
+        <polygon points="62,32 90,13 90,51" fill="currentColor" stroke="#33455e" stroke-width="4" stroke-linejoin="round"/>
+        <ellipse cx="36" cy="32" rx="30" ry="19" fill="currentColor" stroke="#33455e" stroke-width="4"/>
+        <polygon points="28,16 42,4 47,17" fill="currentColor" stroke="#33455e" stroke-width="4" stroke-linejoin="round"/>
+        <path d="M34 18 q9 14 0 28" fill="none" stroke="#33455e" stroke-width="3"/>
+        <circle cx="18" cy="27" r="3.5" fill="#33455e"/>
+        <path d="M8 38 q5 4 11 1" fill="none" stroke="#33455e" stroke-width="3" stroke-linecap="round"/>
+      </g>
+      <g id="fishdead">
+        <polygon points="62,32 90,13 90,51" fill="currentColor" stroke="#33455e" stroke-width="4" stroke-linejoin="round"/>
+        <ellipse cx="36" cy="30" rx="30" ry="19" fill="currentColor" stroke="#33455e" stroke-width="4"/>
+        <polygon points="28,46 42,58 47,45" fill="currentColor" stroke="#33455e" stroke-width="4" stroke-linejoin="round"/>
+        <path d="M34 16 q9 14 0 28" fill="none" stroke="#33455e" stroke-width="3"/>
+        <path d="M14 22 l9 9 M23 22 l-9 9" stroke="#33455e" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+        <path d="M8 21 q5 -4 11 -1" fill="none" stroke="#33455e" stroke-width="3" stroke-linecap="round"/>
+      </g>
+      <g id="boot">
+        <path d="M30 6 h26 v28 q0 8 9 11 l13 5 q12 4 10 15 l-1 3 H26 V12 q0 -6 4 -6 Z" fill="#a3835d" stroke="#33455e" stroke-width="4" stroke-linejoin="round"/>
+        <path d="M25 62 h62 q0 11 -12 11 H35 q-10 0 -10 -9 Z" fill="#6e5740" stroke="#33455e" stroke-width="4" stroke-linejoin="round"/>
+        <path d="M36 16 l15 6 M36 26 l15 6" stroke="#33455e" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+        <circle cx="62" cy="50" r="7" fill="#d9a73e" stroke="#33455e" stroke-width="2.5" stroke-dasharray="4 3"/>
+      </g>
+      <g id="captainhat">
+        <path d="M10 22 q3 -16 22 -16 q19 0 22 16 Z" fill="#f8f1e0" stroke="#33455e" stroke-width="3" stroke-linejoin="round"/>
+        <rect x="7" y="21" width="50" height="8" rx="4" fill="#33455e"/>
+        <circle cx="32" cy="13" r="3" fill="#d9a73e"/>
+      </g>
+      <g id="bubble">
+        <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2.5"/>
+        <path d="M5.5 8.5 q1 -3.5 4.5 -4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </g>
+      <path id="wave" d="M2 9 Q12 1 22 9 T42 9 T62 9 T82 9 T102 9 T122 9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <g id="hook">
+        <path d="M14 0 v24 q0 12 -7 12 q-6 0 -6 -7" fill="none" stroke="#33455e" stroke-width="3" stroke-linecap="round"/>
+        <path d="M1 29 l5 -2" fill="none" stroke="#33455e" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="14" cy="2" r="2.4" fill="#33455e"/>
+      </g>
+    </defs>
+  </svg>
+
+  <!-- ============ 1. HOME ============ -->
+  <main data-screen="home">
+    <div class="wrap home">
+      <button class="mute" aria-label="Sound off">♪<i></i></button>
+
+      <div class="signage">
+        <span class="rope rl"></span><span class="rope rr"></span>
+        <svg class="leap" viewBox="0 0 96 64"><use href="#fish"/></svg>
+        <span class="lb lb1"></span><span class="lb lb2"></span><span class="lb lb3"></span>
+        <div class="sign">
+          <span class="nail nl"></span><span class="nail nr"></span>
+          <h1 class="wordmark">CAN<span>CEL</span></h1>
+        </div>
+      </div>
+
+      <p class="tagline">a number-picking party game</p>
+
+      <div class="homebtns">
+        <button class="btn primary t1 po">New game</button>
+        <button class="btn paper tealish t2 po">Single player</button>
+        <button class="btn paper t3 po">Join with code</button>
+      </div>
+
+      <div class="fan" aria-hidden="true">
+        <div class="ncard mini c-red f1">
+          <span class="cidx">Ø</span><span class="cidx br">Ø</span>
+          <span class="big">Ø</span>
+          <svg class="cfig" viewBox="0 0 96 78"><use href="#boot"/></svg>
+        </div>
+        <div class="ncard mini c-teal f2">
+          <span class="cidx">1</span><span class="cidx br">1</span>
+          <span class="big">1</span>
+          <svg class="cfig" viewBox="0 0 96 64"><use href="#fish"/></svg>
+        </div>
+        <div class="ncard mini c-navy f3">
+          <span class="cidx">3</span><span class="cidx br">3</span>
+          <span class="big">3</span>
+          <svg class="cfig" viewBox="0 0 96 64"><use href="#fish"/></svg>
+        </div>
+      </div>
+
+      <div class="shore" aria-hidden="true">
+        <svg class="swim s1" viewBox="0 0 96 64"><use href="#fish"/></svg>
+        <svg class="swim s2" viewBox="0 0 96 64"><use href="#fish"/></svg>
+        <span class="shorebub sb1"></span><span class="shorebub sb2"></span>
+        <svg class="wv wv1" viewBox="0 0 124 12" preserveAspectRatio="none"><use href="#wave"/></svg>
+        <svg class="wv wv2" viewBox="0 0 124 12" preserveAspectRatio="none"><use href="#wave"/></svg>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ 2. LOBBY ============ -->
+  <main data-screen="lobby">
+    <div class="wrap">
+      <div class="topbar">
+        <button class="chipbtn po">← Leave</button>
+        <button class="chipbtn po">Rules</button>
+      </div>
+
+      <div class="tagwrap">
+        <svg class="string" viewBox="0 0 60 46" aria-hidden="true">
+          <path d="M8 2 q22 5 24 20 q1 11 9 18" fill="none" stroke="#936A41" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <div class="roomtag po">
+          <span class="taghole"></span>
+          <div class="tagbody">
+            <div class="eyebrow">Room code</div>
+            <div class="code">DN2H</div>
+            <div class="hint">press to copy</div>
+          </div>
+        </div>
+      </div>
+
+      <h2 class="sect">Players · 4</h2>
+      <ul class="players">
+        <li class="prow po">
+          <span class="oval seat-red">
+            <svg class="ofish" viewBox="0 0 96 64"><use href="#fish"/></svg>
+            <svg class="hat" viewBox="0 0 64 32"><use href="#captainhat"/></svg>
+          </span>
+          <span class="pname">Ben</span>
+          <span class="badges"><span class="badge gold">HOST</span><span class="badge you">YOU</span><span class="dot"></span></span>
+        </li>
+        <li class="prow po">
+          <span class="oval seat-blue"><svg class="ofish" viewBox="0 0 96 64"><use href="#fish"/></svg></span>
+          <span class="pname">Voltaire</span>
+          <span class="badges"><span class="badge bot">BOT</span><span class="dot"></span></span>
+        </li>
+        <li class="prow po">
+          <span class="oval seat-gold"><svg class="ofish" viewBox="0 0 96 64"><use href="#fish"/></svg></span>
+          <span class="pname">Mechano</span>
+          <span class="badges"><span class="badge bot">BOT</span><span class="dot"></span></span>
+        </li>
+        <li class="prow po">
+          <span class="oval seat-green"><svg class="ofish" viewBox="0 0 96 64"><use href="#fish"/></svg></span>
+          <span class="pname">Data Dan</span>
+          <span class="badges"><span class="badge bot">BOT</span><span class="dot"></span></span>
+        </li>
+      </ul>
+
+      <div class="settings">
+        <div class="srow po">
+          <span class="slabel">Rounds</span>
+          <span class="stepper"><button>−</button><span class="sval">3</span><button>+</button></span>
+        </div>
+        <div class="srow po">
+          <span class="slabel">AI players</span>
+          <span class="stepper"><button>−</button><span class="sval">3</span><button>+</button></span>
+        </div>
+        <div class="srow col po">
+          <span class="slabel">Power-ups</span>
+          <div class="seg">
+            <button>None</button>
+            <button class="on">Random</button>
+            <button>Choose</button>
+          </div>
+          <p class="help">A fresh random pool each round.</p>
+        </div>
+      </div>
+
+      <button class="btn primary lobby-start po">Start game</button>
+    </div>
+  </main>
+
+  <!-- ============ 3. GAME ============ -->
+  <main data-screen="game">
+    <div class="wrap">
+      <header class="ghead">
+        <div class="gstats">
+          <span>R1<i>/3</i></span><i>·</i><span>T2<i>/6</i></span><span class="gcode">DN2H</span>
+        </div>
+        <div class="gbtns">
+          <button class="tiny">Rules</button>
+          <button class="tiny">Leave</button>
+          <button class="tiny danger">End game</button>
+        </div>
+      </header>
+
+      <div class="scorechips">
+        <div class="chip po seat-red"><svg viewBox="0 0 96 64"><use href="#fish"/></svg><span>Ben</span><b>4</b></div>
+        <div class="chip po seat-blue"><svg viewBox="0 0 96 64"><use href="#fish"/></svg><span>Voltaire</span><b>0</b></div>
+        <div class="chip po seat-gold"><svg viewBox="0 0 96 64"><use href="#fish"/></svg><span>Mechano</span><b>2</b></div>
+        <div class="chip po seat-green"><svg viewBox="0 0 96 64"><use href="#fish"/></svg><span>Data Dan</span><b>5</b></div>
+      </div>
+
+      <div class="poolrow">
+        <span class="eyebrow">Power-ups remaining</span>
+        <b class="poolnum">6 / 6</b>
+      </div>
+
+      <div class="turnbanner">
+        <div class="banner po">Your turn, press to select</div>
+        <svg class="bunt" viewBox="0 0 360 13" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0 0 L15 12 L30 0 L45 12 L60 0 L75 12 L90 0 L105 12 L120 0 L135 12 L150 0 L165 12 L180 0 L195 12 L210 0 L225 12 L240 0 L255 12 L270 0 L285 12 L300 0 L315 12 L330 0 L345 12 L360 0 Z" style="fill:#d9a73e"/>
+        </svg>
+      </div>
+
+      <div class="powers">
+        <button class="pcard pw-teal"><span class="glyph"><b>⇄</b></span><span class="pwname">Swap Hands</span></button>
+        <button class="pcard pw-red"><span class="glyph"><b>✖</b></span><span class="pwname">Sabotage</span></button>
+        <button class="pcard pw-pink sel">
+          <span class="hookpin"><svg viewBox="0 0 26 44"><use href="#hook"/></svg></span>
+          <span class="glyph"><b>=</b></span><span class="pwname">Jinx</span>
+        </button>
+        <button class="pcard pw-green"><span class="glyph"><b>+2</b></span><span class="pwname">Plus Two</span></button>
+        <button class="pcard pw-violet"><span class="glyph"><b>?</b></span><span class="pwname">Wild</span></button>
+        <button class="pcard pw-amber"><span class="glyph"><b>↧</b></span><span class="pwname">Drain</span></button>
+      </div>
+
+      <h3 class="sect">Players · Power picker: Ben</h3>
+      <div class="pgrid">
+        <div class="pmini po">
+          <span class="oval sm seat-red"><svg class="ofish" viewBox="0 0 96 64"><use href="#fish"/></svg></span>
+          <div>
+            <div class="pmname">Ben <i>(you)</i></div>
+            <div class="handro">Ø 1 2 3 4 5</div>
+            <span class="status think">Thinking…</span>
+          </div>
+        </div>
+        <div class="pmini po">
+          <span class="oval sm seat-blue"><svg class="ofish" viewBox="0 0 96 64"><use href="#fish"/></svg></span>
+          <div>
+            <div class="pmname">Voltaire</div>
+            <div class="handro">Ø 1 2 3 4 5</div>
+            <span class="status sub">Submitted</span>
+          </div>
+        </div>
+        <div class="pmini po">
+          <span class="oval sm seat-gold"><svg class="ofish" viewBox="0 0 96 64"><use href="#fish"/></svg></span>
+          <div>
+            <div class="pmname">Mechano</div>
+            <div class="handro">Ø 1 2 3 4 5</div>
+            <span class="status sub">Submitted</span>
+          </div>
+        </div>
+        <div class="pmini po">
+          <span class="oval sm seat-green"><svg class="ofish" viewBox="0 0 96 64"><use href="#fish"/></svg></span>
+          <div>
+            <div class="pmname">Data Dan</div>
+            <div class="handro">Ø 1 2 3 4 5</div>
+            <span class="status sub">Submitted</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="ghostbtn">Skip waiting, auto-play who's left</button>
+
+      <h3 class="sect">Your hand</h3>
+      <div class="handgrid">
+        <button class="ncard c-red">
+          <span class="cidx">Ø</span><span class="cidx br">Ø</span>
+          <span class="big">Ø</span>
+          <svg class="cfig" viewBox="0 0 96 78"><use href="#boot"/></svg>
+        </button>
+        <button class="ncard c-teal">
+          <span class="cidx">1</span><span class="cidx br">1</span>
+          <span class="big">1</span>
+          <svg class="cfig" viewBox="0 0 96 64"><use href="#fish"/></svg>
+        </button>
+        <button class="ncard c-gold">
+          <span class="cidx">2</span><span class="cidx br">2</span>
+          <span class="big">2</span>
+          <svg class="cfig" viewBox="0 0 96 64"><use href="#fish"/></svg>
+        </button>
+        <button class="ncard c-navy">
+          <span class="cidx">3</span><span class="cidx br">3</span>
+          <span class="big">3</span>
+          <svg class="cfig" viewBox="0 0 96 64"><use href="#fish"/></svg>
+        </button>
+        <button class="ncard c-green">
+          <span class="cidx">4</span><span class="cidx br">4</span>
+          <span class="big">4</span>
+          <svg class="cfig" viewBox="0 0 96 64"><use href="#fish"/></svg>
+        </button>
+        <button class="ncard c-red sel">
+          <span class="hookpin"><svg viewBox="0 0 26 44"><use href="#hook"/></svg></span>
+          <span class="cidx">5</span><span class="cidx br">5</span>
+          <span class="big">5</span>
+          <svg class="cfig" viewBox="0 0 96 64"><use href="#fish"/></svg>
+        </button>
+      </div>
+
+      <button class="btn primary lockin po">Lock it in</button>
+    </div>
+  </main>
+
+  <!-- ============ 4. REVEAL ============ -->
+  <main data-screen="reveal">
+    <div class="wrap">
+      <p class="eyebrow ctr" style="margin-top:14px">Turn 2 reveal</p>
+      <p class="eyebrow ctr playedlbl">Ben played</p>
+      <div class="played">
+        <div class="pcard pw-pink"><span class="glyph"><b>=</b></span><span class="pwname">Jinx</span></div>
+      </div>
+
+      <div class="stage">
+        <div class="pond"></div>
+        <span class="ripple rp1"></span><span class="ripple rp2"></span>
+        <svg class="pbub pb1" viewBox="0 0 20 20"><use href="#bubble"/></svg>
+        <svg class="pbub pb2" viewBox="0 0 20 20"><use href="#bubble"/></svg>
+        <svg class="pbub pb3" viewBox="0 0 20 20"><use href="#bubble"/></svg>
+
+        <div class="rgrid">
+          <figure class="rcell">
+            <figcaption class="rname" style="color:var(--red-deep)">Ben</figcaption>
+            <div class="ncard rsize c-red dead tilt-l">
+              <span class="cidx">5</span><span class="cidx br">5</span>
+              <span class="big">5</span>
+              <svg class="cfig" viewBox="0 0 96 64"><use href="#fishdead"/></svg>
+              <span class="stamp">Cancelled</span>
+            </div>
+            <div class="pts">0</div>
+          </figure>
+
+          <figure class="rcell">
+            <figcaption class="rname" style="color:#46618c">Voltaire</figcaption>
+            <div class="ncard rsize c-red zerocard">
+              <span class="cidx">Ø</span><span class="cidx br">Ø</span>
+              <span class="big">Ø</span>
+              <svg class="cfig" viewBox="0 0 96 78"><use href="#boot"/></svg>
+            </div>
+            <div class="pts zp">0</div>
+          </figure>
+
+          <figure class="rcell">
+            <figcaption class="rname" style="color:#8a6210">Mechano</figcaption>
+            <div class="ncard rsize c-red dead tilt-r">
+              <span class="cidx">5</span><span class="cidx br">5</span>
+              <span class="big">5</span>
+              <svg class="cfig" viewBox="0 0 96 64"><use href="#fishdead"/></svg>
+              <span class="stamp">Cancelled</span>
+            </div>
+            <div class="pts">0</div>
+          </figure>
+
+          <figure class="rcell">
+            <figcaption class="rname" style="color:#5b7a43">Data Dan</figcaption>
+            <div class="ncard rsize c-navy dead tilt-l">
+              <span class="cidx">3</span><span class="cidx br">3</span>
+              <span class="big">3</span>
+              <svg class="cfig" viewBox="0 0 96 64"><use href="#fishdead"/></svg>
+              <span class="stamp">Cancelled</span>
+            </div>
+            <div class="pts">0</div>
+          </figure>
+        </div>
+      </div>
+
+      <button class="btn primary reveal-cta po">Continue</button>
+    </div>
+  </main>
+
+  <!-- ============ 5. END ============ -->
+  <main data-screen="end" class="endwrap">
+    <div class="wrap">
+      <div class="confetti" aria-hidden="true">
+        <span class="cbx" style="left:5%;top:38px;width:16px;height:16px"></span>
+        <span class="cbx" style="left:90%;top:74px;width:11px;height:11px"></span>
+        <span class="cbx" style="left:10%;top:188px;width:9px;height:9px"></span>
+        <span class="cbx" style="left:92%;top:268px;width:14px;height:14px"></span>
+        <span class="cbx" style="left:3%;top:430px;width:12px;height:12px"></span>
+        <span class="cbx" style="left:91%;top:520px;width:9px;height:9px"></span>
+        <span class="cbx" style="left:8%;top:646px;width:13px;height:13px"></span>
+        <span class="cbx" style="left:87%;top:716px;width:11px;height:11px"></span>
+        <span class="cbx" style="left:48%;top:20px;width:10px;height:10px"></span>
+        <svg class="cfx" style="left:17%;top:88px;width:30px;color:var(--teal);transform:rotate(-18deg)" viewBox="0 0 96 64"><use href="#fish"/></svg>
+        <svg class="cfx" style="left:74%;top:148px;width:26px;color:var(--mustard);transform:rotate(13deg) scaleX(-1)" viewBox="0 0 96 64"><use href="#fish"/></svg>
+        <svg class="cfx" style="left:4%;top:306px;width:24px;color:var(--green);transform:rotate(8deg)" viewBox="0 0 96 64"><use href="#fish"/></svg>
+        <svg class="cfx" style="left:86%;top:386px;width:28px;color:var(--red);transform:rotate(-11deg) scaleX(-1)" viewBox="0 0 96 64"><use href="#fish"/></svg>
+        <svg class="cfx" style="left:6%;top:540px;width:24px;color:var(--blue);transform:rotate(-7deg)" viewBox="0 0 96 64"><use href="#fish"/></svg>
+        <svg class="cfx" style="left:78%;top:626px;width:26px;color:var(--teal);transform:rotate(10deg) scaleX(-1)" viewBox="0 0 96 64"><use href="#fish"/></svg>
+      </div>
+
+      <p class="eyebrow ctr" style="margin-top:16px">Game over</p>
+      <h2 class="endhero">You <span>won.</span></h2>
+
+      <div class="trophy">
+        <div class="board po">
+          <span class="screw s1"></span><span class="screw s2"></span>
+          <div class="mount">
+            <svg class="tfish" viewBox="0 0 96 64"><use href="#fish"/></svg>
+            <svg class="hat" viewBox="0 0 64 32"><use href="#captainhat"/></svg>
+          </div>
+          <div class="brass">20</div>
+        </div>
+      </div>
+
+      <div class="scoretable po">
+        <div class="thead">
+          <span class="sp"></span><span>R1</span><span>R2</span><span>R3</span><span>TOTAL</span>
+        </div>
+        <div class="trow win">
+          <span class="rk">1</span>
+          <span class="oval xs seat-red"><svg class="ofish" viewBox="0 0 96 64"><use href="#fish"/></svg></span>
+          <span class="tname">Ben <i>(you)</i></span>
+          <span class="rs">5</span><span class="rs">9</span><span class="rs">6</span><span class="tot">20</span>
+        </div>
+        <div class="trow">
+          <span class="rk">2</span>
+          <span class="oval xs seat-green"><svg class="ofish" viewBox="0 0 96 64"><use href="#fish"/></svg></span>
+          <span class="tname">Data Dan</span>
+          <span class="rs">5</span><span class="rs">4</span><span class="rs">3</span><span class="tot">12</span>
+        </div>
+        <div class="trow">
+          <span class="rk">3</span>
+          <span class="oval xs seat-blue"><svg class="ofish" viewBox="0 0 96 64"><use href="#fish"/></svg></span>
+          <span class="tname">Voltaire</span>
+          <span class="rs">3</span><span class="rs">2</span><span class="rs">4</span><span class="tot">9</span>
+        </div>
+        <div class="trow">
+          <span class="rk">4</span>
+          <span class="oval xs seat-gold"><svg class="ofish" viewBox="0 0 96 64"><use href="#fish"/></svg></span>
+          <span class="tname">Mechano</span>
+          <span class="rs">0</span><span class="rs">5</span><span class="rs">2</span><span class="tot">7</span>
+        </div>
+      </div>
+
+      <div class="endbtns">
+        <button class="btn primary po">Play again</button>
+        <button class="btn paper po">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

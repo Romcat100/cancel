@@ -1,0 +1,881 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Art Deco</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Limelight&family=Poiret+One&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ============ Art Deco — black, gold, cream, emerald ============ */
+    :root {
+      --bg: #0c0c0e;
+      --panel: #131218;
+      --panel2: #17151d;
+      --gold: #d4af37;
+      --gold-hi: #f3e3a0;
+      --gold-pale: #f7ecc0;
+      --gold-lo: #8f6f1c;
+      --gold-dim: rgba(212, 175, 55, .42);
+      --gold-faint: rgba(212, 175, 55, .18);
+      --cream: #f3ecd9;
+      --cream-dim: rgba(243, 236, 217, .62);
+      --cream-faint: rgba(243, 236, 217, .38);
+      --emerald: #2e8b62;
+      --emerald-hi: #5cc394;
+      --burgundy: #8e2a35;
+      --ink: #181106;
+      --ben-a: #d96a6a;   --ben-b: #7d2433;
+      --vol-a: #7d97e0;   --vol-b: #2b4087;
+      --mec-a: #ecd27c;   --mec-b: #8a6a1d;
+      --dan-a: #62c79a;   --dan-b: #19543d;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background:
+        radial-gradient(120% 70% at 50% 0%, rgba(212,175,55,.07), transparent 62%),
+        radial-gradient(130% 80% at 50% 100%, rgba(46,139,98,.07), transparent 58%),
+        repeating-linear-gradient(45deg, rgba(212,175,55,.026) 0 1px, transparent 1px 30px),
+        repeating-linear-gradient(-45deg, rgba(212,175,55,.026) 0 1px, transparent 1px 30px),
+        var(--bg);
+      color: var(--cream);
+      font-family: "Cormorant Garamond", serif;
+      font-size: 17px;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+    .wrap { max-width: 420px; margin: 0 auto; padding: 22px 20px 46px; }
+
+    /* ---------- shared type ---------- */
+    .lbl {
+      font-family: "Poiret One", cursive;
+      text-transform: uppercase;
+      letter-spacing: .26em;
+      text-indent: .26em;
+      font-size: 11px;
+      color: var(--cream-dim);
+    }
+    .goldtext {
+      background-image: linear-gradient(180deg, #fbf3d2 0%, #f3e3a0 24%, #d4af37 54%, #a8842a 78%, #ecd27c 100%);
+      -webkit-background-clip: text; background-clip: text;
+      color: transparent; -webkit-text-fill-color: transparent;
+    }
+
+    /* section header with flanking rules */
+    .sect { display: flex; align-items: center; gap: 12px; margin: 26px 0 12px; }
+    .sect::before, .sect::after { content: ""; height: 1px; flex: 1; }
+    .sect::before { background: linear-gradient(90deg, transparent, var(--gold-dim)); }
+    .sect::after  { background: linear-gradient(90deg, var(--gold-dim), transparent); }
+    .sect span {
+      font-family: "Poiret One", cursive; text-transform: uppercase;
+      letter-spacing: .3em; text-indent: .3em; font-size: 11px; color: var(--gold-hi);
+      white-space: nowrap;
+    }
+    .sect .em { color: var(--gold); }
+
+    /* chevron frieze (inline SVG zigzag) */
+    .frieze {
+      height: 9px; margin: 18px auto; width: 78%;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='9'%3E%3Cpath d='M0 8 L9 1.5 L18 8' fill='none' stroke='%23d4af37' stroke-width='1.1' opacity='.55'/%3E%3C/svg%3E");
+      background-repeat: repeat-x; background-position: center;
+    }
+
+    .dia { display: inline-block; width: 6px; height: 6px; background: var(--gold); transform: rotate(45deg); }
+    .dia.sm { width: 4px; height: 4px; }
+
+    /* ---------- lozenge buttons ---------- */
+    .lz {
+      display: block; width: 100%; border: 0; padding: 0; margin: 0;
+      background: linear-gradient(180deg, var(--gold-pale), var(--gold) 42%, var(--gold-lo) 88%, var(--gold));
+      clip-path: polygon(20px 0, calc(100% - 20px) 0, 100% 50%, calc(100% - 20px) 100%, 20px 100%, 0 50%);
+      cursor: pointer; font: inherit; text-align: center;
+    }
+    .lz > span {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      margin: 1.6px; min-height: 53px; padding: 4px 30px 2px;
+      clip-path: polygon(19px 0, calc(100% - 19px) 0, 100% 50%, calc(100% - 19px) 100%, 19px 100%, 0 50%);
+      background: #121016;
+      font-family: "Poiret One", cursive; text-transform: uppercase;
+      letter-spacing: .26em; text-indent: .26em; font-size: 14px; color: var(--cream);
+    }
+    .lz.primary > span {
+      background: linear-gradient(180deg, var(--gold-pale), #e9cf7c 42%, #c79a2e 92%);
+      color: var(--ink); font-size: 15px;
+    }
+    .lz.fit { width: auto; display: inline-block; }
+    .lz.sm > span { min-height: 42px; font-size: 11px; padding: 3px 20px 1px; letter-spacing: .2em; text-indent: .2em; }
+    .lz.sm { clip-path: polygon(13px 0, calc(100% - 13px) 0, 100% 50%, calc(100% - 13px) 100%, 13px 100%, 0 50%); }
+    .lz.sm > span { clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0 50%); }
+    .btncol { display: flex; flex-direction: column; gap: 14px; }
+
+    /* small header chip buttons */
+    .hbtn {
+      font-family: "Poiret One", cursive; text-transform: uppercase;
+      letter-spacing: .18em; text-indent: .18em; font-size: 9.5px;
+      color: var(--cream-dim); background: rgba(212,175,55,.05);
+      border: 1px solid var(--gold-dim); padding: 9px 10px 7px; cursor: pointer;
+    }
+    .hbtn.danger { color: #e0707a; border-color: rgba(142,42,53,.75); background: rgba(142,42,53,.12); }
+
+    /* ---------- framed panel ---------- */
+    .frame {
+      position: relative; background: linear-gradient(180deg, var(--panel2), var(--panel));
+      border: 1px solid var(--gold-dim); padding: 14px;
+    }
+    .frame::before {
+      content: ""; position: absolute; inset: 4px;
+      border: 1px solid var(--gold-faint); pointer-events: none;
+    }
+
+    /* corner steps for hero frames */
+    .cstep { position: absolute; width: 13px; height: 13px; pointer-events: none; }
+    .cstep.tl { top: -5px; left: -5px; border-top: 3px double var(--gold); border-left: 3px double var(--gold); }
+    .cstep.tr { top: -5px; right: -5px; border-top: 3px double var(--gold); border-right: 3px double var(--gold); }
+    .cstep.bl { bottom: -5px; left: -5px; border-bottom: 3px double var(--gold); border-left: 3px double var(--gold); }
+    .cstep.br { bottom: -5px; right: -5px; border-bottom: 3px double var(--gold); border-right: 3px double var(--gold); }
+
+    /* ---------- medallions ---------- */
+    .med {
+      position: relative; flex: none; width: 40px; height: 40px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid var(--gold);
+      background: radial-gradient(circle at 34% 28%, var(--med-a), var(--med-b) 78%);
+      font-family: "Limelight", cursive; font-size: 17px; color: var(--gold-pale);
+      text-shadow: 0 1px 2px rgba(0,0,0,.55);
+      box-shadow: 0 3px 8px rgba(0,0,0,.5);
+    }
+    .med::before { content: ""; position: absolute; inset: 3px; border-radius: 50%; border: 1px solid rgba(247,236,192,.5); }
+    .med.sm { width: 30px; height: 30px; font-size: 13px; }
+    .med.sm::before { inset: 2.5px; }
+    .med.ben { --med-a: var(--ben-a); --med-b: var(--ben-b); }
+    .med.vol { --med-a: var(--vol-a); --med-b: var(--vol-b); }
+    .med.mec { --med-a: var(--mec-a); --med-b: var(--mec-b); }
+    .med.dan { --med-a: var(--dan-a); --med-b: var(--dan-b); }
+
+    /* ---------- badges & dots ---------- */
+    .badge {
+      font-family: "Poiret One", cursive; font-size: 8.5px; letter-spacing: .22em; text-indent: .22em;
+      text-transform: uppercase; padding: 4px 5px 3px 7px; border: 1px solid;
+    }
+    .badge.host { color: var(--gold-hi); border-color: var(--gold-dim); background: rgba(212,175,55,.1); }
+    .badge.you  { color: var(--cream); border-color: var(--cream-faint); background: rgba(243,236,217,.06); }
+    .badge.bot  { color: #9db1e6; border-color: rgba(125,151,224,.45); background: rgba(43,64,135,.18); }
+    .odot { width: 7px; height: 7px; flex: none; background: var(--emerald-hi); transform: rotate(45deg); box-shadow: 0 0 7px rgba(92,195,148,.8); }
+
+    /* ================= HOME ================= */
+    .home-wrap { padding-top: 36px; }
+    .marquee { position: relative; padding-top: 128px; margin-bottom: 8px; }
+    .fanrise {
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 336px; height: 168px;
+      border-radius: 336px 336px 0 0 / 168px 168px 0 0;
+      background:
+        radial-gradient(circle at 50% 100%,
+          transparent 0 57px, rgba(212,175,55,.85) 57px 59px,
+          transparent 59px 76px, rgba(212,175,55,.5) 76px 77.5px,
+          transparent 77.5px 96px, rgba(212,175,55,.3) 96px 97px,
+          transparent 97px),
+        repeating-conic-gradient(from -86deg at 50% 100%,
+          rgba(212,175,55,.55) 0deg 2.4deg, rgba(212,175,55,.05) 2.4deg 10.2deg);
+      -webkit-mask-image: radial-gradient(circle at 50% 100%, #000 0 72%, transparent 98%);
+      mask-image: radial-gradient(circle at 50% 100%, #000 0 72%, transparent 98%);
+    }
+    .wordframe {
+      position: relative; margin: 0 6px;
+      background: rgba(12,12,14,.92);
+      border: 1.5px solid var(--gold);
+      padding: 26px 12px 20px; text-align: center;
+    }
+    .wordframe::before {
+      content: ""; position: absolute; inset: 6px;
+      border: 1px solid var(--gold-dim); pointer-events: none;
+    }
+    .wordmark {
+      margin: 0; font-family: "Limelight", cursive; font-weight: 400;
+      font-size: 56px; line-height: 1; letter-spacing: .045em; text-indent: .045em;
+    }
+    .wordrule { display: flex; align-items: center; justify-content: center; gap: 9px; margin-top: 14px; }
+    .wordrule i { height: 1px; width: 64px; background: linear-gradient(90deg, transparent, var(--gold)); }
+    .wordrule i:last-child { background: linear-gradient(90deg, var(--gold), transparent); }
+    .tagline {
+      margin: 22px 0 30px; text-align: center;
+      font-family: "Poiret One", cursive; text-transform: uppercase;
+      font-size: 12.5px; letter-spacing: .4em; text-indent: .4em; color: var(--cream-dim);
+    }
+    .home-foot { margin-top: 34px; }
+
+    /* ================= LOBBY ================= */
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .codeplaque { position: relative; text-align: center; padding: 22px 14px 16px; }
+    .codeplaque .code {
+      font-family: "Limelight", cursive; font-size: 46px; line-height: 1;
+      letter-spacing: .3em; text-indent: .3em; margin: 4px 0 6px;
+    }
+    .codeplaque .hint { font-style: italic; font-size: 15px; color: var(--cream-dim); }
+
+    .prow {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px; margin-bottom: 9px;
+    }
+    .prow .pname { font-size: 19px; font-weight: 600; letter-spacing: .02em; flex: 1; white-space: nowrap; }
+    .prow .badges { display: flex; gap: 6px; align-items: center; }
+
+    .setrow {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; margin-bottom: 10px;
+    }
+    .setrow .stitle { font-size: 19px; font-weight: 600; }
+    .stepper { display: flex; align-items: center; gap: 16px; padding: 4px 6px; }
+    .stepbtn {
+      width: 31px; height: 31px; flex: none; transform: rotate(45deg);
+      border: 1px solid var(--gold); background: #15131a; cursor: pointer; padding: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .stepbtn b { transform: rotate(-45deg); font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: 19px; color: var(--gold-hi); line-height: 1; }
+    .stepval { font-family: "Limelight", cursive; font-size: 23px; min-width: 22px; text-align: center; }
+
+    .powpanel { padding: 14px 16px 12px; margin-bottom: 10px; }
+    .powpanel .stitle { font-size: 19px; font-weight: 600; margin-bottom: 10px; }
+    .seg { display: flex; border: 1px solid var(--gold-dim); }
+    .seg span {
+      flex: 1; text-align: center; padding: 13px 0 11px;
+      font-family: "Poiret One", cursive; font-size: 10.5px; letter-spacing: .2em; text-indent: .2em;
+      text-transform: uppercase; color: var(--cream-dim);
+    }
+    .seg span + span { border-left: 1px solid var(--gold-faint); }
+    .seg span.on {
+      background: linear-gradient(180deg, var(--gold-pale), #e3c668 45%, #c79a2e);
+      color: var(--ink);
+    }
+    .seghelp { font-style: italic; font-size: 15px; color: var(--cream-dim); margin: 10px 2px 0; }
+    .lobby-start { margin-top: 22px; }
+
+    /* ================= GAME ================= */
+    .ghead { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+    .ginfo { font-family: "Poiret One", cursive; font-size: 13.5px; letter-spacing: .14em; color: var(--cream); white-space: nowrap; }
+    .ginfo b { color: var(--gold-hi); font-weight: 400; }
+    .ginfo .dim { color: var(--cream-faint); }
+    .ginfo .mid { color: var(--gold-dim); padding: 0 2px; }
+    .gbtns { display: flex; gap: 6px; }
+
+    .scorebrd { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+    .schip { display: flex; align-items: center; gap: 9px; padding: 8px 12px 8px 9px; }
+    .schip .sname { flex: 1; font-size: 16.5px; font-weight: 600; white-space: nowrap; overflow: hidden; }
+    .schip .sval { font-family: "Limelight", cursive; font-size: 21px; }
+
+    .poolmeta { display: flex; justify-content: space-between; align-items: baseline; margin: 20px 2px 8px; }
+    .poolmeta .count { font-family: "Poiret One", cursive; font-size: 13px; letter-spacing: .18em; color: var(--gold-hi); }
+
+    .pool { padding: 14px 12px 12px; }
+    .poolbanner {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      margin: 2px 0 13px;
+      font-family: "Poiret One", cursive; font-size: 10.5px; letter-spacing: .28em; text-indent: .28em;
+      text-transform: uppercase; color: var(--gold-hi); white-space: nowrap;
+    }
+    .powers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+    .pcard {
+      position: relative; display: flex; flex-direction: column; align-items: center;
+      gap: 8px; padding: 13px 4px 10px; min-height: 102px;
+      background: linear-gradient(180deg, #121016, #0e0d12);
+      border: 1px solid var(--gold-faint); cursor: pointer;
+      box-shadow: 0 5px 12px rgba(0,0,0,.45);
+    }
+    .pcard::before { content: ""; position: absolute; inset: 3px; border: 1px solid rgba(212,175,55,.12); pointer-events: none; }
+    .pglyph {
+      width: 38px; height: 38px; transform: rotate(45deg); flex: none;
+      border: 1px solid var(--pc); background: var(--pcbg);
+      display: flex; align-items: center; justify-content: center;
+      margin-top: 4px;
+    }
+    .pglyph b {
+      transform: rotate(-45deg); color: var(--pc); font-weight: 600;
+      font-family: "Cormorant Garamond", serif; font-size: 19px; line-height: 1;
+    }
+    .pname2 {
+      font-family: "Poiret One", cursive; font-size: 9px; letter-spacing: .16em; text-indent: .16em;
+      text-transform: uppercase; color: var(--cream-dim); text-align: center;
+    }
+    .pcard.teal    { --pc: #5fc4bc; --pcbg: rgba(46,139,139,.16); }
+    .pcard.rose    { --pc: #e0707a; --pcbg: rgba(163,56,64,.16); }
+    .pcard.pink    { --pc: #e89bb9; --pcbg: rgba(196,106,142,.16); }
+    .pcard.emerald { --pc: #5cc394; --pcbg: rgba(46,139,98,.16); }
+    .pcard.violet  { --pc: #ab93d6; --pcbg: rgba(122,94,168,.16); }
+    .pcard.amber   { --pc: #e3b85a; --pcbg: rgba(201,147,52,.16); }
+    .pcard.sel {
+      border: 1.5px solid var(--gold-hi);
+      background:
+        radial-gradient(120% 90% at 50% 0%, rgba(212,175,55,.22), transparent 70%),
+        linear-gradient(180deg, #181420, #121016);
+      box-shadow: 0 0 0 1px rgba(212,175,55,.35), 0 0 18px rgba(212,175,55,.3), 0 8px 16px rgba(0,0,0,.5);
+      transform: translateY(-3px);
+    }
+    .pcard.sel::before { border-color: var(--gold-dim); }
+    .pcard.sel .pname2 { color: var(--gold-hi); }
+    .pcard.sel::after {
+      content: ""; position: absolute; bottom: -8px; left: 50%;
+      width: 7px; height: 7px; background: var(--gold);
+      transform: translateX(-50%) rotate(45deg);
+      box-shadow: 0 0 8px rgba(212,175,55,.7);
+    }
+
+    .pstat { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .ps { display: flex; gap: 9px; align-items: flex-start; padding: 9px 10px; }
+    .psinfo { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .psname { font-size: 16px; font-weight: 600; line-height: 1.2; white-space: nowrap; }
+    .psname em { font-weight: 400; font-size: 13px; color: var(--cream-dim); }
+    .pshand { font-family: "Poiret One", cursive; font-size: 10px; letter-spacing: .22em; color: rgba(212,175,55,.7); }
+    .psstatus { font-family: "Poiret One", cursive; font-size: 8.5px; letter-spacing: .22em; text-transform: uppercase; margin-top: 2px; }
+    .psstatus.think { color: var(--gold-hi); }
+    .psstatus.done { color: var(--emerald-hi); }
+
+    .skipghost { margin-top: 12px; opacity: .75; }
+    .skipghost > span { color: var(--cream-dim); font-size: 10px; }
+
+    /* ---------- number cards: the heroes ---------- */
+    .hand { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; padding: 6px 0 2px; }
+    .ncard {
+      position: relative; display: flex; flex-direction: column; align-items: center;
+      justify-content: space-between; padding: 9px 2px 8px; height: 98px;
+      background: linear-gradient(180deg, #14121a, #0d0c10);
+      border: 1px solid var(--gold);
+      box-shadow: 0 7px 14px rgba(0,0,0,.55);
+      cursor: pointer;
+    }
+    .ncard::before {
+      content: ""; position: absolute; inset: 3px;
+      border: 1px solid rgba(212,175,55,.35); pointer-events: none;
+    }
+    .crest {
+      width: 26px; height: 13px; flex: none;
+      border-radius: 26px 26px 0 0 / 13px 13px 0 0;
+      border-bottom: 1px solid var(--gold-dim);
+      background: repeating-conic-gradient(from -90deg at 50% 100%,
+        rgba(212,175,55,.8) 0deg 6.5deg, transparent 6.5deg 20deg);
+    }
+    .nval {
+      font-family: "Limelight", cursive; font-size: 31px; line-height: 1;
+      background-image: linear-gradient(180deg, #fbf3d2, #f3e3a0 28%, #d4af37 58%, #a8842a 82%, #ecd27c);
+      -webkit-background-clip: text; background-clip: text;
+      color: transparent; -webkit-text-fill-color: transparent;
+    }
+    .ngem { width: 5px; height: 5px; flex: none; background: var(--gold); transform: rotate(45deg); opacity: .85; }
+    .ncard.sel {
+      background: linear-gradient(168deg, var(--gold-pale), #e3c668 46%, #b8902c);
+      border-color: var(--gold-pale);
+      box-shadow: 0 0 0 1px rgba(247,236,192,.55), 0 10px 20px rgba(212,175,55,.32), 0 6px 14px rgba(0,0,0,.5);
+      transform: translateY(-7px);
+    }
+    .ncard.sel::before { border-color: rgba(24,17,6,.4); }
+    .ncard.sel .nval { background: none; -webkit-text-fill-color: var(--ink); color: var(--ink); }
+    .ncard.sel .crest {
+      border-bottom-color: rgba(24,17,6,.55);
+      background: repeating-conic-gradient(from -90deg at 50% 100%,
+        rgba(24,17,6,.75) 0deg 6.5deg, transparent 6.5deg 20deg);
+    }
+    .ncard.sel .ngem { background: var(--ink); }
+    .lockcta { margin-top: 20px; }
+
+    /* ================= REVEAL ================= */
+    .reveal-wrap { padding-top: 34px; }
+    .played { text-align: center; margin: 6px 0 4px; }
+    .playedlbl { margin-bottom: 12px; }
+    .bigpow {
+      width: 116px; min-height: 128px; margin: 0 auto; padding-top: 17px;
+    }
+    .bigpow .pglyph { width: 46px; height: 46px; }
+    .bigpow .pglyph b { font-size: 23px; }
+    .bigpow .pname2 { font-size: 11px; }
+
+    .rgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 14px; margin: 22px 6px 8px; }
+    .rcell { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .rname {
+      font-family: "Poiret One", cursive; font-size: 11px; letter-spacing: .26em; text-indent: .26em;
+      text-transform: uppercase; color: var(--cream-dim);
+    }
+    .rcardwrap { position: relative; width: 96px; }
+    .rcardwrap .ncard { height: 130px; width: 96px; cursor: default; }
+    .rcardwrap .nval { font-size: 44px; }
+    .rcardwrap .crest { width: 34px; height: 17px; border-radius: 34px 34px 0 0 / 17px 17px 0 0; }
+    .rcell.cancelled .ncard { filter: brightness(.5) saturate(.55); }
+    .rcell.cancelled .nval { visibility: hidden; }
+    .rcell.cancelled .rcardwrap::after {
+      content: attr(data-n); position: absolute; left: 0; right: 0; top: 50%;
+      transform: translateY(-50%); text-align: center; pointer-events: none;
+      font-family: "Limelight", cursive; font-size: 44px; line-height: 1;
+      color: var(--cream); opacity: .7;
+      -webkit-text-stroke: 1px rgba(20, 14, 4, .85);
+      text-shadow: 0 0 5px rgba(0,0,0,.65), 0 2px 9px rgba(0,0,0,.55);
+    }
+    .rcell.zero .rcardwrap::before {
+      content: ""; position: absolute; inset: -14px; z-index: -1;
+      background: radial-gradient(circle, rgba(212,175,55,.32), transparent 68%);
+    }
+    .decox { position: absolute; inset: 0; pointer-events: none; }
+    .decox::before, .decox::after {
+      content: ""; position: absolute; left: 50%; top: 50%;
+      width: 132%; height: 11px;
+      background:
+        repeating-linear-gradient(115deg, rgba(24,17,6,.5) 0 3px, transparent 3px 9px),
+        linear-gradient(180deg, var(--gold-pale), var(--gold) 55%, var(--gold-lo));
+      border-top: 1px solid #fbf3d2; border-bottom: 1px solid var(--gold-lo);
+      box-shadow: 0 3px 9px rgba(0,0,0,.6);
+    }
+    .decox::before { transform: translate(-50%, -50%) rotate(40deg); }
+    .decox::after  { transform: translate(-50%, -50%) rotate(-40deg); }
+    .decox i {
+      position: absolute; left: 50%; top: 50%; width: 13px; height: 13px;
+      transform: translate(-50%, -50%) rotate(45deg);
+      background: var(--gold-pale); border: 2px solid var(--gold-lo);
+      box-shadow: 0 0 10px rgba(212,175,55,.55);
+    }
+    .rout { font-family: "Limelight", cursive; font-size: 19px; color: var(--cream-dim); line-height: 1; }
+    .rcell.zero .rout { color: var(--gold-hi); font-size: 23px; }
+    .rcanc {
+      font-family: "Poiret One", cursive; font-size: 9px; letter-spacing: .32em; text-indent: .32em;
+      text-transform: uppercase; color: var(--gold);
+    }
+    .continuebox { margin: 26px auto 0; max-width: 280px; }
+
+    /* ================= END ================= */
+    .end-wrap { position: relative; padding-top: 30px; overflow: hidden; min-height: 96vh; }
+    .grand { position: relative; text-align: center; padding: 44px 0 10px; }
+    .grand .sun {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      width: 430px; height: 430px; z-index: -1; border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 50%,
+          transparent 0 73px, rgba(212,175,55,.55) 73px 75px,
+          transparent 75px 96px, rgba(212,175,55,.32) 96px 97.5px,
+          transparent 97.5px),
+        repeating-conic-gradient(from 0deg at 50% 50%,
+          rgba(212,175,55,.3) 0deg 2.2deg, rgba(212,175,55,.03) 2.2deg 9deg);
+      -webkit-mask-image: radial-gradient(circle, #000 0 38%, transparent 72%);
+      mask-image: radial-gradient(circle, #000 0 38%, transparent 72%);
+    }
+    .wonline { font-family: "Limelight", cursive; font-size: 54px; line-height: 1.05; margin: 10px 0 4px; }
+    .gala { position: relative; padding: 16px 16px 14px; margin-top: 26px; }
+    .galahead {
+      display: grid; grid-template-columns: 20px 30px 1fr 30px 30px 30px 48px;
+      gap: 6px; align-items: baseline; padding: 0 6px 8px;
+      border-bottom: 1px solid var(--gold-faint); margin-bottom: 4px;
+    }
+    .galahead span {
+      font-family: "Poiret One", cursive; font-size: 9px; letter-spacing: .18em;
+      color: var(--cream-faint); text-transform: uppercase; text-align: center;
+    }
+    .galahead span:last-child { text-align: right; }
+    .galarow {
+      display: grid; grid-template-columns: 20px 30px 1fr 30px 30px 30px 48px;
+      gap: 6px; align-items: center; padding: 9px 6px;
+      border-bottom: 1px solid rgba(212,175,55,.1);
+    }
+    .galarow:last-child { border-bottom: 0; }
+    .galarow .rank { font-family: "Limelight", cursive; font-size: 15px; color: var(--gold-dim); }
+    .galarow .gname { font-size: 17.5px; font-weight: 600; white-space: nowrap; overflow: hidden; }
+    .galarow .gname em { font-weight: 400; font-size: 13px; color: var(--cream-dim); }
+    .galarow .rr { text-align: center; font-size: 16px; color: var(--cream-dim); font-weight: 500; }
+    .galarow .tot { text-align: right; font-family: "Limelight", cursive; font-size: 21px; }
+    .galarow.winner {
+      border: 1px solid var(--gold); outline: 1px solid var(--gold-faint); outline-offset: 3px;
+      background: linear-gradient(90deg, rgba(212,175,55,.16), rgba(212,175,55,.05));
+      margin: 4px -2px 6px; padding: 11px 8px;
+    }
+    .galarow.winner .rank { color: var(--gold-hi); }
+    .end-btns { margin-top: 28px; }
+
+    /* static confetti: gold dots, diamonds, slivers */
+    .confetti { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+    .confetti i { position: absolute; display: block; }
+    .cf-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); }
+    .cf-dot.pale { background: var(--gold-pale); }
+    .cf-dot.dim { background: var(--gold-dim); }
+    .cf-dia { width: 7px; height: 7px; background: var(--gold); }
+    .cf-dia.em { background: var(--emerald); }
+    .cf-dia.bu { background: var(--burgundy); }
+    .cf-bar { width: 2px; height: 11px; background: var(--gold-hi); }
+    .cf-ring { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--gold-dim); }
+    .end-content { position: relative; z-index: 1; }
+
+    /* ---------- switcher ---------- */
+    #switcher a {
+      width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+      border: 1px solid var(--gold-dim); color: var(--gold-hi); text-decoration: none;
+      font-family: "Poiret One", cursive; font-size: 12px; background: rgba(12,12,14,.88);
+    }
+
+    /* ---------- motion (flourishes only; base = resting state) ---------- */
+    @media (prefers-reduced-motion: no-preference) {
+      @keyframes riseIn { from { opacity: 0; transform: translateX(-50%) scale(.92); } }
+      .fanrise { animation: riseIn 1.1s ease-out; }
+      @keyframes settle { from { opacity: 0; transform: translateY(10px); } }
+      .wordframe, .codeplaque, .grand { animation: settle .7s ease-out; }
+      @keyframes thinkPulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+      .psstatus.think { animation: thinkPulse 1.6s ease-in-out infinite; }
+      @keyframes selGlow {
+        0%, 100% { box-shadow: 0 0 0 1px rgba(247,236,192,.55), 0 10px 20px rgba(212,175,55,.32), 0 6px 14px rgba(0,0,0,.5); }
+        50% { box-shadow: 0 0 0 1px rgba(247,236,192,.8), 0 12px 26px rgba(212,175,55,.5), 0 6px 14px rgba(0,0,0,.5); }
+      }
+      .ncard.sel { animation: selGlow 2.4s ease-in-out infinite; }
+      @keyframes stampIn { from { opacity: 0; transform: scale(1.7); } }
+      .decox { animation: stampIn .5s cubic-bezier(.2, 1.4, .4, 1); }
+      @keyframes twinkle { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+      .confetti i:nth-child(odd) { animation: twinkle 2.8s ease-in-out infinite; }
+      .confetti i:nth-child(even) { animation: twinkle 3.6s ease-in-out 1.1s infinite; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ 1. HOME ============ -->
+  <main data-screen="home">
+    <div class="wrap home-wrap">
+      <div class="marquee">
+        <div class="fanrise"></div>
+        <div class="wordframe">
+          <i class="cstep tl"></i><i class="cstep tr"></i><i class="cstep bl"></i><i class="cstep br"></i>
+          <h1 class="wordmark goldtext">CANCEL</h1>
+          <div class="wordrule"><i></i><span class="dia"></span><i></i></div>
+        </div>
+      </div>
+      <p class="tagline">a number-picking party game</p>
+      <div class="btncol">
+        <button class="lz primary" type="button"><span>New game</span></button>
+        <button class="lz" type="button"><span>Single player</span></button>
+        <button class="lz" type="button"><span>Join with code</span></button>
+      </div>
+      <div class="home-foot">
+        <div class="frieze"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ 2. LOBBY ============ -->
+  <main data-screen="lobby">
+    <div class="wrap">
+      <div class="topbar">
+        <button class="hbtn" type="button">← Leave</button>
+        <button class="hbtn" type="button">Rules</button>
+      </div>
+
+      <div class="frame codeplaque">
+        <i class="cstep tl"></i><i class="cstep tr"></i><i class="cstep bl"></i><i class="cstep br"></i>
+        <div class="code goldtext">DN2H</div>
+        <div class="hint">press to copy</div>
+      </div>
+
+      <div class="sect"><span>Players · 4</span></div>
+
+      <div class="frame prow">
+        <div class="med ben">B</div>
+        <span class="pname">Ben</span>
+        <span class="badges">
+          <span class="badge host">Host</span>
+          <span class="badge you">You</span>
+          <span class="odot"></span>
+        </span>
+      </div>
+      <div class="frame prow">
+        <div class="med vol">V</div>
+        <span class="pname">Voltaire</span>
+        <span class="badges"><span class="badge bot">Bot</span><span class="odot"></span></span>
+      </div>
+      <div class="frame prow">
+        <div class="med mec">M</div>
+        <span class="pname">Mechano</span>
+        <span class="badges"><span class="badge bot">Bot</span><span class="odot"></span></span>
+      </div>
+      <div class="frame prow">
+        <div class="med dan">D</div>
+        <span class="pname">Data Dan</span>
+        <span class="badges"><span class="badge bot">Bot</span><span class="odot"></span></span>
+      </div>
+
+      <div class="frieze"></div>
+
+      <div class="frame setrow">
+        <span class="stitle">Rounds</span>
+        <span class="stepper">
+          <button class="stepbtn" type="button"><b>−</b></button>
+          <span class="stepval goldtext">3</span>
+          <button class="stepbtn" type="button"><b>+</b></button>
+        </span>
+      </div>
+      <div class="frame setrow">
+        <span class="stitle">AI players</span>
+        <span class="stepper">
+          <button class="stepbtn" type="button"><b>−</b></button>
+          <span class="stepval goldtext">3</span>
+          <button class="stepbtn" type="button"><b>+</b></button>
+        </span>
+      </div>
+      <div class="frame powpanel">
+        <div class="stitle">Power-ups</div>
+        <div class="seg">
+          <span>None</span><span class="on">Random</span><span>Choose</span>
+        </div>
+        <div class="seghelp">A fresh random pool each round.</div>
+      </div>
+
+      <div class="lobby-start">
+        <button class="lz primary" type="button"><span>Start game</span></button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ 3. GAME ============ -->
+  <main data-screen="game">
+    <div class="wrap">
+      <header class="ghead">
+        <span class="ginfo"><b>R1</b><span class="dim">/3</span><span class="mid"> · </span><b>T2</b><span class="dim">/6</span><span class="mid"> · </span>DN2H</span>
+        <span class="gbtns">
+          <button class="hbtn" type="button">Rules</button>
+          <button class="hbtn" type="button">Leave</button>
+          <button class="hbtn danger" type="button">End game</button>
+        </span>
+      </header>
+
+      <div class="scorebrd">
+        <div class="frame schip"><span class="med sm ben">B</span><span class="sname">Ben</span><span class="sval goldtext">4</span></div>
+        <div class="frame schip"><span class="med sm vol">V</span><span class="sname">Voltaire</span><span class="sval goldtext">0</span></div>
+        <div class="frame schip"><span class="med sm mec">M</span><span class="sname">Mechano</span><span class="sval goldtext">2</span></div>
+        <div class="frame schip"><span class="med sm dan">D</span><span class="sname">Data Dan</span><span class="sval goldtext">5</span></div>
+      </div>
+
+      <div class="poolmeta">
+        <span class="lbl">Power-ups remaining</span>
+        <span class="count">6 / 6</span>
+      </div>
+
+      <div class="frame pool">
+        <div class="poolbanner"><span class="dia sm"></span>Your turn, press to select<span class="dia sm"></span></div>
+        <div class="powers">
+          <div class="pcard teal"><span class="pglyph"><b>⇄</b></span><span class="pname2">Swap Hands</span></div>
+          <div class="pcard rose"><span class="pglyph"><b>✖</b></span><span class="pname2">Sabotage</span></div>
+          <div class="pcard pink sel"><span class="pglyph"><b>=</b></span><span class="pname2">Jinx</span></div>
+          <div class="pcard emerald"><span class="pglyph"><b>+2</b></span><span class="pname2">Plus Two</span></div>
+          <div class="pcard violet"><span class="pglyph"><b>?</b></span><span class="pname2">Wild</span></div>
+          <div class="pcard amber"><span class="pglyph"><b>↧</b></span><span class="pname2">Drain</span></div>
+        </div>
+      </div>
+
+      <div class="sect"><span>Players · Power picker: <span class="em">Ben</span></span></div>
+      <div class="pstat">
+        <div class="frame ps">
+          <span class="med sm ben">B</span>
+          <span class="psinfo">
+            <span class="psname">Ben <em>(you)</em></span>
+            <span class="pshand">Ø 1 2 3 4 5</span>
+            <span class="psstatus think">Thinking…</span>
+          </span>
+        </div>
+        <div class="frame ps">
+          <span class="med sm vol">V</span>
+          <span class="psinfo">
+            <span class="psname">Voltaire</span>
+            <span class="pshand">Ø 1 2 3 4 5</span>
+            <span class="psstatus done">Submitted</span>
+          </span>
+        </div>
+        <div class="frame ps">
+          <span class="med sm mec">M</span>
+          <span class="psinfo">
+            <span class="psname">Mechano</span>
+            <span class="pshand">Ø 1 2 3 4 5</span>
+            <span class="psstatus done">Submitted</span>
+          </span>
+        </div>
+        <div class="frame ps">
+          <span class="med sm dan">D</span>
+          <span class="psinfo">
+            <span class="psname">Data Dan</span>
+            <span class="pshand">Ø 1 2 3 4 5</span>
+            <span class="psstatus done">Submitted</span>
+          </span>
+        </div>
+      </div>
+
+      <button class="lz sm skipghost" type="button"><span>Skip waiting, auto-play who's left</span></button>
+
+      <div class="sect"><span>Your hand</span></div>
+      <div class="hand">
+        <div class="ncard"><i class="crest"></i><span class="nval">Ø</span><i class="ngem"></i></div>
+        <div class="ncard"><i class="crest"></i><span class="nval">1</span><i class="ngem"></i></div>
+        <div class="ncard"><i class="crest"></i><span class="nval">2</span><i class="ngem"></i></div>
+        <div class="ncard"><i class="crest"></i><span class="nval">3</span><i class="ngem"></i></div>
+        <div class="ncard"><i class="crest"></i><span class="nval">4</span><i class="ngem"></i></div>
+        <div class="ncard sel"><i class="crest"></i><span class="nval">5</span><i class="ngem"></i></div>
+      </div>
+
+      <div class="lockcta">
+        <button class="lz primary" type="button"><span>Lock it in</span></button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ 4. REVEAL ============ -->
+  <main data-screen="reveal">
+    <div class="wrap reveal-wrap">
+      <div class="sect"><span>Turn 2 Reveal</span></div>
+
+      <div class="played">
+        <div class="lbl playedlbl">Ben played</div>
+        <div class="pcard pink bigpow"><span class="pglyph"><b>=</b></span><span class="pname2">Jinx</span></div>
+      </div>
+
+      <div class="rgrid">
+        <div class="rcell cancelled">
+          <span class="rname" style="color: var(--ben-a);">Ben</span>
+          <div class="rcardwrap" data-n="5">
+            <div class="ncard"><i class="crest"></i><span class="nval">5</span><i class="ngem"></i></div>
+            <div class="decox"><i></i></div>
+          </div>
+          <span class="rout">0</span>
+          <span class="rcanc">Cancelled</span>
+        </div>
+        <div class="rcell zero">
+          <span class="rname" style="color: var(--vol-a);">Voltaire</span>
+          <div class="rcardwrap">
+            <div class="ncard"><i class="crest"></i><span class="nval">Ø</span><i class="ngem"></i></div>
+          </div>
+          <span class="rout">0</span>
+        </div>
+        <div class="rcell cancelled">
+          <span class="rname" style="color: var(--mec-a);">Mechano</span>
+          <div class="rcardwrap" data-n="5">
+            <div class="ncard"><i class="crest"></i><span class="nval">5</span><i class="ngem"></i></div>
+            <div class="decox"><i></i></div>
+          </div>
+          <span class="rout">0</span>
+          <span class="rcanc">Cancelled</span>
+        </div>
+        <div class="rcell cancelled">
+          <span class="rname" style="color: var(--dan-a);">Data Dan</span>
+          <div class="rcardwrap" data-n="3">
+            <div class="ncard"><i class="crest"></i><span class="nval">3</span><i class="ngem"></i></div>
+            <div class="decox"><i></i></div>
+          </div>
+          <span class="rout">0</span>
+          <span class="rcanc">Cancelled</span>
+        </div>
+      </div>
+
+      <div class="continuebox">
+        <button class="lz primary" type="button"><span>Continue</span></button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ 5. END ============ -->
+  <main data-screen="end">
+    <div class="wrap end-wrap">
+      <div class="confetti">
+        <i class="cf-dot" style="left:6%; top:3%;"></i>
+        <i class="cf-dia" style="left:16%; top:7%; transform:rotate(45deg);"></i>
+        <i class="cf-dot pale" style="left:28%; top:2%;"></i>
+        <i class="cf-bar" style="left:38%; top:6%; transform:rotate(24deg);"></i>
+        <i class="cf-dot dim" style="left:50%; top:3%;"></i>
+        <i class="cf-dia em" style="left:62%; top:6%; transform:rotate(45deg);"></i>
+        <i class="cf-dot" style="left:74%; top:2%;"></i>
+        <i class="cf-ring" style="left:86%; top:5%;"></i>
+        <i class="cf-dot pale" style="left:94%; top:9%;"></i>
+        <i class="cf-bar" style="left:9%; top:13%; transform:rotate(-30deg);"></i>
+        <i class="cf-dia bu" style="left:22%; top:16%; transform:rotate(45deg);"></i>
+        <i class="cf-dot" style="left:45%; top:12%;"></i>
+        <i class="cf-dia" style="left:70%; top:14%; transform:rotate(45deg);"></i>
+        <i class="cf-dot dim" style="left:82%; top:17%;"></i>
+        <i class="cf-ring" style="left:33%; top:19%;"></i>
+        <i class="cf-dot pale" style="left:57%; top:20%;"></i>
+        <i class="cf-bar" style="left:91%; top:24%; transform:rotate(40deg);"></i>
+        <i class="cf-dot" style="left:4%; top:27%;"></i>
+        <i class="cf-dia em" style="left:14%; top:34%; transform:rotate(45deg);"></i>
+        <i class="cf-dot dim" style="left:88%; top:36%;"></i>
+        <i class="cf-dia" style="left:95%; top:45%; transform:rotate(45deg);"></i>
+        <i class="cf-dot pale" style="left:7%; top:48%;"></i>
+        <i class="cf-bar" style="left:3%; top:62%; transform:rotate(18deg);"></i>
+        <i class="cf-dot" style="left:93%; top:60%;"></i>
+        <i class="cf-dia bu" style="left:5%; top:76%; transform:rotate(45deg);"></i>
+        <i class="cf-ring" style="left:92%; top:74%;"></i>
+        <i class="cf-dot dim" style="left:13%; top:88%;"></i>
+        <i class="cf-dot pale" style="left:87%; top:90%;"></i>
+      </div>
+
+      <div class="end-content">
+        <div class="sect"><span>Game over</span></div>
+
+        <div class="grand">
+          <div class="sun"></div>
+          <h1 class="wonline goldtext">You won.</h1>
+          <div class="wordrule"><i></i><span class="dia"></span><i></i></div>
+        </div>
+
+        <div class="frame gala">
+          <i class="cstep tl"></i><i class="cstep tr"></i><i class="cstep bl"></i><i class="cstep br"></i>
+          <div class="galahead">
+            <span></span><span></span><span></span>
+            <span>R1</span><span>R2</span><span>R3</span><span>Total</span>
+          </div>
+          <div class="galarow winner">
+            <span class="rank">1</span>
+            <span class="med sm ben">B</span>
+            <span class="gname">Ben <em>(you)</em></span>
+            <span class="rr">5</span><span class="rr">9</span><span class="rr">6</span>
+            <span class="tot goldtext">20</span>
+          </div>
+          <div class="galarow">
+            <span class="rank">2</span>
+            <span class="med sm dan">D</span>
+            <span class="gname">Data Dan</span>
+            <span class="rr">5</span><span class="rr">4</span><span class="rr">3</span>
+            <span class="tot goldtext">12</span>
+          </div>
+          <div class="galarow">
+            <span class="rank">3</span>
+            <span class="med sm vol">V</span>
+            <span class="gname">Voltaire</span>
+            <span class="rr">3</span><span class="rr">2</span><span class="rr">4</span>
+            <span class="tot goldtext">9</span>
+          </div>
+          <div class="galarow">
+            <span class="rank">4</span>
+            <span class="med sm mec">M</span>
+            <span class="gname">Mechano</span>
+            <span class="rr">0</span><span class="rr">5</span><span class="rr">2</span>
+            <span class="tot goldtext">7</span>
+          </div>
+        </div>
+
+        <div class="btncol end-btns">
+          <button class="lz primary" type="button"><span>Play again</span></button>
+          <button class="lz" type="button"><span>Leave room</span></button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

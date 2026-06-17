@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Cassette Futurism</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ============ CASSETTE FUTURISM — beige 1979 game console ============ */
+    :root {
+      --beige: #d8d0c2;
+      --putty: #c4bba8;
+      --beige-hi: #ece6d8;
+      --beige-lo: #a89e88;
+      --char: #26241f;
+      --ink: #3a342a;
+      --engrave: #6f6450;
+      --orange: #ff5e1a;
+      --orange-deep: #b23c0c;
+      --mustard: #d9a31b;
+      --avocado: #8a9a3b;
+      --amber: #ffb43c;
+      --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+      --static: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.85 0 0 0 0 0.92 0 0 0 0 0.8 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='90' height='90' filter='url(%23s)'/%3E%3C/svg%3E");
+    }
+    * { box-sizing: border-box; }
+    html { background: #131109; }
+    body {
+      margin: 0; padding: 10px 8px 18px;
+      min-height: 100vh;
+      background: radial-gradient(130% 90% at 50% 0%, #25211a 0%, #131109 72%);
+      font-family: "Chakra Petch", sans-serif;
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+    button { font: inherit; cursor: pointer; }
+
+    /* ---- device chassis ---- */
+    .device {
+      position: relative;
+      max-width: 404px; min-height: 866px;
+      margin: 0 auto;
+      padding: 18px 16px 24px;
+      border-radius: 22px;
+      border: 1px solid #8f8671;
+      background-image: var(--grain), linear-gradient(180deg, #e2dacb 0%, #d8d0c2 9%, #cbc2ae 100%);
+      background-size: 120px, auto;
+      box-shadow:
+        inset 0 2px 0 rgba(255,255,255,.78),
+        inset 0 -4px 0 rgba(60,50,35,.22),
+        inset 2px 0 0 rgba(255,255,255,.28),
+        inset -2px 0 0 rgba(60,50,35,.12),
+        0 14px 30px rgba(0,0,0,.55);
+      overflow: hidden;
+    }
+
+    /* ---- screws ---- */
+    .screw {
+      position: absolute; width: 12px; height: 12px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #f2eee4, #b3aa95 55%, #837a64 100%);
+      box-shadow: inset 0 -1px 2px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.6);
+    }
+    .screw::after {
+      content: ""; position: absolute; left: 1.5px; right: 1.5px; top: 5.2px; height: 1.6px;
+      background: #5d5440; border-radius: 1px;
+    }
+    .s-tl { top: 9px; left: 9px; } .s-tl::after { transform: rotate(28deg); }
+    .s-tr { top: 9px; right: 9px; } .s-tr::after { transform: rotate(-19deg); }
+    .s-bl { bottom: 9px; left: 9px; } .s-bl::after { transform: rotate(64deg); }
+    .s-br { bottom: 9px; right: 9px; } .s-br::after { transform: rotate(8deg); }
+
+    /* ---- engraved + printed text ---- */
+    .eng {
+      font-family: "Chakra Petch", sans-serif; font-weight: 600;
+      font-size: 10.5px; letter-spacing: .15em; text-transform: uppercase;
+      color: var(--engrave); text-shadow: 0 1px 0 rgba(255,255,255,.66);
+    }
+    .dymo {
+      display: inline-block;
+      font-family: "Share Tech Mono", monospace;
+      font-size: 11px; letter-spacing: .18em; text-transform: uppercase;
+      padding: 6px 13px 5px; border-radius: 3px;
+      background: linear-gradient(180deg, #2c2923, #181612);
+      color: #efe9da; text-shadow: 0 1px 1px rgba(0,0,0,.85);
+      box-shadow: 0 1px 0 rgba(255,255,255,.5), inset 0 1px 0 rgba(255,255,255,.14), 0 2px 3px rgba(0,0,0,.3);
+    }
+    .dymo.orange {
+      background: linear-gradient(180deg, #ff7a35, #dd470b);
+      color: #fff7ee; text-shadow: 0 1px 1px rgba(120,30,0,.7);
+    }
+
+    /* ---- section heading + ridged rail ---- */
+    .sechead { display: flex; align-items: center; gap: 10px; margin: 18px 2px 8px; }
+    .rail {
+      flex: 1; height: 6px; border-radius: 3px;
+      background: repeating-linear-gradient(90deg, #b9af99 0 2px, #8f8670 2px 3px, #e2dbcb 3px 5px);
+      box-shadow: inset 0 1px 1px rgba(0,0,0,.28);
+    }
+
+    /* ---- keys (physically pressable) ---- */
+    .key {
+      font-family: "Chakra Petch", sans-serif; font-weight: 600;
+      color: var(--ink);
+      background-image: var(--grain), linear-gradient(180deg, #ece6d8, #cfc6b2);
+      background-size: 120px, auto;
+      border: 1px solid #a3997f; border-radius: 9px;
+      padding: 10px 14px;
+      box-shadow: 0 3px 0 #968c73, 0 5px 7px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.85);
+      text-shadow: 0 1px 0 rgba(255,255,255,.6);
+    }
+    .key.primary {
+      background-image: var(--grain), linear-gradient(180deg, #ff8240, #ef520e 60%, #df4708);
+      color: #fff6ec; border-color: #b73f0b;
+      box-shadow: 0 4px 0 #99350a, 0 7px 12px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.45);
+      text-shadow: 0 1px 1px rgba(120,30,0,.55);
+    }
+    .key.xl { display: block; width: 100%; padding: 15px 14px; font-size: 17px; border-radius: 12px; margin-top: 12px; letter-spacing: .02em; }
+    .key.mini { padding: 7px 9px; font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; border-radius: 7px; }
+    .key.mini.warn { color: #a3300d; }
+    .key.pressed {
+      transform: translateY(3px);
+      background-image: var(--grain), linear-gradient(180deg, #d7cfbd, #c7bea8);
+      box-shadow: 0 1px 0 #968c73, inset 0 2px 5px rgba(0,0,0,.28);
+    }
+    .ghostkey {
+      display: block; width: 100%;
+      background: transparent; border: 1px dashed #a3987f; border-radius: 9px;
+      color: #7d7460; font-family: "Share Tech Mono", monospace;
+      font-size: 10.5px; letter-spacing: .12em; padding: 11px 10px;
+      box-shadow: none; margin-top: 10px;
+    }
+
+    /* ---- LCD windows ---- */
+    .lcd {
+      position: relative; overflow: hidden;
+      font-family: "Share Tech Mono", monospace;
+      color: var(--amber); text-shadow: 0 0 6px rgba(255,170,50,.5);
+      background-image:
+        repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 1px, transparent 1px 3px),
+        linear-gradient(172deg, #28311f, #161d13 75%);
+      border-radius: 6px;
+      box-shadow:
+        inset 0 3px 8px rgba(0,0,0,.78),
+        inset 0 -1px 0 rgba(150,170,120,.12),
+        0 1px 0 rgba(255,255,255,.55);
+    }
+    .lcd::after {
+      content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,0) 40%);
+    }
+    .lcd.dead::before {
+      content: ""; position: absolute; inset: 0;
+      background-image: var(--static); background-size: 90px;
+      opacity: .34; pointer-events: none;
+    }
+
+    /* ---- LEDs ---- */
+    .led {
+      display: inline-block; flex: none; width: 10px; height: 10px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.95), var(--c) 42%, var(--cd) 92%);
+      box-shadow: 0 0 6px var(--gl), inset 0 -1px 1px rgba(0,0,0,.35);
+    }
+    .led.sm { width: 8px; height: 8px; }
+    .led.green { --c:#62d36b; --cd:#1f7a2a; --gl:rgba(80,220,100,.65); }
+    .led.red   { --c:#ff5040; --cd:#8e1206; --gl:rgba(255,70,50,.75); }
+    .led.amber { --c:#ffb845; --cd:#9a6206; --gl:rgba(255,180,60,.7); }
+    .led.ben   { --c:#ff7136; --cd:#a93b0b; --gl:rgba(255,100,40,.65); }
+    .led.vol   { --c:#6f9cc0; --cd:#2e5570; --gl:rgba(110,160,200,.6); }
+    .led.mec   { --c:#e9b32a; --cd:#8a6207; --gl:rgba(230,180,50,.6); }
+    .led.dan   { --c:#8fb054; --cd:#46601f; --gl:rgba(140,180,80,.6); }
+    .led.teal  { --c:#3fc4a7; --cd:#136352; --gl:rgba(60,200,170,.6); }
+    .led.rose  { --c:#ff6a57; --cd:#8c1a0c; --gl:rgba(255,110,80,.6); }
+    .led.pink  { --c:#f07fb4; --cd:#96275e; --gl:rgba(240,130,180,.7); }
+    .led.em    { --c:#5ed46d; --cd:#1c6b28; --gl:rgba(90,210,110,.6); }
+    .led.vio   { --c:#a98ae0; --cd:#4d3580; --gl:rgba(170,140,225,.6); }
+    .led.dim   { filter: saturate(.5) brightness(.72); box-shadow: inset 0 1px 2px rgba(0,0,0,.4); }
+    .led.off {
+      background: radial-gradient(circle at 35% 30%, #d6cdb9, #8d8470);
+      box-shadow: inset 0 1px 2px rgba(0,0,0,.45);
+    }
+
+    /* ---- raised beige sub-plate ---- */
+    .plate {
+      position: relative;
+      background-image: var(--grain), linear-gradient(180deg, #e3dccd, #d2c9b5);
+      background-size: 120px, auto;
+      border: 1px solid #b1a78e; border-radius: 12px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 2px 4px rgba(0,0,0,.14);
+    }
+    /* ---- dark recessed tray ---- */
+    .tray {
+      background: linear-gradient(180deg, #2c2922, #211f19);
+      border-radius: 12px; padding: 10px;
+      box-shadow: inset 0 3px 8px rgba(0,0,0,.62), inset 0 -1px 0 rgba(255,255,255,.05), 0 1px 0 rgba(255,255,255,.5);
+    }
+
+    /* ---- tags (HOST / YOU / BOT) ---- */
+    .tag {
+      font-family: "Share Tech Mono", monospace; font-size: 9px; letter-spacing: .1em;
+      padding: 3px 6px 2px; border-radius: 3px;
+      background: #b3a98f; color: #504836;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 1px 0 rgba(0,0,0,.18);
+    }
+    .tag.host { background: #d9a31b; color: #46330a; }
+    .tag.you { background: #f25510; color: #fff3e8; }
+    .tag.bot { background: #8f8672; color: #2c281e; }
+
+    /* ---- 7-segment digits ---- */
+    svg.seg { display: block; --lit: var(--amber); --ghost: rgba(235,222,180,.1); filter: drop-shadow(0 0 5px rgba(255,170,50,.45)); }
+
+    /* ================= HOME ================= */
+    .home-dev { display: flex; flex-direction: column; }
+    .hrow { display: flex; align-items: center; gap: 8px; margin: 2px 4px 0; }
+    .pwr { display: flex; align-items: center; gap: 7px; }
+    .hrow .model { flex: 1; text-align: center; font-size: 9.5px; }
+    .stripes {
+      height: 13px; border-radius: 4px; margin: 16px 2px 0;
+      background: linear-gradient(180deg, var(--orange) 0 34%, var(--mustard) 34% 67%, var(--avocado) 67% 100%);
+      box-shadow: 0 1px 0 rgba(255,255,255,.55), inset 0 1px 1px rgba(0,0,0,.22);
+    }
+    .brand {
+      margin: 22px 2px 0; padding: 34px 10px 30px; text-align: center;
+      background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0 1px, transparent 1px 4px), linear-gradient(178deg, #2e2b24, #1b1915 80%);
+      border-radius: 14px;
+      box-shadow: inset 0 4px 10px rgba(0,0,0,.7), inset 0 -1px 0 rgba(255,255,255,.06), 0 1px 0 rgba(255,255,255,.55);
+    }
+    .wordmark {
+      font-size: 57px; font-weight: 700; line-height: 1; letter-spacing: .015em;
+      color: #ece4d2; text-shadow: 0 2px 2px rgba(0,0,0,.6);
+    }
+    .wordmark b { font-weight: 700; color: #ff6a24; text-shadow: 0 0 16px rgba(255,94,26,.55), 0 2px 2px rgba(0,0,0,.6); }
+    .tagline {
+      margin: 12px 22px 0; padding: 9px 10px 8px;
+      font-size: 12.5px; letter-spacing: .14em; text-align: center;
+    }
+    .home-btns { margin-top: 30px; }
+    .cassette {
+      margin-top: auto; display: flex; align-items: center; gap: 12px;
+      background: linear-gradient(180deg, #242019, #1b1813);
+      border-radius: 12px; padding: 11px 18px;
+      box-shadow: inset 0 2px 7px rgba(0,0,0,.65), 0 1px 0 rgba(255,255,255,.5);
+    }
+    .cassette { margin-top: 28px; }
+    .spool {
+      flex: none; width: 38px; height: 38px; border-radius: 50%;
+      background: radial-gradient(circle, #1b1813 0 17%, #efe8d6 18% 32%, #b3a98f 33% 44%, #6d6450 45% 52%, #3d2f1c 53% 100%);
+      box-shadow: 0 0 0 3px #4c4334, 0 1px 0 rgba(255,255,255,.12);
+    }
+    .tapebar { flex: 1; height: 5px; border-radius: 3px; background: #46371f; box-shadow: 0 1px 0 rgba(255,255,255,.07); }
+    .sidea { font-family: "Share Tech Mono", monospace; font-size: 9px; letter-spacing: .2em; color: #8d8470; }
+    .grille {
+      height: 86px; border-radius: 12px; margin-top: 16px;
+      background-color: #c8bfab;
+      background-image: radial-gradient(circle at 4px 4px, rgba(40,34,24,.55) 1.7px, transparent 2.3px);
+      background-size: 11px 11px;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,.32), 0 1px 0 rgba(255,255,255,.6);
+    }
+    .footer-eng { display: block; text-align: center; margin-top: 14px; font-size: 9px; }
+
+    /* ================= LOBBY ================= */
+    .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .codeplate { padding: 14px 14px 12px; text-align: center; }
+    .codeplate .lcd {
+      margin: 9px auto 8px; max-width: 250px; padding: 12px 8px 9px;
+      font-size: 44px; letter-spacing: .3em; text-indent: .3em; line-height: 1;
+    }
+    .hint { font-size: 9px; }
+    .players { padding: 3px 12px; }
+    .prow { display: flex; align-items: center; gap: 9px; padding: 11.5px 0; }
+    .prow + .prow { border-top: 1px solid rgba(60,50,35,.14); box-shadow: 0 -1px 0 rgba(255,255,255,.5) inset; }
+    .pname { flex: 1; font-weight: 600; font-size: 14.5px; }
+    .setrow { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; margin-top: 10px; }
+    .setname { font-weight: 600; font-size: 14px; }
+    .stepper { display: flex; align-items: center; gap: 8px; }
+    .stepkey { width: 38px; height: 38px; padding: 0; font-size: 17px; border-radius: 8px; }
+    .stepval { width: 42px; padding: 7px 0 5px; text-align: center; font-size: 17px; }
+    .powrow { display: block; padding: 12px; margin-top: 10px; }
+    .seg3 { display: flex; gap: 7px; margin-top: 10px; }
+    .seg3 .key { flex: 1; padding: 10px 4px; font-size: 12.5px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .helper { display: block; margin-top: 10px; font-size: 9px; letter-spacing: .13em; }
+    .lobby-start { margin-top: 16px; }
+
+    /* ================= GAME ================= */
+    .gh { display: flex; align-items: center; gap: 5px; }
+    .ghlcd { flex: 1; padding: 9px 10px 7px; font-size: 12.5px; letter-spacing: .1em; white-space: nowrap; }
+    .scoregrid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 12px; }
+    .chip { display: flex; align-items: center; gap: 7px; padding: 7px 8px 7px 10px; border-radius: 9px; }
+    .chip .cname { flex: 1; font-weight: 600; font-size: 12.5px; white-space: nowrap; overflow: hidden; }
+    .chip .lcd { min-width: 30px; padding: 4px 0 2px; text-align: center; font-size: 14px; }
+    .cnt { font-size: 12px; padding: 5px 9px 3px; letter-spacing: .12em; }
+    .turn-banner { display: block; text-align: center; margin: 2px 0 8px; }
+    .powergrid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .power {
+      position: relative; text-align: center; padding: 11px 4px 9px; border-radius: 10px;
+      background-image: var(--grain), linear-gradient(180deg, #ece6d8, #cfc6b2);
+      background-size: 120px, auto;
+      border: 1px solid #a3997f;
+      box-shadow: 0 3px 0 #968c73, 0 5px 7px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.85);
+    }
+    .power .led { position: absolute; top: 7px; right: 7px; width: 7px; height: 7px; }
+    .power .glyph {
+      display: block; font-family: "Chakra Petch", "Segoe UI Symbol", sans-serif;
+      font-weight: 700; font-size: 21px; line-height: 1.15;
+      color: var(--pc); text-shadow: 0 1px 0 rgba(255,255,255,.55);
+    }
+    .power .pname2 {
+      display: block; margin-top: 4px;
+      font-size: 8.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--engrave); text-shadow: 0 1px 0 rgba(255,255,255,.6);
+    }
+    .pw-teal { --pc: #157f6b; } .pw-rose { --pc: #b8362c; } .pw-pink { --pc: #c2417e; }
+    .pw-em { --pc: #357f3f; } .pw-vio { --pc: #6c54a0; } .pw-amb { --pc: #a87411; }
+    .power.sel {
+      transform: translateY(3px);
+      background-image: var(--grain), linear-gradient(180deg, #d9d1bf, #c8bfa8);
+      box-shadow: 0 1px 0 #968c73, inset 0 2px 5px rgba(0,0,0,.3);
+      outline: 2px solid #f25510; outline-offset: 2px;
+    }
+    .statusplate { padding: 3px 12px; }
+    .srow { display: flex; align-items: center; gap: 9px; padding: 9.5px 0; }
+    .srow + .srow { border-top: 1px solid rgba(60,50,35,.14); }
+    .sinfo { flex: 1; min-width: 0; }
+    .sname { display: block; font-weight: 600; font-size: 13.5px; line-height: 1.2; }
+    .sname i { font-style: normal; font-weight: 400; font-size: 11px; color: #847a64; }
+    .shand { display: block; font-family: "Share Tech Mono", monospace; font-size: 10px; letter-spacing: .22em; color: #847a64; margin-top: 1px; }
+    .status { display: flex; align-items: center; gap: 6px; font-family: "Share Tech Mono", monospace; font-size: 10px; letter-spacing: .1em; }
+    .status.sub { color: #3f6b33; }
+    .status.think { color: #8a6210; }
+    .handgrid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+    .numkey {
+      padding: 5px 4px 7px; border-radius: 9px;
+      background-image: var(--grain), linear-gradient(180deg, #ece6d8, #cdc4ae);
+      background-size: 120px, auto;
+      border: 1px solid #a3997f;
+      box-shadow: 0 4px 0 #968c73, 0 6px 8px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.85);
+    }
+    .numkey .lcd { height: 60px; display: grid; place-items: center; border-radius: 5px; }
+    .numkey svg.seg { width: 25px; height: 40px; }
+    .numkey .led { display: block; width: 7px; height: 7px; margin: 7px auto 0; }
+    .numkey.sel {
+      transform: translateY(3px);
+      background-image: var(--grain), linear-gradient(180deg, #d9d1bf, #c8bfa8);
+      box-shadow: 0 1px 0 #968c73, inset 0 2px 5px rgba(0,0,0,.3);
+      outline: 2px solid #f25510; outline-offset: 2px;
+    }
+    .numkey.sel svg.seg { --lit: #ffd75e; filter: drop-shadow(0 0 8px rgba(255,190,60,.85)); }
+    .numkey.sel .lcd { color: #ffd75e; }
+
+    /* ================= REVEAL ================= */
+    .rev { text-align: center; display: flex; flex-direction: column; }
+    .rev .dymo { align-self: center; }
+    .rev-eyebrow { margin-top: 4px; }
+    .label-played { display: block; margin: 20px 0 9px; }
+    .played-card { width: 120px; margin: 0 auto; display: block; padding: 14px 6px 12px; flex: none; }
+    .played-card .glyph { font-size: 30px; }
+    .played-card .pname2 { font-size: 9.5px; margin-top: 5px; }
+    .revgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 22px; text-align: left; }
+    .module { padding: 11px 11px 12px; border-radius: 12px; }
+    .mname { display: flex; align-items: center; justify-content: center; gap: 7px; margin-bottom: 9px; }
+    .mname .eng { font-size: 10px; }
+    .modlcd { height: 100px; display: grid; place-items: center; border-radius: 8px; }
+    .modlcd svg.seg { width: 40px; height: 64px; }
+    .err {
+      position: absolute; top: 7px; right: 9px; z-index: 1;
+      font-family: "Share Tech Mono", monospace; font-size: 11px; letter-spacing: .18em;
+      color: #ff5040; text-shadow: 0 0 7px rgba(255,60,40,.85);
+    }
+    .lcd.dead svg.seg { --lit: rgba(255,185,90,.16); --ghost: rgba(255,200,120,.05); filter: none; }
+    .outcome {
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      margin-top: 10px; font-family: "Share Tech Mono", monospace;
+      font-size: 10.5px; letter-spacing: .13em;
+    }
+    .outcome.bad { color: #a3300d; }
+    .outcome.good { color: #3f6b33; font-size: 13px; }
+    .outcome .opts { font-size: 13px; color: #50483a; }
+    .rev-continue { margin-top: 22px; margin-bottom: 22px; }
+    .fill-grille { margin-top: auto; }
+
+    /* ================= END ================= */
+    .endd { text-align: center; display: flex; flex-direction: column; }
+    .endd .dymo { align-self: center; }
+    .end-eyebrow { margin-top: 6px; }
+    .hero { margin: 22px 0 18px; font-size: 50px; font-weight: 700; line-height: 1; color: var(--ink); text-shadow: 0 1px 0 rgba(255,255,255,.7); }
+    .hero b { color: #f25510; text-shadow: 0 1px 0 rgba(255,255,255,.5); }
+    .scoretable { padding: 5px 8px; text-align: left; }
+    .trow { display: grid; grid-template-columns: 15px 13px 1fr 25px 25px 25px 52px; gap: 6px; align-items: center; padding: 10px 8px; }
+    .trow + .trow { border-top: 1px solid rgba(60,50,35,.13); }
+    .trow.thead { padding: 8px 8px 2px; }
+    .trow.thead span { font-family: "Share Tech Mono", monospace; font-size: 9px; letter-spacing: .08em; color: #847a64; text-align: center; }
+    .trow .rank { font-family: "Share Tech Mono", monospace; font-size: 12px; color: #847a64; }
+    .trow .tname { font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; }
+    .trow .tname i { font-style: normal; font-weight: 400; font-size: 11px; color: #847a64; }
+    .trow .rv { font-family: "Share Tech Mono", monospace; font-size: 12.5px; color: #5a523f; text-align: center; }
+    .trow .lcd { padding: 5px 0 3px; text-align: center; font-size: 16px; }
+    .trow.win {
+      margin: 6px -2px; border-top: none; border-radius: 10px;
+      background: linear-gradient(180deg, #f3ead2, #e7dcbd);
+      outline: 2px solid #f25510;
+      box-shadow: 0 2px 5px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.8);
+    }
+    .trow.win + .trow { border-top: none; }
+    .end-btns { margin-top: 20px; margin-bottom: 22px; }
+    .tape { position: absolute; width: 19px; height: 6px; border-radius: 2px; box-shadow: 0 1px 1px rgba(0,0,0,.3); }
+    .tp-o { background: #ff5e1a; } .tp-m { background: #d9a31b; } .tp-a { background: #8a9a3b; } .tp-b { background: #5e87a8; } .tp-c { background: #36322a; }
+    .t1  { top: 70px;  left: 14px;  transform: rotate(-24deg); }
+    .t2  { top: 36px;  left: 74px;  transform: rotate(14deg); }
+    .t3  { top: 50px;  left: 296px; transform: rotate(40deg); }
+    .t4  { top: 84px;  right: 18px; transform: rotate(-52deg); }
+    .t5  { top: 108px; left: 34px;  transform: rotate(70deg); }
+    .t6  { top: 505px; right: 40px; transform: rotate(-12deg); }
+    .t7  { top: 300px; right: 6px;  transform: rotate(28deg); }
+    .t8  { top: 590px; right: 70px; transform: rotate(62deg); }
+    .t9  { top: 250px; left: 4px;   transform: rotate(-36deg); }
+    .t10 { top: 540px; right: 28px; transform: rotate(22deg); }
+    .t11 { top: 600px; left: 40px;  transform: rotate(-58deg); }
+    .t12 { top: 648px; right: 96px; transform: rotate(34deg); }
+    .t13 { top: 760px; left: 180px; transform: rotate(-20deg); }
+    .t14 { top: 706px; left: 84px;  transform: rotate(48deg); }
+    .t15 { top: 680px; left: 250px; transform: rotate(8deg); }
+    .t16 { top: 118px; right: 130px;transform: rotate(-40deg); }
+
+    /* ---- switcher theme ---- */
+    #switcher a {
+      width: 24px; height: 24px; display: grid; place-items: center;
+      font-family: "Share Tech Mono", monospace; font-size: 12px;
+      color: #d8d0c2; text-decoration: none;
+      background: #26241f; border: 1px solid #4d493e; border-radius: 5px;
+    }
+
+    /* ---- motion flourishes (reduced-motion safe) ---- */
+    @media (prefers-reduced-motion: no-preference) {
+      @keyframes ledblink { 0%, 58% { opacity: 1; } 59%, 100% { opacity: .25; } }
+      .led.think { animation: ledblink 1.1s steps(1, end) infinite; }
+      @keyframes errblink { 0%, 62% { opacity: 1; } 63%, 100% { opacity: .12; } }
+      .err { animation: errblink .85s steps(1, end) infinite; }
+      @keyframes segpulse {
+        0%, 100% { filter: drop-shadow(0 0 6px rgba(255,190,60,.55)); }
+        50% { filter: drop-shadow(0 0 11px rgba(255,200,80,.95)); }
+      }
+      .numkey.sel svg.seg { animation: segpulse 1.7s ease-in-out infinite; }
+      .key, .power, .numkey { transition: transform .07s ease, box-shadow .07s ease; }
+      .key:active, .power:active, .numkey:active {
+        transform: translateY(3px);
+        box-shadow: 0 1px 0 #968c73, inset 0 2px 5px rgba(0,0,0,.28);
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .spool { animation: spin 6s linear infinite; }
+    }
+  </style>
+</head>
+<body>
+  <!-- 7-segment digit symbols (shared) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <polygon id="gA" points="4,5 9,0 39,0 44,5 39,10 9,10"/>
+      <polygon id="gB" points="43,6 48,11 48,37 43,42 38,37 38,11"/>
+      <polygon id="gC" points="43,46 48,51 48,77 43,82 38,77 38,51"/>
+      <polygon id="gD" points="4,83 9,78 39,78 44,83 39,88 9,88"/>
+      <polygon id="gE" points="5,46 10,51 10,77 5,82 0,77 0,51"/>
+      <polygon id="gF" points="5,6 10,11 10,37 5,42 0,37 0,11"/>
+      <polygon id="gG" points="4,44 9,39 39,39 44,44 39,49 9,49"/>
+      <polygon id="gS" points="9.5,71 33.5,15 38.5,17.5 14.5,73.5"/>
+      <g id="ghost7"><use href="#gA"/><use href="#gB"/><use href="#gC"/><use href="#gD"/><use href="#gE"/><use href="#gF"/><use href="#gG"/></g>
+      <symbol id="d0s" viewBox="-8 -2 58 92"><g transform="skewX(-4)">
+        <g fill="var(--ghost)"><use href="#ghost7"/></g>
+        <g fill="var(--lit)"><use href="#gA"/><use href="#gB"/><use href="#gC"/><use href="#gD"/><use href="#gE"/><use href="#gF"/><use href="#gS"/></g>
+      </g></symbol>
+      <symbol id="d1" viewBox="-8 -2 58 92"><g transform="skewX(-4)">
+        <g fill="var(--ghost)"><use href="#ghost7"/></g>
+        <g fill="var(--lit)"><use href="#gB"/><use href="#gC"/></g>
+      </g></symbol>
+      <symbol id="d2" viewBox="-8 -2 58 92"><g transform="skewX(-4)">
+        <g fill="var(--ghost)"><use href="#ghost7"/></g>
+        <g fill="var(--lit)"><use href="#gA"/><use href="#gB"/><use href="#gG"/><use href="#gE"/><use href="#gD"/></g>
+      </g></symbol>
+      <symbol id="d3" viewBox="-8 -2 58 92"><g transform="skewX(-4)">
+        <g fill="var(--ghost)"><use href="#ghost7"/></g>
+        <g fill="var(--lit)"><use href="#gA"/><use href="#gB"/><use href="#gG"/><use href="#gC"/><use href="#gD"/></g>
+      </g></symbol>
+      <symbol id="d4" viewBox="-8 -2 58 92"><g transform="skewX(-4)">
+        <g fill="var(--ghost)"><use href="#ghost7"/></g>
+        <g fill="var(--lit)"><use href="#gF"/><use href="#gG"/><use href="#gB"/><use href="#gC"/></g>
+      </g></symbol>
+      <symbol id="d5" viewBox="-8 -2 58 92"><g transform="skewX(-4)">
+        <g fill="var(--ghost)"><use href="#ghost7"/></g>
+        <g fill="var(--lit)"><use href="#gA"/><use href="#gF"/><use href="#gG"/><use href="#gC"/><use href="#gD"/></g>
+      </g></symbol>
+    </defs>
+  </svg>
+
+  <!-- ================= 1 · HOME ================= -->
+  <main data-screen="home">
+    <div class="device home-dev">
+      <div class="screw s-tl"></div><div class="screw s-tr"></div>
+      <div class="screw s-bl"></div><div class="screw s-br"></div>
+      <div class="hrow">
+        <span class="pwr"><span class="led green"></span><span class="eng">Power</span></span>
+        <span class="eng model">CNCL-79</span>
+        <button class="key mini" type="button">Mute</button>
+      </div>
+      <div class="stripes"></div>
+      <div class="brand">
+        <div class="wordmark">CAN<b>CEL</b></div>
+        <div class="lcd tagline">a number-picking party game</div>
+      </div>
+      <div class="home-btns">
+        <button class="key primary xl" type="button">New game</button>
+        <button class="key xl" type="button">Single player</button>
+        <button class="key xl" type="button">Join with code</button>
+      </div>
+      <div class="cassette">
+        <div class="spool"></div>
+        <div class="tapebar"></div>
+        <span class="sidea">SIDE A</span>
+        <div class="tapebar"></div>
+        <div class="spool"></div>
+      </div>
+      <div class="grille"></div>
+      <span class="eng footer-eng">Personal party console · est. 1979</span>
+    </div>
+  </main>
+
+  <!-- ================= 2 · LOBBY ================= -->
+  <main data-screen="lobby">
+    <div class="device">
+      <div class="screw s-tl"></div><div class="screw s-tr"></div>
+      <div class="screw s-bl"></div><div class="screw s-br"></div>
+      <div class="topbar">
+        <button class="key" type="button">&#8592; Leave</button>
+        <button class="key" type="button">Rules</button>
+      </div>
+      <div class="plate codeplate">
+        <span class="eng">Room code</span>
+        <div class="lcd">DN2H</div>
+        <span class="eng hint">Press to copy</span>
+      </div>
+      <div class="sechead"><span class="eng">Players &#183; 4</span><span class="rail"></span></div>
+      <div class="plate players">
+        <div class="prow">
+          <span class="led ben"></span><span class="pname">Ben</span>
+          <span class="tag host">HOST</span><span class="tag you">YOU</span><span class="led green sm"></span>
+        </div>
+        <div class="prow">
+          <span class="led vol"></span><span class="pname">Voltaire</span>
+          <span class="tag bot">BOT</span><span class="led green sm"></span>
+        </div>
+        <div class="prow">
+          <span class="led mec"></span><span class="pname">Mechano</span>
+          <span class="tag bot">BOT</span><span class="led green sm"></span>
+        </div>
+        <div class="prow">
+          <span class="led dan"></span><span class="pname">Data Dan</span>
+          <span class="tag bot">BOT</span><span class="led green sm"></span>
+        </div>
+      </div>
+      <div class="sechead"><span class="rail"></span></div>
+      <div class="plate setrow">
+        <span class="setname">Rounds</span>
+        <span class="stepper">
+          <button class="key stepkey" type="button">&#8722;</button>
+          <span class="lcd stepval">3</span>
+          <button class="key stepkey" type="button">+</button>
+        </span>
+      </div>
+      <div class="plate setrow">
+        <span class="setname">AI players</span>
+        <span class="stepper">
+          <button class="key stepkey" type="button">&#8722;</button>
+          <span class="lcd stepval">3</span>
+          <button class="key stepkey" type="button">+</button>
+        </span>
+      </div>
+      <div class="plate powrow">
+        <span class="setname">Power-ups</span>
+        <div class="seg3">
+          <button class="key" type="button"><span class="led off sm"></span>None</button>
+          <button class="key pressed" type="button"><span class="led amber sm"></span>Random</button>
+          <button class="key" type="button"><span class="led off sm"></span>Choose</button>
+        </div>
+        <span class="eng helper">A fresh random pool each round.</span>
+      </div>
+      <button class="key primary xl lobby-start" type="button">Start game</button>
+    </div>
+  </main>
+
+  <!-- ================= 3 · GAME ================= -->
+  <main data-screen="game">
+    <div class="device">
+      <div class="screw s-tl"></div><div class="screw s-tr"></div>
+      <div class="screw s-bl"></div><div class="screw s-br"></div>
+      <div class="gh">
+        <div class="lcd ghlcd">R1/3 &#183; T2/6 &#183; DN2H</div>
+        <button class="key mini" type="button">Rules</button>
+        <button class="key mini" type="button">Leave</button>
+        <button class="key mini warn" type="button">End game</button>
+      </div>
+      <div class="scoregrid">
+        <div class="plate chip"><span class="led ben"></span><span class="cname">Ben</span><span class="lcd">4</span></div>
+        <div class="plate chip"><span class="led vol"></span><span class="cname">Voltaire</span><span class="lcd">0</span></div>
+        <div class="plate chip"><span class="led mec"></span><span class="cname">Mechano</span><span class="lcd">2</span></div>
+        <div class="plate chip"><span class="led dan"></span><span class="cname">Data Dan</span><span class="lcd">5</span></div>
+      </div>
+      <div class="sechead"><span class="eng">Power-ups remaining</span><span class="rail"></span><span class="lcd cnt">6 / 6</span></div>
+      <span class="dymo orange turn-banner">Your turn, press to select</span>
+      <div class="tray powergrid">
+        <button class="power pw-teal" type="button"><span class="led teal dim"></span><span class="glyph">&#8644;</span><span class="pname2">Swap Hands</span></button>
+        <button class="power pw-rose" type="button"><span class="led rose dim"></span><span class="glyph">&#10005;</span><span class="pname2">Sabotage</span></button>
+        <button class="power pw-pink sel" type="button"><span class="led pink"></span><span class="glyph">=</span><span class="pname2">Jinx</span></button>
+        <button class="power pw-em" type="button"><span class="led em dim"></span><span class="glyph">+2</span><span class="pname2">Plus Two</span></button>
+        <button class="power pw-vio" type="button"><span class="led vio dim"></span><span class="glyph">?</span><span class="pname2">Wild</span></button>
+        <button class="power pw-amb" type="button"><span class="led amber dim"></span><span class="glyph">&#8615;</span><span class="pname2">Drain</span></button>
+      </div>
+      <div class="sechead"><span class="eng">Players &#183; Power picker: Ben</span><span class="rail"></span></div>
+      <div class="plate statusplate">
+        <div class="srow">
+          <span class="led ben"></span>
+          <span class="sinfo"><span class="sname">Ben <i>(you)</i></span><span class="shand">&#216; 1 2 3 4 5</span></span>
+          <span class="status think"><span class="led amber sm think"></span>THINKING&#8230;</span>
+        </div>
+        <div class="srow">
+          <span class="led vol"></span>
+          <span class="sinfo"><span class="sname">Voltaire</span><span class="shand">&#216; 1 2 3 4 5</span></span>
+          <span class="status sub"><span class="led green sm"></span>SUBMITTED</span>
+        </div>
+        <div class="srow">
+          <span class="led mec"></span>
+          <span class="sinfo"><span class="sname">Mechano</span><span class="shand">&#216; 1 2 3 4 5</span></span>
+          <span class="status sub"><span class="led green sm"></span>SUBMITTED</span>
+        </div>
+        <div class="srow">
+          <span class="led dan"></span>
+          <span class="sinfo"><span class="sname">Data Dan</span><span class="shand">&#216; 1 2 3 4 5</span></span>
+          <span class="status sub"><span class="led green sm"></span>SUBMITTED</span>
+        </div>
+      </div>
+      <button class="ghostkey" type="button">SKIP WAITING, AUTO-PLAY WHO'S LEFT</button>
+      <div class="sechead"><span class="eng">Your hand</span><span class="rail"></span></div>
+      <div class="tray handgrid">
+        <button class="numkey" type="button"><span class="lcd"><svg class="seg"><use href="#d0s"/></svg></span><span class="led off"></span></button>
+        <button class="numkey" type="button"><span class="lcd"><svg class="seg"><use href="#d1"/></svg></span><span class="led off"></span></button>
+        <button class="numkey" type="button"><span class="lcd"><svg class="seg"><use href="#d2"/></svg></span><span class="led off"></span></button>
+        <button class="numkey" type="button"><span class="lcd"><svg class="seg"><use href="#d3"/></svg></span><span class="led off"></span></button>
+        <button class="numkey" type="button"><span class="lcd"><svg class="seg"><use href="#d4"/></svg></span><span class="led off"></span></button>
+        <button class="numkey sel" type="button"><span class="lcd"><svg class="seg"><use href="#d5"/></svg></span><span class="led ben"></span></button>
+      </div>
+      <button class="key primary xl" type="button">Lock it in</button>
+    </div>
+  </main>
+
+  <!-- ================= 4 · REVEAL ================= -->
+  <main data-screen="reveal">
+    <div class="device rev">
+      <div class="screw s-tl"></div><div class="screw s-tr"></div>
+      <div class="screw s-bl"></div><div class="screw s-br"></div>
+      <span class="dymo rev-eyebrow">Turn 2 reveal</span>
+      <span class="eng label-played">Ben played</span>
+      <span class="power pw-pink sel played-card"><span class="led pink"></span><span class="glyph">=</span><span class="pname2">Jinx</span></span>
+      <div class="revgrid">
+        <div class="plate module">
+          <div class="mname"><span class="led ben"></span><span class="eng">Ben</span></div>
+          <div class="lcd modlcd dead"><span class="err">ERR</span><svg class="seg"><use href="#d5"/></svg></div>
+          <div class="outcome bad"><span class="led red sm"></span>CANCELLED<span class="opts">0</span></div>
+        </div>
+        <div class="plate module">
+          <div class="mname"><span class="led vol"></span><span class="eng">Voltaire</span></div>
+          <div class="lcd modlcd"><svg class="seg"><use href="#d0s"/></svg></div>
+          <div class="outcome good"><span class="led green sm"></span>0</div>
+        </div>
+        <div class="plate module">
+          <div class="mname"><span class="led mec"></span><span class="eng">Mechano</span></div>
+          <div class="lcd modlcd dead"><span class="err">ERR</span><svg class="seg"><use href="#d5"/></svg></div>
+          <div class="outcome bad"><span class="led red sm"></span>CANCELLED<span class="opts">0</span></div>
+        </div>
+        <div class="plate module">
+          <div class="mname"><span class="led dan"></span><span class="eng">Data Dan</span></div>
+          <div class="lcd modlcd dead"><span class="err">ERR</span><svg class="seg"><use href="#d3"/></svg></div>
+          <div class="outcome bad"><span class="led red sm"></span>CANCELLED<span class="opts">0</span></div>
+        </div>
+      </div>
+      <button class="key primary xl rev-continue" type="button">Continue</button>
+      <div class="grille fill-grille"></div>
+    </div>
+  </main>
+
+  <!-- ================= 5 · END ================= -->
+  <main data-screen="end">
+    <div class="device endd">
+      <div class="screw s-tl"></div><div class="screw s-tr"></div>
+      <div class="screw s-bl"></div><div class="screw s-br"></div>
+      <span class="tape tp-o t1"></span><span class="tape tp-a t2"></span><span class="tape tp-m t3"></span>
+      <span class="tape tp-b t4"></span><span class="tape tp-m t5"></span><span class="tape tp-o t6"></span>
+      <span class="tape tp-b t7"></span><span class="tape tp-a t8"></span><span class="tape tp-o t9"></span>
+      <span class="tape tp-m t10"></span><span class="tape tp-b t11"></span><span class="tape tp-a t12"></span>
+      <span class="tape tp-o t13"></span><span class="tape tp-m t14"></span><span class="tape tp-c t15"></span>
+      <span class="tape tp-c t16"></span>
+      <span class="dymo end-eyebrow">Game over</span>
+      <h1 class="hero">You <b>won.</b></h1>
+      <div class="plate scoretable">
+        <div class="trow thead">
+          <span></span><span></span><span></span><span>R1</span><span>R2</span><span>R3</span><span>TOTAL</span>
+        </div>
+        <div class="trow win">
+          <span class="rank">1</span><span class="led ben"></span>
+          <span class="tname">Ben <i>(you)</i></span>
+          <span class="rv">5</span><span class="rv">9</span><span class="rv">6</span><span class="lcd">20</span>
+        </div>
+        <div class="trow">
+          <span class="rank">2</span><span class="led dan"></span>
+          <span class="tname">Data Dan</span>
+          <span class="rv">5</span><span class="rv">4</span><span class="rv">3</span><span class="lcd">12</span>
+        </div>
+        <div class="trow">
+          <span class="rank">3</span><span class="led vol"></span>
+          <span class="tname">Voltaire</span>
+          <span class="rv">3</span><span class="rv">2</span><span class="rv">4</span><span class="lcd">9</span>
+        </div>
+        <div class="trow">
+          <span class="rank">4</span><span class="led mec"></span>
+          <span class="tname">Mechano</span>
+          <span class="rv">0</span><span class="rv">5</span><span class="rv">2</span><span class="lcd">7</span>
+        </div>
+      </div>
+      <div class="end-btns">
+        <button class="key primary xl" type="button">Play again</button>
+        <button class="key xl" type="button">Leave room</button>
+      </div>
+      <div class="grille fill-grille"></div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

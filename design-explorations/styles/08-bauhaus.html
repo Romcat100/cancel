@@ -1,0 +1,799 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Bauhaus</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ============ Bauhaus: geometry as UI ============ */
+    :root {
+      --paper: #f4efe7;
+      --card: #fbf7ee;
+      --ink: #161209;
+      --red: #d92b1c;
+      --blue: #1d4e9e;
+      --yellow: #f2b705;
+      --green: #2c7a4b;
+      --teal: #15837e;
+      --pink: #d75d8a;
+      --violet: #5d4a9c;
+      --amber: #d97f0c;
+      --rose: #b81f3d;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { background: var(--paper); }
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Jost", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    /* faint print grain so the paper is not dead flat */
+    body::after {
+      content: "";
+      position: fixed; inset: 0; z-index: 90; pointer-events: none; opacity: .05;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.7'/%3E%3C/svg%3E");
+    }
+    main[data-screen] {
+      position: relative;
+      max-width: 430px;
+      margin: 0 auto;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    .topline { position: relative; z-index: 3; height: 8px; background: var(--ink); }
+    .topline::after { content: ""; position: absolute; right: 28px; top: 0; width: 26px; height: 8px; background: var(--yellow); }
+    .topline::before { content: ""; position: absolute; right: 64px; top: 0; width: 14px; height: 8px; background: var(--red); }
+    .wrap { position: relative; z-index: 2; padding: 26px 22px 44px; }
+
+    /* background geometry */
+    .geo { position: absolute; z-index: 0; }
+    .g-c { border-radius: 50%; }
+    .g-t { clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+    .g-line { height: 2px; background: var(--ink); }
+
+    /* type helpers */
+    .lab {
+      font-size: 11px; font-weight: 600; letter-spacing: .26em;
+      text-transform: uppercase;
+    }
+    .bar {
+      position: relative; z-index: 2;
+      display: flex; align-items: center; gap: 10px;
+      background: var(--ink); color: var(--paper);
+      margin: 28px -30px 16px; padding: 9px 38px;
+      transform: rotate(-1.4deg);
+      font-size: 11px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase;
+    }
+    .bar .bsq { width: 11px; height: 11px; flex: none; background: var(--yellow); }
+    .bar .bci { width: 12px; height: 12px; flex: none; background: var(--red); border-radius: 50%; }
+    .bar .btr { width: 13px; height: 12px; flex: none; background: var(--blue); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+    .bar .right { margin-left: auto; letter-spacing: .2em; font-weight: 700; }
+
+    /* buttons: rectangles with a colored circle bullet */
+    .btn {
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      width: 100%; min-height: 56px; padding: 12px 18px;
+      border: 2.5px solid var(--ink); background: var(--card); color: var(--ink);
+      font-family: inherit; font-size: 17px; font-weight: 600; letter-spacing: .04em;
+      cursor: pointer; text-align: center;
+    }
+    .btn .dot { width: 15px; height: 15px; border-radius: 50%; flex: none; background: var(--blue); }
+    .btn.primary { background: var(--red); color: var(--paper); font-weight: 700; }
+    .btn.primary .dot { background: var(--yellow); }
+    .btn.ghostb {
+      background: transparent; opacity: .85; min-height: 46px;
+      font-size: 11px; letter-spacing: .18em; text-transform: uppercase; font-weight: 600;
+    }
+    .btn.ghostb .dot { width: 11px; height: 11px; background: var(--ink); }
+    .mini {
+      display: inline-flex; align-items: center; gap: 8px;
+      border: 2px solid var(--ink); background: var(--card); color: var(--ink);
+      padding: 9px 14px; font-family: inherit; font-size: 13px; font-weight: 600;
+      letter-spacing: .06em; cursor: pointer;
+    }
+    .mini .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--red); flex: none; }
+
+    .stack { display: flex; flex-direction: column; gap: 14px; }
+
+    /* ============ number cards: the heroes ============ */
+    .ncard {
+      width: 66px; height: 66px; flex: none;
+      background: var(--card); border: 2px solid var(--ink);
+      position: relative; display: grid; place-items: center;
+    }
+    .ncard .shp {
+      position: absolute; left: 50%; top: 50%;
+      width: 40px; height: 40px;
+      transform: translate(calc(-50% - 6px), calc(-50% - 6px));
+    }
+    .ncard.c .shp { border-radius: 50%; }
+    .ncard.t .shp { clip-path: polygon(50% 0, 100% 100%, 0 100%); width: 47px; height: 42px; }
+    .ncard.cr .shp { background: var(--red); }
+    .ncard.cb .shp { background: var(--blue); }
+    .ncard.cy .shp { background: var(--yellow); }
+    .ncard .num {
+      position: relative; z-index: 1; color: var(--ink);
+      font-size: 38px; font-weight: 700; line-height: 1;
+      transform: translate(4px, 5px);
+    }
+    .ncard.selected { background: var(--ink); transform: translateY(-8px) rotate(-2deg); }
+    .ncard.selected .num { color: var(--paper); }
+    .ncard.selected::after {
+      content: ""; position: absolute; top: -11px; right: -11px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--red); border: 2.5px solid var(--ink);
+    }
+    .ncard.big { width: 110px; height: 110px; border-width: 2.5px; }
+    .ncard.big .shp { width: 64px; height: 64px; transform: translate(calc(-50% - 8px), calc(-50% - 8px)); }
+    .ncard.big.t .shp { width: 74px; height: 66px; }
+    .ncard.big .num { font-size: 62px; transform: translate(6px, 7px); }
+
+    /* cancellation: black circle eclipses the card art, numeral stays readable in white on top */
+    .ncard.kill { overflow: hidden; }
+    .ncard.kill .eclipse {
+      position: absolute; z-index: 2;
+      width: 80px; height: 80px; border-radius: 50%; background: var(--ink);
+      left: 50%; top: 50%; transform: translate(calc(-50% + 6px), calc(-50% + 7px));
+    }
+    .ncard.kill .num { z-index: 4; color: var(--paper); }
+    .ncard.kill .slash {
+      position: absolute; z-index: 3;
+      width: 170%; height: 13px; background: var(--red);
+      left: -35%; top: 50%; margin-top: -7px;
+      transform: rotate(-45deg);
+    }
+    .halo { position: relative; }
+    .halo::before {
+      content: ""; position: absolute; z-index: -1;
+      width: 146px; height: 146px; border-radius: 50%; background: var(--yellow);
+      left: 50%; top: 50%; transform: translate(-50%, -50%);
+    }
+
+    /* ============ power cards: squares + glyph geometry ============ */
+    .pgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; }
+    .pcard {
+      position: relative; min-height: 106px;
+      border: 2px solid var(--ink);
+      display: flex; flex-direction: column;
+    }
+    .pcard .glyph { flex: 1; display: grid; place-items: center; color: var(--paper); padding: 12px 8px 7px; }
+    .pcard svg { display: block; }
+    .pcard .ptext { font-size: 33px; font-weight: 800; line-height: 1; }
+    .pcard .pname {
+      background: var(--ink); color: var(--paper); text-align: center;
+      font-size: 9px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+      padding: 6px 3px;
+    }
+    .pc-teal { background: var(--teal); }
+    .pc-rose { background: var(--rose); }
+    .pc-pink { background: var(--pink); }
+    .pc-green { background: var(--green); }
+    .pc-violet { background: var(--violet); }
+    .pc-amber { background: var(--amber); }
+    .pcard.sel { border-width: 3.5px; transform: rotate(-3deg) translateY(-4px); }
+    .pcard.sel::after {
+      content: ""; position: absolute; top: -10px; right: -10px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--yellow); border: 2.5px solid var(--ink);
+    }
+    .pbig { width: 98px; min-height: 116px; }
+
+    /* ============ home ============ */
+    .home-top { display: flex; justify-content: flex-end; }
+    .mute {
+      width: 44px; height: 44px; border: 2px solid var(--ink); background: var(--card);
+      display: grid; place-items: center; position: relative; cursor: pointer;
+    }
+    .mute .mc { width: 16px; height: 16px; border-radius: 50%; border: 3px solid var(--ink); }
+    .mute .ms { position: absolute; width: 30px; height: 3px; background: var(--red); transform: rotate(-45deg); }
+    .wm { position: relative; margin: 64px 0 14px; text-align: center; }
+    .wm h1 {
+      position: relative; z-index: 2;
+      font-size: 76px; font-weight: 800; line-height: 1; letter-spacing: .005em;
+      color: var(--ink); display: flex; justify-content: center;
+    }
+    .wm h1 .a { position: relative; color: var(--paper); }
+    .wm h1 .a::before {
+      content: ""; position: absolute; z-index: -1;
+      width: 100px; height: 100px; border-radius: 50%; background: var(--red);
+      left: 50%; top: 51%; transform: translate(-50%, -50%);
+    }
+    .wm .wm-tri {
+      position: absolute; z-index: 1; right: 22px; top: -36px;
+      width: 96px; height: 86px; background: var(--yellow);
+      clip-path: polygon(50% 0, 100% 100%, 0 100%);
+      transform: rotate(136deg);
+    }
+    .wm .wm-line {
+      position: absolute; z-index: 1; left: -40px; top: 86px;
+      width: 300px; height: 2px; background: var(--ink);
+      transform: rotate(-45deg); transform-origin: left center;
+    }
+    .tagline { text-align: center; margin: 18px 0 10px; }
+    .motif { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 22px 0 40px; }
+    .motif .m1 { width: 16px; height: 16px; border-radius: 50%; background: var(--red); }
+    .motif .m2 { width: 18px; height: 16px; background: var(--yellow); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+    .motif .m3 { width: 15px; height: 15px; background: var(--blue); }
+    .motif .ml { width: 64px; height: 2px; background: var(--ink); }
+    .home-foot { margin-top: 84px; display: flex; justify-content: center; }
+    .home-foot .ring { width: 58px; height: 58px; border: 3px solid var(--ink); border-radius: 50%; position: relative; }
+    .home-foot .ring::after {
+      content: ""; position: absolute; width: 86px; height: 3px; background: var(--ink);
+      left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-45deg);
+    }
+
+    /* ============ lobby ============ */
+    .topbar { display: flex; justify-content: space-between; align-items: center; }
+    .code { display: flex; justify-content: center; gap: 10px; margin: 34px 0 14px; }
+    .ct {
+      width: 64px; height: 64px; display: grid; place-items: center;
+      font-size: 36px; font-weight: 800; border: 2.5px solid var(--ink);
+    }
+    .ct1 { background: var(--red); color: var(--paper); transform: rotate(-3deg); }
+    .ct2 { background: var(--card); color: var(--ink); transform: rotate(2deg); }
+    .ct3 { background: var(--blue); color: var(--paper); transform: rotate(-2deg); }
+    .ct4 { background: var(--yellow); color: var(--ink); transform: rotate(3deg); }
+    .hint { text-align: center; font-size: 11px; letter-spacing: .26em; text-transform: uppercase; font-weight: 500; opacity: .65; }
+    .prow {
+      display: flex; align-items: center; gap: 12px;
+      border: 2px solid var(--ink); background: var(--card);
+      padding: 10px 14px; margin-bottom: 9px;
+    }
+    .seat {
+      width: 40px; height: 40px; border-radius: 50%; flex: none;
+      display: grid; place-items: center;
+      color: var(--paper); font-size: 18px; font-weight: 700;
+    }
+    .seat.sq { border-radius: 0; }
+    .s-red { background: var(--red); }
+    .s-blue { background: var(--blue); }
+    .s-yellow { background: var(--yellow); color: var(--ink); }
+    .s-green { background: var(--green); }
+    .pname-row { font-size: 16px; font-weight: 600; }
+    .tags { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+    .tag {
+      border: 2px solid var(--ink); padding: 2px 8px;
+      font-size: 9px; font-weight: 700; letter-spacing: .14em; background: var(--card);
+    }
+    .tag.host { background: var(--yellow); }
+    .tag.you { background: var(--ink); color: var(--paper); }
+    .online { width: 10px; height: 10px; border-radius: 50%; background: var(--green); border: 2px solid var(--ink); flex: none; }
+    .srow {
+      display: flex; align-items: center; gap: 14px;
+      border: 2px solid var(--ink); background: var(--card);
+      padding: 11px 14px; margin-bottom: 9px;
+    }
+    .srow .t { font-size: 15px; font-weight: 600; }
+    .srow .ctrls { margin-left: auto; display: flex; align-items: center; gap: 13px; }
+    .stepb {
+      width: 42px; height: 42px; border-radius: 50%;
+      border: 2.5px solid var(--ink); background: var(--paper); color: var(--ink);
+      font-family: inherit; font-size: 20px; font-weight: 700;
+      display: grid; place-items: center; cursor: pointer; line-height: 1;
+    }
+    .sval { font-size: 24px; font-weight: 800; min-width: 22px; text-align: center; }
+    .setcard { border: 2px solid var(--ink); background: var(--card); padding: 13px 14px; margin-bottom: 9px; }
+    .seg { display: flex; border: 2.5px solid var(--ink); margin: 10px 0 9px; }
+    .seg > div {
+      flex: 1; text-align: center; padding: 11px 4px;
+      font-size: 14px; font-weight: 600; border-right: 2.5px solid var(--ink);
+    }
+    .seg > div:last-child { border-right: 0; }
+    .seg .on { background: var(--red); color: var(--paper); font-weight: 700; }
+    .helper { font-size: 13px; opacity: .75; }
+
+    /* ============ game ============ */
+    .ghead {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--ink); color: var(--paper);
+      margin: 0 -22px; padding: 10px 22px;
+    }
+    .ghead .gnums { font-size: 13.5px; font-weight: 700; letter-spacing: .1em; white-space: nowrap; }
+    .ghead .gnums .dim { opacity: .55; font-weight: 500; }
+    .ghead .gbtns { margin-left: auto; display: flex; gap: 5px; }
+    .gchip {
+      border: 1.5px solid var(--paper); background: transparent; color: var(--paper);
+      font-family: inherit; font-size: 8.5px; font-weight: 700; letter-spacing: .12em;
+      padding: 5px 7px; cursor: pointer; white-space: nowrap;
+    }
+    .gchip.danger { background: var(--red); border-color: var(--red); }
+    .score { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+    .chip {
+      display: flex; align-items: center; gap: 8px;
+      border: 2px solid var(--ink); background: var(--card); padding: 8px 11px;
+    }
+    .chip .sd { width: 14px; height: 14px; border-radius: 50%; flex: none; border: 2px solid var(--ink); }
+    .chip .nm { font-size: 14px; font-weight: 600; }
+    .chip .sc { margin-left: auto; font-size: 19px; font-weight: 800; }
+    .poolrow { display: flex; align-items: baseline; margin: 20px 2px 0; }
+    .poolrow .count { margin-left: auto; font-size: 15px; font-weight: 800; letter-spacing: .1em; }
+    .banner {
+      position: relative; z-index: 2;
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      background: var(--yellow); color: var(--ink);
+      border-top: 2px solid var(--ink); border-bottom: 2px solid var(--ink);
+      margin: 14px -30px 18px; padding: 10px 36px;
+      transform: rotate(-1.8deg);
+      font-size: 11.5px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase;
+      text-align: center;
+    }
+    .banner .tr { width: 11px; height: 12px; background: var(--ink); flex: none; }
+    .banner .tr.r { clip-path: polygon(0 0, 100% 50%, 0 100%); }
+    .banner .tr.l { clip-path: polygon(100% 0, 0 50%, 100% 100%); }
+    .pstat { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .scell { border: 2px solid var(--ink); background: var(--card); padding: 9px 11px; }
+    .scell .top { display: flex; align-items: center; gap: 7px; font-size: 13.5px; font-weight: 600; }
+    .scell .sd { width: 12px; height: 12px; border-radius: 50%; flex: none; border: 2px solid var(--ink); }
+    .youl { font-weight: 400; font-size: 11px; opacity: .65; }
+    .handro { font-size: 10.5px; letter-spacing: .24em; opacity: .6; margin: 4px 0 5px; font-weight: 500; }
+    .st { display: flex; align-items: center; gap: 6px; font-size: 9.5px; font-weight: 700; letter-spacing: .16em; }
+    .st .b { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+    .st.think { color: var(--red); }
+    .st.think .b { border: 2.5px solid var(--red); background: transparent; }
+    .st.sub { color: var(--blue); }
+    .st.sub .b { background: var(--blue); }
+    .skiprow { margin: 14px 0 0; }
+    .hand { display: flex; flex-wrap: wrap; justify-content: center; gap: 11px; padding-top: 10px; }
+    .cta { margin-top: 24px; }
+
+    /* ============ reveal ============ */
+    .rstripe {
+      position: relative; z-index: 2;
+      background: var(--yellow); color: var(--ink);
+      border-top: 2.5px solid var(--ink); border-bottom: 2.5px solid var(--ink);
+      margin: 44px -40px 38px; padding: 12px 44px;
+      transform: rotate(-3deg);
+      display: flex; align-items: center; justify-content: center; gap: 14px;
+      font-size: 13px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase;
+    }
+    .rstripe .rc { width: 13px; height: 13px; border-radius: 50%; background: var(--red); border: 2px solid var(--ink); flex: none; }
+    .played { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-bottom: 34px; }
+    .played .pbig { transform: rotate(2.5deg); }
+    .rgrid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 30px 14px; justify-items: center; margin-bottom: 12px;
+    }
+    .res { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .res .who { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; }
+    .res .sd { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--ink); }
+    .res .out { display: flex; flex-direction: column; align-items: center; gap: 1px; min-height: 44px; }
+    .res .pts { font-size: 23px; font-weight: 800; line-height: 1.1; }
+    .res .cx { color: var(--red); font-size: 10px; font-weight: 700; letter-spacing: .24em; }
+    .rcta { margin-top: 26px; }
+
+    /* ============ end ============ */
+    .cf { position: absolute; z-index: 0; }
+    .endhead { text-align: center; margin-top: 44px; position: relative; z-index: 2; }
+    .gameover {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--ink); color: var(--paper);
+      padding: 7px 18px; transform: rotate(-2deg);
+      font-size: 11px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase;
+    }
+    .gameover .gd { width: 10px; height: 10px; border-radius: 50%; background: var(--yellow); }
+    .hero { position: relative; z-index: 2; text-align: center; font-size: 60px; font-weight: 800; line-height: 1.02; margin: 20px 0 6px; }
+    .hero .r { color: var(--red); }
+    .herogeo { position: relative; height: 0; }
+    .tbl { display: flex; flex-direction: column; gap: 9px; margin: 30px 0 8px; position: relative; z-index: 2; }
+    .thead {
+      display: grid; grid-template-columns: 30px 1fr 31px 31px 31px 50px;
+      gap: 2px; padding: 0 13px;
+      font-size: 10px; letter-spacing: .16em; font-weight: 700; opacity: .7; text-transform: uppercase;
+    }
+    .thead span { text-align: right; }
+    .trow {
+      display: grid; grid-template-columns: 30px 1fr 31px 31px 31px 50px;
+      gap: 2px; align-items: center;
+      border: 2px solid var(--ink); background: var(--card); padding: 10px 13px;
+    }
+    .trow .rk { width: 23px; height: 23px; display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+    .trow .rk1 { background: var(--ink); color: var(--paper); border-radius: 50%; }
+    .trow .pn { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; }
+    .trow .sd { width: 13px; height: 13px; border-radius: 50%; flex: none; border: 2px solid var(--ink); }
+    .trow .rv { text-align: right; font-size: 14px; font-weight: 500; }
+    .trow .tv { text-align: right; font-size: 20px; font-weight: 800; }
+    .trow.win { background: var(--yellow); border-width: 3px; transform: rotate(-1.2deg); }
+    .endbtns { margin-top: 30px; position: relative; z-index: 2; }
+
+    /* switcher links */
+    #switcher a {
+      width: 26px; height: 26px; display: grid; place-items: center;
+      background: var(--card); border: 2px solid var(--ink); color: var(--ink);
+      font-family: "Jost", sans-serif; font-size: 12px; font-weight: 700; text-decoration: none;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      @keyframes bob { from { translate: 0 0; } to { translate: 0 9px; } }
+      @keyframes pop { from { scale: 0; } }
+      @keyframes pulse { from { scale: 1; } to { scale: 1.045; } }
+      .cf { animation: bob 4s ease-in-out infinite alternate; }
+      .cf:nth-child(odd) { animation-duration: 5.2s; animation-delay: -1.6s; }
+      .cf:nth-child(3n) { animation-duration: 3.4s; animation-delay: -.7s; }
+      .wm h1 .a::before { animation: pop .55s cubic-bezier(.2, .8, .3, 1.15) both .1s; }
+      .ncard.kill .eclipse { animation: pop .5s cubic-bezier(.2, .8, .3, 1.1) both .15s; }
+      .ncard.kill .slash { animation: pop .35s ease-out both .55s; }
+      .ncard.selected, .pcard.sel { animation: pulse 1.6s ease-in-out infinite alternate; }
+      .halo::before { animation: pop .6s cubic-bezier(.2, .8, .3, 1.2) both .3s; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ 1. HOME ============ -->
+  <main data-screen="home">
+    <div class="topline"></div>
+    <div class="geo g-c" style="width:230px;height:230px;background:var(--blue);top:-92px;left:-104px;"></div>
+    <div class="geo g-t" style="width:150px;height:130px;background:var(--red);bottom:-46px;right:-58px;transform:rotate(-14deg);"></div>
+    <div class="geo g-line" style="width:340px;bottom:142px;left:-60px;transform:rotate(-45deg);"></div>
+    <div class="geo g-c" style="width:26px;height:26px;background:var(--yellow);border:2.5px solid var(--ink);bottom:236px;left:42px;"></div>
+    <div class="wrap">
+      <div class="home-top">
+        <button class="mute" aria-label="mute"><span class="mc"></span><span class="ms"></span></button>
+      </div>
+      <div class="wm">
+        <div class="wm-tri"></div>
+        <div class="wm-line"></div>
+        <h1>C<span class="a">A</span>NCEL</h1>
+      </div>
+      <p class="tagline lab">a number-picking party game</p>
+      <div class="motif">
+        <span class="ml"></span><span class="m1"></span><span class="m2"></span><span class="m3"></span><span class="ml"></span>
+      </div>
+      <div class="stack">
+        <button class="btn primary"><span class="dot"></span>New game</button>
+        <button class="btn"><span class="dot" style="background:var(--blue)"></span>Single player</button>
+        <button class="btn"><span class="dot" style="background:var(--yellow)"></span>Join with code</button>
+      </div>
+      <div class="home-foot"><div class="ring"></div></div>
+    </div>
+  </main>
+
+  <!-- ============ 2. LOBBY ============ -->
+  <main data-screen="lobby">
+    <div class="topline"></div>
+    <div class="geo g-c" style="width:170px;height:170px;background:var(--yellow);top:54px;right:-92px;"></div>
+    <div class="geo g-t" style="width:120px;height:104px;background:var(--blue);bottom:-36px;left:-48px;transform:rotate(18deg);"></div>
+    <div class="geo g-line" style="width:300px;top:218px;right:-70px;transform:rotate(-45deg);"></div>
+    <div class="wrap">
+      <div class="topbar">
+        <button class="mini"><span class="dot" style="background:var(--blue)"></span>&#8592; Leave</button>
+        <button class="mini"><span class="dot" style="background:var(--yellow)"></span>Rules</button>
+      </div>
+
+      <div class="code">
+        <div class="ct ct1">D</div><div class="ct ct2">N</div><div class="ct ct3">2</div><div class="ct ct4">H</div>
+      </div>
+      <p class="hint">press to copy</p>
+
+      <div class="bar"><span class="bci"></span>Players<span style="opacity:.6">&#183;</span>4</div>
+      <div class="prow">
+        <div class="seat s-red">B</div>
+        <div class="pname-row">Ben</div>
+        <div class="tags"><span class="tag host">HOST</span><span class="tag you">YOU</span><span class="online"></span></div>
+      </div>
+      <div class="prow">
+        <div class="seat s-blue">V</div>
+        <div class="pname-row">Voltaire</div>
+        <div class="tags"><span class="tag">BOT</span><span class="online"></span></div>
+      </div>
+      <div class="prow">
+        <div class="seat s-yellow">M</div>
+        <div class="pname-row">Mechano</div>
+        <div class="tags"><span class="tag">BOT</span><span class="online"></span></div>
+      </div>
+      <div class="prow">
+        <div class="seat s-green">D</div>
+        <div class="pname-row">Data Dan</div>
+        <div class="tags"><span class="tag">BOT</span><span class="online"></span></div>
+      </div>
+
+      <div class="bar"><span class="bsq"></span>Settings</div>
+      <div class="srow">
+        <div class="t">Rounds</div>
+        <div class="ctrls">
+          <button class="stepb">&#8722;</button>
+          <div class="sval">3</div>
+          <button class="stepb">+</button>
+        </div>
+      </div>
+      <div class="srow">
+        <div class="t">AI players</div>
+        <div class="ctrls">
+          <button class="stepb">&#8722;</button>
+          <div class="sval">3</div>
+          <button class="stepb">+</button>
+        </div>
+      </div>
+      <div class="setcard">
+        <div class="t" style="font-size:15px;font-weight:600">Power-ups</div>
+        <div class="seg">
+          <div>None</div>
+          <div class="on">Random</div>
+          <div>Choose</div>
+        </div>
+        <div class="helper">A fresh random pool each round.</div>
+      </div>
+
+      <div class="stack" style="margin-top:22px">
+        <button class="btn primary"><span class="dot"></span>Start game</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ 3. GAME ============ -->
+  <main data-screen="game">
+    <div class="topline"></div>
+    <div class="geo g-t" style="width:96px;height:84px;background:var(--yellow);top:46px;right:-44px;transform:rotate(-22deg);"></div>
+    <div class="geo g-c" style="width:120px;height:120px;background:var(--blue);bottom:208px;left:-76px;"></div>
+    <div class="geo g-line" style="width:260px;bottom:120px;right:-60px;transform:rotate(-45deg);"></div>
+    <div class="wrap" style="padding-top:0">
+      <div class="ghead">
+        <div class="gnums">R1<span class="dim">/3</span> &#183; T2<span class="dim">/6</span> <span class="dim">&#183;</span> DN2H</div>
+        <div class="gbtns">
+          <button class="gchip">RULES</button>
+          <button class="gchip">LEAVE</button>
+          <button class="gchip danger">END GAME</button>
+        </div>
+      </div>
+
+      <div class="score">
+        <div class="chip"><span class="sd" style="background:var(--red)"></span><span class="nm">Ben</span><span class="sc">4</span></div>
+        <div class="chip"><span class="sd" style="background:var(--blue)"></span><span class="nm">Voltaire</span><span class="sc">0</span></div>
+        <div class="chip"><span class="sd" style="background:var(--yellow)"></span><span class="nm">Mechano</span><span class="sc">2</span></div>
+        <div class="chip"><span class="sd" style="background:var(--green)"></span><span class="nm">Data Dan</span><span class="sc">5</span></div>
+      </div>
+
+      <div class="poolrow">
+        <span class="lab">Power-ups remaining</span>
+        <span class="count">6 / 6</span>
+      </div>
+      <div class="banner"><span class="tr r"></span>Your turn, press to select<span class="tr l"></span></div>
+
+      <div class="pgrid">
+        <div class="pcard pc-teal">
+          <div class="glyph">
+            <svg width="40" height="27" viewBox="0 0 48 32">
+              <line x1="4" y1="9" x2="31" y2="9" stroke="currentColor" stroke-width="6"/>
+              <polygon points="30,1 46,9 30,17" fill="currentColor"/>
+              <line x1="44" y1="23" x2="17" y2="23" stroke="currentColor" stroke-width="6"/>
+              <polygon points="18,31 2,23 18,15" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="pname">Swap Hands</div>
+        </div>
+        <div class="pcard pc-rose">
+          <div class="glyph">
+            <svg width="30" height="30" viewBox="0 0 40 40">
+              <line x1="7" y1="7" x2="33" y2="33" stroke="currentColor" stroke-width="7"/>
+              <line x1="33" y1="7" x2="7" y2="33" stroke="currentColor" stroke-width="7"/>
+            </svg>
+          </div>
+          <div class="pname">Sabotage</div>
+        </div>
+        <div class="pcard pc-pink sel">
+          <div class="glyph">
+            <svg width="32" height="21" viewBox="0 0 40 26">
+              <rect x="2" y="2" width="36" height="7" fill="currentColor"/>
+              <rect x="2" y="17" width="36" height="7" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="pname">Jinx</div>
+        </div>
+        <div class="pcard pc-green">
+          <div class="glyph"><span class="ptext">+2</span></div>
+          <div class="pname">Plus Two</div>
+        </div>
+        <div class="pcard pc-violet">
+          <div class="glyph"><span class="ptext">?</span></div>
+          <div class="pname">Wild</div>
+        </div>
+        <div class="pcard pc-amber">
+          <div class="glyph">
+            <svg width="27" height="34" viewBox="0 0 36 46">
+              <rect x="3" y="2" width="30" height="6" fill="currentColor"/>
+              <rect x="15" y="12" width="6" height="18" fill="currentColor"/>
+              <polygon points="18,44 5,28 31,28" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="pname">Drain</div>
+        </div>
+      </div>
+
+      <div class="bar"><span class="btr"></span>Players<span style="opacity:.6">&#183;</span><span class="right">Power picker: Ben</span></div>
+      <div class="pstat">
+        <div class="scell">
+          <div class="top"><span class="sd" style="background:var(--red)"></span>Ben <span class="youl">(you)</span></div>
+          <div class="handro">&#216; 1 2 3 4 5</div>
+          <div class="st think"><span class="b"></span>THINKING&#8230;</div>
+        </div>
+        <div class="scell">
+          <div class="top"><span class="sd" style="background:var(--blue)"></span>Voltaire</div>
+          <div class="handro">&#216; 1 2 3 4 5</div>
+          <div class="st sub"><span class="b"></span>SUBMITTED</div>
+        </div>
+        <div class="scell">
+          <div class="top"><span class="sd" style="background:var(--yellow)"></span>Mechano</div>
+          <div class="handro">&#216; 1 2 3 4 5</div>
+          <div class="st sub"><span class="b"></span>SUBMITTED</div>
+        </div>
+        <div class="scell">
+          <div class="top"><span class="sd" style="background:var(--green)"></span>Data Dan</div>
+          <div class="handro">&#216; 1 2 3 4 5</div>
+          <div class="st sub"><span class="b"></span>SUBMITTED</div>
+        </div>
+      </div>
+      <div class="skiprow">
+        <button class="btn ghostb"><span class="dot"></span>Skip waiting, auto-play who's left</button>
+      </div>
+
+      <div class="bar"><span class="bsq"></span>Your hand</div>
+      <div class="hand">
+        <div class="ncard c cr"><span class="shp"></span><span class="num">&#216;</span></div>
+        <div class="ncard t cb"><span class="shp"></span><span class="num">1</span></div>
+        <div class="ncard cy"><span class="shp"></span><span class="num">2</span></div>
+        <div class="ncard t cr"><span class="shp"></span><span class="num">3</span></div>
+        <div class="ncard cb"><span class="shp"></span><span class="num">4</span></div>
+        <div class="ncard c cy selected"><span class="shp"></span><span class="num">5</span></div>
+      </div>
+
+      <div class="cta">
+        <button class="btn primary"><span class="dot"></span>Lock it in</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ 4. REVEAL ============ -->
+  <main data-screen="reveal">
+    <div class="topline"></div>
+    <div class="geo g-c" style="width:200px;height:200px;background:var(--blue);bottom:-104px;left:-96px;"></div>
+    <div class="geo g-t" style="width:110px;height:96px;background:var(--red);top:138px;right:-52px;transform:rotate(24deg);"></div>
+    <div class="geo g-line" style="width:300px;top:330px;left:-80px;transform:rotate(-45deg);"></div>
+    <div class="geo g-c" style="width:22px;height:22px;background:var(--yellow);border:2.5px solid var(--ink);top:392px;left:34px;"></div>
+    <div class="wrap">
+      <div class="rstripe"><span class="rc"></span>Turn 2 reveal<span class="rc"></span></div>
+
+      <div class="played">
+        <span class="lab">Ben played</span>
+        <div class="pcard pc-pink pbig">
+          <div class="glyph">
+            <svg width="38" height="25" viewBox="0 0 40 26">
+              <rect x="2" y="2" width="36" height="7" fill="currentColor"/>
+              <rect x="2" y="17" width="36" height="7" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="pname">Jinx</div>
+        </div>
+      </div>
+
+      <div class="rgrid">
+        <div class="res">
+          <div class="who"><span class="sd" style="background:var(--red)"></span>Ben</div>
+          <div class="ncard big c cy kill">
+            <span class="shp"></span><span class="num">5</span>
+            <span class="eclipse"></span><span class="slash"></span>
+          </div>
+          <div class="out"><span class="pts">0</span><span class="cx">CANCELLED</span></div>
+        </div>
+        <div class="res">
+          <div class="who"><span class="sd" style="background:var(--blue)"></span>Voltaire</div>
+          <div class="halo">
+            <div class="ncard big c cr"><span class="shp"></span><span class="num">&#216;</span></div>
+          </div>
+          <div class="out"><span class="pts">0</span></div>
+        </div>
+        <div class="res">
+          <div class="who"><span class="sd" style="background:var(--yellow)"></span>Mechano</div>
+          <div class="ncard big c cy kill">
+            <span class="shp"></span><span class="num">5</span>
+            <span class="eclipse"></span><span class="slash"></span>
+          </div>
+          <div class="out"><span class="pts">0</span><span class="cx">CANCELLED</span></div>
+        </div>
+        <div class="res">
+          <div class="who"><span class="sd" style="background:var(--green)"></span>Data Dan</div>
+          <div class="ncard big t cr kill">
+            <span class="shp"></span><span class="num">3</span>
+            <span class="eclipse"></span><span class="slash"></span>
+          </div>
+          <div class="out"><span class="pts">0</span><span class="cx">CANCELLED</span></div>
+        </div>
+      </div>
+
+      <div class="rcta">
+        <button class="btn primary"><span class="dot"></span>Continue</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ 5. END ============ -->
+  <main data-screen="end">
+    <div class="topline"></div>
+    <div class="geo g-c" style="width:190px;height:190px;background:var(--yellow);top:64px;right:-86px;"></div>
+    <div class="geo g-t" style="width:120px;height:104px;background:var(--blue);bottom:-30px;right:-44px;transform:rotate(-16deg);"></div>
+    <div class="geo g-line" style="width:320px;bottom:230px;left:-70px;transform:rotate(-45deg);"></div>
+    <!-- static confetti: primary circles, triangles, squares -->
+    <div class="cf g-c" style="width:14px;height:14px;background:var(--red);top:96px;left:30px;"></div>
+    <div class="cf g-t" style="width:16px;height:14px;background:var(--blue);top:64px;left:108px;transform:rotate(24deg);"></div>
+    <div class="cf" style="width:12px;height:12px;background:var(--yellow);top:140px;left:64px;transform:rotate(-18deg);"></div>
+    <div class="cf g-c" style="width:11px;height:11px;background:var(--blue);top:54px;left:226px;"></div>
+    <div class="cf g-t" style="width:15px;height:13px;background:var(--red);top:118px;left:330px;transform:rotate(-32deg);"></div>
+    <div class="cf" style="width:13px;height:13px;background:var(--ink);top:74px;left:312px;transform:rotate(14deg);"></div>
+    <div class="cf g-c" style="width:16px;height:16px;background:var(--yellow);top:208px;left:22px;"></div>
+    <div class="cf g-t" style="width:14px;height:12px;background:var(--ink);top:248px;left:382px;transform:rotate(40deg);"></div>
+    <div class="cf" style="width:11px;height:11px;background:var(--red);top:298px;left:44px;transform:rotate(30deg);"></div>
+    <div class="cf g-c" style="width:12px;height:12px;background:var(--red);top:330px;left:376px;"></div>
+    <div class="cf g-t" style="width:17px;height:15px;background:var(--yellow);top:402px;left:18px;transform:rotate(-24deg);"></div>
+    <div class="cf" style="width:12px;height:12px;background:var(--blue);top:438px;left:390px;transform:rotate(-12deg);"></div>
+    <div class="cf g-c" style="width:13px;height:13px;background:var(--blue);top:540px;left:30px;"></div>
+    <div class="cf g-t" style="width:15px;height:13px;background:var(--red);top:566px;left:380px;transform:rotate(18deg);"></div>
+    <div class="cf" style="width:14px;height:14px;background:var(--yellow);top:636px;left:54px;transform:rotate(38deg);"></div>
+    <div class="cf g-c" style="width:11px;height:11px;background:var(--ink);top:664px;left:348px;"></div>
+    <div class="cf g-t" style="width:16px;height:14px;background:var(--blue);top:742px;left:96px;transform:rotate(-40deg);"></div>
+    <div class="cf" style="width:12px;height:12px;background:var(--red);top:760px;left:300px;transform:rotate(22deg);"></div>
+    <div class="cf g-c" style="width:14px;height:14px;background:var(--yellow);top:826px;left:206px;"></div>
+    <div class="cf g-t" style="width:13px;height:12px;background:var(--ink);top:182px;left:196px;transform:rotate(12deg);"></div>
+    <div class="wrap">
+      <div class="endhead">
+        <div class="gameover"><span class="gd"></span>Game over</div>
+        <div class="hero">You <span class="r">won.</span></div>
+      </div>
+
+      <div class="tbl">
+        <div class="thead">
+          <span></span><span></span><span>R1</span><span>R2</span><span>R3</span><span>Total</span>
+        </div>
+        <div class="trow win">
+          <div><span class="rk rk1">1</span></div>
+          <div class="pn"><span class="sd" style="background:var(--red)"></span>Ben <span class="youl">(you)</span></div>
+          <div class="rv">5</div><div class="rv">9</div><div class="rv">6</div><div class="tv">20</div>
+        </div>
+        <div class="trow">
+          <div><span class="rk">2</span></div>
+          <div class="pn"><span class="sd" style="background:var(--green)"></span>Data Dan</div>
+          <div class="rv">5</div><div class="rv">4</div><div class="rv">3</div><div class="tv">12</div>
+        </div>
+        <div class="trow">
+          <div><span class="rk">3</span></div>
+          <div class="pn"><span class="sd" style="background:var(--blue)"></span>Voltaire</div>
+          <div class="rv">3</div><div class="rv">2</div><div class="rv">4</div><div class="tv">9</div>
+        </div>
+        <div class="trow">
+          <div><span class="rk">4</span></div>
+          <div class="pn"><span class="sd" style="background:var(--yellow)"></span>Mechano</div>
+          <div class="rv">0</div><div class="rv">5</div><div class="rv">2</div><div class="tv">7</div>
+        </div>
+      </div>
+
+      <div class="endbtns stack">
+        <button class="btn primary"><span class="dot"></span>Play again</button>
+        <button class="btn"><span class="dot" style="background:var(--blue)"></span>Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

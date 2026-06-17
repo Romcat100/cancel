@@ -1,0 +1,908 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Clean Light</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ============ tokens ============ */
+    :root {
+      --bg: #fafaf8;
+      --surface: #ffffff;
+      --border: #ececea;
+      --border-2: #e3e3e0;
+      --ink: #1a1d21;
+      --sub: #6b7280;
+      --faint: #9aa1ab;
+      --accent: #0d9488;
+      --accent-deep: #0b7e74;
+      --accent-wash: #f0fbf9;
+      --accent-ring: rgba(13, 148, 136, .16);
+      --red: #e11d48;
+      --red-wash: #fdeef2;
+      --online: #22c55e;
+      --shadow: 0 1px 2px rgba(16,24,40,.06), 0 4px 12px rgba(16,24,40,.06);
+      --shadow-lift: 0 2px 4px rgba(16,24,40,.07), 0 12px 28px rgba(16,24,40,.11);
+      --ben: #e05c49;      --ben-wash: #fdf0ed;
+      --vol: #5a67d8;      --vol-wash: #eef0fb;
+      --mec: #d39310;      --mec-wash: #fbf3e0;
+      --dan: #1e9e5c;      --dan-wash: #e9f7ef;
+      --pw-teal: #0d9488;    --pw-teal-w: #e4f5f3;
+      --pw-rose: #e11d48;    --pw-rose-w: #fdebef;
+      --pw-pink: #db2777;    --pw-pink-w: #fceaf2;
+      --pw-emerald: #16a34a; --pw-emerald-w: #e8f6ed;
+      --pw-violet: #7c3aed;  --pw-violet-w: #f1ecfd;
+      --pw-amber: #d97706;   --pw-amber-w: #fbf1e1;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: 'Figtree', sans-serif;
+      font-size: 15px;
+      line-height: 1.45;
+      color: var(--ink);
+      background:
+        radial-gradient(880px 420px at 50% -180px, rgba(13,148,136,.055), rgba(13,148,136,0) 72%),
+        var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+    button { font-family: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+    em, i { font-style: normal; }
+
+    .page {
+      max-width: 420px;
+      margin: 0 auto;
+      padding: 20px 20px 36px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .stack { display: flex; flex-direction: column; gap: 10px; }
+
+    /* ============ buttons ============ */
+    .btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 100%; min-height: 52px;
+      border-radius: 14px;
+      font-size: 16px; font-weight: 700;
+      border: 1px solid transparent;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 1px 2px rgba(16,24,40,.08), 0 6px 16px rgba(13,148,136,.24);
+    }
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--ink);
+      border-color: var(--border-2);
+      box-shadow: 0 1px 2px rgba(16,24,40,.05);
+    }
+    .chip-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      min-height: 40px; padding: 8px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border-2);
+      border-radius: 12px;
+      font-size: 14px; font-weight: 600; color: var(--ink);
+      box-shadow: 0 1px 2px rgba(16,24,40,.05);
+    }
+    .tiny-btn {
+      padding: 8px 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 10px; font-weight: 700; letter-spacing: .08em;
+      color: var(--sub);
+      white-space: nowrap;
+      box-shadow: 0 1px 2px rgba(16,24,40,.04);
+    }
+    .tiny-btn.danger { color: var(--red); border-color: #f5d2db; }
+    .ghost-btn {
+      width: 100%; min-height: 44px;
+      border: 1px dashed var(--border-2);
+      border-radius: 12px;
+      font-size: 10.5px; font-weight: 700; letter-spacing: .1em;
+      color: var(--faint);
+      background: rgba(255,255,255,.6);
+    }
+
+    /* ============ labels ============ */
+    .sec-label {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: .14em; text-transform: uppercase;
+      color: var(--faint);
+      margin: 24px 4px 8px;
+    }
+    .sec-row {
+      display: flex; align-items: baseline; justify-content: space-between;
+      margin: 24px 4px 8px;
+    }
+    .sec-row .sec-label, .sec-row .sec-label-sm { margin: 0; }
+    .sec-label-sm {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: .14em; text-transform: uppercase;
+      color: var(--faint);
+    }
+    .sec-count {
+      font-size: 12px; font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--sub);
+    }
+    .eyebrow {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: .2em; text-transform: uppercase;
+      color: var(--faint);
+    }
+
+    /* ============ avatars / identity ============ */
+    .avatar {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 34px; height: 34px; border-radius: 11px;
+      font-size: 14px; font-weight: 800;
+      flex: none;
+    }
+    .avatar.sm { width: 28px; height: 28px; border-radius: 9px; font-size: 12px; }
+    .av-ben { background: var(--ben-wash); color: var(--ben); }
+    .av-vol { background: var(--vol-wash); color: var(--vol); }
+    .av-mec { background: var(--mec-wash); color: var(--mec); }
+    .av-dan { background: var(--dan-wash); color: var(--dan); }
+    .seatdot { display: inline-block; width: 8px; height: 8px; border-radius: 999px; flex: none; }
+    .sd-ben { background: var(--ben); }
+    .sd-vol { background: var(--vol); }
+    .sd-mec { background: var(--mec); }
+    .sd-dan { background: var(--dan); }
+
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 3px 8px; border-radius: 999px;
+      font-size: 10px; font-weight: 700; letter-spacing: .07em;
+    }
+    .badge-host { background: var(--mec-wash); color: #a87708; }
+    .badge-you  { background: var(--accent-wash); color: var(--accent-deep); }
+    .badge-bot  { background: #f1f2f1; color: var(--sub); }
+    .dot-online { width: 8px; height: 8px; border-radius: 999px; background: var(--online); flex: none; }
+
+    /* ============ number cards ============ */
+    .numcard {
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+      height: 78px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      font-size: 28px; font-weight: 700; color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+    .numcard.zero {
+      border: 1px dashed #d2d2cd;
+      color: transparent;
+      -webkit-text-stroke: 1.6px var(--ink);
+    }
+    .numcard.on {
+      border-color: transparent;
+      box-shadow: 0 0 0 2px var(--accent), 0 4px 8px rgba(13,148,136,.10), 0 12px 24px rgba(13,148,136,.18);
+      transform: translateY(-4px);
+    }
+    .numcard.on::after {
+      content: "";
+      position: absolute; bottom: 9px; left: 50%;
+      width: 14px; height: 3px; margin-left: -7px;
+      border-radius: 2px;
+      background: var(--accent);
+    }
+
+    /* ============ power chips ============ */
+    .pdot {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px; border-radius: 999px;
+      font-size: 13px; font-weight: 800;
+      flex: none;
+    }
+    .pdot.lg { width: 48px; height: 48px; font-size: 21px; border-radius: 999px; }
+    .pd-teal    { background: var(--pw-teal-w);    color: var(--pw-teal); }
+    .pd-rose    { background: var(--pw-rose-w);    color: var(--pw-rose); }
+    .pd-pink    { background: var(--pw-pink-w);    color: var(--pw-pink); }
+    .pd-emerald { background: var(--pw-emerald-w); color: var(--pw-emerald); }
+    .pd-violet  { background: var(--pw-violet-w);  color: var(--pw-violet); }
+    .pd-amber   { background: var(--pw-amber-w);   color: var(--pw-amber); }
+
+    .power {
+      position: relative;
+      display: flex; flex-direction: column; align-items: center; gap: 7px;
+      padding: 12px 4px 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 1px 2px rgba(16,24,40,.05);
+      font-size: 11px; font-weight: 700; color: var(--ink);
+      text-align: center;
+    }
+    .power.on {
+      background: var(--accent-wash);
+      border-color: transparent;
+      box-shadow: 0 0 0 2px var(--accent), 0 6px 16px rgba(13,148,136,.16);
+    }
+    .power.on::after {
+      content: "✓";
+      position: absolute; top: -7px; right: -7px;
+      display: flex; align-items: center; justify-content: center;
+      width: 18px; height: 18px; border-radius: 999px;
+      background: var(--accent); color: #fff;
+      font-size: 10px; font-weight: 800;
+      box-shadow: 0 2px 5px rgba(13,148,136,.35);
+    }
+
+    /* ============ home ============ */
+    .home { justify-content: center; position: relative; padding-bottom: 96px; }
+    .icon-btn {
+      position: absolute; top: 20px; right: 20px;
+      display: flex; align-items: center; justify-content: center;
+      width: 42px; height: 42px;
+      background: var(--surface);
+      border: 1px solid var(--border-2);
+      border-radius: 999px;
+      box-shadow: 0 1px 2px rgba(16,24,40,.05);
+      color: var(--sub);
+    }
+    .home-hero { text-align: center; margin-bottom: 48px; }
+    .minihand { display: flex; justify-content: center; gap: 7px; margin-bottom: 34px; }
+    .minicard {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 36px; height: 48px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      box-shadow: var(--shadow);
+      font-size: 16px; font-weight: 700; color: var(--ink);
+    }
+    .minicard:nth-child(1) { transform: rotate(-10deg) translateY(8px); }
+    .minicard:nth-child(2) { transform: rotate(-6deg) translateY(3px); }
+    .minicard:nth-child(3) { transform: rotate(-2deg) translateY(1px); }
+    .minicard:nth-child(4) { transform: rotate(2deg) translateY(1px); }
+    .minicard:nth-child(5) { transform: rotate(6deg) translateY(3px); }
+    .minicard:nth-child(6) { transform: rotate(10deg) translateY(8px); }
+    .minicard.mc-zero { border-style: dashed; border-color: #d2d2cd; color: var(--sub); font-weight: 600; }
+    .minicard.mc-on {
+      border-color: transparent;
+      box-shadow: 0 0 0 2px var(--accent), 0 8px 16px rgba(13,148,136,.18);
+    }
+    .wordmark {
+      font-size: 56px; font-weight: 800;
+      letter-spacing: -.025em; line-height: 1;
+      color: var(--ink);
+    }
+    .wordmark span { color: var(--accent); }
+    .tagline {
+      margin-top: 12px;
+      font-size: 11.5px; font-weight: 600;
+      letter-spacing: .24em; text-transform: uppercase;
+      color: var(--sub);
+    }
+
+    /* ============ lobby ============ */
+    .topbar { display: flex; justify-content: space-between; align-items: center; }
+    .codecard {
+      margin-top: 24px;
+      padding: 26px 20px 22px;
+      text-align: center;
+    }
+    .roomcode {
+      font-size: 44px; font-weight: 800;
+      letter-spacing: .22em; text-indent: .22em;
+      line-height: 1; color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+    .codehint { margin-top: 8px; font-size: 12px; font-weight: 500; color: var(--faint); }
+
+    .list { overflow: hidden; }
+    .prow {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px;
+      border-bottom: 1px solid #f3f3f1;
+    }
+    .prow:last-child { border-bottom: none; }
+    .pname { font-size: 15px; font-weight: 600; margin-right: auto; }
+    .prow .badge { margin-left: 2px; }
+    .prow .dot-online { margin-left: 8px; }
+
+    .srow {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 14px;
+      border-bottom: 1px solid #f3f3f1;
+    }
+    .srow:last-child { border-bottom: none; }
+    .srow-col { display: block; }
+    .slabel { font-size: 15px; font-weight: 600; }
+    .stepper { display: flex; align-items: center; gap: 4px; }
+    .step {
+      display: flex; align-items: center; justify-content: center;
+      width: 38px; height: 38px;
+      background: var(--surface);
+      border: 1px solid var(--border-2);
+      border-radius: 11px;
+      font-size: 17px; font-weight: 600; color: var(--sub);
+      box-shadow: 0 1px 2px rgba(16,24,40,.04);
+    }
+    .stepval {
+      min-width: 34px; text-align: center;
+      font-size: 17px; font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    .seg {
+      display: flex; gap: 4px;
+      margin-top: 10px; padding: 4px;
+      background: #f2f2f0;
+      border-radius: 12px;
+    }
+    .seg-opt {
+      flex: 1; padding: 9px 0;
+      border-radius: 9px;
+      font-size: 13.5px; font-weight: 600; color: var(--sub);
+    }
+    .seg-opt.on {
+      background: var(--surface);
+      color: var(--accent-deep);
+      font-weight: 700;
+      box-shadow: 0 1px 2px rgba(16,24,40,.08), 0 2px 6px rgba(16,24,40,.06), inset 0 0 0 1px rgba(13,148,136,.28);
+    }
+    .helper { margin: 10px 2px 2px; font-size: 12.5px; color: var(--faint); }
+    .settingscard { margin-top: 24px; }
+    .lobby-start { margin-top: 24px; }
+
+    /* ============ game ============ */
+    .gamebar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .gamemeta {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 14px; font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .gamemeta span { color: var(--faint); font-weight: 600; }
+    .gamemeta i { color: #d6d6d2; }
+    .gamemeta .code { font-size: 12px; letter-spacing: .12em; color: var(--sub); font-weight: 700; }
+    .gamebtns { display: flex; gap: 6px; }
+
+    .scoregrid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+      margin-top: 16px;
+    }
+    .scorechip {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 1px 2px rgba(16,24,40,.05);
+      font-size: 13.5px; font-weight: 600;
+    }
+    .scorechip b {
+      margin-left: auto;
+      font-size: 15px; font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .poolcard { padding: 12px; }
+    .turnbanner {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 9px 12px;
+      background: var(--accent-wash);
+      border: 1px solid #cdeae5;
+      border-radius: 10px;
+      font-size: 11px; font-weight: 700; letter-spacing: .12em;
+      color: var(--accent-deep);
+      margin-bottom: 12px;
+    }
+    .pulse-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--accent); flex: none; }
+    .powergrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+
+    .strow {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+      border-bottom: 1px solid #f3f3f1;
+    }
+    .strow:last-child { border-bottom: none; }
+    .stinfo { display: flex; flex-direction: column; gap: 2px; margin-right: auto; min-width: 0; }
+    .stname { font-size: 14px; font-weight: 600; }
+    .stname em { color: var(--faint); font-weight: 500; font-size: 12px; }
+    .hand-readout {
+      font-size: 10.5px; font-weight: 600;
+      letter-spacing: .22em;
+      color: var(--faint);
+      font-variant-numeric: tabular-nums;
+    }
+    .status {
+      padding: 4px 9px; border-radius: 999px;
+      font-size: 9.5px; font-weight: 800; letter-spacing: .09em;
+      white-space: nowrap; flex: none;
+    }
+    .st-think { background: #f2f2f0; color: var(--sub); }
+    .st-done { background: var(--accent-wash); color: var(--accent-deep); }
+
+    .game .ghost-btn { margin-top: 12px; }
+    .handrow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; padding-top: 6px; }
+    .game .btn-primary { margin-top: 24px; }
+
+    /* ============ reveal ============ */
+    .reveal { justify-content: center; }
+    .revealsheet {
+      padding: 28px 22px 22px;
+      box-shadow: var(--shadow-lift);
+      text-align: center;
+    }
+    .playedlabel {
+      margin-top: 22px;
+      font-size: 11px; font-weight: 700; letter-spacing: .16em;
+      color: var(--sub);
+    }
+    .bigpower {
+      display: inline-flex; flex-direction: column; align-items: center; gap: 8px;
+      margin-top: 12px; padding: 16px 30px 13px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+    }
+    .bp-name { font-size: 13px; font-weight: 700; }
+
+    .revealgrid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 20px 14px;
+      margin: 26px 8px 4px;
+    }
+    .rcell { display: flex; flex-direction: column; align-items: center; gap: 9px; }
+    .rname {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 10.5px; font-weight: 700; letter-spacing: .12em;
+      color: var(--sub);
+    }
+    .numcard.rv { width: 66px; height: 88px; font-size: 31px; }
+    .numcard.rv.cancelled {
+      background: #f6f6f4;
+      box-shadow: none;
+      color: #a8adb5;
+    }
+    .strike { position: relative; display: inline-block; line-height: 1; }
+    .strike::after {
+      content: "";
+      position: absolute; left: -9px; right: -9px; top: 50%;
+      height: 3px; margin-top: -1.5px;
+      border-radius: 2px;
+      background: var(--red);
+      transform: rotate(-14deg);
+    }
+    .numcard.rv.winner0 {
+      border: none;
+      color: transparent;
+      -webkit-text-stroke: 2px var(--accent);
+      box-shadow: 0 0 0 2px var(--accent), 0 4px 8px rgba(13,148,136,.10), 0 12px 24px rgba(13,148,136,.20);
+    }
+    .rout { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 34px; }
+    .rpts { font-size: 14px; font-weight: 800; color: var(--faint); font-variant-numeric: tabular-nums; }
+    .rpts.ok { color: var(--accent-deep); font-size: 16px; }
+    .rcancel { font-size: 9.5px; font-weight: 800; letter-spacing: .14em; color: var(--red); }
+    .reveal .btn-primary { margin-top: 22px; }
+
+    /* ============ end ============ */
+    .end { position: relative; overflow: hidden; }
+    .confetti { position: absolute; inset: 0; pointer-events: none; }
+    .confetti i { position: absolute; border-radius: 999px; }
+    .confetti i:nth-child(1)  { top: 4%;  left: 8%;  width: 8px;  height: 8px;  background: var(--accent); opacity: .85; }
+    .confetti i:nth-child(2)  { top: 9%;  left: 24%; width: 5px;  height: 5px;  background: #c2c8ce; }
+    .confetti i:nth-child(3)  { top: 3%;  left: 41%; width: 6px;  height: 6px;  background: #7edcd2; }
+    .confetti i:nth-child(4)  { top: 10%; left: 57%; width: 9px;  height: 9px;  background: var(--accent); opacity: .6; }
+    .confetti i:nth-child(5)  { top: 4%;  left: 74%; width: 5px;  height: 5px;  background: #aab0b8; }
+    .confetti i:nth-child(6)  { top: 8%;  left: 90%; width: 7px;  height: 7px;  background: #5ec9bd; }
+    .confetti i:nth-child(7)  { top: 16%; left: 5%;  width: 5px;  height: 5px;  background: #9fe5dd; }
+    .confetti i:nth-child(8)  { top: 19%; left: 18%; width: 7px;  height: 7px;  background: var(--accent-deep); opacity: .55; }
+    .confetti i:nth-child(9)  { top: 15%; left: 34%; width: 4px;  height: 4px;  background: #c2c8ce; }
+    .confetti i:nth-child(10) { top: 21%; left: 49%; width: 6px;  height: 6px;  background: #7edcd2; }
+    .confetti i:nth-child(11) { top: 16%; left: 66%; width: 5px;  height: 5px;  background: #d3d6da; }
+    .confetti i:nth-child(12) { top: 20%; left: 81%; width: 8px;  height: 8px;  background: var(--accent); opacity: .7; }
+    .confetti i:nth-child(13) { top: 26%; left: 11%; width: 4px;  height: 4px;  background: #5ec9bd; }
+    .confetti i:nth-child(14) { top: 29%; left: 38%; width: 5px;  height: 5px;  background: #aab0b8; opacity: .8; }
+    .confetti i:nth-child(15) { top: 27%; left: 60%; width: 6px;  height: 6px;  background: #9fe5dd; }
+    .confetti i:nth-child(16) { top: 30%; left: 88%; width: 5px;  height: 5px;  background: #c2c8ce; }
+    .confetti i:nth-child(17) { top: 36%; left: 22%; width: 4px;  height: 4px;  background: #7edcd2; opacity: .8; }
+    .confetti i:nth-child(18) { top: 35%; left: 73%; width: 4px;  height: 4px;  background: var(--accent); opacity: .5; }
+
+    .end-hero { text-align: center; margin: 60px 0 36px; position: relative; }
+    .wintitle {
+      margin-top: 14px;
+      font-size: 46px; font-weight: 800;
+      letter-spacing: -.02em; line-height: 1.05;
+    }
+    .wintitle span { color: var(--accent); }
+
+    .scoretable { padding: 6px 0; position: relative; }
+    .trow {
+      display: grid;
+      grid-template-columns: 30px 1fr 30px 30px 30px 52px;
+      align-items: center;
+      padding: 11px 16px;
+      border-bottom: 1px solid #f3f3f1;
+      font-variant-numeric: tabular-nums;
+    }
+    .trow:last-child { border-bottom: none; }
+    .trow.thead {
+      padding-top: 8px; padding-bottom: 8px;
+      font-size: 10px; font-weight: 700; letter-spacing: .1em;
+      color: var(--faint);
+    }
+    .trow.thead > span {
+      font-size: 10px !important;
+      font-weight: 700 !important;
+      letter-spacing: .1em;
+      color: var(--faint) !important;
+    }
+    .trow > span { text-align: right; font-size: 13.5px; color: var(--sub); font-weight: 600; }
+    .trank { text-align: left !important; font-weight: 700 !important; color: var(--faint) !important; font-size: 13px !important; }
+    .tname {
+      display: flex; align-items: center; gap: 8px;
+      text-align: left !important;
+      font-size: 14.5px !important; font-weight: 600 !important;
+      color: var(--ink) !important;
+      min-width: 0;
+    }
+    .tname em { color: var(--faint); font-weight: 500; font-size: 12px; }
+    .ttotal { font-size: 15.5px !important; font-weight: 800 !important; color: var(--ink) !important; }
+    .trow.winner {
+      background: var(--accent-wash);
+      box-shadow: inset 0 0 0 1px rgba(13,148,136,.22);
+    }
+    .trow.winner .trank {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border-radius: 999px;
+      background: var(--accent); color: #fff !important;
+      font-size: 11px !important;
+    }
+    .trow.winner .ttotal { color: var(--accent-deep) !important; }
+    .end .stack { margin-top: 28px; }
+
+    /* ============ switcher ============ */
+    #switcher a {
+      display: flex; align-items: center; justify-content: center;
+      width: 26px; height: 26px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 12px; font-weight: 700;
+      color: var(--sub);
+      text-decoration: none;
+      box-shadow: 0 1px 2px rgba(16,24,40,.06);
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .btn, .numcard, .power, .chip-btn, .tiny-btn, .step, .seg-opt, .scorechip, .minicard {
+        transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
+      }
+      .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(16,24,40,.1), 0 10px 22px rgba(13,148,136,.3); }
+      .btn-secondary:hover, .chip-btn:hover, .step:hover { box-shadow: var(--shadow); }
+      .numcard:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+      .numcard.on:hover { transform: translateY(-6px); }
+      .power:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+      .pulse-dot { animation: pulse 1.7s ease-in-out infinite; }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: .35; transform: scale(.75); }
+      }
+      .confetti i { animation: drift 3.6s ease-in-out infinite alternate; }
+      .confetti i:nth-child(even) { animation-duration: 4.4s; animation-delay: -1.8s; }
+      @keyframes drift {
+        from { transform: translateY(0); }
+        to { transform: translateY(9px); }
+      }
+      .page > * { animation: rise .4s ease both; }
+      @keyframes rise {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+    }
+  </style>
+</head>
+<body>
+  <main data-screen="home">
+    <div class="page home">
+      <button class="icon-btn" aria-label="Sound off">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 5 6 9H2v6h4l5 4V5z"/>
+          <line x1="16" y1="9" x2="22" y2="15"/>
+          <line x1="22" y1="9" x2="16" y2="15"/>
+        </svg>
+      </button>
+      <div class="home-hero">
+        <div class="minihand">
+          <span class="minicard mc-zero">Ø</span>
+          <span class="minicard">1</span>
+          <span class="minicard">2</span>
+          <span class="minicard mc-on">3</span>
+          <span class="minicard">4</span>
+          <span class="minicard">5</span>
+        </div>
+        <h1 class="wordmark">CAN<span>CEL</span></h1>
+        <p class="tagline">a number-picking party game</p>
+      </div>
+      <div class="stack">
+        <button class="btn btn-primary">New game</button>
+        <button class="btn btn-secondary">Single player</button>
+        <button class="btn btn-secondary">Join with code</button>
+      </div>
+    </div>
+  </main>
+
+  <main data-screen="lobby">
+    <div class="page">
+      <header class="topbar">
+        <button class="chip-btn">← Leave</button>
+        <button class="chip-btn">Rules</button>
+      </header>
+      <section class="codecard card">
+        <div class="roomcode">DN2H</div>
+        <div class="codehint">press to copy</div>
+      </section>
+      <div class="sec-label">Players · 4</div>
+      <section class="card list">
+        <div class="prow">
+          <span class="avatar av-ben">B</span>
+          <span class="pname">Ben</span>
+          <span class="badge badge-host">HOST</span>
+          <span class="badge badge-you">YOU</span>
+          <span class="dot-online"></span>
+        </div>
+        <div class="prow">
+          <span class="avatar av-vol">V</span>
+          <span class="pname">Voltaire</span>
+          <span class="badge badge-bot">BOT</span>
+          <span class="dot-online"></span>
+        </div>
+        <div class="prow">
+          <span class="avatar av-mec">M</span>
+          <span class="pname">Mechano</span>
+          <span class="badge badge-bot">BOT</span>
+          <span class="dot-online"></span>
+        </div>
+        <div class="prow">
+          <span class="avatar av-dan">D</span>
+          <span class="pname">Data Dan</span>
+          <span class="badge badge-bot">BOT</span>
+          <span class="dot-online"></span>
+        </div>
+      </section>
+      <section class="card list settingscard">
+        <div class="srow">
+          <span class="slabel">Rounds</span>
+          <div class="stepper">
+            <button class="step">−</button>
+            <span class="stepval">3</span>
+            <button class="step">+</button>
+          </div>
+        </div>
+        <div class="srow">
+          <span class="slabel">AI players</span>
+          <div class="stepper">
+            <button class="step">−</button>
+            <span class="stepval">3</span>
+            <button class="step">+</button>
+          </div>
+        </div>
+        <div class="srow srow-col">
+          <span class="slabel">Power-ups</span>
+          <div class="seg">
+            <button class="seg-opt">None</button>
+            <button class="seg-opt on">Random</button>
+            <button class="seg-opt">Choose</button>
+          </div>
+          <p class="helper">A fresh random pool each round.</p>
+        </div>
+      </section>
+      <button class="btn btn-primary lobby-start">Start game</button>
+    </div>
+  </main>
+
+  <main data-screen="game">
+    <div class="page game">
+      <header class="gamebar">
+        <div class="gamemeta">
+          <strong>R1<span>/3</span></strong><i>·</i><strong>T2<span>/6</span></strong><i>·</i><span class="code">DN2H</span>
+        </div>
+        <div class="gamebtns">
+          <button class="tiny-btn">RULES</button>
+          <button class="tiny-btn">LEAVE</button>
+          <button class="tiny-btn danger">END GAME</button>
+        </div>
+      </header>
+      <section class="scoregrid">
+        <div class="scorechip"><span class="seatdot sd-ben"></span>Ben<b>4</b></div>
+        <div class="scorechip"><span class="seatdot sd-vol"></span>Voltaire<b>0</b></div>
+        <div class="scorechip"><span class="seatdot sd-mec"></span>Mechano<b>2</b></div>
+        <div class="scorechip"><span class="seatdot sd-dan"></span>Data Dan<b>5</b></div>
+      </section>
+      <div class="sec-row">
+        <span class="sec-label-sm">Power-ups remaining</span>
+        <span class="sec-count">6 / 6</span>
+      </div>
+      <section class="card poolcard">
+        <div class="turnbanner"><span class="pulse-dot"></span>YOUR TURN, PRESS TO SELECT</div>
+        <div class="powergrid">
+          <button class="power"><span class="pdot pd-teal">⇄</span>Swap Hands</button>
+          <button class="power"><span class="pdot pd-rose">✖</span>Sabotage</button>
+          <button class="power on"><span class="pdot pd-pink">=</span>Jinx</button>
+          <button class="power"><span class="pdot pd-emerald">+2</span>Plus Two</button>
+          <button class="power"><span class="pdot pd-violet">?</span>Wild</button>
+          <button class="power"><span class="pdot pd-amber">↧</span>Drain</button>
+        </div>
+      </section>
+      <div class="sec-row">
+        <span class="sec-label-sm">Players · Power picker: Ben</span>
+      </div>
+      <section class="card list">
+        <div class="strow">
+          <span class="avatar sm av-ben">B</span>
+          <div class="stinfo">
+            <span class="stname">Ben <em>(you)</em></span>
+            <span class="hand-readout">Ø 1 2 3 4 5</span>
+          </div>
+          <span class="status st-think">THINKING…</span>
+        </div>
+        <div class="strow">
+          <span class="avatar sm av-vol">V</span>
+          <div class="stinfo">
+            <span class="stname">Voltaire</span>
+            <span class="hand-readout">Ø 1 2 3 4 5</span>
+          </div>
+          <span class="status st-done">✓ SUBMITTED</span>
+        </div>
+        <div class="strow">
+          <span class="avatar sm av-mec">M</span>
+          <div class="stinfo">
+            <span class="stname">Mechano</span>
+            <span class="hand-readout">Ø 1 2 3 4 5</span>
+          </div>
+          <span class="status st-done">✓ SUBMITTED</span>
+        </div>
+        <div class="strow">
+          <span class="avatar sm av-dan">D</span>
+          <div class="stinfo">
+            <span class="stname">Data Dan</span>
+            <span class="hand-readout">Ø 1 2 3 4 5</span>
+          </div>
+          <span class="status st-done">✓ SUBMITTED</span>
+        </div>
+      </section>
+      <button class="ghost-btn">SKIP WAITING, AUTO-PLAY WHO'S LEFT</button>
+      <div class="sec-row">
+        <span class="sec-label-sm">Your hand</span>
+      </div>
+      <section class="handrow">
+        <button class="numcard zero">Ø</button>
+        <button class="numcard">1</button>
+        <button class="numcard">2</button>
+        <button class="numcard">3</button>
+        <button class="numcard">4</button>
+        <button class="numcard on">5</button>
+      </section>
+      <button class="btn btn-primary">Lock it in</button>
+    </div>
+  </main>
+
+  <main data-screen="reveal">
+    <div class="page reveal">
+      <div class="revealsheet card">
+        <div class="eyebrow">Turn 2 reveal</div>
+        <div class="playedlabel">BEN PLAYED</div>
+        <div class="bigpower">
+          <span class="pdot lg pd-pink">=</span>
+          <span class="bp-name">Jinx</span>
+        </div>
+        <div class="revealgrid">
+          <div class="rcell">
+            <div class="rname"><span class="seatdot sd-ben"></span>BEN</div>
+            <div class="numcard rv cancelled"><span class="strike">5</span></div>
+            <div class="rout"><span class="rpts">0</span><span class="rcancel">CANCELLED</span></div>
+          </div>
+          <div class="rcell">
+            <div class="rname"><span class="seatdot sd-vol"></span>VOLTAIRE</div>
+            <div class="numcard rv winner0">Ø</div>
+            <div class="rout"><span class="rpts ok">0</span></div>
+          </div>
+          <div class="rcell">
+            <div class="rname"><span class="seatdot sd-mec"></span>MECHANO</div>
+            <div class="numcard rv cancelled"><span class="strike">5</span></div>
+            <div class="rout"><span class="rpts">0</span><span class="rcancel">CANCELLED</span></div>
+          </div>
+          <div class="rcell">
+            <div class="rname"><span class="seatdot sd-dan"></span>DATA DAN</div>
+            <div class="numcard rv cancelled"><span class="strike">3</span></div>
+            <div class="rout"><span class="rpts">0</span><span class="rcancel">CANCELLED</span></div>
+          </div>
+        </div>
+        <button class="btn btn-primary">Continue</button>
+      </div>
+    </div>
+  </main>
+
+  <main data-screen="end">
+    <div class="page end">
+      <div class="confetti">
+        <i></i><i></i><i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+      <div class="end-hero">
+        <div class="eyebrow">Game over</div>
+        <h2 class="wintitle">You <span>won.</span></h2>
+      </div>
+      <section class="card scoretable">
+        <div class="trow thead">
+          <span class="trank"></span>
+          <span class="tname"></span>
+          <span>R1</span><span>R2</span><span>R3</span>
+          <span class="ttotal">TOTAL</span>
+        </div>
+        <div class="trow winner">
+          <span class="trank">1</span>
+          <span class="tname"><span class="seatdot sd-ben"></span>Ben <em>(you)</em></span>
+          <span>5</span><span>9</span><span>6</span>
+          <span class="ttotal">20</span>
+        </div>
+        <div class="trow">
+          <span class="trank">2</span>
+          <span class="tname"><span class="seatdot sd-dan"></span>Data Dan</span>
+          <span>5</span><span>4</span><span>3</span>
+          <span class="ttotal">12</span>
+        </div>
+        <div class="trow">
+          <span class="trank">3</span>
+          <span class="tname"><span class="seatdot sd-vol"></span>Voltaire</span>
+          <span>3</span><span>2</span><span>4</span>
+          <span class="ttotal">9</span>
+        </div>
+        <div class="trow">
+          <span class="trank">4</span>
+          <span class="tname"><span class="seatdot sd-mec"></span>Mechano</span>
+          <span>0</span><span>5</span><span>2</span>
+          <span class="ttotal">7</span>
+        </div>
+      </section>
+      <div class="stack">
+        <button class="btn btn-primary">Play again</button>
+        <button class="btn btn-secondary">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

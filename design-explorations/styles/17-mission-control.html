@@ -1,0 +1,947 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Mission Control</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Saira:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ============ MISSION CONTROL — console tokens ============ */
+    :root{
+      --bg:#0a0d10;
+      --panel:#141a1f;
+      --panel2:#1a2228;
+      --line:#27313a;
+      --line2:#39454f;
+      --txt:#e7edef;
+      --dim:#92a3ad;
+      --faint:#5d6e78;
+      --grn:#39e75f;
+      --cyn:#46d4ff;
+      --amb:#ffb000;
+      --red:#ff4242;
+      --ben:#ff6a52;
+      --vol:#46d4ff;
+      --mec:#ffb000;
+      --dan:#39e75f;
+      --mono:"IBM Plex Mono",Consolas,monospace;
+      --head:"Saira",Verdana,sans-serif;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; padding:0; }
+    body{
+      background-color:var(--bg);
+      background-image:
+        radial-gradient(900px 460px at 50% -120px, rgba(70,212,255,.07), transparent 65%),
+        radial-gradient(760px 560px at 50% 115%, rgba(57,231,95,.045), transparent 60%),
+        linear-gradient(rgba(146,163,173,.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(146,163,173,.045) 1px, transparent 1px);
+      background-size:auto, auto, 34px 34px, 34px 34px;
+      color:var(--txt);
+      font-family:var(--mono);
+      font-size:14px;
+      line-height:1.45;
+    }
+    [data-screen]{
+      max-width:420px;
+      margin:0 auto;
+      padding:14px 14px 64px;
+      position:relative;
+    }
+    button{ font-family:inherit; }
+
+    /* ---------- panels ---------- */
+    .pn{
+      position:relative;
+      background-color:var(--panel);
+      border:1px solid var(--line);
+      box-shadow:0 0 0 1px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.03);
+      background-image:
+        radial-gradient(circle, var(--line2) 1.3px, transparent 1.9px),
+        radial-gradient(circle, var(--line2) 1.3px, transparent 1.9px),
+        radial-gradient(circle, var(--line2) 1.3px, transparent 1.9px),
+        radial-gradient(circle, var(--line2) 1.3px, transparent 1.9px);
+      background-repeat:no-repeat;
+      background-size:5px 5px;
+      background-position:4px 4px, calc(100% - 4px) 4px, 4px calc(100% - 4px), calc(100% - 4px) calc(100% - 4px);
+      margin-bottom:12px;
+    }
+    .ph{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding:9px 14px;
+      border-bottom:1px solid var(--line);
+      font-family:var(--head); font-size:11px; font-weight:700;
+      letter-spacing:.2em; text-transform:uppercase; color:var(--dim);
+    }
+    .ph .code{
+      font-family:var(--mono); font-weight:500; font-size:9.5px;
+      letter-spacing:.1em; color:var(--faint);
+    }
+    .ph .mono-g{ font-family:var(--mono); font-weight:600; font-size:12px; letter-spacing:.08em; color:var(--grn); }
+
+    /* ---------- lamps ---------- */
+    .lp{ width:7px; height:7px; border-radius:50%; display:inline-block; flex:none; background:var(--faint); }
+    .lp.g{ background:var(--grn); box-shadow:0 0 7px rgba(57,231,95,.9); }
+    .lp.a{ background:var(--amb); box-shadow:0 0 7px rgba(255,176,0,.9); }
+    .lp.r{ background:var(--red); box-shadow:0 0 7px rgba(255,66,66,.9); }
+    .lp.c{ background:var(--cyn); box-shadow:0 0 7px rgba(70,212,255,.9); }
+    .lp.w{ background:#f2f6f4; box-shadow:0 0 7px rgba(242,246,244,.9); }
+    .lp.ben{ background:var(--ben); box-shadow:0 0 6px rgba(255,106,82,.8); }
+    .lp.vol{ background:var(--vol); box-shadow:0 0 6px rgba(70,212,255,.8); }
+    .lp.mec{ background:var(--mec); box-shadow:0 0 6px rgba(255,176,0,.8); }
+    .lp.dan{ background:var(--dan); box-shadow:0 0 6px rgba(57,231,95,.8); }
+    .push{ margin-left:auto; }
+
+    /* ---------- buttons ---------- */
+    .btn{
+      position:relative;
+      display:flex; align-items:center; justify-content:center; gap:10px;
+      width:100%; min-height:54px; padding:14px 18px;
+      font-family:var(--head); font-weight:700; font-size:15px;
+      letter-spacing:.18em; text-transform:uppercase;
+      background:rgba(20,26,31,.7); color:var(--txt);
+      border:1px solid var(--line2); cursor:pointer;
+    }
+    .btn .bcode{
+      position:absolute; left:13px; top:50%; transform:translateY(-50%);
+      font-family:var(--mono); font-weight:500; font-size:9px;
+      letter-spacing:.12em; opacity:.55;
+    }
+    .btn.primary{
+      background:linear-gradient(180deg,#4af171,#2bcb4f);
+      color:#06240e; border:none;
+      clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);
+      filter:drop-shadow(0 0 14px rgba(57,231,95,.28));
+    }
+    .btn.big{ margin-top:14px; }
+    .sbtn{
+      background:rgba(20,26,31,.85); border:1px solid var(--line2); color:var(--dim);
+      font-family:var(--head); font-weight:600; font-size:11px;
+      letter-spacing:.14em; text-transform:uppercase;
+      padding:9px 13px; cursor:pointer;
+    }
+    .sbtn.xs{ padding:6px 8px; font-size:9.5px; letter-spacing:.1em; }
+    .sbtn.danger{ color:var(--red); border-color:rgba(255,66,66,.45); }
+    .ghost{
+      width:100%; padding:13px 10px; margin:0 0 12px;
+      background:transparent; border:1px dashed var(--line2); color:var(--faint);
+      font-family:var(--head); font-weight:600; font-size:10px;
+      letter-spacing:.18em; text-transform:uppercase; cursor:pointer;
+    }
+
+    /* ---------- status flags ---------- */
+    .flag{
+      display:inline-flex; align-items:center; gap:7px;
+      font-family:var(--mono); font-size:10px; font-weight:600;
+      letter-spacing:.07em; text-transform:uppercase;
+      border:1px solid; padding:3px 8px 3px 3px; white-space:nowrap;
+    }
+    .flag i{
+      font-style:normal; font-weight:700; font-size:8.5px; letter-spacing:.08em;
+      padding:2.5px 5px;
+    }
+    .flag.go{ color:var(--grn); border-color:rgba(57,231,95,.5); background:rgba(57,231,95,.06); }
+    .flag.go i{ background:var(--grn); color:#06240e; }
+    .flag.hold{ color:var(--amb); border-color:rgba(255,176,0,.5); background:rgba(255,176,0,.06); }
+    .flag.hold i{ background:var(--amb); color:#241a00; }
+    .flag.abt{ color:var(--red); border-color:rgba(255,66,66,.55); background:rgba(255,66,66,.07); }
+    .flag.abt i{ background:var(--red); color:#2a0606; }
+
+    /* ---------- number cards: switch-guard panels ---------- */
+    .nc{
+      position:relative;
+      display:flex; flex-direction:column; align-items:center;
+      gap:2px; padding:0 0 6px;
+      min-height:88px; width:100%;
+      background:linear-gradient(180deg,#1d2731,#141a1f);
+      border:1px solid var(--line2);
+      cursor:pointer;
+    }
+    .nc .guard{
+      display:block; width:100%; height:9px;
+      background:repeating-linear-gradient(-45deg,#2c3741 0 5px,#151c22 5px 10px);
+      border-bottom:1px solid var(--line);
+    }
+    .nc .num{
+      position:relative; z-index:1;
+      font-family:var(--mono); font-weight:600; font-size:31px; line-height:1;
+      color:var(--txt); text-shadow:0 0 12px rgba(70,212,255,.28);
+      flex:1; display:flex; align-items:center;
+    }
+    .nc .idx{
+      font-family:var(--mono); font-size:8.5px; letter-spacing:.14em; color:var(--faint);
+      text-transform:uppercase;
+    }
+    .nc.armed{
+      border-color:var(--amb);
+      box-shadow:0 0 0 1px rgba(255,176,0,.55), 0 0 16px rgba(255,176,0,.25);
+      background:linear-gradient(180deg,#2c2514,#1b1a11);
+    }
+    .nc.armed .guard{
+      background:repeating-linear-gradient(-45deg,var(--amb) 0 5px,#14110a 5px 10px);
+      border-bottom-color:rgba(255,176,0,.5);
+    }
+    .nc.armed .num{ color:var(--amb); text-shadow:0 0 14px rgba(255,176,0,.55); }
+    .nc.armed .idx{ color:var(--amb); font-weight:700; }
+
+    /* reveal-size cards */
+    .nc.rv{ width:78px; min-height:104px; overflow:hidden; cursor:default; }
+    .nc.rv .num{ font-size:38px; }
+
+    /* ABORT: cancelled card */
+    .nc.abort{
+      border-color:rgba(255,66,66,.75);
+      background:linear-gradient(180deg,#251214,#170d0f);
+      box-shadow:0 0 0 1px rgba(255,66,66,.35), 0 0 14px rgba(255,66,66,.18);
+    }
+    .nc.abort .guard{
+      background:repeating-linear-gradient(-45deg,rgba(255,66,66,.85) 0 5px,#190c0e 5px 10px);
+      border-bottom-color:rgba(255,66,66,.4);
+    }
+    .nc.abort .num{ color:#e2a3a3; text-shadow:0 1px 6px rgba(10,6,7,.9); opacity:.85; }
+    .nc.abort .idx{ position:relative; z-index:1; color:#9c5d5d; }
+    .xb{
+      position:absolute; left:-40%; right:-40%; top:50%; height:8px; margin-top:-4px;
+      background:repeating-linear-gradient(45deg,var(--red) 0 6px,#100a0b 6px 12px);
+      border-top:1px solid rgba(255,66,66,.5); border-bottom:1px solid rgba(255,66,66,.5);
+      opacity:.8; pointer-events:none;
+    }
+    .xb.x1{ transform:rotate(52deg); }
+    .xb.x2{ transform:rotate(-52deg); }
+
+    /* ANOMALY: the lone zero, white flash panel */
+    .nc.anomaly{
+      border-color:#fff;
+      background:linear-gradient(180deg,#ffffff,#e9f2ec);
+      box-shadow:0 0 0 1px rgba(255,255,255,.8), 0 0 26px rgba(235,255,242,.5), 0 0 52px rgba(57,231,95,.28);
+    }
+    .nc.anomaly .guard{
+      background:repeating-linear-gradient(-45deg,#c4d0c9 0 5px,#f1f6f2 5px 10px);
+      border-bottom-color:#cfd9d2;
+    }
+    .nc.anomaly .num{ color:#0a0d10; text-shadow:none; }
+    .nc.anomaly .idx{ color:#39463f; font-weight:700; letter-spacing:.1em; }
+
+    /* ---------- power cards ---------- */
+    .pw{
+      position:relative;
+      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px;
+      min-height:78px; padding:13px 6px 10px;
+      background:linear-gradient(180deg,#1a2127,#13191e);
+      border:1px solid var(--line2);
+      cursor:pointer;
+    }
+    .pw::before{
+      content:""; position:absolute; top:-1px; left:-1px; right:-1px; height:2px;
+      background:var(--pc,var(--line2));
+    }
+    .pw .gly{
+      font-family:var(--mono); font-weight:700; font-size:23px; line-height:1;
+      color:var(--pc); text-shadow:0 0 11px var(--pg);
+    }
+    .pw .pname{
+      font-family:var(--head); font-weight:600; font-size:10px;
+      letter-spacing:.13em; text-transform:uppercase; color:var(--dim);
+      text-align:center; line-height:1.2;
+    }
+    .pw.teal{ --pc:#2dd4bf; --pg:rgba(45,212,191,.5); }
+    .pw.rose{ --pc:#ff5e75; --pg:rgba(255,94,117,.5); }
+    .pw.pink{ --pc:#ff5ec8; --pg:rgba(255,94,200,.5); }
+    .pw.emer{ --pc:#34d399; --pg:rgba(52,211,153,.5); }
+    .pw.viol{ --pc:#a78bfa; --pg:rgba(167,139,250,.5); }
+    .pw.ambr{ --pc:#ffb000; --pg:rgba(255,176,0,.5); }
+    .pw.armed{
+      border-color:var(--amb);
+      box-shadow:0 0 0 1px rgba(255,176,0,.55), 0 0 15px rgba(255,176,0,.24);
+      background:linear-gradient(180deg,#272013,#181711);
+    }
+    .pw .atag{
+      position:absolute; top:4px; right:4px;
+      font-family:var(--mono); font-size:8px; font-weight:700; letter-spacing:.08em;
+      background:var(--amb); color:#241a00; padding:1.5px 4px;
+    }
+
+    /* ---------- shared chrome ---------- */
+    .topstrip{
+      display:flex; align-items:center; justify-content:space-between;
+      border:1px solid var(--line); background:rgba(20,26,31,.6);
+      padding:8px 11px; margin-bottom:12px;
+      font-size:9.5px; letter-spacing:.18em; color:var(--faint); text-transform:uppercase;
+    }
+    .topstrip .ts-r{ display:inline-flex; align-items:center; gap:7px; color:var(--dim); }
+    .eyebrow{
+      display:flex; align-items:center; gap:12px;
+      font-family:var(--mono); font-size:11px; font-weight:600;
+      letter-spacing:.3em; text-transform:uppercase; color:var(--cyn);
+      margin:16px 0 14px; white-space:nowrap;
+    }
+    .eyebrow .line{ flex:1; height:1px; }
+    .eyebrow .line.l{ background:linear-gradient(90deg,transparent,var(--line2)); }
+    .eyebrow .line.r{ background:linear-gradient(90deg,var(--line2),transparent); }
+
+    /* ---------- home ---------- */
+    .hero{
+      position:relative; min-height:430px;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      margin-bottom:6px;
+    }
+    .ret{
+      position:absolute; left:50%; top:50%; border-radius:50%; pointer-events:none; z-index:-1;
+    }
+    .ret.r1{
+      width:330px; height:330px; margin:-165px 0 0 -165px;
+      border:1px solid rgba(70,212,255,.13);
+      background:
+        linear-gradient(rgba(70,212,255,.12),rgba(70,212,255,.12)) center/100% 1px no-repeat,
+        linear-gradient(rgba(70,212,255,.12),rgba(70,212,255,.12)) center/1px 100% no-repeat;
+    }
+    .ret.r2{
+      width:240px; height:240px; margin:-120px 0 0 -120px;
+      border:1px dashed rgba(57,231,95,.22);
+    }
+    .ret.r3{
+      width:8px; height:8px; margin:-4px 0 0 -4px;
+      border:1px solid rgba(255,176,0,.7);
+      box-shadow:0 0 9px rgba(255,176,0,.5);
+    }
+    .wordmark{
+      margin:0; font-family:var(--head); font-weight:800; font-size:64px; line-height:1;
+      letter-spacing:.045em; color:var(--txt);
+      text-shadow:0 0 28px rgba(70,212,255,.25);
+    }
+    .wordmark span{ color:var(--grn); text-shadow:0 0 24px rgba(57,231,95,.55); }
+    .herobar{
+      width:236px; height:4px; margin:18px 0 16px;
+      background:repeating-linear-gradient(90deg,var(--grn) 0 10px,transparent 10px 15px);
+      box-shadow:0 0 12px rgba(57,231,95,.35);
+      opacity:.75;
+    }
+    .tagline{
+      margin:0; font-family:var(--mono); font-size:11px; font-weight:500;
+      letter-spacing:.3em; text-transform:uppercase; color:var(--dim);
+      text-align:center;
+    }
+    .homebtns{ display:flex; flex-direction:column; gap:10px; }
+    .statusrow{
+      display:flex; justify-content:center; gap:30px; margin-top:30px;
+      font-size:9.5px; letter-spacing:.18em; color:var(--faint); text-transform:uppercase;
+    }
+    .statusrow span{ display:inline-flex; align-items:center; gap:7px; }
+
+    /* ---------- lobby ---------- */
+    .lobbar{
+      display:flex; align-items:center; justify-content:space-between; gap:8px;
+      margin-bottom:12px;
+    }
+    .lobbar .lob-title{
+      font-family:var(--head); font-weight:700; font-size:11px;
+      letter-spacing:.32em; text-transform:uppercase; color:var(--faint);
+    }
+    .cs-body{ padding:20px 14px 18px; text-align:center; }
+    .cs-code{
+      font-family:var(--mono); font-weight:700; font-size:46px; line-height:1;
+      letter-spacing:.32em; text-indent:.32em; color:var(--grn);
+      text-shadow:0 0 22px rgba(57,231,95,.5);
+    }
+    .cs-hint{
+      margin-top:9px; font-size:10px; letter-spacing:.24em; text-transform:uppercase;
+      color:var(--faint);
+    }
+    .rows .crew:last-child{ border-bottom:none; }
+    .crew{
+      display:flex; align-items:center; gap:9px;
+      padding:10px 12px; border-bottom:1px solid var(--line);
+    }
+    .crew.picker{ box-shadow:inset 2px 0 0 var(--amb); }
+    .av{
+      width:27px; height:27px; flex:none;
+      display:flex; align-items:center; justify-content:center;
+      font-family:var(--head); font-weight:700; font-size:12.5px;
+      border:1px solid;
+    }
+    .av.ben{ color:var(--ben); border-color:var(--ben); background:rgba(255,106,82,.13); }
+    .av.vol{ color:var(--vol); border-color:var(--vol); background:rgba(70,212,255,.12); }
+    .av.mec{ color:var(--mec); border-color:var(--mec); background:rgba(255,176,0,.12); }
+    .av.dan{ color:var(--dan); border-color:var(--dan); background:rgba(57,231,95,.12); }
+    .cname{
+      font-family:var(--head); font-weight:600; font-size:13.5px; letter-spacing:.04em;
+      color:var(--txt); white-space:nowrap;
+    }
+    .cname .you{ font-style:normal; font-weight:500; font-size:11px; color:var(--faint); }
+    .bdg{
+      font-family:var(--mono); font-size:8.5px; font-weight:600; letter-spacing:.12em;
+      padding:2.5px 6px; border:1px solid var(--line2); color:var(--dim);
+    }
+    .bdg.host{ color:var(--amb); border-color:rgba(255,176,0,.5); }
+    .bdg.you{ color:var(--cyn); border-color:rgba(70,212,255,.5); }
+    .setrow{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding:13px 14px; border-bottom:1px solid var(--line);
+    }
+    .setrow:last-child{ border-bottom:none; }
+    .setrow.col{ display:block; }
+    .setlbl{
+      font-family:var(--head); font-weight:600; font-size:12.5px;
+      letter-spacing:.1em; text-transform:uppercase; color:var(--txt);
+    }
+    .step{ display:flex; align-items:center; gap:12px; }
+    .step button{
+      width:38px; height:38px; cursor:pointer;
+      background:var(--panel2); border:1px solid var(--line2); color:var(--txt);
+      font-family:var(--mono); font-size:16px; line-height:1;
+    }
+    .step b{
+      min-width:22px; text-align:center;
+      font-family:var(--mono); font-weight:700; font-size:17px; color:var(--grn);
+    }
+    .seg{
+      display:grid; grid-template-columns:repeat(3,1fr);
+      border:1px solid var(--line2); margin-top:11px;
+    }
+    .seg b{
+      padding:11px 4px; text-align:center;
+      font-family:var(--head); font-weight:600; font-size:11px;
+      letter-spacing:.14em; text-transform:uppercase; color:var(--dim);
+      border-right:1px solid var(--line2);
+    }
+    .seg b:last-child{ border-right:none; }
+    .seg b.on{
+      background:rgba(57,231,95,.12); color:var(--grn);
+      box-shadow:inset 0 0 0 1px rgba(57,231,95,.55);
+    }
+    .helper{ margin:9px 0 0; font-size:11px; color:var(--faint); letter-spacing:.05em; }
+
+    /* ---------- game ---------- */
+    .mstrip{
+      display:flex; align-items:center; justify-content:space-between; gap:8px;
+      border:1px solid var(--line); background:rgba(13,17,21,.85);
+      padding:8px 10px; margin-bottom:12px;
+    }
+    .clock{
+      display:flex; align-items:center; gap:7px;
+      font-family:var(--mono); font-size:13px; white-space:nowrap;
+    }
+    .clock b{ color:var(--grn); font-weight:600; text-shadow:0 0 9px rgba(57,231,95,.4); }
+    .clock b i{ font-style:normal; font-weight:500; color:var(--faint); text-shadow:none; }
+    .clock b.cs{ color:var(--cyn); letter-spacing:.06em; text-shadow:0 0 9px rgba(70,212,255,.4); }
+    .clock .sep{ color:var(--faint); }
+    .hb{ display:flex; gap:4px; }
+    .scgrid{
+      display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:10px;
+    }
+    .sc{ border:1px solid var(--line); background:rgba(10,13,16,.5); padding:8px 9px 9px; }
+    .scr{ display:flex; align-items:center; gap:7px; }
+    .scr .nm{ font-family:var(--head); font-weight:600; font-size:12.5px; letter-spacing:.04em; }
+    .scr b{ margin-left:auto; font-family:var(--mono); font-weight:700; font-size:15px; }
+    .bar{ position:relative; height:6px; margin-top:7px; background:#0c1115; border:1px solid var(--line); }
+    .bar .f{
+      position:absolute; top:0; bottom:0; left:0;
+      background:repeating-linear-gradient(90deg,var(--c) 0 6px,transparent 6px 9px);
+    }
+    .bar .f.ben{ --c:var(--ben); } .bar .f.vol{ --c:var(--vol); }
+    .bar .f.mec{ --c:var(--mec); } .bar .f.dan{ --c:var(--dan); }
+    .caution{
+      display:flex; align-items:center; justify-content:center;
+      margin:12px 12px 0; padding:8px 22px;
+      border:1px solid rgba(255,176,0,.55); color:var(--amb);
+      font-family:var(--head); font-weight:700; font-size:11px;
+      letter-spacing:.2em; text-transform:uppercase; text-align:center;
+      background-color:rgba(255,176,0,.07);
+      background-image:
+        repeating-linear-gradient(-45deg, rgba(255,176,0,.8) 0 6px, transparent 6px 12px),
+        repeating-linear-gradient(-45deg, rgba(255,176,0,.8) 0 6px, transparent 6px 12px);
+      background-repeat:no-repeat;
+      background-size:13px 100%, 13px 100%;
+      background-position:left center, right center;
+    }
+    .pwgrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; padding:12px; }
+    .stid{ width:32px; flex:none; font-size:9px; letter-spacing:.1em; color:var(--faint); }
+    .cinfo{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+    .hand{ font-size:10px; letter-spacing:.18em; color:var(--faint); }
+    .handgrid{ display:grid; grid-template-columns:repeat(6,1fr); gap:7px; padding:12px; }
+
+    /* ---------- reveal ---------- */
+    .rev-deco{
+      position:absolute; left:50%; top:120px; width:310px; height:310px;
+      transform:translateX(-50%); z-index:-1; pointer-events:none;
+      border:1px dashed rgba(255,66,66,.16); border-radius:50%;
+    }
+    .rev-deco::before{
+      content:""; position:absolute; inset:-26px;
+      background:
+        linear-gradient(rgba(255,66,66,.14),rgba(255,66,66,.14)) center/100% 1px no-repeat,
+        linear-gradient(rgba(255,66,66,.14),rgba(255,66,66,.14)) center/1px 100% no-repeat;
+    }
+    .revlbl{
+      margin:2px 0 10px; text-align:center;
+      font-size:10px; font-weight:600; letter-spacing:.3em; text-transform:uppercase;
+      color:var(--dim);
+    }
+    .revpw{ width:106px; min-height:92px; margin:0 auto 18px; cursor:default; }
+    .revpw .gly{ font-size:31px; }
+    .revpw .pname{ color:var(--txt); }
+    .revgrid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .rstation{ margin-bottom:0; }
+    .rstation.abortst{ border-color:rgba(255,66,66,.4); }
+    .rstation.anomalyst{
+      border-color:rgba(242,246,244,.45);
+      box-shadow:0 0 0 1px rgba(0,0,0,.35), 0 0 18px rgba(235,255,242,.12);
+    }
+    .rhead{
+      display:flex; align-items:center; gap:7px;
+      padding:7px 10px; border-bottom:1px solid var(--line);
+      font-family:var(--head); font-weight:700; font-size:10.5px;
+      letter-spacing:.16em; text-transform:uppercase; color:var(--dim);
+    }
+    .rcardwrap{ display:flex; justify-content:center; padding:14px 0 10px; }
+    .rout{
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      padding:0 8px 13px; min-height:36px;
+    }
+    .rout .r0{ font-family:var(--mono); font-weight:700; font-size:19px; color:#a05555; }
+    .rout .rz{
+      font-family:var(--mono); font-weight:700; font-size:19px; color:#f2f6f4;
+      text-shadow:0 0 12px rgba(242,246,244,.6);
+    }
+
+    /* ---------- end ---------- */
+    main[data-screen="end"]{ min-height:880px; }
+    .blips{ position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+    .blips i{
+      position:absolute; display:block; width:5px; height:5px;
+      background:var(--grn); box-shadow:0 0 7px rgba(57,231,95,.8);
+    }
+    .blips i.ba{ background:var(--amb); box-shadow:0 0 7px rgba(255,176,0,.8); }
+    .blips i.bc{ background:var(--cyn); box-shadow:0 0 7px rgba(70,212,255,.8); }
+    .blips i.bb{ width:11px; height:3px; }
+    .blips i.bp{
+      background:none; box-shadow:none; width:auto; height:auto;
+      color:var(--grn); font:700 12px var(--mono); line-height:1;
+      text-shadow:0 0 8px rgba(57,231,95,.8);
+    }
+    .blips i.bp.ba{ color:var(--amb); text-shadow:0 0 8px rgba(255,176,0,.8); }
+    .blips i.bp.bc{ color:var(--cyn); text-shadow:0 0 8px rgba(70,212,255,.8); }
+    .mcband{
+      display:flex; align-items:center; gap:11px;
+      width:max-content; margin:22px auto 6px; padding:7px 16px;
+      border:1px solid rgba(57,231,95,.5); color:var(--grn);
+      background:rgba(57,231,95,.08);
+      font-family:var(--head); font-weight:700; font-size:11.5px;
+      letter-spacing:.3em; text-transform:uppercase;
+      box-shadow:0 0 20px rgba(57,231,95,.16);
+    }
+    .won{
+      margin:6px 0 22px; text-align:center;
+      font-family:var(--head); font-weight:800; font-size:50px; line-height:1.05;
+      color:var(--txt); letter-spacing:.01em;
+      text-shadow:0 0 26px rgba(57,231,95,.3);
+    }
+    .won span{ color:var(--grn); text-shadow:0 0 26px rgba(57,231,95,.6); }
+    .thead, .trow{
+      display:grid; align-items:center; column-gap:7px;
+      grid-template-columns:24px 14px 1fr 28px 28px 28px 50px;
+      padding:9px 12px;
+    }
+    .thead{
+      padding:7px 12px; border-bottom:1px solid var(--line);
+      font-size:9px; font-weight:600; letter-spacing:.16em; color:var(--faint);
+    }
+    .thead b{ text-align:right; font-weight:600; }
+    .trow{ border-bottom:1px solid var(--line); }
+    .trow:last-child{ border-bottom:none; }
+    .trow .rk{ font-size:11px; color:var(--faint); }
+    .trow .nm{
+      font-family:var(--head); font-weight:600; font-size:13px; letter-spacing:.03em;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .trow .nm .you{ font-style:normal; font-weight:500; font-size:10.5px; color:var(--faint); }
+    .trow b{ text-align:right; font-family:var(--mono); font-weight:500; font-size:12.5px; color:var(--dim); }
+    .trow b.tot{ font-weight:700; font-size:15px; color:var(--txt); }
+    .trow.win{
+      background:linear-gradient(90deg,rgba(57,231,95,.15),rgba(57,231,95,.03));
+      box-shadow:inset 0 0 0 1px rgba(57,231,95,.45);
+    }
+    .trow.win .rk{ color:var(--grn); font-weight:700; }
+    .trow.win .nm, .trow.win b.tot{ color:var(--grn); }
+    .trow.win b.tot{ text-shadow:0 0 10px rgba(57,231,95,.5); }
+
+    /* ---------- switcher ---------- */
+    #switcher a{
+      font-family:var(--mono); font-size:11px; text-decoration:none;
+      color:var(--dim); background:rgba(10,13,16,.92);
+      border:1px solid var(--line2); padding:4px 9px;
+    }
+    #switcher a:hover{ color:var(--grn); border-color:var(--grn); }
+
+    /* ---------- flourishes: ONLY under reduced-motion opt-in ---------- */
+    @media (prefers-reduced-motion: no-preference) {
+      .lp.a, .flag.hold i{ animation:mc-blink 1.5s ease-in-out infinite; }
+      .nc.armed, .pw.armed{ animation:mc-arm 2.2s ease-in-out infinite; }
+      .ret.r2{ animation:mc-spin 48s linear infinite; }
+      .nc.anomaly{ animation:mc-flash 2.6s ease-in-out infinite; }
+      .blips i{ animation:mc-tw 2.8s ease-in-out infinite; }
+      .blips i:nth-child(3n){ animation-delay:.9s; }
+      .blips i:nth-child(3n+1){ animation-delay:1.8s; }
+      .won{ animation:mc-won 3.2s ease-in-out infinite; }
+      @keyframes mc-blink{ 50%{ opacity:.4; } }
+      @keyframes mc-arm{
+        50%{ box-shadow:0 0 0 1px rgba(255,176,0,.75), 0 0 24px rgba(255,176,0,.42); }
+      }
+      @keyframes mc-spin{ to{ transform:rotate(360deg); } }
+      @keyframes mc-flash{
+        50%{ box-shadow:0 0 0 1px rgba(255,255,255,.9), 0 0 34px rgba(235,255,242,.65), 0 0 64px rgba(57,231,95,.4); }
+      }
+      @keyframes mc-tw{ 50%{ opacity:.3; } }
+      @keyframes mc-won{ 50%{ text-shadow:0 0 38px rgba(57,231,95,.55); } }
+    }
+  </style>
+</head>
+<body>
+  <!-- ============ 1 · HOME ============ -->
+  <main data-screen="home">
+    <div class="topstrip">
+      <span>MSN CTRL · OPS CONSOLE</span>
+      <span class="ts-r"><i class="lp g"></i>SYS NOMINAL</span>
+    </div>
+    <section class="hero">
+      <div class="ret r1"></div>
+      <div class="ret r2"></div>
+      <div class="ret r3"></div>
+      <h1 class="wordmark">CAN<span>CEL</span></h1>
+      <div class="herobar"></div>
+      <p class="tagline">a number-picking party game</p>
+    </section>
+    <div class="homebtns">
+      <button class="btn primary"><span class="bcode">OPS-01</span>New game</button>
+      <button class="btn"><span class="bcode">OPS-02</span>Single player</button>
+      <button class="btn"><span class="bcode">OPS-03</span>Join with code</button>
+    </div>
+    <div class="statusrow">
+      <span><i class="lp g"></i>PWR</span>
+      <span><i class="lp g"></i>COMMS</span>
+      <span><i class="lp g"></i>GUID</span>
+    </div>
+  </main>
+
+  <!-- ============ 2 · LOBBY ============ -->
+  <main data-screen="lobby">
+    <header class="lobbar">
+      <button class="sbtn">← Leave</button>
+      <span class="lob-title">Pre-flight</span>
+      <button class="sbtn">Rules</button>
+    </header>
+
+    <section class="pn">
+      <div class="ph">Callsign <span class="code">COM-01</span></div>
+      <div class="cs-body">
+        <div class="cs-code">DN2H</div>
+        <div class="cs-hint">press to copy</div>
+      </div>
+    </section>
+
+    <section class="pn">
+      <div class="ph">Players · 4 <span class="code">CRW-02</span></div>
+      <div class="rows">
+        <div class="crew">
+          <span class="av ben">B</span>
+          <span class="cname">Ben</span>
+          <span class="bdg host">HOST</span><span class="bdg you">YOU</span>
+          <i class="lp g push"></i>
+        </div>
+        <div class="crew">
+          <span class="av vol">V</span>
+          <span class="cname">Voltaire</span>
+          <span class="bdg">BOT</span>
+          <i class="lp g push"></i>
+        </div>
+        <div class="crew">
+          <span class="av mec">M</span>
+          <span class="cname">Mechano</span>
+          <span class="bdg">BOT</span>
+          <i class="lp g push"></i>
+        </div>
+        <div class="crew">
+          <span class="av dan">D</span>
+          <span class="cname">Data Dan</span>
+          <span class="bdg">BOT</span>
+          <i class="lp g push"></i>
+        </div>
+      </div>
+    </section>
+
+    <section class="pn">
+      <div class="ph">Config <span class="code">CFG-03</span></div>
+      <div class="setrow">
+        <span class="setlbl">Rounds</span>
+        <div class="step"><button>−</button><b>3</b><button>+</button></div>
+      </div>
+      <div class="setrow">
+        <span class="setlbl">AI players</span>
+        <div class="step"><button>−</button><b>3</b><button>+</button></div>
+      </div>
+      <div class="setrow col">
+        <span class="setlbl">Power-ups</span>
+        <div class="seg"><b>None</b><b class="on">Random</b><b>Choose</b></div>
+        <p class="helper">A fresh random pool each round.</p>
+      </div>
+    </section>
+
+    <button class="btn primary big">Start game</button>
+  </main>
+
+  <!-- ============ 3 · GAME ============ -->
+  <main data-screen="game">
+    <header class="mstrip">
+      <div class="clock">
+        <b>R1<i>/3</i></b><span class="sep">·</span><b>T2<i>/6</i></b><span class="sep">·</span><b class="cs">DN2H</b>
+      </div>
+      <div class="hb">
+        <button class="sbtn xs">Rules</button>
+        <button class="sbtn xs">Leave</button>
+        <button class="sbtn xs danger">End game</button>
+      </div>
+    </header>
+
+    <section class="pn">
+      <div class="ph">Score telemetry <span class="code">TLM-01</span></div>
+      <div class="scgrid">
+        <div class="sc">
+          <div class="scr"><i class="lp ben"></i><span class="nm">Ben</span><b>4</b></div>
+          <div class="bar"><i class="f ben" style="width:50%"></i></div>
+        </div>
+        <div class="sc">
+          <div class="scr"><i class="lp vol"></i><span class="nm">Voltaire</span><b>0</b></div>
+          <div class="bar"><i class="f vol" style="width:0%"></i></div>
+        </div>
+        <div class="sc">
+          <div class="scr"><i class="lp mec"></i><span class="nm">Mechano</span><b>2</b></div>
+          <div class="bar"><i class="f mec" style="width:25%"></i></div>
+        </div>
+        <div class="sc">
+          <div class="scr"><i class="lp dan"></i><span class="nm">Data Dan</span><b>5</b></div>
+          <div class="bar"><i class="f dan" style="width:62.5%"></i></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="pn">
+      <div class="ph">Power-ups remaining <span class="mono-g">6 / 6</span></div>
+      <div class="caution">YOUR TURN, PRESS TO SELECT</div>
+      <div class="pwgrid">
+        <div class="pw teal"><span class="gly">⇄</span><span class="pname">Swap Hands</span></div>
+        <div class="pw rose"><span class="gly">✖</span><span class="pname">Sabotage</span></div>
+        <div class="pw pink armed"><span class="gly">=</span><span class="pname">Jinx</span><span class="atag">ARMED</span></div>
+        <div class="pw emer"><span class="gly">+2</span><span class="pname">Plus Two</span></div>
+        <div class="pw viol"><span class="gly">?</span><span class="pname">Wild</span></div>
+        <div class="pw ambr"><span class="gly">↧</span><span class="pname">Drain</span></div>
+      </div>
+    </section>
+
+    <section class="pn">
+      <div class="ph">Players · Power picker: Ben <span class="code">CRW-02</span></div>
+      <div class="rows">
+        <div class="crew picker">
+          <span class="stid">ST-1</span>
+          <span class="av ben">B</span>
+          <div class="cinfo">
+            <span class="cname">Ben <i class="you">(you)</i></span>
+            <span class="hand">Ø 1 2 3 4 5</span>
+          </div>
+          <span class="flag hold push"><i>HOLD</i>THINKING…</span>
+        </div>
+        <div class="crew">
+          <span class="stid">ST-2</span>
+          <span class="av vol">V</span>
+          <div class="cinfo">
+            <span class="cname">Voltaire</span>
+            <span class="hand">Ø 1 2 3 4 5</span>
+          </div>
+          <span class="flag go push"><i>GO</i>SUBMITTED</span>
+        </div>
+        <div class="crew">
+          <span class="stid">ST-3</span>
+          <span class="av mec">M</span>
+          <div class="cinfo">
+            <span class="cname">Mechano</span>
+            <span class="hand">Ø 1 2 3 4 5</span>
+          </div>
+          <span class="flag go push"><i>GO</i>SUBMITTED</span>
+        </div>
+        <div class="crew">
+          <span class="stid">ST-4</span>
+          <span class="av dan">D</span>
+          <div class="cinfo">
+            <span class="cname">Data Dan</span>
+            <span class="hand">Ø 1 2 3 4 5</span>
+          </div>
+          <span class="flag go push"><i>GO</i>SUBMITTED</span>
+        </div>
+      </div>
+    </section>
+
+    <button class="ghost">SKIP WAITING, AUTO-PLAY WHO'S LEFT</button>
+
+    <section class="pn">
+      <div class="ph">Your hand <span class="code">ENCRYPTED · HND-04</span></div>
+      <div class="handgrid">
+        <button class="nc"><span class="guard"></span><span class="num">Ø</span><span class="idx">SW-0</span></button>
+        <button class="nc"><span class="guard"></span><span class="num">1</span><span class="idx">SW-1</span></button>
+        <button class="nc"><span class="guard"></span><span class="num">2</span><span class="idx">SW-2</span></button>
+        <button class="nc"><span class="guard"></span><span class="num">3</span><span class="idx">SW-3</span></button>
+        <button class="nc"><span class="guard"></span><span class="num">4</span><span class="idx">SW-4</span></button>
+        <button class="nc armed"><span class="guard"></span><span class="num">5</span><span class="idx">ARMED</span></button>
+      </div>
+    </section>
+
+    <button class="btn primary big">Lock it in</button>
+  </main>
+
+  <!-- ============ 4 · REVEAL ============ -->
+  <main data-screen="reveal">
+    <div class="rev-deco"></div>
+    <div class="eyebrow"><span class="line l"></span>TURN 2 REVEAL<span class="line r"></span></div>
+    <p class="revlbl">BEN PLAYED</p>
+    <div class="pw pink revpw"><span class="gly">=</span><span class="pname">Jinx</span></div>
+
+    <div class="revgrid">
+      <div class="pn rstation abortst">
+        <div class="rhead"><i class="lp ben"></i>Ben<i class="lp r push"></i></div>
+        <div class="rcardwrap">
+          <div class="nc rv abort">
+            <span class="guard"></span><span class="num">5</span><span class="idx">SW-5</span>
+            <span class="xb x1"></span><span class="xb x2"></span>
+          </div>
+        </div>
+        <div class="rout"><b class="r0">0</b><span class="flag abt"><i>ABT</i>CANCELLED</span></div>
+      </div>
+
+      <div class="pn rstation anomalyst">
+        <div class="rhead"><i class="lp vol"></i>Voltaire<i class="lp w push"></i></div>
+        <div class="rcardwrap">
+          <div class="nc rv anomaly">
+            <span class="guard"></span><span class="num">Ø</span><span class="idx">SIGNAL LOST</span>
+          </div>
+        </div>
+        <div class="rout"><b class="rz">0</b></div>
+      </div>
+
+      <div class="pn rstation abortst">
+        <div class="rhead"><i class="lp mec"></i>Mechano<i class="lp r push"></i></div>
+        <div class="rcardwrap">
+          <div class="nc rv abort">
+            <span class="guard"></span><span class="num">5</span><span class="idx">SW-5</span>
+            <span class="xb x1"></span><span class="xb x2"></span>
+          </div>
+        </div>
+        <div class="rout"><b class="r0">0</b><span class="flag abt"><i>ABT</i>CANCELLED</span></div>
+      </div>
+
+      <div class="pn rstation abortst">
+        <div class="rhead"><i class="lp dan"></i>Data Dan<i class="lp r push"></i></div>
+        <div class="rcardwrap">
+          <div class="nc rv abort">
+            <span class="guard"></span><span class="num">3</span><span class="idx">SW-3</span>
+            <span class="xb x1"></span><span class="xb x2"></span>
+          </div>
+        </div>
+        <div class="rout"><b class="r0">0</b><span class="flag abt"><i>ABT</i>CANCELLED</span></div>
+      </div>
+    </div>
+
+    <button class="btn primary big">Continue</button>
+  </main>
+
+  <!-- ============ 5 · END ============ -->
+  <main data-screen="end">
+    <div class="blips">
+      <i style="left:6%;top:2%"></i>
+      <i class="ba" style="left:16%;top:6%"></i>
+      <i class="bc" style="left:27%;top:3%"></i>
+      <i class="bb" style="left:38%;top:7%"></i>
+      <i class="ba" style="left:49%;top:2%"></i>
+      <i class="bc" style="left:60%;top:6%"></i>
+      <i style="left:71%;top:3%"></i>
+      <i class="ba bb" style="left:82%;top:7%"></i>
+      <i class="bp" style="left:91%;top:4%">+</i>
+      <i class="bc" style="left:12%;top:10%"></i>
+      <i style="left:33%;top:10.5%"></i>
+      <i class="bp ba" style="left:55%;top:9%">+</i>
+      <i class="ba" style="left:76%;top:10.5%"></i>
+      <i style="left:94%;top:9%"></i>
+      <i class="bc" style="left:3%;top:18%"></i>
+      <i class="ba" style="left:95%;top:22%"></i>
+      <i style="left:4%;top:30%"></i>
+      <i class="bp bc" style="left:93%;top:33%">+</i>
+      <i class="ba" style="left:3%;top:44%"></i>
+      <i class="bc" style="left:95%;top:47%"></i>
+      <i style="left:1%;top:58%"></i>
+      <i class="bc" style="left:96%;top:62%"></i>
+      <i class="ba" style="left:20%;top:78%"></i>
+      <i style="left:45%;top:76%"></i>
+      <i class="bp" style="left:70%;top:79%">+</i>
+      <i class="bc" style="left:88%;top:77%"></i>
+      <i class="ba bb" style="left:8%;top:84%"></i>
+      <i style="left:60%;top:86%"></i>
+      <i class="bc" style="left:35%;top:84%"></i>
+      <i class="ba" style="left:92%;top:88%"></i>
+    </div>
+
+    <div class="mcband"><i class="lp g"></i>MISSION COMPLETE<i class="lp g"></i></div>
+    <div class="eyebrow"><span class="line l"></span>GAME OVER<span class="line r"></span></div>
+    <h2 class="won">You <span>won.</span></h2>
+
+    <section class="pn">
+      <div class="ph">Final telemetry <span class="code">TLM-05</span></div>
+      <div class="thead">
+        <span></span><span></span><span></span><b>R1</b><b>R2</b><b>R3</b><b>TOTAL</b>
+      </div>
+      <div class="trow win">
+        <span class="rk">1</span><i class="lp ben"></i>
+        <span class="nm">Ben <i class="you">(you)</i></span>
+        <b>5</b><b>9</b><b>6</b><b class="tot">20</b>
+      </div>
+      <div class="trow">
+        <span class="rk">2</span><i class="lp dan"></i>
+        <span class="nm">Data Dan</span>
+        <b>5</b><b>4</b><b>3</b><b class="tot">12</b>
+      </div>
+      <div class="trow">
+        <span class="rk">3</span><i class="lp vol"></i>
+        <span class="nm">Voltaire</span>
+        <b>3</b><b>2</b><b>4</b><b class="tot">9</b>
+      </div>
+      <div class="trow">
+        <span class="rk">4</span><i class="lp mec"></i>
+        <span class="nm">Mechano</span>
+        <b>0</b><b>5</b><b>2</b><b class="tot">7</b>
+      </div>
+    </section>
+
+    <button class="btn primary big">Play again</button>
+    <button class="btn big">Leave room</button>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

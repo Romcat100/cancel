@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Aurora Prism</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ============ tokens ============ */
+    :root{
+      --bg:#f1f3f7;
+      --ink:#1b1e27;
+      --muted:rgba(27,30,39,.64);
+      --faint:rgba(27,30,39,.45);
+      --line:rgba(255,255,255,.95);
+      --hairline:rgba(27,30,39,.12);
+      --shadow:rgba(30,40,70,.10);
+      --ben:#e8604c; --vol:#5b74e8; --mech:#d9940d; --dan:#16a06b;
+      --glassbg:linear-gradient(165deg, rgba(255,255,255,.74), rgba(255,255,255,.55) 42%, rgba(255,255,255,.66));
+      --prism:linear-gradient(90deg,#ff4438,#ff9500,#ffd60a,#3ec963,#2f9bff,#7a5cff,#b04cff);
+    }
+    *{ box-sizing:border-box; margin:0; padding:0; }
+    html{ background:var(--bg); }
+    body{
+      font-family:"Outfit",ui-sans-serif,sans-serif;
+      color:var(--ink);
+      -webkit-font-smoothing:antialiased;
+      background-color:var(--bg);
+      background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E"),
+        linear-gradient(114deg, transparent 26%, rgba(255,255,255,.62) 34%, rgba(255,255,255,0) 42%),
+        linear-gradient(114deg, transparent 57%, rgba(255,255,255,.46) 65%, transparent 72%),
+        radial-gradient(58% 34% at 12% 0%, rgba(255,186,132,.34), transparent 66%),
+        radial-gradient(56% 30% at 90% 5%, rgba(140,174,255,.38), transparent 66%),
+        radial-gradient(46% 26% at 5% 78%, rgba(110,231,183,.17), transparent 62%),
+        radial-gradient(52% 28% at 95% 96%, rgba(165,180,252,.22), transparent 66%);
+      background-size:160px 160px,100% 100%,100% 100%,100% 100%,100% 100%,100% 100%,100% 100%;
+      background-repeat:repeat,no-repeat,no-repeat,no-repeat,no-repeat,no-repeat,no-repeat;
+    }
+    main[data-screen]{ min-height:100vh; }
+    .wrap{ max-width:420px; margin:0 auto; padding:22px 20px 30px; position:relative; }
+
+    /* ============ shared surfaces ============ */
+    .glass{
+      background:var(--glassbg);
+      border:1px solid var(--line);
+      border-radius:18px;
+      backdrop-filter:blur(14px) saturate(1.15);
+      -webkit-backdrop-filter:blur(14px) saturate(1.15);
+      box-shadow:0 14px 32px var(--shadow), 0 2px 8px rgba(30,40,70,.06);
+    }
+    .micro{
+      font-size:11px; font-weight:700; letter-spacing:.22em;
+      text-transform:uppercase; color:var(--faint);
+    }
+    .seclabel{
+      font-size:11px; font-weight:700; letter-spacing:.22em;
+      text-transform:uppercase; color:var(--faint);
+      margin:0 4px 10px;
+    }
+
+    /* ============ buttons ============ */
+    .btn{
+      display:flex; align-items:center; justify-content:center;
+      width:100%; min-height:56px; border-radius:17px;
+      font-family:"Outfit",sans-serif; font-size:17px; font-weight:700;
+      color:var(--ink); cursor:pointer;
+      border:1px solid var(--line);
+      background:var(--glassbg);
+      backdrop-filter:blur(14px) saturate(1.15);
+      -webkit-backdrop-filter:blur(14px) saturate(1.15);
+      box-shadow:0 12px 28px var(--shadow), 0 2px 8px rgba(30,40,70,.06);
+    }
+    .btn.primary{
+      position:relative; border:none;
+      background:linear-gradient(180deg,#272c39,#161a24);
+      color:#ffffff; font-weight:800; letter-spacing:.01em;
+      box-shadow:0 14px 30px rgba(30,40,70,.30), 0 3px 10px rgba(30,40,70,.18), inset 0 1px 0 rgba(255,255,255,.18);
+    }
+    .btn.primary::after{
+      content:""; position:absolute; left:15%; right:15%; bottom:-6px;
+      height:2.5px; border-radius:3px; pointer-events:none;
+      background:var(--prism); opacity:.55; filter:blur(.4px);
+    }
+    .btn.ghost{
+      background:rgba(255,255,255,.42);
+      border:1px dashed rgba(27,30,39,.30);
+      color:var(--muted); font-size:12px; font-weight:700;
+      letter-spacing:.14em; text-transform:uppercase;
+      min-height:46px; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none;
+    }
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      min-height:42px; padding:0 18px; border-radius:999px;
+      background:var(--glassbg); border:1px solid var(--line);
+      backdrop-filter:blur(12px) saturate(1.15); -webkit-backdrop-filter:blur(12px) saturate(1.15);
+      font-family:"Outfit",sans-serif; font-size:14px; font-weight:600; color:var(--ink);
+      cursor:pointer; box-shadow:0 8px 20px rgba(30,40,70,.09);
+    }
+    .pill.tiny{
+      min-height:30px; padding:0 11px; font-size:10px; font-weight:800;
+      letter-spacing:.12em; color:var(--muted); box-shadow:0 4px 12px rgba(30,40,70,.07);
+    }
+    .pill.danger{ color:#d31f4d; border-color:rgba(225,29,72,.30); }
+
+    /* ============ switcher ============ */
+    #switcher a{
+      width:30px; height:30px; display:grid; place-items:center;
+      border-radius:10px; background:rgba(255,255,255,.85);
+      border:1px solid var(--hairline); color:var(--muted);
+      font:700 12px "Outfit",sans-serif; text-decoration:none;
+      backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+      box-shadow:0 4px 12px rgba(30,40,70,.10);
+    }
+
+    /* ============ HOME ============ */
+    .home-wrap{ min-height:100vh; display:flex; flex-direction:column; }
+    .home-top{ display:flex; justify-content:flex-end; }
+    .iconbtn{
+      width:44px; height:44px; border-radius:50%;
+      display:grid; place-items:center; cursor:pointer;
+      color:var(--muted); background:rgba(255,255,255,.66);
+      border:1px solid var(--line);
+      backdrop-filter:blur(10px) saturate(1.15); -webkit-backdrop-filter:blur(10px) saturate(1.15);
+      box-shadow:0 8px 20px rgba(30,40,70,.09);
+    }
+    .home-hero{
+      flex:1; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; text-align:center;
+      position:relative; padding:30px 0 18px;
+    }
+    .home-hero::before{
+      content:""; position:absolute; left:50%; top:40%;
+      width:340px; height:300px; transform:translate(-50%,-50%);
+      pointer-events:none; filter:blur(8px);
+      background:radial-gradient(closest-side, rgba(255,255,255,.9), rgba(255,255,255,.35) 55%, transparent 75%);
+    }
+    .wordmark{
+      position:relative; font-size:64px; font-weight:900;
+      letter-spacing:.04em; line-height:1; color:var(--ink);
+      filter:drop-shadow(0 12px 26px rgba(30,40,70,.20));
+    }
+    .wordmark .w2{
+      color:transparent;
+      -webkit-text-stroke:2.4px var(--ink);
+    }
+    .wordmark::after{
+      content:""; position:absolute; left:3%; right:3%; bottom:-13px;
+      height:3px; border-radius:3px; pointer-events:none;
+      background:var(--prism); opacity:.6; filter:blur(.35px);
+    }
+    .tagline{
+      margin-top:26px; font-size:13px; font-weight:500;
+      letter-spacing:.3em; text-transform:uppercase; color:var(--muted);
+      position:relative;
+    }
+    .home-fan{ display:flex; justify-content:center; margin-top:40px; position:relative; }
+    .mini-card{
+      width:42px; height:56px; border-radius:11px; margin:0 -2px;
+      display:grid; place-items:center;
+      font-family:"Sora",sans-serif; font-weight:700; font-size:18px;
+      color:var(--ink);
+      background:var(--glassbg); border:1px solid var(--line);
+      backdrop-filter:blur(10px) saturate(1.15); -webkit-backdrop-filter:blur(10px) saturate(1.15);
+      box-shadow:0 10px 20px rgba(30,40,70,.13);
+    }
+    .mini-card:nth-child(1){ transform:rotate(-12deg) translateY(9px); }
+    .mini-card:nth-child(2){ transform:rotate(-7deg) translateY(3px); }
+    .mini-card:nth-child(3){ transform:rotate(-2deg) translateY(0); }
+    .mini-card:nth-child(4){ transform:rotate(3deg) translateY(0); }
+    .mini-card:nth-child(5){ transform:rotate(8deg) translateY(4px); }
+    .mini-card:nth-child(6){ transform:rotate(13deg) translateY(10px); }
+    .home-actions{ display:flex; flex-direction:column; gap:14px; padding-bottom:18px; }
+
+    /* ============ LOBBY ============ */
+    .topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+    .code-panel{ padding:24px 20px 20px; text-align:center; margin-bottom:24px; }
+    .code{
+      font-family:"Sora",sans-serif; font-size:58px; font-weight:800;
+      letter-spacing:.2em; text-indent:.2em; line-height:1; color:var(--ink);
+    }
+    .hint{ margin-top:8px; font-size:12px; letter-spacing:.1em; color:var(--faint); }
+    .players{ list-style:none; display:flex; flex-direction:column; gap:10px; margin-bottom:24px; }
+    .prow{ border-radius:16px; padding:9px 14px; display:flex; align-items:center; gap:12px; }
+    .avatar{
+      width:38px; height:38px; border-radius:12px; flex:none;
+      display:grid; place-items:center;
+      font-weight:800; font-size:16px; color:#ffffff;
+    }
+    .avatar.ben{ background:linear-gradient(140deg,#ff9c87,#e04a33); box-shadow:0 6px 14px rgba(232,96,76,.32); }
+    .avatar.vol{ background:linear-gradient(140deg,#92a6ff,#4a63dd); box-shadow:0 6px 14px rgba(91,116,232,.32); }
+    .avatar.mech{ background:linear-gradient(140deg,#ffd267,#d98c04); box-shadow:0 6px 14px rgba(217,148,13,.32); }
+    .avatar.dan{ background:linear-gradient(140deg,#55e0a6,#0e9c61); box-shadow:0 6px 14px rgba(22,160,107,.32); }
+    .pname{ font-size:16px; font-weight:600; flex:1; }
+    .badges{ display:flex; gap:6px; align-items:center; }
+    .badge{
+      font-size:9.5px; font-weight:800; letter-spacing:.12em;
+      padding:4px 8px; border-radius:999px; border:1px solid transparent;
+    }
+    .badge.host{ color:#8a5a07; border-color:rgba(217,148,13,.45); background:rgba(250,200,60,.18); }
+    .badge.you{ color:var(--ink); border-color:rgba(27,30,39,.28); background:rgba(27,30,39,.06); }
+    .badge.bot{ color:#3f4fb5; border-color:rgba(91,116,232,.38); background:rgba(91,116,232,.10); }
+    .dot{
+      width:8px; height:8px; border-radius:50%; flex:none;
+      background:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,.18);
+    }
+    .setrow{
+      border-radius:16px; padding:12px 14px; margin-bottom:10px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .setlabel{ font-size:15px; font-weight:600; }
+    .stepper{ display:flex; align-items:center; gap:14px; }
+    .stepbtn{
+      width:38px; height:38px; border-radius:12px; cursor:pointer;
+      background:rgba(27,30,39,.05); border:1px solid rgba(27,30,39,.15);
+      color:var(--ink); font-size:18px; font-weight:600;
+      display:grid; place-items:center;
+    }
+    .stepval{ font-family:"Sora",sans-serif; font-weight:700; font-size:18px; min-width:18px; text-align:center; }
+    .setcol{ border-radius:16px; padding:14px; margin-bottom:20px; }
+    .setcol .setlabel{ margin-bottom:11px; }
+    .seg{
+      display:flex; gap:3px; padding:3px; border-radius:12px;
+      background:rgba(27,30,39,.06); border:1px solid rgba(27,30,39,.10);
+    }
+    .seg button{
+      flex:1; min-height:40px; border:none; border-radius:9px;
+      background:transparent; color:var(--muted); cursor:pointer;
+      font-family:"Outfit",sans-serif; font-size:13.5px; font-weight:600;
+    }
+    .seg button.on{
+      background:linear-gradient(180deg,#272c39,#161a24);
+      color:#ffffff; font-weight:800;
+      box-shadow:0 4px 12px rgba(30,40,70,.30), inset 0 1px 0 rgba(255,255,255,.15);
+    }
+    .helper{ font-size:12.5px; color:var(--faint); margin-top:9px; }
+
+    /* ============ GAME ============ */
+    .ghead{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:16px; }
+    .gmeta{
+      font-family:"Sora",sans-serif; font-size:13.5px; font-weight:800;
+      letter-spacing:.03em; color:var(--ink); white-space:nowrap;
+    }
+    .gmeta .dim{ color:var(--faint); font-weight:600; }
+    .gmeta .codesm{ color:var(--muted); font-weight:700; letter-spacing:.14em; margin-left:6px; }
+    .gbtns{ display:flex; gap:5px; }
+    .scoregrid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:20px; }
+    .schip{ border-radius:14px; min-height:46px; padding:0 13px; display:flex; align-items:center; gap:9px; }
+    .schip .sdot{ width:9px; height:9px; border-radius:50%; flex:none; background:currentColor; box-shadow:0 0 0 3px rgba(30,40,70,.06); }
+    .schip .nm{ flex:1; font-size:14px; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .schip .sc{ font-family:"Sora",sans-serif; font-weight:800; font-size:17px; color:var(--ink); }
+    .c-ben{ color:var(--ben); } .c-vol{ color:var(--vol); } .c-mech{ color:var(--mech); } .c-dan{ color:var(--dan); }
+    .poolhead{ display:flex; justify-content:space-between; align-items:baseline; margin:0 4px 10px; }
+    .poolcount{ font-family:"Sora",sans-serif; font-size:13px; font-weight:700; color:var(--muted); }
+    .banner{
+      border-radius:14px; border:1px solid rgba(27,30,39,.32);
+      background:linear-gradient(165deg, rgba(255,255,255,.84), rgba(255,255,255,.62));
+      backdrop-filter:blur(12px) saturate(1.15); -webkit-backdrop-filter:blur(12px) saturate(1.15);
+      padding:12px 14px; text-align:center; margin-bottom:10px;
+      box-shadow:0 8px 20px rgba(30,40,70,.08);
+    }
+    .banner span{
+      font-size:11.5px; font-weight:800; letter-spacing:.22em; color:var(--ink);
+    }
+    .powergrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px; }
+    .power{
+      position:relative; border-radius:16px; padding:15px 6px 12px;
+      display:flex; flex-direction:column; align-items:center; gap:8px;
+      background:var(--glassbg); border:1px solid var(--line);
+      backdrop-filter:blur(14px) saturate(1.15); -webkit-backdrop-filter:blur(14px) saturate(1.15);
+      box-shadow:0 10px 24px rgba(30,40,70,.09), inset 0 0 32px rgba(var(--pc),.07);
+      cursor:pointer;
+    }
+    .power .glyph{
+      font-family:"Sora",sans-serif; font-size:25px; font-weight:800; line-height:1;
+      color:rgb(var(--pc));
+    }
+    .power .pnamel{
+      font-size:10px; font-weight:700; letter-spacing:.1em;
+      text-transform:uppercase; color:var(--muted); text-align:center;
+    }
+    .power.swap{ --pc:13,148,136; } .power.sab{ --pc:225,29,72; }
+    .power.jinx{ --pc:219,39,119; } .power.plus{ --pc:5,150,105; }
+    .power.wild{ --pc:124,58,237; } .power.drain{ --pc:217,119,6; }
+    .power.sel{
+      border:2px solid var(--ink); padding:14px 5px 11px;
+      background:linear-gradient(165deg, rgba(255,255,255,.94), rgba(255,255,255,.78));
+      box-shadow:0 16px 30px rgba(30,40,70,.18), inset 0 0 32px rgba(var(--pc),.11);
+      transform:translateY(-3px);
+    }
+    .power.sel .pnamel{ color:var(--ink); }
+    .pstat{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+    .pcard{ border-radius:14px; padding:11px 13px; }
+    .pcard .ptop{ display:flex; align-items:center; gap:7px; }
+    .pcard .pdot{ width:10px; height:10px; border-radius:50%; flex:none; background:currentColor; box-shadow:0 0 0 3px rgba(30,40,70,.06); }
+    .pcard .pn{ font-size:14px; font-weight:600; color:var(--ink); white-space:nowrap; }
+    .pcard .yo{ font-size:11px; color:var(--faint); font-weight:500; }
+    .pstatus{ margin-top:6px; font-size:10px; font-weight:800; letter-spacing:.16em; }
+    .pstatus.think{ color:#b45309; }
+    .pstatus.sub{ color:#047857; }
+    .handread{
+      margin-top:6px; font-family:"Sora",sans-serif; font-size:11px;
+      font-weight:600; letter-spacing:.24em; color:var(--faint);
+    }
+    .skipbtn{ margin-bottom:22px; }
+    .hand{ display:grid; grid-template-columns:repeat(6,1fr); gap:8px; padding-top:8px; margin-bottom:18px; }
+    .num{
+      position:relative; height:86px; border-radius:14px;
+      display:grid; place-items:center; cursor:pointer;
+      font-family:"Sora",sans-serif; font-size:27px; font-weight:800;
+      color:var(--ink);
+      background:var(--glassbg); border:1px solid var(--line);
+      backdrop-filter:blur(14px) saturate(1.15); -webkit-backdrop-filter:blur(14px) saturate(1.15);
+      box-shadow:0 10px 22px rgba(30,40,70,.10);
+    }
+    .num::before{
+      content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+      background:linear-gradient(168deg, rgba(255,255,255,.65), rgba(255,255,255,0) 42%);
+    }
+    .num.sel{
+      border:2px solid var(--ink);
+      background:linear-gradient(165deg, #ffffff, rgba(255,255,255,.86));
+      box-shadow:0 18px 32px rgba(30,40,70,.20), 0 4px 10px rgba(30,40,70,.12);
+      transform:translateY(-7px);
+    }
+
+    /* ============ REVEAL ============ */
+    main[data-screen="reveal"]{
+      background:
+        radial-gradient(82% 48% at 50% 38%, rgba(140,174,255,.24), transparent 70%),
+        radial-gradient(58% 30% at 50% 22%, rgba(255,186,132,.14), transparent 70%);
+    }
+    .reveal-wrap{
+      min-height:100vh; max-width:420px; margin:0 auto;
+      display:flex; flex-direction:column; justify-content:center;
+      padding:36px 20px;
+    }
+    .reyebrow{ text-align:center; margin-bottom:26px; letter-spacing:.3em; color:var(--muted); }
+    .played-label{ text-align:center; margin-bottom:12px; }
+    .playedcard{
+      width:96px; margin:0 auto 30px; border-radius:16px;
+      padding:16px 8px 12px;
+      display:flex; flex-direction:column; align-items:center; gap:8px;
+      border:1.5px solid rgba(219,39,119,.42);
+      background:linear-gradient(165deg, rgba(255,255,255,.88), rgba(255,255,255,.68));
+      backdrop-filter:blur(14px) saturate(1.15); -webkit-backdrop-filter:blur(14px) saturate(1.15);
+      box-shadow:0 12px 26px rgba(219,39,119,.14), 0 4px 12px rgba(30,40,70,.08);
+    }
+    .playedcard .glyph{
+      font-family:"Sora",sans-serif; font-size:30px; font-weight:800; line-height:1;
+      color:#db2777;
+    }
+    .playedcard .pnamel{
+      font-size:10px; font-weight:800; letter-spacing:.18em;
+      text-transform:uppercase; color:#a81e62;
+    }
+    .rgrid{
+      display:grid; grid-template-columns:1fr 1fr;
+      gap:20px 12px; margin-bottom:32px; justify-items:center;
+    }
+    .rcell{ display:flex; flex-direction:column; align-items:center; gap:9px; }
+    .rname{ font-size:11px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); }
+    .rcard{
+      position:relative; width:106px; height:130px; border-radius:18px;
+      display:grid; place-items:center; overflow:hidden;
+      font-family:"Sora",sans-serif; font-size:42px; font-weight:800;
+    }
+    .rcard.split{
+      background:linear-gradient(180deg, rgba(246,247,250,.94), rgba(232,235,241,.88));
+      border:1px solid rgba(255,255,255,.92);
+      backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+      box-shadow:0 12px 26px rgba(30,40,70,.10), inset 0 0 26px rgba(255,255,255,.55);
+      color:rgba(27,30,39,.62);
+    }
+    .rcard.split::before, .rcard.split::after{
+      content:attr(data-n); position:absolute; inset:0;
+      display:grid; place-items:center; pointer-events:none;
+      mix-blend-mode:multiply;
+    }
+    .rcard.split::before{ color:rgba(232,28,58,.45); transform:translate(-3px,-2px); }
+    .rcard.split::after{ color:rgba(37,99,235,.45); transform:translate(3px,2px); }
+    .rcard.pure{
+      background:rgba(255,255,255,.97);
+      border:1px solid #ffffff;
+      color:var(--ink);
+      box-shadow:
+        0 0 0 6px rgba(255,255,255,.55),
+        0 0 30px rgba(255,255,255,.95),
+        0 0 64px rgba(255,255,255,.85),
+        0 14px 30px rgba(30,40,70,.16);
+    }
+    .rcard.pure::after{
+      content:""; position:absolute; left:50%; top:50%;
+      width:72px; height:72px; transform:translate(-50%,-50%);
+      border-radius:50%; pointer-events:none;
+      background:conic-gradient(from 210deg,#ff4438,#ff9500,#ffd60a,#3ec963,#2f9bff,#7a5cff,#b04cff,#ff4438);
+      -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+      mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+      opacity:.7;
+    }
+    .rout{ display:flex; flex-direction:column; align-items:center; gap:3px; min-height:34px; }
+    .rzero{ font-family:"Sora",sans-serif; font-weight:800; font-size:15px; color:rgba(27,30,39,.55); }
+    .rcancel{
+      font-size:10px; font-weight:800; letter-spacing:.26em; color:#d31f4d;
+      text-shadow:-1px 0 rgba(37,99,235,.28), 1px 0 rgba(255,68,56,.28);
+    }
+    .rsafe{
+      font-family:"Sora",sans-serif; font-weight:800; font-size:16px; color:#0a8a5f;
+    }
+
+    /* ============ END ============ */
+    main[data-screen="end"]{
+      position:relative; overflow:hidden;
+      background:
+        radial-gradient(70% 34% at 50% 4%, rgba(255,186,132,.26), transparent 70%),
+        radial-gradient(56% 30% at 14% 34%, rgba(140,174,255,.22), transparent 70%),
+        radial-gradient(56% 30% at 88% 60%, rgba(110,231,183,.16), transparent 70%);
+    }
+    .glint{
+      position:absolute; pointer-events:none; font-style:normal;
+      font-family:"Outfit",sans-serif; line-height:1;
+    }
+    .sliver{
+      position:absolute; pointer-events:none; width:2px; border-radius:2px;
+    }
+    .end-wrap{
+      min-height:100vh; max-width:420px; margin:0 auto;
+      display:flex; flex-direction:column; padding:46px 20px 30px;
+      position:relative;
+    }
+    .end-hero{ text-align:center; margin-bottom:34px; }
+    .end-hero .micro{ letter-spacing:.32em; margin-bottom:14px; display:block; }
+    .wonline{
+      font-size:56px; font-weight:900; line-height:1; color:var(--ink);
+      filter:drop-shadow(0 10px 24px rgba(30,40,70,.18));
+    }
+    .wonline .w2{
+      color:transparent;
+      -webkit-text-stroke:2.2px var(--ink);
+    }
+    .thead{
+      display:grid; grid-template-columns:1fr 32px 32px 32px 54px;
+      align-items:center; padding:0 16px; margin-bottom:9px;
+    }
+    .thead .h{ font-size:10px; font-weight:800; letter-spacing:.14em; color:var(--faint); text-align:center; }
+    .thead .h.tot{ text-align:right; }
+    .trow{
+      display:grid; grid-template-columns:1fr 32px 32px 32px 54px;
+      align-items:center; min-height:58px; padding:0 16px;
+      border-radius:16px; margin-bottom:10px;
+    }
+    .trow .who{ display:flex; align-items:center; gap:9px; min-width:0; }
+    .trow .rk{ width:14px; font-family:"Sora",sans-serif; font-weight:700; font-size:13px; color:var(--faint); }
+    .trow .pdot{ width:10px; height:10px; border-radius:50%; flex:none; background:currentColor; box-shadow:0 0 0 3px rgba(30,40,70,.06); }
+    .trow .pn{ font-size:15px; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .trow .yo{ font-size:11px; color:var(--faint); font-weight:500; }
+    .trow .r{ font-family:"Sora",sans-serif; font-size:13px; font-weight:600; color:var(--muted); text-align:center; }
+    .trow .tt{ font-family:"Sora",sans-serif; font-size:19px; font-weight:800; text-align:right; color:var(--ink); }
+    .trow.win{
+      border:2px solid var(--ink);
+      background:linear-gradient(165deg, #ffffff, rgba(255,255,255,.86));
+      box-shadow:0 16px 32px rgba(30,40,70,.16);
+    }
+    .trow.win .rk{ color:#c08a12; }
+    .end-actions{ margin-top:auto; display:flex; flex-direction:column; gap:14px; padding-top:30px; }
+
+    /* ============ flourish (humans only; shots capture resting state) ============ */
+    @media (prefers-reduced-motion: no-preference){
+      @keyframes prismShift{
+        0%{ background-position:0% 0; }
+        100%{ background-position:100% 0; }
+      }
+      .btn.primary::after, .wordmark::after{
+        background-size:280% 100%;
+        animation:prismShift 6s linear infinite alternate;
+      }
+      @keyframes liftPulse{
+        0%,100%{ box-shadow:0 18px 32px rgba(30,40,70,.20), 0 4px 10px rgba(30,40,70,.12); }
+        50%{ box-shadow:0 18px 36px rgba(30,40,70,.28), 0 4px 12px rgba(30,40,70,.16); }
+      }
+      .num.sel{ animation:liftPulse 2.6s ease-in-out infinite; }
+      @keyframes pureGlow{
+        0%,100%{ box-shadow:0 0 0 6px rgba(255,255,255,.55), 0 0 30px rgba(255,255,255,.95), 0 0 64px rgba(255,255,255,.85), 0 14px 30px rgba(30,40,70,.16); }
+        50%{ box-shadow:0 0 0 8px rgba(255,255,255,.7), 0 0 42px rgba(255,255,255,1), 0 0 84px rgba(255,255,255,.95), 0 14px 30px rgba(30,40,70,.16); }
+      }
+      .rcard.pure{ animation:pureGlow 3s ease-in-out infinite; }
+      @keyframes ringSpin{ from{ transform:translate(-50%,-50%) rotate(0deg); } to{ transform:translate(-50%,-50%) rotate(360deg); } }
+      .rcard.pure::after{ animation:ringSpin 14s linear infinite; }
+      @keyframes thinkBlink{ 0%,100%{ opacity:1; } 50%{ opacity:.45; } }
+      .pstatus.think{ animation:thinkBlink 1.4s ease-in-out infinite; }
+      @keyframes dotPulse{ 0%,100%{ box-shadow:0 0 0 3px rgba(16,185,129,.18); } 50%{ box-shadow:0 0 0 5px rgba(16,185,129,.10); } }
+      .dot{ animation:dotPulse 2.2s ease-in-out infinite; }
+      @keyframes glintTwinkle{ 0%,100%{ opacity:1; } 50%{ opacity:.4; } }
+      .glint{ animation:glintTwinkle 3.4s ease-in-out infinite; }
+      .glint:nth-of-type(2n){ animation-duration:4.6s; animation-delay:-1.4s; }
+      .glint:nth-of-type(3n){ animation-duration:5.4s; animation-delay:-2.6s; }
+    }
+  </style>
+</head>
+<body>
+  <main data-screen="home">
+    <div class="wrap home-wrap">
+      <div class="home-top">
+        <button class="iconbtn" aria-label="Mute sounds">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg>
+        </button>
+      </div>
+      <div class="home-hero">
+        <h1 class="wordmark"><span class="w1">CAN</span><span class="w2">CEL</span></h1>
+        <p class="tagline">a number-picking party game</p>
+        <div class="home-fan">
+          <div class="mini-card">Ø</div>
+          <div class="mini-card">1</div>
+          <div class="mini-card">2</div>
+          <div class="mini-card">3</div>
+          <div class="mini-card">4</div>
+          <div class="mini-card">5</div>
+        </div>
+      </div>
+      <div class="home-actions">
+        <button class="btn primary">New game</button>
+        <button class="btn">Single player</button>
+        <button class="btn">Join with code</button>
+      </div>
+    </div>
+  </main>
+
+  <main data-screen="lobby">
+    <div class="wrap">
+      <header class="topbar">
+        <button class="pill">← Leave</button>
+        <button class="pill">Rules</button>
+      </header>
+      <section class="glass code-panel">
+        <div class="code">DN2H</div>
+        <div class="hint">press to copy</div>
+      </section>
+      <div class="seclabel">Players · 4</div>
+      <ul class="players">
+        <li class="glass prow">
+          <div class="avatar ben">B</div>
+          <div class="pname">Ben</div>
+          <div class="badges"><span class="badge host">HOST</span><span class="badge you">YOU</span><span class="dot"></span></div>
+        </li>
+        <li class="glass prow">
+          <div class="avatar vol">V</div>
+          <div class="pname">Voltaire</div>
+          <div class="badges"><span class="badge bot">BOT</span><span class="dot"></span></div>
+        </li>
+        <li class="glass prow">
+          <div class="avatar mech">M</div>
+          <div class="pname">Mechano</div>
+          <div class="badges"><span class="badge bot">BOT</span><span class="dot"></span></div>
+        </li>
+        <li class="glass prow">
+          <div class="avatar dan">D</div>
+          <div class="pname">Data Dan</div>
+          <div class="badges"><span class="badge bot">BOT</span><span class="dot"></span></div>
+        </li>
+      </ul>
+      <section class="glass setrow">
+        <div class="setlabel">Rounds</div>
+        <div class="stepper">
+          <button class="stepbtn">−</button>
+          <div class="stepval">3</div>
+          <button class="stepbtn">+</button>
+        </div>
+      </section>
+      <section class="glass setrow">
+        <div class="setlabel">AI players</div>
+        <div class="stepper">
+          <button class="stepbtn">−</button>
+          <div class="stepval">3</div>
+          <button class="stepbtn">+</button>
+        </div>
+      </section>
+      <section class="glass setcol">
+        <div class="setlabel">Power-ups</div>
+        <div class="seg">
+          <button>None</button>
+          <button class="on">Random</button>
+          <button>Choose</button>
+        </div>
+        <p class="helper">A fresh random pool each round.</p>
+      </section>
+      <button class="btn primary">Start game</button>
+    </div>
+  </main>
+
+  <main data-screen="game">
+    <div class="wrap">
+      <header class="ghead">
+        <div class="gmeta">R1<span class="dim">/3</span> · T2<span class="dim">/6</span><span class="codesm">DN2H</span></div>
+        <div class="gbtns">
+          <button class="pill tiny">RULES</button>
+          <button class="pill tiny">LEAVE</button>
+          <button class="pill tiny danger">END GAME</button>
+        </div>
+      </header>
+      <div class="scoregrid">
+        <div class="glass schip c-ben"><span class="sdot"></span><span class="nm">Ben</span><span class="sc">4</span></div>
+        <div class="glass schip c-vol"><span class="sdot"></span><span class="nm">Voltaire</span><span class="sc">0</span></div>
+        <div class="glass schip c-mech"><span class="sdot"></span><span class="nm">Mechano</span><span class="sc">2</span></div>
+        <div class="glass schip c-dan"><span class="sdot"></span><span class="nm">Data Dan</span><span class="sc">5</span></div>
+      </div>
+      <div class="poolhead">
+        <div class="micro">Power-ups remaining</div>
+        <div class="poolcount">6 / 6</div>
+      </div>
+      <div class="banner"><span>YOUR TURN, PRESS TO SELECT</span></div>
+      <div class="powergrid">
+        <div class="power swap"><div class="glyph">⇄</div><div class="pnamel">Swap Hands</div></div>
+        <div class="power sab"><div class="glyph">✖</div><div class="pnamel">Sabotage</div></div>
+        <div class="power jinx sel"><div class="glyph">=</div><div class="pnamel">Jinx</div></div>
+        <div class="power plus"><div class="glyph">+2</div><div class="pnamel">Plus Two</div></div>
+        <div class="power wild"><div class="glyph">?</div><div class="pnamel">Wild</div></div>
+        <div class="power drain"><div class="glyph">↧</div><div class="pnamel">Drain</div></div>
+      </div>
+      <div class="seclabel">Players · Power picker: Ben</div>
+      <div class="pstat">
+        <div class="glass pcard c-ben">
+          <div class="ptop"><span class="pdot"></span><span class="pn">Ben</span><span class="yo">(you)</span></div>
+          <div class="handread">Ø 1 2 3 4 5</div>
+          <div class="pstatus think">THINKING…</div>
+        </div>
+        <div class="glass pcard c-vol">
+          <div class="ptop"><span class="pdot"></span><span class="pn">Voltaire</span></div>
+          <div class="handread">Ø 1 2 3 4 5</div>
+          <div class="pstatus sub">SUBMITTED</div>
+        </div>
+        <div class="glass pcard c-mech">
+          <div class="ptop"><span class="pdot"></span><span class="pn">Mechano</span></div>
+          <div class="handread">Ø 1 2 3 4 5</div>
+          <div class="pstatus sub">SUBMITTED</div>
+        </div>
+        <div class="glass pcard c-dan">
+          <div class="ptop"><span class="pdot"></span><span class="pn">Data Dan</span></div>
+          <div class="handread">Ø 1 2 3 4 5</div>
+          <div class="pstatus sub">SUBMITTED</div>
+        </div>
+      </div>
+      <button class="btn ghost skipbtn">SKIP WAITING, AUTO-PLAY WHO'S LEFT</button>
+      <div class="seclabel">Your hand</div>
+      <div class="hand">
+        <div class="num">Ø</div>
+        <div class="num">1</div>
+        <div class="num">2</div>
+        <div class="num">3</div>
+        <div class="num">4</div>
+        <div class="num sel">5</div>
+      </div>
+      <button class="btn primary">Lock it in</button>
+    </div>
+  </main>
+
+  <main data-screen="reveal">
+    <div class="reveal-wrap">
+      <div class="micro reyebrow">Turn 2 Reveal</div>
+      <div class="micro played-label">Ben played</div>
+      <div class="playedcard">
+        <div class="glyph">=</div>
+        <div class="pnamel">Jinx</div>
+      </div>
+      <div class="rgrid">
+        <div class="rcell">
+          <div class="rname">Ben</div>
+          <div class="rcard split" data-n="5">5</div>
+          <div class="rout"><span class="rzero">0</span><span class="rcancel">CANCELLED</span></div>
+        </div>
+        <div class="rcell">
+          <div class="rname">Voltaire</div>
+          <div class="rcard pure">Ø</div>
+          <div class="rout"><span class="rsafe">0</span></div>
+        </div>
+        <div class="rcell">
+          <div class="rname">Mechano</div>
+          <div class="rcard split" data-n="5">5</div>
+          <div class="rout"><span class="rzero">0</span><span class="rcancel">CANCELLED</span></div>
+        </div>
+        <div class="rcell">
+          <div class="rname">Data Dan</div>
+          <div class="rcard split" data-n="3">3</div>
+          <div class="rout"><span class="rzero">0</span><span class="rcancel">CANCELLED</span></div>
+        </div>
+      </div>
+      <button class="btn primary">Continue</button>
+    </div>
+  </main>
+
+  <main data-screen="end">
+    <i class="glint" style="top:4%;  left:9%;  font-size:18px; color:rgba(91,116,232,.40); transform:rotate(-12deg);">✦</i>
+    <i class="glint" style="top:7%;  left:80%; font-size:13px; color:rgba(217,148,13,.45); transform:rotate(18deg);">✦</i>
+    <i class="glint" style="top:12%; left:30%; font-size:10px; color:rgba(27,30,39,.22); transform:rotate(8deg);">✧</i>
+    <i class="glint" style="top:16%; left:90%; font-size:20px; color:rgba(232,96,76,.32); transform:rotate(-22deg);">✦</i>
+    <i class="glint" style="top:21%; left:5%;  font-size:12px; color:rgba(22,160,107,.40); transform:rotate(14deg);">✦</i>
+    <i class="glint" style="top:26%; left:64%; font-size:9px;  color:rgba(27,30,39,.20); transform:rotate(-6deg);">✧</i>
+    <i class="glint" style="top:33%; left:13%; font-size:15px; color:rgba(140,174,255,.5); transform:rotate(24deg);">✦</i>
+    <i class="glint" style="top:38%; left:88%; font-size:11px; color:rgba(219,39,119,.30); transform:rotate(-16deg);">✦</i>
+    <i class="glint" style="top:48%; left:4%;  font-size:17px; color:rgba(217,148,13,.30); transform:rotate(10deg);">✧</i>
+    <i class="glint" style="top:53%; left:73%; font-size:9px;  color:rgba(27,30,39,.22); transform:rotate(-8deg);">✦</i>
+    <i class="glint" style="top:61%; left:22%; font-size:12px; color:rgba(91,116,232,.35); transform:rotate(20deg);">✦</i>
+    <i class="glint" style="top:65%; left:92%; font-size:14px; color:rgba(22,160,107,.32); transform:rotate(-14deg);">✧</i>
+    <i class="glint" style="top:74%; left:9%;  font-size:10px; color:rgba(232,96,76,.35); transform:rotate(6deg);">✦</i>
+    <i class="glint" style="top:80%; left:63%; font-size:16px; color:rgba(140,174,255,.4); transform:rotate(-20deg);">✦</i>
+    <i class="glint" style="top:88%; left:28%; font-size:11px; color:rgba(217,148,13,.35); transform:rotate(12deg);">✦</i>
+    <i class="glint" style="top:91%; left:84%; font-size:13px; color:rgba(27,30,39,.20); transform:rotate(-10deg);">✧</i>
+    <i class="sliver" style="top:9%;  left:48%; height:26px; background:linear-gradient(180deg, transparent, rgba(140,174,255,.55), transparent); transform:rotate(24deg);"></i>
+    <i class="sliver" style="top:30%; left:84%; height:20px; background:linear-gradient(180deg, transparent, rgba(255,186,132,.6), transparent); transform:rotate(-18deg);"></i>
+    <i class="sliver" style="top:56%; left:14%; height:24px; background:linear-gradient(180deg, transparent, rgba(110,231,183,.5), transparent); transform:rotate(30deg);"></i>
+    <i class="sliver" style="top:78%; left:88%; height:18px; background:linear-gradient(180deg, transparent, rgba(140,174,255,.5), transparent); transform:rotate(-26deg);"></i>
+    <div class="end-wrap">
+      <div class="end-hero">
+        <span class="micro">Game over</span>
+        <h2 class="wonline"><span class="w1">You </span><span class="w2">won.</span></h2>
+      </div>
+      <div class="thead">
+        <div></div>
+        <div class="h">R1</div>
+        <div class="h">R2</div>
+        <div class="h">R3</div>
+        <div class="h tot">TOTAL</div>
+      </div>
+      <div class="trow win c-ben">
+        <div class="who"><span class="rk">1</span><span class="pdot"></span><span class="pn">Ben</span><span class="yo">(you)</span></div>
+        <div class="r">5</div><div class="r">9</div><div class="r">6</div><div class="tt">20</div>
+      </div>
+      <div class="glass trow c-dan">
+        <div class="who"><span class="rk">2</span><span class="pdot"></span><span class="pn">Data Dan</span></div>
+        <div class="r">5</div><div class="r">4</div><div class="r">3</div><div class="tt">12</div>
+      </div>
+      <div class="glass trow c-vol">
+        <div class="who"><span class="rk">3</span><span class="pdot"></span><span class="pn">Voltaire</span></div>
+        <div class="r">3</div><div class="r">2</div><div class="r">4</div><div class="tt">9</div>
+      </div>
+      <div class="glass trow c-mech">
+        <div class="who"><span class="rk">4</span><span class="pdot"></span><span class="pn">Mechano</span></div>
+        <div class="r">0</div><div class="r">5</div><div class="r">2</div><div class="tt">7</div>
+      </div>
+      <div class="end-actions">
+        <button class="btn primary">Play again</button>
+        <button class="btn">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

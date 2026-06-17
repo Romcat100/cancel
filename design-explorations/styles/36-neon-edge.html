@@ -1,0 +1,798 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Neon Edge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ============ NEON EDGE — tokens ============ */
+    :root {
+      --ink: #0a0911;
+      --panel: #14111b;
+      --panel-deep: #100d16;
+      --line: rgba(255,255,255,.09);
+      --line-soft: rgba(255,255,255,.05);
+      --cream: #f2eee4;
+      --dim: #8b8596;
+      --dimmer: #6b6577;
+      --coral: #ff5b3a;
+      --coral-hi: #ff7a5c;
+      --coral-g: rgba(255,91,58,.42);
+      --gold: #ffc94a;
+      --gold-g: rgba(255,201,74,.4);
+      --blue: #6e7bff;
+      --blue-g: rgba(110,123,255,.4);
+      --green: #3ddc97;
+      --green-g: rgba(61,220,151,.4);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { background: var(--ink); }
+    body {
+      font-family: "Space Grotesk", sans-serif;
+      color: var(--cream);
+      background:
+        radial-gradient(1100px 520px at 50% -8%, rgba(255,91,58,.07), transparent 62%),
+        radial-gradient(900px 620px at 88% 108%, rgba(110,123,255,.055), transparent 60%),
+        var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+    /* hairline scanlines, 2-3% */
+    body::before {
+      content: ""; position: fixed; inset: 0; z-index: 1; pointer-events: none;
+      background: repeating-linear-gradient(to bottom,
+        rgba(255,255,255,.024) 0px, rgba(255,255,255,.024) 1px,
+        transparent 1px, transparent 3px);
+    }
+
+    .wrap { max-width: 420px; margin: 0 auto; padding: 20px 16px 40px; position: relative; }
+
+    /* player + power edge colors */
+    .pc-ben  { --c: var(--coral); --cg: var(--coral-g); }
+    .pc-vol  { --c: var(--blue);  --cg: var(--blue-g); }
+    .pc-mec  { --c: var(--gold);  --cg: var(--gold-g); }
+    .pc-dan  { --c: var(--green); --cg: var(--green-g); }
+    .pw-swap  { --c: #2dd4bf; --cg: rgba(45,212,191,.42); }
+    .pw-sab   { --c: #fb4d5e; --cg: rgba(251,77,94,.42); }
+    .pw-jinx  { --c: #ff5fa8; --cg: rgba(255,95,168,.48); }
+    .pw-plus  { --c: #3ddc97; --cg: rgba(61,220,151,.42); }
+    .pw-wild  { --c: #a78bfa; --cg: rgba(167,139,250,.42); }
+    .pw-drain { --c: #fbbf24; --cg: rgba(251,191,36,.42); }
+
+    .mono { font-family: "JetBrains Mono", monospace; }
+    .lbl {
+      font: 600 10px/1 "JetBrains Mono", monospace;
+      letter-spacing: .24em; color: var(--dim); text-transform: uppercase;
+    }
+
+    /* ============ buttons ============ */
+    .btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 100%; min-height: 54px; border-radius: 14px; cursor: pointer;
+      font: 700 17px/1 "Space Grotesk", sans-serif;
+      background: linear-gradient(180deg, #161320, #110e18);
+      border: 1px solid var(--line);
+      color: var(--cream);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 6px 14px -8px rgba(0,0,0,.7);
+    }
+    .btn-primary {
+      background: linear-gradient(180deg, #1c1218, #140d13);
+      border: 1px solid var(--coral);
+      color: var(--coral-hi);
+      text-shadow: 0 0 9px var(--coral-g);
+      box-shadow:
+        0 0 2px rgba(255,91,58,.7),
+        0 0 11px var(--coral-g),
+        inset 0 0 16px rgba(255,91,58,.08);
+    }
+    .btn-ghost {
+      min-height: 44px; border: 1px dashed rgba(255,255,255,.16);
+      background: transparent; color: var(--dim);
+      font: 600 11px/1 "JetBrains Mono", monospace; letter-spacing: .14em;
+      box-shadow: none; border-radius: 12px;
+    }
+    .pill {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-height: 40px; padding: 0 16px; border-radius: 999px; cursor: pointer;
+      background: linear-gradient(180deg, #161320, #110e18);
+      border: 1px solid var(--line); color: var(--cream);
+      font: 600 14px/1 "Space Grotesk", sans-serif;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    }
+
+    /* ============ HOME ============ */
+    .home-col {
+      min-height: 96vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 0;
+      padding-bottom: 8vh;
+    }
+    .mute {
+      position: absolute; top: 18px; right: 16px;
+      width: 44px; height: 44px; border-radius: 50%;
+      display: grid; place-items: center; cursor: pointer;
+      background: linear-gradient(180deg, #161320, #110e18);
+      border: 1px solid var(--line); color: var(--dim);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    }
+    .wordmark {
+      font: 700 64px/1 "Space Grotesk", sans-serif;
+      letter-spacing: -.02em; text-align: center;
+    }
+    .wm-a { color: var(--cream); text-shadow: 0 0 14px rgba(242,238,228,.14); }
+    .wm-b {
+      color: transparent;
+      -webkit-text-stroke: 2px var(--coral);
+      text-shadow: 0 0 16px rgba(255,91,58,.38);
+    }
+    .wm-rule {
+      width: 230px; height: 1px; margin: 18px auto 14px;
+      background: linear-gradient(90deg, transparent, var(--coral) 30%, var(--coral) 70%, transparent);
+      box-shadow: 0 0 8px var(--coral-g);
+    }
+    .tagline {
+      font: 600 11px/1 "JetBrains Mono", monospace;
+      letter-spacing: .3em; text-transform: uppercase; color: var(--dim);
+      text-align: center; margin-bottom: 56px;
+    }
+    .home-btns { width: 100%; display: flex; flex-direction: column; gap: 14px; }
+
+    /* ============ LOBBY ============ */
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 26px; }
+    .codebox { text-align: center; margin-bottom: 8px; }
+    .code-cells { display: flex; justify-content: center; gap: 8px; }
+    .code-cell {
+      width: 58px; height: 68px; border-radius: 12px;
+      display: grid; place-items: center;
+      font: 700 30px/1 "JetBrains Mono", monospace; color: var(--cream);
+      text-shadow: 0 0 10px rgba(242,238,228,.2);
+      background: linear-gradient(180deg, #161320, #100d16);
+      border: 1px solid rgba(255,91,58,.4);
+      box-shadow: 0 0 7px rgba(255,91,58,.16), inset 0 0 10px rgba(255,91,58,.05);
+    }
+    .code-hint {
+      margin-top: 10px; font: 500 10px/1 "JetBrains Mono", monospace;
+      letter-spacing: .26em; text-transform: uppercase; color: var(--dimmer);
+    }
+    .sect { margin-top: 28px; }
+    .sect .lbl { display: block; margin-bottom: 10px; }
+    .prow {
+      display: flex; align-items: center; gap: 12px;
+      background: linear-gradient(180deg, #15121c, #110e17);
+      border: 1px solid var(--line); border-radius: 14px;
+      padding: 10px 12px; margin-bottom: 8px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+    }
+    .avatar {
+      width: 40px; height: 40px; border-radius: 11px; flex: none;
+      display: grid; place-items: center;
+      font: 700 17px/1 "JetBrains Mono", monospace;
+      background: var(--panel-deep);
+      border: 1px solid var(--c); color: var(--c);
+      text-shadow: 0 0 8px var(--cg);
+      box-shadow: 0 0 7px var(--cg), inset 0 0 9px var(--cg);
+    }
+    .pname-l { font: 600 16px/1.1 "Space Grotesk", sans-serif; flex: 1; }
+    .badge {
+      font: 700 9px/1 "JetBrains Mono", monospace; letter-spacing: .14em;
+      padding: 4px 7px; border-radius: 6px; border: 1px solid;
+    }
+    .badge-host { color: var(--gold); border-color: rgba(255,201,74,.55); box-shadow: 0 0 5px rgba(255,201,74,.2); }
+    .badge-you  { color: var(--cream); border-color: rgba(242,238,228,.4); }
+    .badge-bot  { color: var(--blue); border-color: rgba(110,123,255,.5); box-shadow: 0 0 5px rgba(110,123,255,.18); }
+    .ondot {
+      width: 7px; height: 7px; border-radius: 50%; flex: none;
+      background: var(--green); box-shadow: 0 0 6px var(--green-g), 0 0 2px var(--green);
+    }
+    .setrow {
+      display: flex; align-items: center; gap: 10px;
+      background: linear-gradient(180deg, #15121c, #110e17);
+      border: 1px solid var(--line); border-radius: 14px;
+      padding: 10px 12px; margin-bottom: 8px;
+    }
+    .setrow .sname { font: 600 15px/1.2 "Space Grotesk", sans-serif; flex: 1; }
+    .stepbtn {
+      width: 44px; height: 44px; border-radius: 11px; cursor: pointer; flex: none;
+      display: grid; place-items: center;
+      background: var(--panel-deep); border: 1px solid var(--line);
+      color: var(--cream); font: 700 18px/1 "JetBrains Mono", monospace;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    }
+    .setval {
+      width: 30px; text-align: center;
+      font: 700 19px/1 "JetBrains Mono", monospace; color: var(--cream);
+      text-shadow: 0 0 8px rgba(242,238,228,.18);
+    }
+    .powbox {
+      background: linear-gradient(180deg, #15121c, #110e17);
+      border: 1px solid var(--line); border-radius: 14px; padding: 14px 12px 12px;
+    }
+    .powbox .sname { font: 600 15px/1 "Space Grotesk", sans-serif; margin-bottom: 12px; }
+    .seg { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    .seg button {
+      height: 44px; border-radius: 10px; cursor: pointer;
+      background: var(--panel-deep); border: 1px solid var(--line-soft);
+      color: var(--dim); font: 600 14px/1 "Space Grotesk", sans-serif;
+    }
+    .seg button.on {
+      border-color: var(--coral); color: var(--coral-hi);
+      text-shadow: 0 0 8px var(--coral-g);
+      box-shadow: 0 0 8px var(--coral-g), inset 0 0 10px rgba(255,91,58,.07);
+    }
+    .seg-hint { margin-top: 10px; font: 500 11px/1.5 "JetBrains Mono", monospace; color: var(--dimmer); }
+    .startbtn { margin-top: 24px; }
+
+    /* ============ GAME ============ */
+    .ghead { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 16px; }
+    .gstat { font: 700 13px/1 "JetBrains Mono", monospace; letter-spacing: .06em; white-space: nowrap; }
+    .gstat .fade { color: var(--dimmer); font-weight: 500; }
+    .gstat .dot { color: var(--dimmer); padding: 0 3px; }
+    .gbtns { display: flex; gap: 5px; }
+    .tinybtn {
+      font: 700 9px/1.25 "JetBrains Mono", monospace; letter-spacing: .1em;
+      padding: 6px 8px; border-radius: 8px; cursor: pointer; text-align: center;
+      background: var(--panel-deep); border: 1px solid var(--line); color: var(--dim);
+    }
+    .tinybtn.danger { color: #fb6a78; border-color: rgba(251,77,94,.45); box-shadow: 0 0 5px rgba(251,77,94,.15); }
+    .scores { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+    .chip {
+      display: flex; align-items: center; gap: 9px;
+      background: linear-gradient(180deg, #15121c, #110e17);
+      border: 1px solid var(--line); border-left: 3px solid var(--c);
+      border-radius: 12px; padding: 11px 12px;
+      box-shadow: inset 5px 0 9px -5px var(--cg);
+    }
+    .chip .nm { font: 600 14px/1 "Space Grotesk", sans-serif; flex: 1; }
+    .chip .sc {
+      font: 800 16px/1 "JetBrains Mono", monospace; color: var(--cream);
+      text-shadow: 0 0 8px rgba(242,238,228,.2);
+    }
+    .lblrow { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+    .lblrow .cnt { font: 700 11px/1 "JetBrains Mono", monospace; letter-spacing: .2em; color: var(--cream); }
+    .turnbanner {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      border: 1px solid var(--coral); border-radius: 10px;
+      padding: 9px 8px; margin-bottom: 10px;
+      background: linear-gradient(180deg, rgba(255,91,58,.06), rgba(255,91,58,.02));
+      box-shadow: 0 0 9px var(--coral-g), inset 0 0 12px rgba(255,91,58,.05);
+      font: 700 10px/1 "JetBrains Mono", monospace; letter-spacing: .2em;
+      color: var(--coral-hi); text-shadow: 0 0 7px var(--coral-g);
+    }
+    .turnbanner i { font-style: normal; font-size: 7px; color: rgba(255,91,58,.7); }
+    .pool { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 22px; }
+    .pcard {
+      position: relative; height: 82px; border-radius: 11px; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+      background: linear-gradient(175deg, #16131e, #100d16);
+      border: 1px solid var(--c);
+      box-shadow: 0 0 6px var(--cg), inset 0 0 8px var(--cg);
+    }
+    .pcard .gl {
+      font: 800 20px/1 "JetBrains Mono", monospace; color: var(--c);
+      text-shadow: 0 0 8px var(--cg), 0 0 2px var(--c);
+    }
+    .pcard .pn {
+      font: 700 7px/1.25 "JetBrains Mono", monospace; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--dim); text-align: center; padding: 0 2px;
+    }
+    .pcard.sel {
+      transform: translateY(-4px);
+      box-shadow:
+        0 0 0 1px var(--c),
+        0 0 12px var(--cg),
+        0 14px 16px -8px var(--cg),
+        inset 0 0 12px var(--cg);
+    }
+    .pcard.sel .pn { color: var(--c); text-shadow: 0 0 6px var(--cg); }
+    .pcard.sel::after {
+      content: ""; position: absolute; left: 50%; bottom: -9px;
+      width: 22px; height: 2px; transform: translateX(-50%); border-radius: 2px;
+      background: var(--c); box-shadow: 0 0 7px var(--cg), 0 0 2px var(--c);
+    }
+    .pstats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .pstat {
+      background: linear-gradient(180deg, #15121c, #110e17);
+      border: 1px solid var(--line); border-left: 3px solid var(--c);
+      border-radius: 12px; padding: 9px 11px;
+      box-shadow: inset 5px 0 9px -5px var(--cg);
+    }
+    .pstat .pname { font: 600 14px/1.2 "Space Grotesk", sans-serif; }
+    .pstat .you { font: 500 11px/1 "Space Grotesk", sans-serif; color: var(--dim); }
+    .phand {
+      margin: 5px 0 6px; font: 500 10px/1 "JetBrains Mono", monospace;
+      letter-spacing: .22em; color: var(--dimmer);
+    }
+    .pst { font: 700 9px/1 "JetBrains Mono", monospace; letter-spacing: .18em; }
+    .pst.think { color: var(--coral-hi); text-shadow: 0 0 6px var(--coral-g); }
+    .pst.done { color: var(--green); text-shadow: 0 0 6px var(--green-g); }
+    .skipbtn { margin-bottom: 26px; }
+
+    /* number cards — the heroes */
+    .hand { display: flex; flex-wrap: wrap; justify-content: center; gap: 11px; margin-bottom: 24px; }
+    .ncard {
+      position: relative; width: 64px; height: 88px; border-radius: 12px; cursor: pointer;
+      display: grid; place-items: center;
+      background: linear-gradient(172deg, #17141f, #100d16);
+      border: 1px solid rgba(255,255,255,.16);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.05),
+        inset 0 0 0 1px rgba(255,255,255,.02),
+        0 6px 12px -6px rgba(0,0,0,.7);
+      font-family: "JetBrains Mono", monospace; color: var(--cream);
+    }
+    .ncard .big {
+      font: 700 31px/1 "JetBrains Mono", monospace;
+      text-shadow: 0 0 11px rgba(242,238,228,.22);
+    }
+    .ncard .pip, .ncard .pip2 {
+      position: absolute; font: 700 9px/1 "JetBrains Mono", monospace;
+      color: var(--dim);
+    }
+    .ncard .pip { top: 6px; left: 7px; }
+    .ncard .pip2 { bottom: 6px; right: 7px; transform: rotate(180deg); }
+    /* the Ø: edge always faintly lit */
+    .ncard.zero { border-color: rgba(255,91,58,.45); box-shadow: 0 0 6px rgba(255,91,58,.18), inset 0 0 9px rgba(255,91,58,.06), 0 6px 12px -6px rgba(0,0,0,.7); }
+    .ncard.zero .big { color: var(--coral-hi); text-shadow: 0 0 9px var(--coral-g); }
+    .ncard.zero .pip, .ncard.zero .pip2 { color: rgba(255,122,92,.75); }
+    /* selected: electric coral edge + underglow */
+    .ncard.sel {
+      transform: translateY(-7px);
+      border-color: var(--coral);
+      box-shadow:
+        0 0 0 1px var(--coral),
+        0 0 12px var(--coral-g),
+        0 0 3px rgba(255,91,58,.8),
+        0 18px 20px -9px rgba(255,91,58,.5),
+        inset 0 0 13px rgba(255,91,58,.1);
+    }
+    .ncard.sel .big { color: #fff4ef; text-shadow: 0 0 10px var(--coral-g), 0 0 3px rgba(255,91,58,.6); }
+    .ncard.sel .pip, .ncard.sel .pip2 { color: var(--coral-hi); }
+
+    /* ============ REVEAL ============ */
+    .rv {
+      min-height: 96vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; padding-bottom: 4vh;
+    }
+    .rv-eyebrow {
+      font: 700 11px/1 "JetBrains Mono", monospace; letter-spacing: .32em;
+      color: var(--dim); margin-bottom: 26px;
+    }
+    .rv-played {
+      font: 700 10px/1 "JetBrains Mono", monospace; letter-spacing: .26em;
+      color: var(--dim); margin-bottom: 12px;
+    }
+    .bigpower {
+      width: 76px; height: 98px; border-radius: 13px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;
+      background: linear-gradient(175deg, #17131f, #100d16);
+      border: 1px solid var(--c);
+      box-shadow: 0 0 11px var(--cg), 0 0 2px var(--c), inset 0 0 12px var(--cg);
+      margin-bottom: 30px;
+    }
+    .bigpower .gl { font: 800 30px/1 "JetBrains Mono", monospace; color: var(--c); text-shadow: 0 0 10px var(--cg), 0 0 3px var(--c); }
+    .bigpower .pn { font: 700 8px/1 "JetBrains Mono", monospace; letter-spacing: .2em; color: var(--c); }
+    .rgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 14px; width: 100%; max-width: 320px; margin-bottom: 34px; }
+    .rcell { display: flex; flex-direction: column; align-items: center; }
+    .rname {
+      display: flex; align-items: center; gap: 6px; margin-bottom: 9px;
+      font: 700 10px/1 "JetBrains Mono", monospace; letter-spacing: .2em; color: var(--dim);
+    }
+    .tick {
+      width: 7px; height: 7px; border-radius: 2px; flex: none;
+      background: transparent; border: 1px solid var(--c);
+      box-shadow: 0 0 5px var(--cg);
+    }
+    .rcard {
+      position: relative; width: 78px; height: 102px; border-radius: 12px;
+      display: grid; place-items: center;
+      background: linear-gradient(172deg, #17141f, #100d16);
+      border: 1px solid rgba(255,255,255,.16);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 6px 12px -6px rgba(0,0,0,.7);
+    }
+    .rcard .big { font: 700 38px/1 "JetBrains Mono", monospace; color: var(--cream); text-shadow: 0 0 11px rgba(242,238,228,.2); }
+    /* cancellation: the edge-light shorts out */
+    .rcard.cut {
+      border: 1px dashed rgba(255,91,58,.55);
+      background: linear-gradient(172deg, #141118, #0e0c13);
+      box-shadow: inset 0 0 9px rgba(255,91,58,.04);
+    }
+    .rcard.cut .big { color: rgba(242,238,228,.22); text-shadow: none; }
+    .rcard.cut::after {
+      content: ""; position: absolute; top: -2px; right: 14px;
+      width: 4px; height: 4px; border-radius: 50%;
+      background: var(--coral-hi); box-shadow: 0 0 6px var(--coral), 0 0 2px #fff;
+    }
+    /* the lone Ø flares white-coral */
+    .rcard.lone {
+      border: 1px solid #ffd9cc;
+      box-shadow:
+        0 0 0 1px rgba(255,217,204,.6),
+        0 0 16px rgba(255,122,92,.55),
+        0 0 4px rgba(255,255,255,.75),
+        inset 0 0 14px rgba(255,91,58,.14);
+    }
+    .rcard.lone .big { color: #fff3ec; text-shadow: 0 0 12px rgba(255,122,92,.7), 0 0 4px rgba(255,255,255,.6); }
+    .rout { margin-top: 9px; display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 34px; }
+    .rzero { font: 800 15px/1 "JetBrains Mono", monospace; color: rgba(255,122,92,.55); }
+    .rzero.alive { font-size: 19px; color: #fff3ec; text-shadow: 0 0 9px rgba(255,122,92,.6); }
+    .stamp {
+      font: 800 11px/1 "JetBrains Mono", monospace; letter-spacing: .22em;
+      color: var(--coral);
+      text-shadow:
+        1px 0 0 rgba(77,216,255,.7),
+        -1px 0 0 rgba(255,95,168,.7),
+        0 0 9px var(--coral-g);
+    }
+    .rv .btn-primary { max-width: 240px; }
+
+    /* ============ END ============ */
+    .endcol { min-height: 96vh; display: flex; flex-direction: column; padding-top: 7vh; position: relative; }
+    .end-eyebrow {
+      text-align: center; font: 700 11px/1 "JetBrains Mono", monospace;
+      letter-spacing: .34em; color: var(--dim); margin-bottom: 14px;
+    }
+    .end-hero {
+      text-align: center; font: 700 52px/1.05 "Space Grotesk", sans-serif;
+      letter-spacing: -.02em; margin-bottom: 40px;
+    }
+    .end-hero .win {
+      color: var(--coral-hi);
+      text-shadow: 0 0 14px var(--coral-g), 0 0 3px rgba(255,91,58,.5);
+    }
+    .ehead, .erow {
+      display: grid; grid-template-columns: 20px 15px 1fr 30px 30px 30px 48px;
+      align-items: center; gap: 4px;
+    }
+    .ehead {
+      padding: 0 13px; margin-bottom: 8px;
+      font: 700 9px/1 "JetBrains Mono", monospace; letter-spacing: .16em; color: var(--dimmer);
+    }
+    .ehead span { text-align: right; }
+    .erow {
+      background: linear-gradient(180deg, #15121c, #110e17);
+      border: 1px solid var(--line); border-radius: 13px;
+      padding: 13px; margin-bottom: 8px;
+    }
+    .erow .rk { font: 700 12px/1 "JetBrains Mono", monospace; color: var(--dimmer); }
+    .erow .ename { font: 600 15px/1.1 "Space Grotesk", sans-serif; padding-left: 4px; }
+    .erow .ename .you { font-weight: 500; font-size: 12px; color: var(--dim); }
+    .erow .r { text-align: right; font: 500 12px/1 "JetBrains Mono", monospace; color: var(--dim); }
+    .erow .tot { text-align: right; font: 800 17px/1 "JetBrains Mono", monospace; color: var(--cream); }
+    .erow.winrow {
+      border-color: var(--gold);
+      box-shadow: 0 0 10px var(--gold-g), 0 0 2px rgba(255,201,74,.7), inset 0 0 14px rgba(255,201,74,.06);
+    }
+    .erow.winrow .rk { color: var(--gold); text-shadow: 0 0 6px var(--gold-g); }
+    .erow.winrow .tot { color: var(--gold); text-shadow: 0 0 9px var(--gold-g); }
+    .end-btns { margin-top: auto; padding-top: 44px; display: flex; flex-direction: column; gap: 13px; }
+    /* confetti = tiny neon dashes, statically placed */
+    .confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+    .cf {
+      position: absolute; width: 3px; height: 12px; border-radius: 2px;
+      background: currentColor; box-shadow: 0 0 6px currentColor; opacity: .75;
+    }
+
+    /* switcher theme */
+    #switcher a {
+      width: 24px; height: 24px; display: grid; place-items: center;
+      font: 600 11px/1 "JetBrains Mono", monospace; text-decoration: none;
+      color: var(--dim); background: var(--panel-deep);
+      border: 1px solid var(--line); border-radius: 6px;
+    }
+
+    /* ============ motion (flourishes only) ============ */
+    @media (prefers-reduced-motion: no-preference) {
+      .btn-primary { animation: breathe 2.8s ease-in-out infinite; }
+      @keyframes breathe {
+        0%, 100% { box-shadow: 0 0 2px rgba(255,91,58,.7), 0 0 11px var(--coral-g), inset 0 0 16px rgba(255,91,58,.08); }
+        50% { box-shadow: 0 0 3px rgba(255,91,58,.85), 0 0 17px rgba(255,91,58,.55), inset 0 0 18px rgba(255,91,58,.12); }
+      }
+      .pst.think { animation: thinkblink 1.3s ease-in-out infinite; }
+      @keyframes thinkblink { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+      .ncard.sel { animation: selpulse 2.2s ease-in-out infinite; }
+      @keyframes selpulse {
+        0%, 100% { box-shadow: 0 0 0 1px var(--coral), 0 0 12px var(--coral-g), 0 0 3px rgba(255,91,58,.8), 0 18px 20px -9px rgba(255,91,58,.5), inset 0 0 13px rgba(255,91,58,.1); }
+        50% { box-shadow: 0 0 0 1px var(--coral), 0 0 18px rgba(255,91,58,.6), 0 0 4px rgba(255,91,58,.9), 0 18px 24px -9px rgba(255,91,58,.62), inset 0 0 16px rgba(255,91,58,.14); }
+      }
+      .rcard.lone { animation: flare 1.9s ease-in-out infinite; }
+      @keyframes flare {
+        0%, 100% { box-shadow: 0 0 0 1px rgba(255,217,204,.6), 0 0 16px rgba(255,122,92,.55), 0 0 4px rgba(255,255,255,.75), inset 0 0 14px rgba(255,91,58,.14); }
+        50% { box-shadow: 0 0 0 1px rgba(255,217,204,.85), 0 0 24px rgba(255,122,92,.75), 0 0 6px rgba(255,255,255,.9), inset 0 0 18px rgba(255,91,58,.2); }
+      }
+      .stamp { animation: glitchflick 2.6s steps(2, jump-none) infinite; }
+      @keyframes glitchflick {
+        0%, 88%, 100% { opacity: 1; }
+        92% { opacity: .55; }
+        96% { opacity: .85; }
+      }
+      .rcard.cut::after { animation: spark 1.7s ease-in-out infinite; }
+      @keyframes spark { 0%, 100% { opacity: 1; } 45% { opacity: .2; } 60% { opacity: .9; } }
+      .cf { animation: drift 4.5s ease-in-out infinite alternate; }
+      @keyframes drift { from { transform: translateY(0) rotate(var(--r, 0deg)); } to { transform: translateY(9px) rotate(var(--r, 0deg)); } }
+      .turnbanner { animation: bannerglow 2.4s ease-in-out infinite; }
+      @keyframes bannerglow {
+        0%, 100% { box-shadow: 0 0 9px var(--coral-g), inset 0 0 12px rgba(255,91,58,.05); }
+        50% { box-shadow: 0 0 14px rgba(255,91,58,.55), inset 0 0 14px rgba(255,91,58,.08); }
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ 1. HOME ============ -->
+  <main data-screen="home">
+    <div class="wrap home-col">
+      <button class="mute" aria-label="Mute">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <line x1="23" y1="9" x2="17" y2="15"></line>
+          <line x1="17" y1="9" x2="23" y2="15"></line>
+        </svg>
+      </button>
+      <h1 class="wordmark"><span class="wm-a">CAN</span><span class="wm-b">CEL</span></h1>
+      <div class="wm-rule"></div>
+      <p class="tagline">a number-picking party game</p>
+      <div class="home-btns">
+        <button class="btn btn-primary">New game</button>
+        <button class="btn">Single player</button>
+        <button class="btn">Join with code</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ 2. LOBBY ============ -->
+  <main data-screen="lobby">
+    <div class="wrap">
+      <div class="topbar">
+        <button class="pill">← Leave</button>
+        <button class="pill">Rules</button>
+      </div>
+      <div class="codebox">
+        <div class="code-cells">
+          <span class="code-cell">D</span><span class="code-cell">N</span><span class="code-cell">2</span><span class="code-cell">H</span>
+        </div>
+        <div class="code-hint">press to copy</div>
+      </div>
+      <div class="sect">
+        <span class="lbl">Players · 4</span>
+        <div class="prow pc-ben">
+          <span class="avatar">B</span>
+          <span class="pname-l">Ben</span>
+          <span class="badge badge-host">HOST</span>
+          <span class="badge badge-you">YOU</span>
+          <span class="ondot"></span>
+        </div>
+        <div class="prow pc-vol">
+          <span class="avatar">V</span>
+          <span class="pname-l">Voltaire</span>
+          <span class="badge badge-bot">BOT</span>
+          <span class="ondot"></span>
+        </div>
+        <div class="prow pc-mec">
+          <span class="avatar">M</span>
+          <span class="pname-l">Mechano</span>
+          <span class="badge badge-bot">BOT</span>
+          <span class="ondot"></span>
+        </div>
+        <div class="prow pc-dan">
+          <span class="avatar">D</span>
+          <span class="pname-l">Data Dan</span>
+          <span class="badge badge-bot">BOT</span>
+          <span class="ondot"></span>
+        </div>
+      </div>
+      <div class="sect">
+        <div class="setrow">
+          <span class="sname">Rounds</span>
+          <button class="stepbtn">−</button>
+          <span class="setval">3</span>
+          <button class="stepbtn">+</button>
+        </div>
+        <div class="setrow">
+          <span class="sname">AI players</span>
+          <button class="stepbtn">−</button>
+          <span class="setval">3</span>
+          <button class="stepbtn">+</button>
+        </div>
+        <div class="powbox">
+          <div class="sname">Power-ups</div>
+          <div class="seg">
+            <button>None</button>
+            <button class="on">Random</button>
+            <button>Choose</button>
+          </div>
+          <div class="seg-hint">A fresh random pool each round.</div>
+        </div>
+      </div>
+      <button class="btn btn-primary startbtn">Start game</button>
+    </div>
+  </main>
+
+  <!-- ============ 3. GAME ============ -->
+  <main data-screen="game">
+    <div class="wrap">
+      <div class="ghead">
+        <span class="gstat">R1<span class="fade">/3</span><span class="dot">·</span>T2<span class="fade">/6</span><span class="dot">·</span><span class="fade">DN2H</span></span>
+        <span class="gbtns">
+          <button class="tinybtn">RULES</button>
+          <button class="tinybtn">LEAVE</button>
+          <button class="tinybtn danger">END<br>GAME</button>
+        </span>
+      </div>
+      <div class="scores">
+        <div class="chip pc-ben"><span class="nm">Ben</span><span class="sc">4</span></div>
+        <div class="chip pc-vol"><span class="nm">Voltaire</span><span class="sc">0</span></div>
+        <div class="chip pc-mec"><span class="nm">Mechano</span><span class="sc">2</span></div>
+        <div class="chip pc-dan"><span class="nm">Data Dan</span><span class="sc">5</span></div>
+      </div>
+      <div class="lblrow">
+        <span class="lbl">POWER-UPS REMAINING</span>
+        <span class="cnt">6 / 6</span>
+      </div>
+      <div class="turnbanner"><i>◆</i>YOUR TURN, PRESS TO SELECT<i>◆</i></div>
+      <div class="pool">
+        <button class="pcard pw-swap"><span class="gl">⇄</span><span class="pn">Swap Hands</span></button>
+        <button class="pcard pw-sab"><span class="gl">✖</span><span class="pn">Sabotage</span></button>
+        <button class="pcard pw-jinx sel"><span class="gl">=</span><span class="pn">Jinx</span></button>
+        <button class="pcard pw-plus"><span class="gl">+2</span><span class="pn">Plus Two</span></button>
+        <button class="pcard pw-wild"><span class="gl">?</span><span class="pn">Wild</span></button>
+        <button class="pcard pw-drain"><span class="gl">↧</span><span class="pn">Drain</span></button>
+      </div>
+      <div class="lblrow">
+        <span class="lbl">PLAYERS · POWER PICKER: BEN</span>
+      </div>
+      <div class="pstats">
+        <div class="pstat pc-ben">
+          <div class="pname">Ben <span class="you">(you)</span></div>
+          <div class="phand">Ø 1 2 3 4 5</div>
+          <div class="pst think">THINKING…</div>
+        </div>
+        <div class="pstat pc-vol">
+          <div class="pname">Voltaire</div>
+          <div class="phand">Ø 1 2 3 4 5</div>
+          <div class="pst done">SUBMITTED</div>
+        </div>
+        <div class="pstat pc-mec">
+          <div class="pname">Mechano</div>
+          <div class="phand">Ø 1 2 3 4 5</div>
+          <div class="pst done">SUBMITTED</div>
+        </div>
+        <div class="pstat pc-dan">
+          <div class="pname">Data Dan</div>
+          <div class="phand">Ø 1 2 3 4 5</div>
+          <div class="pst done">SUBMITTED</div>
+        </div>
+      </div>
+      <button class="btn btn-ghost skipbtn">SKIP WAITING, AUTO-PLAY WHO'S LEFT</button>
+      <div class="lblrow">
+        <span class="lbl">YOUR HAND</span>
+      </div>
+      <div class="hand">
+        <button class="ncard zero"><span class="pip">Ø</span><span class="big">Ø</span><span class="pip2">Ø</span></button>
+        <button class="ncard"><span class="pip">1</span><span class="big">1</span><span class="pip2">1</span></button>
+        <button class="ncard"><span class="pip">2</span><span class="big">2</span><span class="pip2">2</span></button>
+        <button class="ncard"><span class="pip">3</span><span class="big">3</span><span class="pip2">3</span></button>
+        <button class="ncard"><span class="pip">4</span><span class="big">4</span><span class="pip2">4</span></button>
+        <button class="ncard sel"><span class="pip">5</span><span class="big">5</span><span class="pip2">5</span></button>
+      </div>
+      <button class="btn btn-primary">Lock it in</button>
+    </div>
+  </main>
+
+  <!-- ============ 4. REVEAL ============ -->
+  <main data-screen="reveal">
+    <div class="wrap rv">
+      <div class="rv-eyebrow">TURN 2 REVEAL</div>
+      <div class="rv-played">BEN PLAYED</div>
+      <div class="bigpower pw-jinx">
+        <span class="gl">=</span>
+        <span class="pn">JINX</span>
+      </div>
+      <div class="rgrid">
+        <div class="rcell">
+          <div class="rname pc-ben"><i class="tick"></i>BEN</div>
+          <div class="rcard cut"><span class="big">5</span></div>
+          <div class="rout"><span class="rzero">0</span><span class="stamp">CANCELLED</span></div>
+        </div>
+        <div class="rcell">
+          <div class="rname pc-vol"><i class="tick"></i>VOLTAIRE</div>
+          <div class="rcard lone"><span class="big">Ø</span></div>
+          <div class="rout"><span class="rzero alive">0</span></div>
+        </div>
+        <div class="rcell">
+          <div class="rname pc-mec"><i class="tick"></i>MECHANO</div>
+          <div class="rcard cut"><span class="big">5</span></div>
+          <div class="rout"><span class="rzero">0</span><span class="stamp">CANCELLED</span></div>
+        </div>
+        <div class="rcell">
+          <div class="rname pc-dan"><i class="tick"></i>DATA DAN</div>
+          <div class="rcard cut"><span class="big">3</span></div>
+          <div class="rout"><span class="rzero">0</span><span class="stamp">CANCELLED</span></div>
+        </div>
+      </div>
+      <button class="btn btn-primary">Continue</button>
+    </div>
+  </main>
+
+  <!-- ============ 5. END ============ -->
+  <main data-screen="end">
+    <div class="wrap endcol">
+      <div class="confetti" aria-hidden="true">
+        <span class="cf" style="left:6%;  top:36px;  color:#ff5b3a; --r:24deg;  transform:rotate(24deg);"></span>
+        <span class="cf" style="left:16%; top:118px; color:#6e7bff; --r:-38deg; transform:rotate(-38deg);"></span>
+        <span class="cf" style="left:27%; top:52px;  color:#ffc94a; --r:65deg;  transform:rotate(65deg);"></span>
+        <span class="cf" style="left:38%; top:24px;  color:#3ddc97; --r:-15deg; transform:rotate(-15deg);"></span>
+        <span class="cf" style="left:50%; top:84px;  color:#ff5fa8; --r:48deg;  transform:rotate(48deg);"></span>
+        <span class="cf" style="left:61%; top:30px;  color:#2dd4bf; --r:-58deg; transform:rotate(-58deg);"></span>
+        <span class="cf" style="left:72%; top:96px;  color:#ff5b3a; --r:12deg;  transform:rotate(12deg);"></span>
+        <span class="cf" style="left:84%; top:44px;  color:#ffc94a; --r:-30deg; transform:rotate(-30deg);"></span>
+        <span class="cf" style="left:93%; top:128px; color:#6e7bff; --r:55deg;  transform:rotate(55deg);"></span>
+        <span class="cf" style="left:10%; top:208px; color:#3ddc97; --r:-70deg; transform:rotate(-70deg);"></span>
+        <span class="cf" style="left:88%; top:228px; color:#ff5fa8; --r:20deg;  transform:rotate(20deg);"></span>
+        <span class="cf" style="left:4%;  top:330px; color:#ffc94a; --r:42deg;  transform:rotate(42deg);"></span>
+        <span class="cf" style="left:94%; top:352px; color:#2dd4bf; --r:-25deg; transform:rotate(-25deg);"></span>
+        <span class="cf" style="left:20%; top:430px; color:#ff5b3a; --r:-52deg; transform:rotate(-52deg);"></span>
+        <span class="cf" style="left:78%; top:452px; color:#6e7bff; --r:33deg;  transform:rotate(33deg);"></span>
+        <span class="cf" style="left:8%;  top:540px; color:#ff5fa8; --r:60deg;  transform:rotate(60deg);"></span>
+        <span class="cf" style="left:90%; top:560px; color:#3ddc97; --r:-44deg; transform:rotate(-44deg);"></span>
+        <span class="cf" style="left:32%; top:600px; color:#ffc94a; --r:18deg;  transform:rotate(18deg);"></span>
+        <span class="cf" style="left:66%; top:620px; color:#ff5b3a; --r:-12deg; transform:rotate(-12deg);"></span>
+        <span class="cf" style="left:46%; top:560px; color:#2dd4bf; --r:72deg;  transform:rotate(72deg);"></span>
+      </div>
+      <div class="end-eyebrow">GAME OVER</div>
+      <div class="end-hero">You <span class="win">won.</span></div>
+      <div class="ehead">
+        <span></span><span></span><span></span>
+        <span>R1</span><span>R2</span><span>R3</span><span>TOTAL</span>
+      </div>
+      <div class="erow pc-ben winrow">
+        <span class="rk">1</span><i class="tick"></i>
+        <span class="ename">Ben <span class="you">(you)</span></span>
+        <span class="r">5</span><span class="r">9</span><span class="r">6</span><span class="tot">20</span>
+      </div>
+      <div class="erow pc-dan">
+        <span class="rk">2</span><i class="tick"></i>
+        <span class="ename">Data Dan</span>
+        <span class="r">5</span><span class="r">4</span><span class="r">3</span><span class="tot">12</span>
+      </div>
+      <div class="erow pc-vol">
+        <span class="rk">3</span><i class="tick"></i>
+        <span class="ename">Voltaire</span>
+        <span class="r">3</span><span class="r">2</span><span class="r">4</span><span class="tot">9</span>
+      </div>
+      <div class="erow pc-mec">
+        <span class="rk">4</span><i class="tick"></i>
+        <span class="ename">Mechano</span>
+        <span class="r">0</span><span class="r">5</span><span class="r">2</span><span class="tot">7</span>
+      </div>
+      <div class="end-btns">
+        <button class="btn btn-primary">Play again</button>
+        <button class="btn">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

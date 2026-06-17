@@ -1,0 +1,1173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Risograph Zine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ============ RISOGRAPH ZINE ============
+       two inks only: fluor pink + medium blue, overprinting to plum,
+       on warm off-white stock. everything looks printed. */
+    :root {
+      --paper: #faf6ec;
+      --paper2: #fffdf4;
+      --pink: #ff48b0;
+      --blue: #0078bf;
+      --plum: #3c1a5e;            /* the overprint; darkest tone, never black */
+      --pink-ghost: rgba(255, 72, 176, .55);
+      --blue-ghost: rgba(0, 120, 191, .5);
+      --pink-tint: rgba(255, 72, 176, .12);
+      --blue-tint: rgba(0, 120, 191, .10);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { background: var(--paper); }
+    body {
+      background: var(--paper);
+      color: var(--plum);
+      font-family: "Space Mono", monospace;
+      font-size: 14px;
+      line-height: 1.45;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ink-dust grain over everything */
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 997;
+      pointer-events: none;
+      opacity: .5;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 0.24  0 0 0 0 0.10  0 0 0 0 0.37  0 0 0 0.5 0'/></filter><rect width='260' height='260' filter='url(%23g)'/></svg>");
+    }
+
+    main { position: relative; min-height: 100vh; }
+    .page {
+      max-width: 420px;
+      margin: 0 auto;
+      padding: 18px 16px 26px;
+      position: relative;
+    }
+
+    /* recurring print-shop furniture */
+    .printrow {
+      font-size: 9px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--blue);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .printrow::before, .printrow::after {
+      content: "";
+      flex: 1;
+      border-top: 1px dashed var(--blue-ghost);
+    }
+    .regmark { color: var(--pink); font-size: 11px; }
+    .pgfoot {
+      margin-top: 26px;
+      text-align: center;
+      font-size: 9px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--blue);
+    }
+    .pgfoot b { color: var(--pink); font-weight: 700; }
+
+    /* ink helpers */
+    .ink-pink { color: var(--pink); text-shadow: 2px 2px 0 var(--blue-ghost); }
+    .ink-blue { color: var(--blue); text-shadow: -2px 2px 0 var(--pink-ghost); }
+    .ink-plum { color: var(--plum); }
+
+    /* halftone tints */
+    .dots-pink {
+      background-image: radial-gradient(circle, var(--pink-ghost) 1.4px, transparent 1.6px);
+      background-size: 7px 7px;
+    }
+    .dots-blue {
+      background-image: radial-gradient(circle, var(--blue-ghost) 1.4px, transparent 1.6px);
+      background-size: 7px 7px;
+    }
+
+    h1, h2, h3, .display { font-family: "Archivo Black", sans-serif; font-weight: 400; }
+
+    .label {
+      font-family: "Space Mono", monospace;
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin: 22px 0 8px;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .label .spacer { flex: 1; border-bottom: 2px dotted var(--pink-ghost); transform: translateY(-3px); }
+    .label .count { color: var(--pink); }
+
+    /* ============ buttons ============ */
+    button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+    .btn {
+      display: block;
+      width: 100%;
+      min-height: 54px;
+      padding: 13px 18px;
+      font-family: "Archivo Black", sans-serif;
+      font-size: 17px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: var(--plum);
+      background: var(--paper2);
+      border: 2.5px solid var(--plum);
+      border-radius: 4px;
+      box-shadow: 4px 4px 0 var(--blue-ghost);
+      text-align: center;
+    }
+    .btn.primary {
+      background: var(--pink);
+      color: var(--plum);
+      border-color: var(--plum);
+      box-shadow: 5px 5px 0 var(--blue);
+      transform: rotate(-.6deg);
+    }
+    .btn.secondary { color: var(--blue); }
+    .btn.small {
+      display: inline-block;
+      width: auto;
+      min-height: 34px;
+      padding: 6px 12px;
+      font-family: "Space Mono", monospace;
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: .08em;
+      box-shadow: 2px 2px 0 var(--pink-ghost);
+    }
+    .btn.ghost {
+      font-family: "Space Mono", monospace;
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: .1em;
+      min-height: 44px;
+      border: 2px dashed var(--blue);
+      color: var(--blue);
+      background: transparent;
+      box-shadow: none;
+    }
+    .btn-col { display: flex; flex-direction: column; gap: 14px; }
+
+    /* ============ HOME ============ */
+    .home-hero { position: relative; padding: 44px 0 8px; text-align: center; }
+    .home-hero .circle {
+      position: absolute;
+      border-radius: 50%;
+      width: 168px;
+      height: 168px;
+      top: 6px;
+    }
+    .home-hero .c-pink {
+      left: 38px;
+      background-image: radial-gradient(circle, var(--pink-ghost) 1.7px, transparent 1.9px);
+      background-size: 8px 8px;
+      transform: rotate(8deg);
+    }
+    .home-hero .c-blue {
+      right: 38px;
+      background-image: radial-gradient(circle, var(--blue-ghost) 1.7px, transparent 1.9px);
+      background-size: 8px 8px;
+      background-position: 3px 4px;
+    }
+    .wordmark {
+      position: relative;
+      font-size: 72px;
+      line-height: 1;
+      letter-spacing: -3px;
+      margin: 30px 0 4px;
+    }
+    .wordmark .w1 { color: var(--pink); text-shadow: 3px 2px 0 var(--blue-ghost); }
+    .wordmark .w2 { color: var(--blue); text-shadow: -3px 2px 0 var(--pink-ghost); }
+    .issue-stamp {
+      position: absolute;
+      top: -8px;
+      right: -2px;
+      transform: rotate(8deg);
+      font-family: "Space Mono", monospace;
+      font-weight: 700;
+      font-size: 9px;
+      letter-spacing: .14em;
+      color: var(--pink);
+      border: 2px solid var(--pink);
+      border-radius: 50%;
+      width: 58px;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      line-height: 1.25;
+      box-shadow: 1.5px 1.5px 0 var(--blue-ghost), inset 1.5px 1.5px 0 var(--blue-ghost);
+    }
+    .tagline {
+      position: relative;
+      display: inline-block;
+      font-style: italic;
+      font-size: 14px;
+      color: var(--plum);
+      background: var(--paper);
+      border: 1.5px dashed var(--pink-ghost);
+      padding: 5px 14px;
+      transform: rotate(-1deg);
+      box-shadow: 2px 2px 0 var(--blue-tint);
+      margin-bottom: 40px;
+    }
+    .tagline .star { color: var(--pink); font-style: normal; }
+    .home-fan {
+      margin-top: 40px;
+      display: flex;
+      justify-content: center;
+      gap: 2px;
+    }
+    .mini-card {
+      width: 46px;
+      height: 62px;
+      background: var(--paper2);
+      border: 2px solid var(--plum);
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 22px;
+      color: var(--blue);
+      text-shadow: 1.5px 1px 0 var(--pink-ghost);
+      box-shadow: 2px 2px 0 var(--blue-ghost);
+    }
+    .mini-card:nth-child(1) { transform: rotate(-7deg) translateY(6px); color: var(--pink); text-shadow: -1.5px 1px 0 var(--blue-ghost); }
+    .mini-card:nth-child(2) { transform: rotate(-4deg) translateY(2px); }
+    .mini-card:nth-child(3) { transform: rotate(-1deg); }
+    .mini-card:nth-child(4) { transform: rotate(2deg); }
+    .mini-card:nth-child(5) { transform: rotate(5deg) translateY(2px); }
+    .mini-card:nth-child(6) { transform: rotate(8deg) translateY(7px); color: var(--pink); text-shadow: -1.5px 1px 0 var(--blue-ghost); }
+
+    /* ============ shared top bar ============ */
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .topbar-right { display: flex; gap: 6px; }
+
+    /* ============ LOBBY ============ */
+    .roomcode-wrap { text-align: center; margin: 26px 0 6px; }
+    .roomcode {
+      display: inline-flex;
+      gap: 8px;
+    }
+    .roomcode span {
+      font-family: "Archivo Black", sans-serif;
+      font-size: 40px;
+      line-height: 1;
+      width: 58px;
+      padding: 10px 0 8px;
+      background: var(--paper2);
+      border: 2.5px solid var(--plum);
+      border-radius: 4px;
+      box-shadow: 3px 3px 0 var(--blue-ghost);
+    }
+    .roomcode span:nth-child(odd) { color: var(--pink); text-shadow: 2px 1.5px 0 var(--blue-ghost); transform: rotate(-2deg); }
+    .roomcode span:nth-child(even) { color: var(--blue); text-shadow: -2px 1.5px 0 var(--pink-ghost); transform: rotate(1.5deg); }
+    .code-hint { font-size: 11px; font-style: italic; color: var(--blue); margin-top: 10px; letter-spacing: .08em; }
+
+    .players { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .prow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--paper2);
+      border: 2px solid var(--plum);
+      border-radius: 4px;
+      padding: 9px 12px;
+      box-shadow: 3px 3px 0 var(--blue-tint), 3px 3px 0 var(--pink-tint);
+    }
+    .prow:nth-child(odd) { transform: rotate(-.35deg); }
+    .prow:nth-child(even) { transform: rotate(.35deg); }
+    .avatar {
+      width: 36px;
+      height: 36px;
+      flex: none;
+      border-radius: 3px;
+      border: 2px solid var(--plum);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Archivo Black", sans-serif;
+      font-size: 17px;
+    }
+    /* the four seats, re-inked for a 2-colour press:
+       Ben = solid pink, Voltaire = solid blue,
+       Mechano = pink halftone tint, Data Dan = blue halftone tint */
+    .a-ben { background: var(--pink); color: var(--paper); text-shadow: 1.5px 1px 0 var(--blue-ghost); }
+    .a-volt { background: var(--blue); color: var(--paper); text-shadow: -1.5px 1px 0 var(--pink-ghost); }
+    .a-mech { background-color: var(--paper2); background-image: radial-gradient(circle, var(--pink-ghost) 1.4px, transparent 1.6px); background-size: 6px 6px; color: var(--pink); }
+    .a-dan { background-color: var(--paper2); background-image: radial-gradient(circle, var(--blue-ghost) 1.4px, transparent 1.6px); background-size: 6px 6px; color: var(--blue); }
+    .pname { font-weight: 700; font-size: 15px; flex: 1; }
+    .badge {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      padding: 3px 7px 2px;
+      border-radius: 2px;
+      border: 1.5px solid currentColor;
+      transform: rotate(-1.5deg);
+    }
+    .b-host { color: var(--pink); box-shadow: 1px 1px 0 var(--blue-ghost); }
+    .b-you { color: var(--paper); background: var(--plum); border-color: var(--plum); }
+    .b-bot { color: var(--blue); box-shadow: 1px 1px 0 var(--pink-ghost); }
+    .online {
+      width: 11px;
+      height: 11px;
+      flex: none;
+      border-radius: 50%;
+      background: var(--pink);
+      box-shadow: 0 0 0 2px var(--paper2), 0 0 0 3.5px var(--blue-ghost);
+    }
+
+    .setting {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: var(--paper2);
+      border: 2px solid var(--plum);
+      border-radius: 4px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      box-shadow: 3px 3px 0 var(--blue-tint), 3px 3px 0 var(--pink-tint);
+    }
+    .setting .s-name { font-weight: 700; font-size: 14px; }
+    .setting .s-help { font-size: 11px; font-style: italic; color: var(--blue); margin-top: 3px; }
+    .stepper { display: flex; align-items: center; gap: 10px; }
+    .stepper button {
+      width: 44px;
+      height: 44px;
+      border: 2px solid var(--plum);
+      border-radius: 4px;
+      background: var(--paper);
+      font-family: "Archivo Black", sans-serif;
+      font-size: 18px;
+      color: var(--pink);
+      text-shadow: 1px 1px 0 var(--blue-ghost);
+      box-shadow: 2px 2px 0 var(--blue-ghost);
+    }
+    .stepper .val { font-family: "Archivo Black", sans-serif; font-size: 22px; min-width: 22px; text-align: center; }
+    .setting.col { flex-direction: column; align-items: stretch; }
+    .seg { display: flex; gap: 6px; margin-top: 10px; }
+    .seg button {
+      flex: 1;
+      min-height: 44px;
+      border: 2px solid var(--plum);
+      border-radius: 4px;
+      background: var(--paper);
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--blue);
+    }
+    .seg button.on {
+      background: var(--pink);
+      color: var(--plum);
+      box-shadow: 3px 3px 0 var(--blue);
+      transform: rotate(-1deg);
+    }
+    .lobby-start { margin-top: 22px; }
+
+    /* ============ GAME ============ */
+    .gamehead {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .roundinfo { font-weight: 700; font-size: 14px; letter-spacing: .05em; }
+    .roundinfo .hot { color: var(--pink); }
+    .roundinfo .cold { color: var(--blue); }
+    .roundinfo .dim { color: var(--blue-ghost); }
+    .headbtns { display: flex; gap: 5px; }
+    .headbtns .btn.small { min-height: 30px; padding: 4px 8px; font-size: 9.5px; }
+
+    .scorechips { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--paper2);
+      border: 2px solid var(--plum);
+      border-radius: 4px;
+      padding: 7px 10px;
+      box-shadow: 2px 2px 0 var(--blue-tint), 2px 2px 0 var(--pink-tint);
+    }
+    .chip .seat { width: 13px; height: 13px; flex: none; border-radius: 50%; border: 2px solid var(--plum); }
+    .seat-ben { background: var(--pink); }
+    .seat-volt { background: var(--blue); }
+    .seat-mech { background-image: radial-gradient(circle at 35% 35%, var(--pink) 38%, transparent 42%), radial-gradient(circle at 70% 70%, var(--pink) 26%, transparent 32%); background-color: var(--paper); }
+    .seat-dan { background-image: radial-gradient(circle at 35% 35%, var(--blue) 38%, transparent 42%), radial-gradient(circle at 70% 70%, var(--blue) 26%, transparent 32%); background-color: var(--paper); }
+    .chip .cname { font-weight: 700; font-size: 12.5px; flex: 1; }
+    .chip .cscore { font-family: "Archivo Black", sans-serif; font-size: 17px; color: var(--blue); text-shadow: -1.5px 1px 0 var(--pink-ghost); }
+
+    .poolmeta { color: var(--pink); font-weight: 700; }
+
+    .turn-banner {
+      margin: 4px 0 12px;
+      padding: 9px 12px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: .16em;
+      color: var(--plum);
+      border: 2px dashed var(--plum);
+      border-radius: 3px;
+      background-color: var(--paper2);
+      background-image: radial-gradient(circle, rgba(255, 72, 176, .26) 1.3px, transparent 1.5px);
+      background-size: 7px 7px;
+      transform: rotate(-.8deg);
+      box-shadow: 3px 3px 0 var(--blue-ghost);
+    }
+
+    .powergrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+    .pcard {
+      position: relative;
+      background: var(--paper2);
+      border: 2px solid var(--plum);
+      border-radius: 4px;
+      padding: 14px 6px 9px;
+      text-align: center;
+      box-shadow: 3px 3px 0 var(--blue-tint), 3px 3px 0 var(--pink-tint);
+      overflow: hidden;
+    }
+    .pcard:nth-child(1) { transform: rotate(-1.1deg); }
+    .pcard:nth-child(2) { transform: rotate(.7deg); }
+    .pcard:nth-child(3) { transform: rotate(-.5deg); }
+    .pcard:nth-child(4) { transform: rotate(1deg); }
+    .pcard:nth-child(5) { transform: rotate(-.9deg); }
+    .pcard:nth-child(6) { transform: rotate(.8deg); }
+    .pcard .disc {
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      margin-left: -21px;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background-size: 6px 6px;
+    }
+    .pcard .pglyph {
+      position: relative;
+      display: block;
+      font-family: "Archivo Black", sans-serif;
+      font-size: 26px;
+      line-height: 38px;
+      margin-bottom: 6px;
+    }
+    .pcard .pw-name {
+      display: block;
+      font-weight: 700;
+      font-size: 9.5px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--plum);
+    }
+    .pcard.selected {
+      background: var(--pink);
+      border-color: var(--plum);
+      box-shadow: 4px 4px 0 var(--blue);
+      transform: rotate(-2deg) translateY(-4px);
+    }
+    .pcard.selected .pglyph { color: var(--paper); text-shadow: -2px 1.5px 0 var(--blue-ghost); }
+    .pcard.selected .pw-name { color: var(--plum); }
+    .pcard.selected .disc { background-image: radial-gradient(circle, var(--blue-ghost) 1.4px, transparent 1.6px); }
+    .pcard.selected::after {
+      content: "▼";
+      position: absolute;
+      top: 2px;
+      right: 4px;
+      font-size: 9px;
+      color: var(--plum);
+    }
+
+    .statgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .stat {
+      background: var(--paper2);
+      border: 2px solid var(--plum);
+      border-radius: 4px;
+      padding: 8px 10px;
+      box-shadow: 2px 2px 0 var(--blue-tint), 2px 2px 0 var(--pink-tint);
+    }
+    .stat .srow { display: flex; align-items: center; gap: 6px; }
+    .stat .sname { font-weight: 700; font-size: 12.5px; }
+    .stat .you-tag { font-size: 9px; color: var(--blue); font-style: italic; }
+    .stat .shand { font-size: 10px; letter-spacing: .22em; color: var(--blue); margin: 3px 0 4px; }
+    .status {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      padding: 2.5px 7px 1.5px;
+      border-radius: 2px;
+    }
+    .status.thinking { color: var(--pink); border: 1.5px dashed var(--pink); font-style: italic; }
+    .status.submitted {
+      color: var(--blue);
+      border: 1.5px solid var(--blue);
+      transform: rotate(-1.5deg);
+      box-shadow: 1px 1px 0 var(--pink-ghost);
+    }
+    .skipwait { margin-top: 10px; }
+
+    /* ============ number cards: the zine pages ============ */
+    .hand { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; }
+    .ncard {
+      position: relative;
+      height: 92px;
+      background: var(--paper2);
+      border: 2px solid var(--plum);
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 2px 4px;
+      box-shadow: 3px 3px 0 var(--blue-ghost);
+      overflow: hidden;
+    }
+    .ncard::after { /* halftone corner tint, like an inked page corner */
+      content: "";
+      position: absolute;
+      right: -14px;
+      bottom: -14px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background-image: radial-gradient(circle, var(--pink-ghost) 1.2px, transparent 1.4px);
+      background-size: 5px 5px;
+    }
+    .ncard .n-top {
+      font-size: 6.5px;
+      letter-spacing: .14em;
+      color: var(--blue);
+      text-transform: uppercase;
+    }
+    .ncard .numeral {
+      font-family: "Space Mono", monospace;
+      font-weight: 700;
+      font-size: 33px;
+      line-height: 1;
+      color: var(--blue);
+      text-shadow: 2px 1.5px 0 var(--pink-ghost);
+    }
+    .ncard .n-bot {
+      font-size: 6.5px;
+      letter-spacing: .12em;
+      color: var(--pink);
+      text-transform: uppercase;
+    }
+    .ncard:nth-child(odd) { transform: rotate(-1.4deg); }
+    .ncard:nth-child(even) { transform: rotate(1.1deg); }
+    .ncard.selected {
+      background: var(--pink);
+      transform: rotate(-2deg) translateY(-8px);
+      box-shadow: 4px 5px 0 var(--blue);
+    }
+    .ncard.selected .numeral { color: var(--paper); text-shadow: -2px 1.5px 0 var(--blue-ghost); }
+    .ncard.selected .n-top, .ncard.selected .n-bot { color: var(--plum); }
+    .ncard.selected::after { background-image: radial-gradient(circle, var(--blue-ghost) 1.2px, transparent 1.4px); }
+    .lockin { margin-top: 16px; }
+
+    /* ============ REVEAL ============ */
+    .reveal-page { text-align: center; }
+    .eyebrow {
+      display: inline-block;
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: .3em;
+      text-transform: uppercase;
+      color: var(--paper);
+      background: var(--blue);
+      padding: 6px 16px 5px;
+      transform: rotate(-1.2deg);
+      box-shadow: 3px 3px 0 var(--pink-ghost);
+      margin: 8px 0 20px;
+    }
+    .played-label { font-weight: 700; font-size: 11px; letter-spacing: .26em; color: var(--pink); margin-bottom: 10px; }
+    .played-card {
+      display: inline-block;
+      width: 92px;
+      background: var(--pink);
+      border: 2.5px solid var(--plum);
+      border-radius: 4px;
+      padding: 14px 6px 10px;
+      transform: rotate(2deg);
+      box-shadow: 4px 4px 0 var(--blue);
+      margin-bottom: 26px;
+    }
+    .played-card .pglyph {
+      display: block;
+      font-family: "Archivo Black", sans-serif;
+      font-size: 34px;
+      line-height: 1;
+      color: var(--paper);
+      text-shadow: -2px 2px 0 var(--blue-ghost);
+      margin-bottom: 7px;
+    }
+    .played-card .pw-name { display: block; font-weight: 700; font-size: 10px; letter-spacing: .14em; color: var(--plum); }
+
+    .revealgrid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px 14px;
+      margin: 4px 6px 26px;
+    }
+    .rname { font-weight: 700; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 8px; }
+    .rcard {
+      position: relative;
+      width: 124px;
+      height: 156px;
+      margin: 0 auto;
+      background: var(--paper2);
+      border: 2.5px solid var(--plum);
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 4px 4px 0 var(--blue-ghost);
+    }
+    .rcard .numeral {
+      font-weight: 700;
+      font-size: 64px;
+      color: var(--blue);
+      text-shadow: 3px 2px 0 var(--pink-ghost);
+    }
+    .rcell:nth-child(1) .rcard { transform: rotate(-1.6deg); }
+    .rcell:nth-child(2) .rcard { transform: rotate(1.4deg); }
+    .rcell:nth-child(3) .rcard { transform: rotate(1deg); }
+    .rcell:nth-child(4) .rcard { transform: rotate(-1.2deg); }
+
+    /* the blue scribble X, overprinting the numeral */
+    .scribble {
+      position: absolute;
+      inset: -6px;
+      width: calc(100% + 12px);
+      height: calc(100% + 12px);
+      pointer-events: none;
+      mix-blend-mode: multiply;
+    }
+    /* the pink CANCELLED stamp, visibly misregistered */
+    .stamp {
+      position: absolute;
+      left: -14px;
+      bottom: 26px;
+      transform: rotate(-9deg);
+      font-family: "Archivo Black", sans-serif;
+      font-size: 15px;
+      letter-spacing: .06em;
+      color: var(--pink);
+      background: rgba(250, 246, 236, .82);
+      border: 3px solid var(--pink);
+      border-radius: 3px;
+      padding: 4px 9px 3px;
+      text-shadow: -1.5px 1.5px 0 var(--blue-ghost);
+      box-shadow: 2px 2px 0 var(--blue-ghost), inset 1.5px 1.5px 0 var(--blue-tint);
+      white-space: nowrap;
+    }
+    .outcome { margin-top: 10px; font-family: "Archivo Black", sans-serif; font-size: 15px; }
+    .outcome.dead { color: var(--pink); text-shadow: 1.5px 1px 0 var(--blue-ghost); }
+    .outcome.alive { color: var(--blue); font-size: 22px; text-shadow: -2px 1.5px 0 var(--pink-ghost); }
+    /* the lone zero survives: halo burst behind it */
+    .rcard.survivor {
+      box-shadow: 4px 4px 0 var(--pink-ghost), 0 0 0 5px var(--paper), 0 0 0 7px var(--blue);
+    }
+    .rcard.survivor .numeral { color: var(--pink); text-shadow: -3px 2px 0 var(--blue-ghost); font-size: 74px; }
+    .burst {
+      position: absolute;
+      inset: 5px;
+      z-index: -1;
+      background-image: radial-gradient(circle, rgba(0, 120, 191, .3) 1.4px, transparent 1.6px);
+      background-size: 7px 7px;
+      border-radius: 4px;
+    }
+    .reveal-cta { max-width: 280px; margin: 0 auto; }
+
+    /* ============ END ============ */
+    .end-page { text-align: center; position: relative; }
+    .winline {
+      font-size: 56px;
+      line-height: 1.05;
+      margin: 10px 0 30px;
+      color: var(--pink);
+      text-shadow: 4px 3px 0 var(--blue-ghost);
+      transform: rotate(-1.5deg);
+    }
+    .scoretable {
+      text-align: left;
+      border: 2.5px solid var(--plum);
+      border-radius: 5px;
+      background: var(--paper2);
+      box-shadow: 5px 5px 0 var(--blue-tint), 5px 5px 0 var(--pink-tint);
+      overflow: hidden;
+      margin-bottom: 30px;
+    }
+    .trow {
+      display: grid;
+      grid-template-columns: 24px 1fr 34px 34px 34px 52px;
+      align-items: center;
+      gap: 2px;
+      padding: 10px 12px;
+      border-top: 1.5px dashed var(--blue-ghost);
+      font-size: 13px;
+    }
+    .trow.thead {
+      border-top: 0;
+      background-color: var(--paper);
+      background-image: radial-gradient(circle, var(--blue-tint) 1.4px, transparent 1.6px);
+      background-size: 6px 6px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      color: var(--blue);
+      padding: 7px 12px;
+    }
+    .trow .rk { font-family: "Archivo Black", sans-serif; font-size: 14px; color: var(--blue); }
+    .trow .nm { font-weight: 700; display: flex; align-items: center; gap: 7px; }
+    .trow .nm .seat { width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid var(--plum); flex: none; }
+    .trow .nm .you-tag { font-size: 9px; font-style: italic; color: var(--blue); font-weight: 400; }
+    .trow .sc { text-align: right; color: var(--plum); }
+    .trow .tot { text-align: right; font-family: "Archivo Black", sans-serif; font-size: 18px; color: var(--blue); text-shadow: -1.5px 1px 0 var(--pink-ghost); }
+    .trow.winner {
+      background: var(--pink-tint);
+      box-shadow: inset 3px 0 0 var(--pink);
+    }
+    .trow.winner .tot { color: var(--pink); text-shadow: 1.5px 1px 0 var(--blue-ghost); }
+
+    /* printer-dot confetti: static, hardcoded scatter */
+    .confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+    .confetti i {
+      position: absolute;
+      border-radius: 50%;
+      display: block;
+    }
+    .confetti .dp { background: var(--pink); opacity: .85; }
+    .confetti .db { background: var(--blue); opacity: .8; }
+    .confetti .rp { border: 2.5px solid var(--pink); background: transparent; opacity: .8; }
+    .confetti .rb { border: 2.5px solid var(--blue); background: transparent; opacity: .75; }
+    .confetti .hp { background-image: radial-gradient(circle, var(--pink-ghost) 1.3px, transparent 1.5px); background-size: 5px 5px; opacity: .95; }
+    .confetti .hb { background-image: radial-gradient(circle, var(--blue-ghost) 1.3px, transparent 1.5px); background-size: 5px 5px; opacity: .95; }
+
+    /* ============ switcher ============ */
+    #switcher a {
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Space Mono", monospace;
+      font-weight: 700;
+      font-size: 12px;
+      color: var(--blue);
+      background: var(--paper2);
+      border: 2px solid var(--plum);
+      border-radius: 3px;
+      text-decoration: none;
+      box-shadow: 1.5px 1.5px 0 var(--pink-ghost);
+    }
+
+    /* ============ motion (flourishes only; base is the resting state) ============ */
+    @media (prefers-reduced-motion: no-preference) {
+      .btn, .ncard, .pcard, .seg button, .stepper button { transition: transform .12s ease, box-shadow .12s ease; }
+      .btn:hover { transform: translate(-1px, -2px) rotate(-.4deg); }
+      .btn.primary:hover { transform: translate(-1px, -2px) rotate(-1deg); box-shadow: 7px 7px 0 var(--blue); }
+      .ncard:hover { transform: translateY(-5px) rotate(-1deg); }
+      .ncard.selected { animation: hover-bob 2.6s ease-in-out infinite; }
+      @keyframes hover-bob {
+        0%, 100% { transform: rotate(-2deg) translateY(-8px); }
+        50% { transform: rotate(-2deg) translateY(-12px); }
+      }
+      .stamp { animation: stamp-in .3s cubic-bezier(.2, 2.2, .4, 1) both; }
+      @keyframes stamp-in {
+        from { transform: rotate(-9deg) scale(2.1); opacity: 0; }
+        to { transform: rotate(-9deg) scale(1); opacity: 1; }
+      }
+      .winline { animation: win-in .5s cubic-bezier(.2, 1.6, .4, 1) both; }
+      @keyframes win-in {
+        from { transform: rotate(-1.5deg) scale(.7); opacity: 0; }
+        to { transform: rotate(-1.5deg) scale(1); opacity: 1; }
+      }
+      .confetti i { animation: drift 3.4s ease-in-out infinite alternate; }
+      .confetti i:nth-child(odd) { animation-duration: 4.2s; }
+      @keyframes drift {
+        from { transform: translateY(-4px); }
+        to { transform: translateY(5px); }
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- ============ 1 · HOME ============ -->
+  <main data-screen="home">
+    <div class="page">
+      <div class="printrow"><span class="regmark">◎</span><span>two-ink riso · fluor pink + medium blue</span><span class="regmark">◎</span></div>
+      <div class="home-hero">
+        <div class="circle c-pink"></div>
+        <div class="circle c-blue"></div>
+        <div class="issue-stamp">ISSUE<br>Nº&nbsp;00</div>
+        <h1 class="wordmark"><span class="w1">CAN</span><span class="w2">CEL</span></h1>
+        <p class="tagline"><span class="star">✱</span> a number-picking party game <span class="star">✱</span></p>
+      </div>
+      <div class="btn-col">
+        <button class="btn primary">New game</button>
+        <button class="btn secondary">Single player</button>
+        <button class="btn secondary">Join with code</button>
+      </div>
+      <div class="home-fan">
+        <div class="mini-card">Ø</div>
+        <div class="mini-card">1</div>
+        <div class="mini-card">2</div>
+        <div class="mini-card">3</div>
+        <div class="mini-card">4</div>
+        <div class="mini-card">5</div>
+      </div>
+      <div class="pgfoot">cancel zine · printed in 2 inks · <b>pg 1/5</b></div>
+    </div>
+  </main>
+
+  <!-- ============ 2 · LOBBY ============ -->
+  <main data-screen="lobby">
+    <div class="page">
+      <div class="topbar">
+        <button class="btn small">← Leave</button>
+        <button class="btn small">Rules</button>
+      </div>
+      <div class="roomcode-wrap">
+        <div class="roomcode"><span>D</span><span>N</span><span>2</span><span>H</span></div>
+        <div class="code-hint">✂ press to copy ✂</div>
+      </div>
+      <h2 class="label">Players <span class="spacer"></span> <span class="count">· 4</span></h2>
+      <ul class="players">
+        <li class="prow">
+          <span class="avatar a-ben">B</span>
+          <span class="pname">Ben</span>
+          <span class="badge b-host">HOST</span>
+          <span class="badge b-you">YOU</span>
+          <span class="online"></span>
+        </li>
+        <li class="prow">
+          <span class="avatar a-volt">V</span>
+          <span class="pname">Voltaire</span>
+          <span class="badge b-bot">BOT</span>
+          <span class="online"></span>
+        </li>
+        <li class="prow">
+          <span class="avatar a-mech">M</span>
+          <span class="pname">Mechano</span>
+          <span class="badge b-bot">BOT</span>
+          <span class="online"></span>
+        </li>
+        <li class="prow">
+          <span class="avatar a-dan">D</span>
+          <span class="pname">Data Dan</span>
+          <span class="badge b-bot">BOT</span>
+          <span class="online"></span>
+        </li>
+      </ul>
+      <h2 class="label">Settings <span class="spacer"></span></h2>
+      <div class="setting">
+        <div class="s-name">Rounds</div>
+        <div class="stepper"><button>−</button><span class="val">3</span><button>+</button></div>
+      </div>
+      <div class="setting">
+        <div class="s-name">AI players</div>
+        <div class="stepper"><button>−</button><span class="val">3</span><button>+</button></div>
+      </div>
+      <div class="setting col">
+        <div class="s-name">Power-ups</div>
+        <div class="seg">
+          <button>None</button>
+          <button class="on">Random</button>
+          <button>Choose</button>
+        </div>
+        <div class="s-help">A fresh random pool each round.</div>
+      </div>
+      <button class="btn primary lobby-start">Start game</button>
+      <div class="pgfoot">cancel zine · room dn2h · <b>pg 2/5</b></div>
+    </div>
+  </main>
+
+  <!-- ============ 3 · GAME ============ -->
+  <main data-screen="game">
+    <div class="page">
+      <div class="gamehead">
+        <div class="roundinfo"><span class="hot">R1</span><span class="dim">/3</span> · <span class="cold">T2</span><span class="dim">/6</span> · DN2H</div>
+        <div class="headbtns">
+          <button class="btn small">RULES</button>
+          <button class="btn small">LEAVE</button>
+          <button class="btn small">END GAME</button>
+        </div>
+      </div>
+      <div class="scorechips">
+        <div class="chip"><span class="seat seat-ben"></span><span class="cname">Ben</span><span class="cscore">4</span></div>
+        <div class="chip"><span class="seat seat-volt"></span><span class="cname">Voltaire</span><span class="cscore">0</span></div>
+        <div class="chip"><span class="seat seat-mech"></span><span class="cname">Mechano</span><span class="cscore">2</span></div>
+        <div class="chip"><span class="seat seat-dan"></span><span class="cname">Data Dan</span><span class="cscore">5</span></div>
+      </div>
+      <h2 class="label">Power-ups remaining <span class="spacer"></span> <span class="poolmeta">6 / 6</span></h2>
+      <div class="turn-banner">YOUR TURN, PRESS TO SELECT</div>
+      <div class="powergrid">
+        <div class="pcard">
+          <span class="disc dots-blue"></span>
+          <span class="pglyph ink-blue">⇄</span>
+          <span class="pw-name">Swap Hands</span>
+        </div>
+        <div class="pcard">
+          <span class="disc dots-pink"></span>
+          <span class="pglyph ink-pink">✖</span>
+          <span class="pw-name">Sabotage</span>
+        </div>
+        <div class="pcard selected">
+          <span class="disc"></span>
+          <span class="pglyph">=</span>
+          <span class="pw-name">Jinx</span>
+        </div>
+        <div class="pcard">
+          <span class="disc dots-pink"></span>
+          <span class="pglyph ink-blue">+2</span>
+          <span class="pw-name">Plus Two</span>
+        </div>
+        <div class="pcard">
+          <span class="disc dots-blue"></span>
+          <span class="pglyph ink-plum">?</span>
+          <span class="pw-name">Wild</span>
+        </div>
+        <div class="pcard">
+          <span class="disc dots-blue"></span>
+          <span class="pglyph ink-pink">↧</span>
+          <span class="pw-name">Drain</span>
+        </div>
+      </div>
+      <h2 class="label">Players <span class="spacer"></span> power picker: <span class="count">Ben</span></h2>
+      <div class="statgrid">
+        <div class="stat">
+          <div class="srow"><span class="seat seat-ben" style="width:11px;height:11px;border-radius:50%;border:2px solid var(--plum);"></span><span class="sname">Ben</span><span class="you-tag">(you)</span></div>
+          <div class="shand">Ø 1 2 3 4 5</div>
+          <span class="status thinking">THINKING…</span>
+        </div>
+        <div class="stat">
+          <div class="srow"><span class="seat seat-volt" style="width:11px;height:11px;border-radius:50%;border:2px solid var(--plum);"></span><span class="sname">Voltaire</span></div>
+          <div class="shand">Ø 1 2 3 4 5</div>
+          <span class="status submitted">SUBMITTED</span>
+        </div>
+        <div class="stat">
+          <div class="srow"><span class="seat seat-mech" style="width:11px;height:11px;border-radius:50%;border:2px solid var(--plum);"></span><span class="sname">Mechano</span></div>
+          <div class="shand">Ø 1 2 3 4 5</div>
+          <span class="status submitted">SUBMITTED</span>
+        </div>
+        <div class="stat">
+          <div class="srow"><span class="seat seat-dan" style="width:11px;height:11px;border-radius:50%;border:2px solid var(--plum);"></span><span class="sname">Data Dan</span></div>
+          <div class="shand">Ø 1 2 3 4 5</div>
+          <span class="status submitted">SUBMITTED</span>
+        </div>
+      </div>
+      <button class="btn ghost skipwait">SKIP WAITING, AUTO-PLAY WHO'S LEFT</button>
+      <h2 class="label">Your hand <span class="spacer"></span></h2>
+      <div class="hand">
+        <button class="ncard">
+          <span class="n-top">cancel</span>
+          <span class="numeral">Ø</span>
+          <span class="n-bot">pg·Ø</span>
+        </button>
+        <button class="ncard">
+          <span class="n-top">cancel</span>
+          <span class="numeral">1</span>
+          <span class="n-bot">pg·1</span>
+        </button>
+        <button class="ncard">
+          <span class="n-top">cancel</span>
+          <span class="numeral">2</span>
+          <span class="n-bot">pg·2</span>
+        </button>
+        <button class="ncard">
+          <span class="n-top">cancel</span>
+          <span class="numeral">3</span>
+          <span class="n-bot">pg·3</span>
+        </button>
+        <button class="ncard">
+          <span class="n-top">cancel</span>
+          <span class="numeral">4</span>
+          <span class="n-bot">pg·4</span>
+        </button>
+        <button class="ncard selected">
+          <span class="n-top">cancel</span>
+          <span class="numeral">5</span>
+          <span class="n-bot">pg·5</span>
+        </button>
+      </div>
+      <button class="btn primary lockin">Lock it in</button>
+      <div class="pgfoot">cancel zine · keep it secret · <b>pg 3/5</b></div>
+    </div>
+  </main>
+
+  <!-- ============ 4 · REVEAL ============ -->
+  <main data-screen="reveal">
+    <div class="page reveal-page">
+      <span class="eyebrow">Turn 2 Reveal</span>
+      <div class="played-label">BEN PLAYED</div>
+      <div class="played-card">
+        <span class="pglyph">=</span>
+        <span class="pw-name">Jinx</span>
+      </div>
+      <div class="revealgrid">
+        <div class="rcell">
+          <div class="rname ink-pink">Ben</div>
+          <div class="rcard">
+            <span class="numeral">5</span>
+            <svg class="scribble" viewBox="0 0 130 168" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M16 22 C 38 52, 70 96, 114 150" stroke="#0078bf" stroke-width="6.5" fill="none" stroke-linecap="round" opacity=".72"/>
+              <path d="M22 16 C 46 48, 78 94, 118 142" stroke="#0078bf" stroke-width="3.8" fill="none" stroke-linecap="round" opacity=".45"/>
+              <path d="M112 20 C 84 54, 50 98, 14 148" stroke="#0078bf" stroke-width="6.5" fill="none" stroke-linecap="round" opacity=".72"/>
+              <path d="M118 30 C 88 62, 54 104, 22 142" stroke="#0078bf" stroke-width="3.8" fill="none" stroke-linecap="round" opacity=".45"/>
+            </svg>
+            <span class="stamp">CANCELLED</span>
+          </div>
+          <div class="outcome dead">0</div>
+        </div>
+        <div class="rcell">
+          <div class="rname ink-blue">Voltaire</div>
+          <div class="rcard survivor">
+            <span class="burst"></span>
+            <span class="numeral">Ø</span>
+          </div>
+          <div class="outcome alive">0</div>
+        </div>
+        <div class="rcell">
+          <div class="rname ink-blue">Mechano</div>
+          <div class="rcard">
+            <span class="numeral">5</span>
+            <svg class="scribble" viewBox="0 0 130 168" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M14 26 C 40 56, 72 98, 116 146" stroke="#0078bf" stroke-width="6.5" fill="none" stroke-linecap="round" opacity=".72"/>
+              <path d="M20 18 C 48 52, 80 96, 118 138" stroke="#0078bf" stroke-width="3.8" fill="none" stroke-linecap="round" opacity=".45"/>
+              <path d="M116 18 C 86 52, 52 96, 16 150" stroke="#0078bf" stroke-width="6.5" fill="none" stroke-linecap="round" opacity=".72"/>
+              <path d="M110 28 C 84 60, 50 102, 20 140" stroke="#0078bf" stroke-width="3.8" fill="none" stroke-linecap="round" opacity=".45"/>
+            </svg>
+            <span class="stamp">CANCELLED</span>
+          </div>
+          <div class="outcome dead">0</div>
+        </div>
+        <div class="rcell">
+          <div class="rname ink-blue">Data Dan</div>
+          <div class="rcard">
+            <span class="numeral">3</span>
+            <svg class="scribble" viewBox="0 0 130 168" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M18 20 C 42 50, 74 96, 112 148" stroke="#0078bf" stroke-width="6.5" fill="none" stroke-linecap="round" opacity=".72"/>
+              <path d="M12 30 C 40 58, 74 100, 116 140" stroke="#0078bf" stroke-width="3.8" fill="none" stroke-linecap="round" opacity=".45"/>
+              <path d="M114 24 C 82 56, 50 98, 18 146" stroke="#0078bf" stroke-width="6.5" fill="none" stroke-linecap="round" opacity=".72"/>
+              <path d="M120 34 C 90 64, 56 104, 24 138" stroke="#0078bf" stroke-width="3.8" fill="none" stroke-linecap="round" opacity=".45"/>
+            </svg>
+            <span class="stamp">CANCELLED</span>
+          </div>
+          <div class="outcome dead">0</div>
+        </div>
+      </div>
+      <button class="btn primary reveal-cta">Continue</button>
+      <div class="pgfoot">cancel zine · the lone Ø takes all · <b>pg 4/5</b></div>
+    </div>
+  </main>
+
+  <!-- ============ 5 · END ============ -->
+  <main data-screen="end">
+    <div class="confetti" aria-hidden="true">
+      <i class="dp" style="left:6%;  top:4%;  width:10px; height:10px;"></i>
+      <i class="rb" style="left:18%; top:9%;  width:14px; height:14px;"></i>
+      <i class="db" style="left:32%; top:3%;  width:8px;  height:8px;"></i>
+      <i class="hp" style="left:46%; top:7%;  width:22px; height:22px; border-radius:50%;"></i>
+      <i class="dp" style="left:62%; top:4%;  width:7px;  height:7px;"></i>
+      <i class="rp" style="left:76%; top:8%;  width:12px; height:12px;"></i>
+      <i class="db" style="left:90%; top:5%;  width:10px; height:10px;"></i>
+      <i class="hb" style="left:10%; top:17%; width:20px; height:20px; border-radius:50%;"></i>
+      <i class="dp" style="left:88%; top:16%; width:9px;  height:9px;"></i>
+      <i class="rb" style="left:3%;  top:30%; width:11px; height:11px;"></i>
+      <i class="db" style="left:94%; top:28%; width:7px;  height:7px;"></i>
+      <i class="dp" style="left:7%;  top:46%; width:8px;  height:8px;"></i>
+      <i class="rp" style="left:91%; top:44%; width:13px; height:13px;"></i>
+      <i class="hb" style="left:4%;  top:60%; width:18px; height:18px; border-radius:50%;"></i>
+      <i class="db" style="left:93%; top:58%; width:9px;  height:9px;"></i>
+      <i class="dp" style="left:9%;  top:72%; width:7px;  height:7px;"></i>
+      <i class="rb" style="left:88%; top:70%; width:11px; height:11px;"></i>
+      <i class="hp" style="left:14%; top:84%; width:20px; height:20px; border-radius:50%;"></i>
+      <i class="db" style="left:80%; top:86%; width:8px;  height:8px;"></i>
+      <i class="dp" style="left:38%; top:90%; width:9px;  height:9px;"></i>
+      <i class="rp" style="left:58%; top:88%; width:12px; height:12px;"></i>
+      <i class="db" style="left:26%; top:13%; width:6px;  height:6px;"></i>
+      <i class="dp" style="left:70%; top:12%; width:6px;  height:6px;"></i>
+      <i class="rb" style="left:52%; top:2%;  width:9px;  height:9px;"></i>
+    </div>
+    <div class="page end-page">
+      <span class="eyebrow">Game Over</span>
+      <h1 class="winline display">You won.</h1>
+      <div class="scoretable">
+        <div class="trow thead">
+          <span></span><span></span>
+          <span class="sc">R1</span><span class="sc">R2</span><span class="sc">R3</span><span class="sc" style="text-align:right;">TOTAL</span>
+        </div>
+        <div class="trow winner">
+          <span class="rk">1</span>
+          <span class="nm"><span class="seat seat-ben"></span>Ben <span class="you-tag">(you)</span></span>
+          <span class="sc">5</span><span class="sc">9</span><span class="sc">6</span><span class="tot">20</span>
+        </div>
+        <div class="trow">
+          <span class="rk">2</span>
+          <span class="nm"><span class="seat seat-dan"></span>Data Dan</span>
+          <span class="sc">5</span><span class="sc">4</span><span class="sc">3</span><span class="tot">12</span>
+        </div>
+        <div class="trow">
+          <span class="rk">3</span>
+          <span class="nm"><span class="seat seat-volt"></span>Voltaire</span>
+          <span class="sc">3</span><span class="sc">2</span><span class="sc">4</span><span class="tot">9</span>
+        </div>
+        <div class="trow">
+          <span class="rk">4</span>
+          <span class="nm"><span class="seat seat-mech"></span>Mechano</span>
+          <span class="sc">0</span><span class="sc">5</span><span class="sc">2</span><span class="tot">7</span>
+        </div>
+      </div>
+      <div class="btn-col">
+        <button class="btn primary">Play again</button>
+        <button class="btn secondary">Leave room</button>
+      </div>
+      <div class="pgfoot">cancel zine · back cover · <b>pg 5/5</b></div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

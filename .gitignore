@@ -32,6 +32,15 @@ Thumbs.db
 # Browser verification screenshots
 scripts/shots/
 
+# Design exploration: keep the demos + docs (styles/, README, SPEC, shoot.mjs),
+# skip the heavy/generated bits (screenshots, generated gallery, exported zip).
+design-explorations/shots/
+design-explorations/GALLERY.md
+design-explorations/index.html
+design-explorations.zip
+design-explorations/*.zip
+orig_screenshots/
+
 # Test/coverage
 coverage/
 .nyc_output/

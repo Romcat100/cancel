@@ -1,0 +1,951 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Haunted Seance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+    /* ============ Haunted Seance — base styles are the FINAL resting state ============ */
+    :root {
+      --ink: #171210;
+      --ink2: #1c1510;
+      --amber: #e8a84c;
+      --amber-soft: rgba(232,168,76,.5);
+      --parch: #d8c49a;
+      --parch-hi: #f0e2bd;
+      --parch-dim: rgba(216,196,154,.55);
+      --teal: #9fd8cf;
+      --ox: #5d2120;
+      --line: #32271a;
+      --line-gold: rgba(201,169,106,.45);
+      --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+      --corner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M22 2 H9 Q2 2 2 9 V22' fill='none' stroke='%23c9a96a' stroke-width='1.5'/%3E%3Cpath d='M9 2 Q12.5 4.5 10 7.5 Q8 10 5.5 8 Q3.8 6.6 5.2 4.8' fill='none' stroke='%23c9a96a' stroke-width='1'/%3E%3Ccircle cx='22' cy='2' r='1.4' fill='%23c9a96a'/%3E%3Ccircle cx='2' cy='22' r='1.4' fill='%23c9a96a'/%3E%3C/svg%3E");
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #0e0a07; }
+    body { font-family: 'Crimson Text', Georgia, serif; color: var(--parch); -webkit-font-smoothing: antialiased; }
+    button { font: inherit; cursor: pointer; background: none; border: 0; color: inherit; }
+
+    main {
+      position: relative;
+      max-width: 420px;
+      margin: 0 auto;
+      min-height: 100vh;
+      overflow: hidden;
+      background:
+        radial-gradient(420px 320px at 50% 140px, rgba(232,168,76,.10), transparent 70%),
+        radial-gradient(560px 460px at 50% 102%, rgba(93,33,32,.20), transparent 75%),
+        var(--ink);
+    }
+    main::before { /* vignette */
+      content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+      background: radial-gradient(140% 90% at 50% 42%, transparent 52%, rgba(7,4,2,.62) 100%);
+    }
+    main::after { /* faint room grain */
+      content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+      background: var(--noise); opacity: .05;
+    }
+    .wrap { position: relative; z-index: 2; padding: 18px 20px 40px; }
+
+    /* ---- fog wisps (fixed positions; drift only under no-preference) ---- */
+    .fog {
+      position: absolute; left: -50px; right: -50px; height: 90px; z-index: 1;
+      pointer-events: none; border-radius: 50%;
+      background: linear-gradient(90deg, transparent, rgba(214,232,227,.045) 24%, rgba(214,232,227,.085) 50%, rgba(214,232,227,.04) 76%, transparent);
+      filter: blur(13px);
+    }
+    .f1 { top: 92px; }
+    .f2 { top: 46%; height: 110px; transform: scaleX(-1); }
+    .f3 { bottom: 120px; height: 84px; }
+
+    /* ---- typographic utilities ---- */
+    .sc { font-family: 'IM Fell English SC', 'IM Fell English', serif; }
+    .eyebrow {
+      font-family: 'IM Fell English SC', serif; text-align: center;
+      font-size: 13px; letter-spacing: .32em; color: var(--parch-dim);
+      text-shadow: 0 0 14px rgba(232,168,76,.25);
+    }
+    .label {
+      display: flex; align-items: center; gap: 12px; margin: 22px 0 10px;
+      font-family: 'IM Fell English SC', serif; font-size: 12px;
+      letter-spacing: .26em; color: var(--parch-dim); white-space: nowrap;
+    }
+    .label::before { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--line-gold)); }
+    .label::after  { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--line-gold), transparent); }
+
+    /* ---- ornate corner flourishes ---- */
+    .cnr {
+      position: absolute; width: 18px; height: 18px; z-index: 3;
+      background: var(--corner) no-repeat center / contain;
+      opacity: .85; pointer-events: none;
+    }
+    .cnr.tl { top: -5px; left: -5px; }
+    .cnr.tr { top: -5px; right: -5px; transform: rotate(90deg); }
+    .cnr.br { bottom: -5px; right: -5px; transform: rotate(180deg); }
+    .cnr.bl { bottom: -5px; left: -5px; transform: rotate(270deg); }
+
+    /* ---- parchment grain overlay ---- */
+    .grain { position: relative; }
+    .grain::after {
+      content: ""; position: absolute; inset: 0; border-radius: inherit;
+      background: var(--noise); opacity: .14; mix-blend-mode: multiply; pointer-events: none;
+    }
+
+    /* ---- buttons: aged calling cards ---- */
+    .btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 100%; min-height: 56px; border-radius: 4px;
+      font-family: 'IM Fell English SC', serif; font-size: 20px; letter-spacing: .08em;
+    }
+    .btn-primary {
+      color: #241409;
+      background: linear-gradient(175deg, #ecdcb2 0%, #d8c49a 55%, #c0a473 100%);
+      border: 1px solid #8a6f43;
+      box-shadow:
+        0 0 0 3px var(--ink), 0 0 0 4px var(--line-gold),
+        0 10px 26px rgba(0,0,0,.55), 0 0 36px rgba(232,168,76,.20);
+      text-shadow: 0 1px 0 rgba(255,248,224,.5);
+    }
+    .btn-ghost {
+      color: #cdb98c;
+      background: rgba(216,196,154,.03);
+      border: 1px solid #4a3b26;
+      box-shadow: 0 0 0 3px var(--ink), 0 0 0 4px rgba(74,59,38,.55), 0 6px 18px rgba(0,0,0,.4);
+    }
+    .btn-sm {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-height: 40px; padding: 0 16px; border-radius: 4px;
+      font-family: 'IM Fell English SC', serif; font-size: 14px; letter-spacing: .1em;
+      color: #cdb98c; border: 1px solid #4a3b26; background: rgba(216,196,154,.03);
+    }
+    .btn-xs {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-height: 30px; padding: 0 10px; border-radius: 3px;
+      font-family: 'IM Fell English SC', serif; font-size: 10.5px; letter-spacing: .14em;
+      color: rgba(216,196,154,.7); border: 1px solid #3c2f1e; background: rgba(216,196,154,.03);
+    }
+    .btn-xs.danger { color: #cf7a66; border-color: rgba(93,33,32,.9); }
+
+    /* ---- candles ---- */
+    .candle { display: flex; flex-direction: column; align-items: center; }
+    .flame {
+      width: 14px; height: 24px;
+      background: radial-gradient(circle at 50% 72%, #fff6dd 0%, #f7c668 36%, #e8a84c 58%, #c06a22 84%, rgba(192,106,34,0) 100%);
+      border-radius: 50% 50% 50% 50% / 68% 68% 32% 32%;
+      box-shadow:
+        0 0 10px 2px rgba(232,168,76,.75),
+        0 0 32px 10px rgba(232,168,76,.28),
+        0 0 90px 34px rgba(232,168,76,.10);
+    }
+    .wick { width: 2px; height: 5px; background: #3a2a18; margin-top: -3px; }
+    .wax {
+      position: relative; width: 18px; height: 54px; margin-top: -1px;
+      background: linear-gradient(180deg, #e6d4ab, #cdb486 35%, #b3996a);
+      border-radius: 4px 4px 3px 3px;
+      box-shadow: inset -4px 0 7px rgba(0,0,0,.28), inset 2px 0 3px rgba(255,246,221,.25);
+    }
+    .wax::before {
+      content: ""; position: absolute; top: -2px; left: -3px; width: 7px; height: 17px;
+      background: linear-gradient(180deg, #e9d8b0, #c3a877); border-radius: 4px 4px 6px 6px;
+    }
+    .dish {
+      width: 36px; height: 9px; margin-top: -3px; border-radius: 50%;
+      background: radial-gradient(60% 100% at 50% 30%, #a98748, #54390e 80%);
+      box-shadow: 0 3px 8px rgba(0,0,0,.55);
+    }
+    .candle.short .wax { height: 38px; }
+    .candle.mini .flame { width: 10px; height: 17px; }
+    .candle.mini .wax { width: 12px; height: 28px; }
+    .candle.mini .wax::before { width: 5px; height: 11px; left: -2px; }
+    .candle.mini .dish { width: 26px; height: 7px; }
+
+    /* ================= HOME ================= */
+    .home-wrap { padding-top: 96px; }
+    .seance-head { display: flex; align-items: flex-end; justify-content: center; gap: 14px; }
+    .wordmark { text-align: center; font-family: 'IM Fell English', serif; font-weight: 400; font-size: 57px; line-height: 1; color: var(--parch-hi); }
+    .wordmark span {
+      display: inline-block; margin: 0 1px;
+      transform: translateY(var(--dy, 0)) rotate(var(--rt, 0deg));
+      text-shadow: 0 0 26px rgba(232,168,76,.35), 0 2px 3px rgba(0,0,0,.6);
+    }
+    .wordmark .ghost-letter {
+      color: var(--teal); opacity: .82;
+      text-shadow: 0 0 18px rgba(159,216,207,.55), 0 0 44px rgba(159,216,207,.25);
+      filter: blur(.4px);
+    }
+    .tagline {
+      margin-top: 12px; text-align: center; font-style: italic; font-size: 16.5px;
+      letter-spacing: .1em; color: var(--parch-dim);
+    }
+    .tagline::before { content: "· "; color: rgba(201,169,106,.6); }
+    .tagline::after { content: " ·"; color: rgba(201,169,106,.6); }
+    .divider { display: flex; align-items: center; gap: 12px; margin: 34px 6px 30px; }
+    .divider::before { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--line-gold)); }
+    .divider::after  { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--line-gold), transparent); }
+    .divider i { width: 7px; height: 7px; background: #c9a96a; transform: rotate(45deg); opacity: .75; box-shadow: 0 0 8px rgba(232,168,76,.5); }
+    .home-btns { display: flex; flex-direction: column; gap: 16px; padding: 0 6px; }
+    .ouija {
+      position: absolute; left: 0; right: 0; bottom: 158px; z-index: 1;
+      display: flex; justify-content: center; gap: 8px;
+      font-family: 'IM Fell English', serif; font-size: 17px;
+      color: rgba(216,196,154,.16); pointer-events: none;
+    }
+    .ouija span { display: inline-block; }
+    .table-edge {
+      position: absolute; left: -70px; right: -70px; bottom: -60px; height: 160px; z-index: 1;
+      border-radius: 50% 50% 0 0;
+      background: radial-gradient(60% 100% at 50% 0%, #2c1e13, #1c130c 65%);
+      box-shadow: 0 -14px 50px rgba(232,168,76,.07), inset 0 3px 0 rgba(201,169,106,.18);
+    }
+
+    /* ================= LOBBY ================= */
+    .topbar { display: flex; justify-content: space-between; margin-bottom: 20px; }
+    .code-card {
+      position: relative; margin: 0 4px; padding: 22px 16px 18px; text-align: center;
+      border: 1px solid var(--line-gold); border-radius: 6px;
+      background:
+        radial-gradient(70% 120% at 50% 0%, rgba(232,168,76,.10), transparent 75%),
+        var(--ink2);
+      box-shadow: 0 10px 30px rgba(0,0,0,.45);
+    }
+    .code-card::before {
+      content: ""; position: absolute; inset: 5px; border: 1px solid rgba(201,169,106,.18);
+      border-radius: 3px; pointer-events: none;
+    }
+    .code {
+      font-family: 'IM Fell English SC', serif; font-size: 46px; line-height: 1;
+      letter-spacing: .3em; text-indent: .3em; color: var(--parch-hi);
+      text-shadow: 0 0 22px rgba(232,168,76,.45), 0 2px 3px rgba(0,0,0,.6);
+    }
+    .code-hint { margin-top: 8px; font-style: italic; font-size: 14.5px; color: rgba(159,216,207,.55); letter-spacing: .06em; }
+    .players { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+    .player {
+      display: flex; align-items: center; gap: 13px; padding: 9px 14px 9px 11px;
+      border: 1px solid var(--line); border-radius: 6px;
+      background: radial-gradient(80% 120% at 18% 50%, rgba(232,168,76,.05), transparent 70%), var(--ink2);
+    }
+    .portrait {
+      flex: none; width: 42px; height: 52px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: radial-gradient(85% 85% at 50% 32%, var(--pc-l), var(--pc-d) 85%);
+      box-shadow:
+        0 0 0 2px var(--ink), 0 0 0 3px rgba(201,169,106,.6),
+        0 0 0 5px var(--ink), 0 0 0 6px rgba(201,169,106,.22),
+        0 4px 10px rgba(0,0,0,.5);
+    }
+    .portrait b { font-family: 'IM Fell English', serif; font-weight: 400; font-size: 21px; color: #f2e6c8; text-shadow: 0 1px 3px rgba(0,0,0,.65); }
+    .portrait.ben { --pc-l: #a8503a; --pc-d: #54221a; }
+    .portrait.vol { --pc-l: #4d5b94; --pc-d: #232c50; }
+    .portrait.mec { --pc-l: #a07a2b; --pc-d: #4f360f; }
+    .portrait.dan { --pc-l: #3f7a52; --pc-d: #1e3d28; }
+    .portrait.spirit {
+      opacity: .78; filter: saturate(.6);
+      box-shadow:
+        0 0 0 2px var(--ink), 0 0 0 3px rgba(159,216,207,.45),
+        0 0 0 5px var(--ink), 0 0 0 6px rgba(159,216,207,.15),
+        0 0 16px rgba(159,216,207,.25);
+    }
+    .portrait.spirit b { color: #d6ece6; }
+    .pname { font-family: 'IM Fell English', serif; font-size: 19px; color: #e6d6ae; }
+    .badges { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+    .badge {
+      font-family: 'IM Fell English SC', serif; font-size: 10px; letter-spacing: .14em;
+      padding: 3px 7px 2px; border: 1px solid; border-radius: 3px;
+    }
+    .badge.host { color: var(--amber); border-color: rgba(232,168,76,.5); }
+    .badge.you  { color: var(--parch); border-color: rgba(216,196,154,.5); }
+    .badge.bot  { color: var(--teal); border-color: rgba(159,216,207,.38); opacity: .85; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 7px 1px rgba(232,168,76,.8); }
+    .settings { display: flex; flex-direction: column; gap: 9px; margin-top: 22px; }
+    .setting {
+      display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+      border: 1px solid var(--line); border-radius: 6px; background: var(--ink2);
+    }
+    .setting.col { flex-direction: column; align-items: stretch; gap: 10px; }
+    .set-label { font-family: 'IM Fell English', serif; font-size: 18px; color: #e6d6ae; }
+    .stepper { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+    .step {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 1px solid #4a3b26; color: #cdb98c; font-size: 19px; line-height: 1;
+      background: rgba(216,196,154,.04);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 0 2px var(--ink), 0 0 0 3px rgba(74,59,38,.4);
+    }
+    .set-val { font-family: 'IM Fell English', serif; font-size: 22px; color: var(--parch-hi); min-width: 16px; text-align: center; }
+    .seg { display: flex; border: 1px solid #4a3b26; border-radius: 4px; overflow: hidden; }
+    .seg button {
+      flex: 1; padding: 10px 0; border-left: 1px solid var(--line);
+      font-family: 'IM Fell English SC', serif; font-size: 14.5px; letter-spacing: .08em;
+      color: rgba(216,196,154,.5);
+    }
+    .seg button:first-child { border-left: 0; }
+    .seg button.on {
+      background: linear-gradient(180deg, #e6d4ab, #c6ab7a); color: #241409;
+      box-shadow: 0 0 18px rgba(232,168,76,.3); text-shadow: 0 1px 0 rgba(255,248,224,.5);
+    }
+    .helper { font-style: italic; font-size: 14.5px; color: var(--parch-dim); }
+    .lobby-start { margin-top: 26px; padding: 0 4px; }
+
+    /* ================= GAME ================= */
+    main[data-screen="game"] {
+      background:
+        radial-gradient(380px 280px at 50% 90px, rgba(232,168,76,.11), transparent 70%),
+        radial-gradient(420px 320px at 50% 78%, rgba(232,168,76,.06), transparent 70%),
+        radial-gradient(560px 460px at 50% 102%, rgba(93,33,32,.18), transparent 75%),
+        var(--ink);
+    }
+    .game-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .ghud {
+      font-family: 'IM Fell English SC', serif; font-size: 16px; letter-spacing: .08em;
+      color: var(--parch-hi); text-shadow: 0 0 12px rgba(232,168,76,.3); white-space: nowrap;
+    }
+    .ghud i { font-style: normal; color: var(--parch-dim); }
+    .gbtns { display: flex; gap: 5px; }
+    .scorebar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+    .schip {
+      display: flex; align-items: center; gap: 9px; padding: 8px 12px;
+      border: 1px solid var(--line); border-radius: 5px; background: var(--ink2);
+      font-family: 'IM Fell English', serif; font-size: 16.5px; color: #e6d6ae;
+    }
+    .schip b { margin-left: auto; font-weight: 400; font-size: 19px; color: var(--parch-hi); }
+    .sdot { flex: none; width: 9px; height: 9px; border-radius: 50%; }
+    .sdot.ben { background: #d96f4f; box-shadow: 0 0 8px rgba(217,111,79,.7); }
+    .sdot.vol { background: #8493cf; box-shadow: 0 0 8px rgba(132,147,207,.7); }
+    .sdot.mec { background: #d9aa4e; box-shadow: 0 0 8px rgba(217,170,78,.7); }
+    .sdot.dan { background: #7fbf8f; box-shadow: 0 0 8px rgba(127,191,143,.7); }
+    .panel {
+      position: relative; margin-top: 14px; padding: 14px;
+      border: 1px solid var(--line); border-radius: 8px;
+      background: radial-gradient(85% 70% at 50% 0%, rgba(232,168,76,.07), transparent 70%), var(--ink2);
+      box-shadow: 0 8px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(216,196,154,.05);
+    }
+    .sc-label {
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-family: 'IM Fell English SC', serif; font-size: 11px; letter-spacing: .22em;
+      color: var(--parch-dim);
+    }
+    .sc-label .hl { color: var(--amber); text-shadow: 0 0 10px rgba(232,168,76,.4); }
+    .banner-turn {
+      position: relative; margin: 13px 2px; padding: 11px 6px; text-align: center;
+      font-family: 'IM Fell English SC', serif; font-size: 13px; letter-spacing: .18em;
+      color: var(--amber); text-shadow: 0 0 16px rgba(232,168,76,.55);
+      border: 1px solid rgba(232,168,76,.35); border-radius: 3px;
+      background: radial-gradient(70% 140% at 50% 50%, rgba(232,168,76,.13), transparent 80%);
+    }
+    .pgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-top: 2px; }
+    .pcard {
+      position: relative; padding: 13px 6px 10px; text-align: center; border-radius: 6px;
+      border: 1px solid #3a2d1e;
+      background: radial-gradient(120% 90% at 50% 0%, #261c13, #1a130e 75%);
+      box-shadow: 0 4px 12px rgba(0,0,0,.4);
+      display: flex; flex-direction: column; align-items: center; gap: 7px;
+    }
+    .pcard .glyph { font-family: 'IM Fell English', serif; font-size: 26px; line-height: 1; }
+    .pcard .pwname { font-family: 'IM Fell English SC', serif; font-size: 10.5px; letter-spacing: .1em; color: rgba(216,196,154,.65); }
+    .pcard.teal    .glyph { color: #6fd4c3; text-shadow: 0 0 14px rgba(111,212,195,.55); }
+    .pcard.rose    .glyph { color: #e06a5e; text-shadow: 0 0 14px rgba(224,106,94,.55); }
+    .pcard.pink    .glyph { color: #e88bc0; text-shadow: 0 0 14px rgba(232,139,192,.6); }
+    .pcard.emerald .glyph { color: #79c98c; text-shadow: 0 0 14px rgba(121,201,140,.55); }
+    .pcard.violet  .glyph { color: #b08ae0; text-shadow: 0 0 14px rgba(176,138,224,.55); }
+    .pcard.amberp  .glyph { color: var(--amber); text-shadow: 0 0 14px rgba(232,168,76,.55); }
+    .pcard.sel {
+      transform: translateY(-4px);
+      border-color: rgba(232,168,76,.8);
+      background: radial-gradient(120% 90% at 50% 0%, #34261a, #221813 75%);
+      box-shadow:
+        0 0 0 2px var(--ink), 0 0 0 3px rgba(232,168,76,.55),
+        0 0 24px rgba(232,168,76,.35), 0 10px 18px rgba(0,0,0,.5);
+    }
+    .pcard.sel .pwname { color: var(--amber); }
+    .stgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 12px; }
+    .stat {
+      display: flex; gap: 10px; align-items: center; padding: 9px 10px;
+      border: 1px solid #2a2014; border-radius: 6px; background: rgba(23,18,16,.6);
+    }
+    .portrait.sm { width: 32px; height: 40px; }
+    .portrait.sm b { font-size: 16px; }
+    .stmeta { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .stname { font-family: 'IM Fell English', serif; font-size: 15.5px; color: #e6d6ae; white-space: nowrap; }
+    .stname i { font-style: italic; font-size: 12.5px; color: var(--parch-dim); }
+    .hand-read { font-size: 11.5px; letter-spacing: .2em; color: rgba(216,196,154,.42); white-space: nowrap; }
+    .status { font-family: 'IM Fell English SC', serif; font-size: 10.5px; letter-spacing: .14em; }
+    .status.thinking { color: var(--amber); text-shadow: 0 0 10px rgba(232,168,76,.5); }
+    .status.submitted { color: var(--teal); opacity: .8; }
+    .skip-btn {
+      width: 100%; margin-top: 12px; padding: 11px 6px; border-radius: 4px;
+      border: 1px dashed rgba(122,98,60,.55); color: rgba(216,196,154,.5);
+      font-family: 'IM Fell English SC', serif; font-size: 11px; letter-spacing: .16em;
+      background: rgba(216,196,154,.02);
+    }
+
+    /* ---- number tiles: spirit-board parchment ---- */
+    .hand { display: flex; justify-content: center; gap: 6px; margin: 16px 0 22px; }
+    .tile {
+      position: relative; width: 57px; height: 80px; flex: none;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 7px 10px 8px 11px / 10px 8px 11px 7px;
+      background:
+        radial-gradient(42px 30px at 0% 0%, rgba(58,30,12,.55), transparent 70%),
+        radial-gradient(36px 26px at 100% 6%, rgba(58,30,12,.42), transparent 70%),
+        radial-gradient(46px 32px at 100% 100%, rgba(58,30,12,.55), transparent 70%),
+        radial-gradient(38px 28px at 2% 98%, rgba(58,30,12,.48), transparent 70%),
+        radial-gradient(120% 90% at 50% 28%, #ead8ae 0%, #d8c49a 55%, #bda06c 100%);
+      box-shadow:
+        inset 0 0 0 1px rgba(82,52,18,.55),
+        inset 0 0 12px rgba(58,30,12,.4),
+        0 7px 14px rgba(0,0,0,.55);
+      color: #2b1a10;
+    }
+    .tile::before {
+      content: ""; position: absolute; inset: 4px; border-radius: inherit;
+      border: 1px solid rgba(82,52,18,.32); pointer-events: none;
+    }
+    .tile .num {
+      font-family: 'IM Fell English', serif; font-size: 37px; line-height: 1;
+      text-shadow: 0 1px 0 rgba(255,248,224,.45);
+    }
+    .hand .tile:nth-child(2) { transform: rotate(-1.4deg); }
+    .hand .tile:nth-child(3) { transform: rotate(1.1deg); }
+    .hand .tile:nth-child(4) { transform: rotate(-.7deg); }
+    .hand .tile:nth-child(5) { transform: rotate(1.4deg); }
+    .tile.planch {
+      border-radius: 50% 50% 12px 12px / 64% 64% 9% 9%;
+      transform: rotate(-1.8deg);
+    }
+    .tile.planch::before { inset: 5px; border-radius: inherit; }
+    .tile.planch .hole {
+      position: absolute; left: 50%; top: 55%; transform: translate(-50%, -50%);
+      width: 38px; height: 38px; border-radius: 50%;
+      border: 1.5px solid rgba(70,45,15,.6);
+      box-shadow: inset 0 2px 5px rgba(0,0,0,.3), 0 1px 0 rgba(255,248,224,.4);
+    }
+    .tile.planch .num {
+      position: absolute; left: 50%; top: 55%; transform: translate(-50%, -54%);
+      font-size: 27px;
+    }
+    .tile.sel {
+      transform: translateY(-9px) rotate(.6deg);
+      background:
+        radial-gradient(42px 30px at 0% 0%, rgba(58,30,12,.42), transparent 70%),
+        radial-gradient(46px 32px at 100% 100%, rgba(58,30,12,.42), transparent 70%),
+        radial-gradient(120% 90% at 50% 28%, #f4e4ba 0%, #e2cea2 55%, #c6aa76 100%);
+      box-shadow:
+        inset 0 0 0 1px rgba(82,52,18,.55),
+        inset 0 0 12px rgba(58,30,12,.35),
+        0 0 0 2px var(--ink), 0 0 0 3.5px rgba(232,168,76,.9),
+        0 0 26px rgba(232,168,76,.45),
+        0 14px 20px rgba(0,0,0,.55);
+    }
+    .handsec .btn { margin: 0 4px; width: auto; }
+    .handsec { padding-bottom: 4px; }
+
+    /* ================= REVEAL ================= */
+    main[data-screen="reveal"] {
+      background:
+        radial-gradient(460px 420px at 50% 40%, rgba(232,168,76,.13), transparent 72%),
+        radial-gradient(560px 460px at 50% 104%, rgba(93,33,32,.22), transparent 75%),
+        #120d0a;
+    }
+    .reveal-wrap { padding-top: 46px; }
+    .played {
+      position: relative; width: fit-content; margin: 22px auto 0; padding: 16px 34px 18px;
+      text-align: center; border: 1px solid var(--line-gold); border-radius: 6px;
+      background: radial-gradient(80% 120% at 50% 0%, rgba(232,139,192,.07), transparent 75%), var(--ink2);
+      box-shadow: 0 10px 28px rgba(0,0,0,.5);
+    }
+    .played-label {
+      font-family: 'IM Fell English SC', serif; font-size: 11.5px; letter-spacing: .26em;
+      color: var(--parch-dim); margin-bottom: 10px;
+    }
+    .played .pcard { width: 92px; margin: 0 auto; }
+    .rgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 12px; margin: 26px 6px 8px; }
+    .rcell { text-align: center; }
+    .rname {
+      font-family: 'IM Fell English SC', serif; font-size: 13.5px; letter-spacing: .2em;
+      margin-bottom: 9px;
+    }
+    .t-ben { color: #e08a6e; } .t-vol { color: #93a3dd; } .t-mec { color: #d9b25e; } .t-dan { color: #8cc79a; }
+    .rcardwrap { position: relative; height: 104px; }
+    .rtile { width: 64px; height: 88px; margin: 0 auto; }
+    .rtile .num { font-size: 41px; }
+    .seat {
+      display: block; width: 48px; height: 9px; margin: 4px auto 0; border-radius: 50%;
+      background: radial-gradient(50% 50% at 50% 50%, rgba(0,0,0,.6), transparent 75%);
+    }
+    .ghosted .rtile {
+      opacity: .52;
+      transform: translateY(-12px) rotate(-1.2deg);
+      background: radial-gradient(120% 90% at 50% 28%, #d4eae3 0%, #abcfc6 58%, #7da69c 100%);
+      color: #2e4f47;
+      box-shadow:
+        inset 0 0 0 1px rgba(46,79,71,.45),
+        0 0 18px rgba(159,216,207,.22),
+        0 16px 16px rgba(0,0,0,.3);
+    }
+    .ghosted .rtile::before { border-color: rgba(46,79,71,.35); }
+    .ghosted .rtile .num { text-shadow: 0 0 12px rgba(159,216,207,.6); }
+    .ghosted .rtile.gh2 { transform: translateY(-12px) rotate(1.4deg); }
+    .ghosted .rtile.gh3 { transform: translateY(-12px) rotate(-.6deg); }
+    .zero .rtile {
+      box-shadow:
+        inset 0 0 0 1px rgba(82,52,18,.55),
+        inset 0 0 12px rgba(58,30,12,.4),
+        0 0 0 2px rgba(232,168,76,.85),
+        0 0 22px 5px rgba(232,168,76,.42),
+        0 0 70px 22px rgba(232,168,76,.15),
+        0 7px 14px rgba(0,0,0,.55);
+    }
+    .pts { margin-top: 8px; font-family: 'IM Fell English SC', serif; font-size: 14px; letter-spacing: .12em; color: var(--parch-dim); }
+    .pts.zero-pts { font-size: 19px; color: var(--amber); text-shadow: 0 0 14px rgba(232,168,76,.6); }
+    .whisper {
+      margin-top: 2px; font-family: 'IM Fell English', serif; font-style: italic;
+      text-transform: lowercase; font-size: 16px; letter-spacing: .12em;
+      color: var(--teal); opacity: .85; text-shadow: 0 0 14px rgba(159,216,207,.45);
+    }
+    .whisper.blank { visibility: hidden; }
+    .reveal-cta { margin: 26px 4px 0; }
+
+    /* ================= END ================= */
+    main[data-screen="end"] {
+      background:
+        radial-gradient(440px 340px at 50% 150px, rgba(232,168,76,.14), transparent 72%),
+        radial-gradient(560px 460px at 50% 102%, rgba(93,33,32,.22), transparent 75%),
+        var(--ink);
+    }
+    .end-wrap { padding-top: 64px; }
+    .won-row { display: flex; align-items: flex-end; justify-content: center; gap: 22px; margin-top: 20px; }
+    .won {
+      font-family: 'IM Fell English', serif; font-weight: 400; font-style: italic;
+      font-size: 54px; line-height: 1; color: var(--parch-hi); text-align: center;
+      text-shadow: 0 0 30px rgba(232,168,76,.45), 0 0 70px rgba(232,168,76,.2), 0 2px 3px rgba(0,0,0,.6);
+    }
+    .scoretable {
+      position: relative; margin: 36px 2px 0; padding: 14px 12px 10px;
+      border: 1px solid var(--line-gold); border-radius: 6px;
+      background: radial-gradient(80% 100% at 50% 0%, rgba(232,168,76,.08), transparent 75%), var(--ink2);
+      box-shadow: 0 12px 32px rgba(0,0,0,.5);
+    }
+    .scoretable::before {
+      content: ""; position: absolute; inset: 5px; border: 1px solid rgba(201,169,106,.16);
+      border-radius: 3px; pointer-events: none;
+    }
+    .trow {
+      display: grid; grid-template-columns: 15px 30px 1fr 26px 26px 26px 48px;
+      gap: 6px; align-items: center; padding: 7px 6px; border-radius: 5px;
+    }
+    .trow.thead {
+      padding-bottom: 4px;
+      font-family: 'IM Fell English SC', serif; font-size: 10px; letter-spacing: .14em;
+      color: var(--parch-dim);
+    }
+    .tc { text-align: center; font-size: 15px; color: rgba(216,196,154,.7); }
+    .tt { text-align: center; font-family: 'IM Fell English', serif; font-size: 21px; color: var(--parch-hi); }
+    .thead .tc, .thead .tt { font-family: inherit; font-size: 10px; color: var(--parch-dim); }
+    .rank { font-family: 'IM Fell English SC', serif; font-size: 13px; color: var(--parch-dim); text-align: center; }
+    .portrait.xs { width: 26px; height: 32px; border-radius: 50%; }
+    .portrait.xs b { font-size: 13px; }
+    .tname { font-family: 'IM Fell English', serif; font-size: 17px; color: #e6d6ae; white-space: nowrap; overflow: hidden; }
+    .tname i { font-style: italic; font-size: 13px; color: var(--parch-dim); }
+    .trow.winner {
+      background: radial-gradient(70% 140% at 50% 50%, rgba(232,168,76,.16), rgba(232,168,76,.04) 80%);
+      box-shadow: 0 0 0 1px rgba(232,168,76,.55), 0 0 20px rgba(232,168,76,.2);
+    }
+    .trow.winner .tname, .trow.winner .tt { color: #fff3d6; text-shadow: 0 0 12px rgba(232,168,76,.5); }
+    .trow.winner .rank { color: var(--amber); }
+    .end-btns { display: flex; flex-direction: column; gap: 16px; margin: 34px 4px 0; }
+    .mote { position: absolute; border-radius: 50%; z-index: 1; pointer-events: none; }
+    .m-a { background: var(--amber); box-shadow: 0 0 8px 1px rgba(232,168,76,.7); }
+    .m-t { background: var(--teal); box-shadow: 0 0 8px 1px rgba(159,216,207,.6); }
+    .m-p { background: var(--parch); box-shadow: 0 0 7px 1px rgba(216,196,154,.55); }
+
+    /* ---- switcher theming ---- */
+    #switcher a {
+      width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+      background: #231a12; border: 1px solid #4a3b26; color: #cdb98c;
+      text-decoration: none; font-family: 'IM Fell English SC', serif; font-size: 13px;
+      border-radius: 3px;
+    }
+
+    /* ============ flourish motion (humans only; shots capture resting state) ============ */
+    @media (prefers-reduced-motion: no-preference) {
+      .flame { animation: flicker 1.7s ease-in-out infinite alternate; transform-origin: 50% 90%; }
+      @keyframes flicker {
+        0%   { transform: scaleY(1) skewX(0deg); }
+        35%  { transform: scaleY(.93) skewX(2.4deg); }
+        70%  { transform: scaleY(1.05) skewX(-1.6deg); }
+        100% { transform: scaleY(.97) skewX(2deg); }
+      }
+      .fog { animation: drift 30s ease-in-out infinite alternate; }
+      .f2 { animation-duration: 38s; animation-delay: -12s; }
+      .f3 { animation-duration: 24s; animation-delay: -6s; }
+      @keyframes drift {
+        from { translate: -34px 0; }
+        to   { translate: 40px 0; }
+      }
+      .mote { animation: float 6.5s ease-in-out infinite alternate; }
+      .mote:nth-child(odd) { animation-duration: 8.5s; animation-delay: -3s; }
+      @keyframes float {
+        from { transform: translateY(0); }
+        to   { transform: translateY(-16px); }
+      }
+      .banner-turn { animation: summon 2.8s ease-in-out infinite; }
+      @keyframes summon {
+        0%, 100% { box-shadow: 0 0 6px rgba(232,168,76,.1); }
+        50%      { box-shadow: 0 0 22px rgba(232,168,76,.3); }
+      }
+      .ghosted .rtile { animation: hover-ghost 4.5s ease-in-out infinite alternate; }
+      @keyframes hover-ghost {
+        from { translate: 0 0; }
+        to   { translate: 0 -5px; }
+      }
+      .btn, .pcard, .tile, .seg button, .step, .btn-sm, .btn-xs { transition: box-shadow .25s, transform .25s, background .25s; }
+      .wordmark .ghost-letter { animation: shimmer 5s ease-in-out infinite alternate; }
+      @keyframes shimmer {
+        from { opacity: .72; }
+        to   { opacity: .95; }
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- ================= 1 · HOME ================= -->
+  <main data-screen="home">
+    <div class="fog f1"></div>
+    <div class="fog f2"></div>
+    <div class="fog f3"></div>
+    <div class="ouija">
+      <span style="transform: translateY(15px) rotate(-12deg)">A</span>
+      <span style="transform: translateY(9px) rotate(-9deg)">B</span>
+      <span style="transform: translateY(5px) rotate(-6.5deg)">C</span>
+      <span style="transform: translateY(2px) rotate(-4deg)">D</span>
+      <span style="transform: translateY(.5px) rotate(-2deg)">E</span>
+      <span style="transform: translateY(0) rotate(0deg)">F</span>
+      <span style="transform: translateY(0) rotate(0deg)">G</span>
+      <span style="transform: translateY(.5px) rotate(2deg)">H</span>
+      <span style="transform: translateY(2px) rotate(4deg)">I</span>
+      <span style="transform: translateY(5px) rotate(6.5deg)">J</span>
+      <span style="transform: translateY(9px) rotate(9deg)">K</span>
+      <span style="transform: translateY(15px) rotate(12deg)">L</span>
+    </div>
+    <div class="table-edge"></div>
+    <div class="wrap home-wrap">
+      <div class="seance-head">
+        <div class="candle">
+          <i class="flame"></i><i class="wick"></i><i class="wax"></i><i class="dish"></i>
+        </div>
+        <div>
+          <h1 class="wordmark" aria-label="CANCEL">
+            <span style="--dy:-2px; --rt:-1.2deg">C</span><span style="--dy:2px; --rt:.8deg">A</span><span style="--dy:-1px; --rt:-.4deg">N</span><span class="ghost-letter" style="--dy:3px; --rt:-1.8deg">C</span><span style="--dy:-2px; --rt:1deg">E</span><span style="--dy:1px; --rt:-.8deg">L</span>
+          </h1>
+          <p class="tagline">a number-picking party game</p>
+        </div>
+        <div class="candle short">
+          <i class="flame"></i><i class="wick"></i><i class="wax"></i><i class="dish"></i>
+        </div>
+      </div>
+      <div class="divider"><i></i></div>
+      <div class="home-btns">
+        <button class="btn btn-primary grain">New game</button>
+        <button class="btn btn-ghost">Single player</button>
+        <button class="btn btn-ghost">Join with code</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ================= 2 · LOBBY ================= -->
+  <main data-screen="lobby">
+    <div class="fog f1"></div>
+    <div class="fog f2"></div>
+    <div class="wrap">
+      <div class="topbar">
+        <button class="btn-sm">← Leave</button>
+        <button class="btn-sm">Rules</button>
+      </div>
+      <div class="code-card">
+        <i class="cnr tl"></i><i class="cnr tr"></i><i class="cnr br"></i><i class="cnr bl"></i>
+        <div class="code">DN2H</div>
+        <div class="code-hint">press to copy</div>
+      </div>
+      <p class="label"><span>Players · 4</span></p>
+      <ul class="players">
+        <li class="player">
+          <span class="portrait ben"><b>B</b></span>
+          <span class="pname">Ben</span>
+          <span class="badges"><i class="badge host">HOST</i><i class="badge you">YOU</i><i class="dot"></i></span>
+        </li>
+        <li class="player">
+          <span class="portrait vol spirit"><b>V</b></span>
+          <span class="pname">Voltaire</span>
+          <span class="badges"><i class="badge bot">BOT</i><i class="dot"></i></span>
+        </li>
+        <li class="player">
+          <span class="portrait mec spirit"><b>M</b></span>
+          <span class="pname">Mechano</span>
+          <span class="badges"><i class="badge bot">BOT</i><i class="dot"></i></span>
+        </li>
+        <li class="player">
+          <span class="portrait dan spirit"><b>D</b></span>
+          <span class="pname">Data Dan</span>
+          <span class="badges"><i class="badge bot">BOT</i><i class="dot"></i></span>
+        </li>
+      </ul>
+      <div class="settings">
+        <div class="setting">
+          <span class="set-label">Rounds</span>
+          <span class="stepper"><button class="step">−</button><b class="set-val">3</b><button class="step">+</button></span>
+        </div>
+        <div class="setting">
+          <span class="set-label">AI players</span>
+          <span class="stepper"><button class="step">−</button><b class="set-val">3</b><button class="step">+</button></span>
+        </div>
+        <div class="setting col">
+          <span class="set-label">Power-ups</span>
+          <div class="seg">
+            <button>None</button>
+            <button class="on">Random</button>
+            <button>Choose</button>
+          </div>
+          <p class="helper">A fresh random pool each round.</p>
+        </div>
+      </div>
+      <div class="lobby-start">
+        <button class="btn btn-primary grain">Start game</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ================= 3 · GAME ================= -->
+  <main data-screen="game">
+    <div class="fog f1"></div>
+    <div class="fog f2"></div>
+    <div class="wrap">
+      <header class="game-head">
+        <div class="ghud">R1<i>/3</i> · T2<i>/6</i> · DN2H</div>
+        <div class="gbtns">
+          <button class="btn-xs">RULES</button>
+          <button class="btn-xs">LEAVE</button>
+          <button class="btn-xs danger">END GAME</button>
+        </div>
+      </header>
+      <div class="scorebar">
+        <div class="schip"><i class="sdot ben"></i>Ben<b>4</b></div>
+        <div class="schip"><i class="sdot vol"></i>Voltaire<b>0</b></div>
+        <div class="schip"><i class="sdot mec"></i>Mechano<b>2</b></div>
+        <div class="schip"><i class="sdot dan"></i>Data Dan<b>5</b></div>
+      </div>
+      <section class="panel">
+        <div class="sc-label"><span>POWER-UPS REMAINING</span><span class="hl">6 / 6</span></div>
+        <div class="banner-turn">
+          <i class="cnr tl"></i><i class="cnr tr"></i><i class="cnr br"></i><i class="cnr bl"></i>
+          YOUR TURN, PRESS TO SELECT
+        </div>
+        <div class="pgrid">
+          <button class="pcard teal"><span class="glyph">⇄</span><span class="pwname">Swap Hands</span></button>
+          <button class="pcard rose"><span class="glyph">✖</span><span class="pwname">Sabotage</span></button>
+          <button class="pcard pink sel"><span class="glyph">=</span><span class="pwname">Jinx</span></button>
+          <button class="pcard emerald"><span class="glyph">+2</span><span class="pwname">Plus Two</span></button>
+          <button class="pcard violet"><span class="glyph">?</span><span class="pwname">Wild</span></button>
+          <button class="pcard amberp"><span class="glyph">↧</span><span class="pwname">Drain</span></button>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="sc-label"><span>PLAYERS · POWER PICKER: <b class="hl" style="font-weight:400">BEN</b></span></div>
+        <div class="stgrid">
+          <div class="stat">
+            <span class="portrait sm ben"><b>B</b></span>
+            <div class="stmeta">
+              <span class="stname">Ben <i>(you)</i></span>
+              <span class="hand-read">Ø 1 2 3 4 5</span>
+              <span class="status thinking">THINKING…</span>
+            </div>
+          </div>
+          <div class="stat">
+            <span class="portrait sm vol spirit"><b>V</b></span>
+            <div class="stmeta">
+              <span class="stname">Voltaire</span>
+              <span class="hand-read">Ø 1 2 3 4 5</span>
+              <span class="status submitted">SUBMITTED</span>
+            </div>
+          </div>
+          <div class="stat">
+            <span class="portrait sm mec spirit"><b>M</b></span>
+            <div class="stmeta">
+              <span class="stname">Mechano</span>
+              <span class="hand-read">Ø 1 2 3 4 5</span>
+              <span class="status submitted">SUBMITTED</span>
+            </div>
+          </div>
+          <div class="stat">
+            <span class="portrait sm dan spirit"><b>D</b></span>
+            <div class="stmeta">
+              <span class="stname">Data Dan</span>
+              <span class="hand-read">Ø 1 2 3 4 5</span>
+              <span class="status submitted">SUBMITTED</span>
+            </div>
+          </div>
+        </div>
+        <button class="skip-btn">SKIP WAITING, AUTO-PLAY WHO'S LEFT</button>
+      </section>
+      <section class="handsec">
+        <p class="label"><span>YOUR HAND</span></p>
+        <div class="hand">
+          <button class="tile planch grain"><b class="hole"></b><span class="num">Ø</span></button>
+          <button class="tile grain"><span class="num">1</span></button>
+          <button class="tile grain"><span class="num">2</span></button>
+          <button class="tile grain"><span class="num">3</span></button>
+          <button class="tile grain"><span class="num">4</span></button>
+          <button class="tile sel grain"><span class="num">5</span></button>
+        </div>
+        <button class="btn btn-primary grain">Lock it in</button>
+      </section>
+    </div>
+  </main>
+
+  <!-- ================= 4 · REVEAL ================= -->
+  <main data-screen="reveal">
+    <div class="fog f1"></div>
+    <div class="fog f3"></div>
+    <div class="wrap reveal-wrap">
+      <p class="eyebrow">TURN 2 REVEAL</p>
+      <div class="played">
+        <i class="cnr tl"></i><i class="cnr tr"></i><i class="cnr br"></i><i class="cnr bl"></i>
+        <p class="played-label">BEN PLAYED</p>
+        <div class="pcard pink"><span class="glyph">=</span><span class="pwname">Jinx</span></div>
+      </div>
+      <div class="rgrid">
+        <div class="rcell ghosted">
+          <p class="rname t-ben">Ben</p>
+          <div class="rcardwrap">
+            <div class="tile rtile"><span class="num">5</span></div>
+            <i class="seat"></i>
+          </div>
+          <p class="pts">0</p>
+          <p class="whisper">CANCELLED</p>
+        </div>
+        <div class="rcell zero">
+          <p class="rname t-vol">Voltaire</p>
+          <div class="rcardwrap">
+            <div class="tile planch rtile grain"><b class="hole"></b><span class="num">Ø</span></div>
+            <i class="seat"></i>
+          </div>
+          <p class="pts zero-pts">0</p>
+          <p class="whisper blank">CANCELLED</p>
+        </div>
+        <div class="rcell ghosted">
+          <p class="rname t-mec">Mechano</p>
+          <div class="rcardwrap">
+            <div class="tile rtile gh2"><span class="num">5</span></div>
+            <i class="seat"></i>
+          </div>
+          <p class="pts">0</p>
+          <p class="whisper">CANCELLED</p>
+        </div>
+        <div class="rcell ghosted">
+          <p class="rname t-dan">Data Dan</p>
+          <div class="rcardwrap">
+            <div class="tile rtile gh3"><span class="num">3</span></div>
+            <i class="seat"></i>
+          </div>
+          <p class="pts">0</p>
+          <p class="whisper">CANCELLED</p>
+        </div>
+      </div>
+      <div class="reveal-cta">
+        <button class="btn btn-primary grain">Continue</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ================= 5 · END ================= -->
+  <main data-screen="end">
+    <div class="fog f1"></div>
+    <div class="fog f2"></div>
+    <i class="mote m-a" style="left:8%;  top:7%;  width:4px; height:4px; opacity:.8"></i>
+    <i class="mote m-t" style="left:22%; top:4%;  width:3px; height:3px; opacity:.55"></i>
+    <i class="mote m-p" style="left:38%; top:9%;  width:2px; height:2px; opacity:.6"></i>
+    <i class="mote m-a" style="left:57%; top:5%;  width:4px; height:4px; opacity:.5; filter:blur(1px)"></i>
+    <i class="mote m-p" style="left:71%; top:11%; width:3px; height:3px; opacity:.65"></i>
+    <i class="mote m-t" style="left:87%; top:6%;  width:4px; height:4px; opacity:.5"></i>
+    <i class="mote m-p" style="left:12%; top:24%; width:3px; height:3px; opacity:.5"></i>
+    <i class="mote m-a" style="left:90%; top:22%; width:3px; height:3px; opacity:.7"></i>
+    <i class="mote m-t" style="left:5%;  top:42%; width:4px; height:4px; opacity:.4; filter:blur(1px)"></i>
+    <i class="mote m-a" style="left:49%; top:30%; width:2px; height:2px; opacity:.75"></i>
+    <i class="mote m-p" style="left:79%; top:38%; width:3px; height:3px; opacity:.5"></i>
+    <i class="mote m-a" style="left:29%; top:50%; width:3px; height:3px; opacity:.6"></i>
+    <i class="mote m-t" style="left:66%; top:52%; width:4px; height:4px; opacity:.45"></i>
+    <i class="mote m-a" style="left:15%; top:66%; width:3px; height:3px; opacity:.55; filter:blur(1px)"></i>
+    <i class="mote m-p" style="left:88%; top:62%; width:2px; height:2px; opacity:.6"></i>
+    <i class="mote m-t" style="left:44%; top:74%; width:3px; height:3px; opacity:.4"></i>
+    <div class="wrap end-wrap">
+      <p class="eyebrow">GAME OVER</p>
+      <div class="won-row">
+        <div class="candle mini">
+          <i class="flame"></i><i class="wick"></i><i class="wax"></i><i class="dish"></i>
+        </div>
+        <h2 class="won">You won.</h2>
+        <div class="candle mini">
+          <i class="flame"></i><i class="wick"></i><i class="wax"></i><i class="dish"></i>
+        </div>
+      </div>
+      <div class="scoretable">
+        <i class="cnr tl"></i><i class="cnr tr"></i><i class="cnr br"></i><i class="cnr bl"></i>
+        <div class="trow thead">
+          <span></span><span></span><span></span>
+          <span class="tc">R1</span><span class="tc">R2</span><span class="tc">R3</span><span class="tt">TOTAL</span>
+        </div>
+        <div class="trow winner">
+          <span class="rank">1</span>
+          <span class="portrait xs ben"><b>B</b></span>
+          <span class="tname">Ben <i>(you)</i></span>
+          <span class="tc">5</span><span class="tc">9</span><span class="tc">6</span><span class="tt">20</span>
+        </div>
+        <div class="trow">
+          <span class="rank">2</span>
+          <span class="portrait xs dan spirit"><b>D</b></span>
+          <span class="tname">Data Dan</span>
+          <span class="tc">5</span><span class="tc">4</span><span class="tc">3</span><span class="tt">12</span>
+        </div>
+        <div class="trow">
+          <span class="rank">3</span>
+          <span class="portrait xs vol spirit"><b>V</b></span>
+          <span class="tname">Voltaire</span>
+          <span class="tc">3</span><span class="tc">2</span><span class="tc">4</span><span class="tt">9</span>
+        </div>
+        <div class="trow">
+          <span class="rank">4</span>
+          <span class="portrait xs mec spirit"><b>M</b></span>
+          <span class="tname">Mechano</span>
+          <span class="tc">0</span><span class="tc">5</span><span class="tc">2</span><span class="tt">7</span>
+        </div>
+      </div>
+      <div class="end-btns">
+        <button class="btn btn-primary grain">Play again</button>
+        <button class="btn btn-ghost">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

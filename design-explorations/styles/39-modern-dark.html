@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Modern Dark</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ============ tokens ============ */
+    :root {
+      --bg: #0e1013;
+      --panel: #15181d;
+      --panel2: #1a1e24;
+      --panel3: #20252d;
+      --line: rgba(255,255,255,.08);
+      --line2: rgba(255,255,255,.14);
+      --text: #f2f3f5;
+      --muted: #9aa1ab;
+      --faint: #6b7280;
+      --accent: #7c86ff;
+      --accent-soft: rgba(124,134,255,.14);
+      --accent-line: rgba(124,134,255,.45);
+      --green: #3fcf8e;
+      --amber: #f5b94c;
+      --red: #ff5468;
+      --ben: #ff7d6e;
+      --vol: #6ea3ff;
+      --mech: #f0b13f;
+      --dan: #3fcf8e;
+      --mono: "JetBrains Mono", monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { background: var(--bg); }
+    body {
+      font-family: "Instrument Sans", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(ellipse 130% 55% at 50% -8%, rgba(124,134,255,.075), transparent 62%),
+        radial-gradient(rgba(255,255,255,.022) 1px, transparent 1.4px),
+        var(--bg);
+      background-size: auto, 26px 26px, auto;
+      -webkit-font-smoothing: antialiased;
+    }
+    main[data-screen] {
+      max-width: 420px;
+      margin: 0 auto;
+      min-height: 100vh;
+      padding: 20px 18px 28px;
+      position: relative;
+    }
+    button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+
+    /* ============ shared primitives ============ */
+    .lbl {
+      font-size: 11px; font-weight: 600; letter-spacing: .14em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .lbl-sm { font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+
+    .btn-primary {
+      display: block; width: 100%; height: 52px; border-radius: 12px;
+      background: linear-gradient(180deg, #98a0ff, #7c86ff 78%);
+      color: #0b0d12; font-weight: 600; font-size: 16px;
+      box-shadow: 0 0 0 1px rgba(124,134,255,.5), 0 8px 28px rgba(124,134,255,.16), inset 0 1px 0 rgba(255,255,255,.35);
+    }
+    .btn-ghost {
+      display: block; width: 100%; height: 52px; border-radius: 12px;
+      background: var(--panel); border: 1px solid var(--line);
+      color: var(--text); font-weight: 500; font-size: 15px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    }
+    .btn-chip {
+      height: 32px; padding: 0 12px; border-radius: 8px;
+      background: var(--panel); border: 1px solid var(--line);
+      color: var(--muted); font-size: 11px; font-weight: 600;
+      letter-spacing: .1em; text-transform: uppercase;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-chip.danger { color: #e98a93; }
+
+    .panel {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
+    }
+
+    .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: none; }
+    .dot.on { background: var(--green); box-shadow: 0 0 6px rgba(63,207,142,.55); }
+    .dot.think { background: var(--amber); box-shadow: 0 0 6px rgba(245,185,76,.5); }
+    .dot.dead { background: var(--red); box-shadow: 0 0 6px rgba(255,84,104,.5); }
+
+    .avatar {
+      width: 32px; height: 32px; border-radius: 50%; flex: none;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700;
+    }
+    .av-ben  { color: var(--ben);  background: rgba(255,125,110,.1);  box-shadow: inset 0 0 0 1px rgba(255,125,110,.38); }
+    .av-vol  { color: var(--vol);  background: rgba(110,163,255,.1);  box-shadow: inset 0 0 0 1px rgba(110,163,255,.38); }
+    .av-mech { color: var(--mech); background: rgba(240,177,63,.1);   box-shadow: inset 0 0 0 1px rgba(240,177,63,.38); }
+    .av-dan  { color: var(--dan);  background: rgba(63,207,142,.1);   box-shadow: inset 0 0 0 1px rgba(63,207,142,.38); }
+
+    .seat { width: 8px; height: 8px; border-radius: 50%; flex: none; display: inline-block; }
+    .seat-ben { background: var(--ben); } .seat-vol { background: var(--vol); }
+    .seat-mech { background: var(--mech); } .seat-dan { background: var(--dan); }
+
+    .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+    /* ============ number cards ============ */
+    .num {
+      position: relative;
+      background: linear-gradient(180deg, #1d2128, #171a20);
+      border: 1px solid rgba(255,255,255,.11);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; color: var(--text);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 2px 6px rgba(0,0,0,.35);
+    }
+    .num.zero { border-style: dashed; border-color: rgba(255,255,255,.22); background: linear-gradient(180deg, #1a1d24, #15181e); }
+    .num.sel {
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      background: linear-gradient(180deg, #1f2330, #181c28);
+      box-shadow: 0 0 8px rgba(124,134,255,.32), 0 0 0 1px rgba(124,134,255,.32), inset 0 1px 0 rgba(255,255,255,.08);
+    }
+    .num .pip {
+      position: absolute; top: 7px; left: 9px;
+      font-size: 9px; font-weight: 600; letter-spacing: .04em; color: var(--faint);
+    }
+    .num.sel .pip { color: var(--accent); opacity: .8; }
+
+    /* ============ power chips ============ */
+    .pow {
+      position: relative;
+      background: #171a20; border: 1px solid var(--line); border-radius: 10px;
+      padding: 12px 8px 10px; text-align: center;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    }
+    .pow::before {
+      content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 2px;
+      border-radius: 2px; background: var(--pc);
+    }
+    .pow .glyph { display: block; font-size: 19px; font-weight: 700; color: var(--pc); line-height: 1; margin-bottom: 7px; }
+    .pow .pname { display: block; font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #c7ccd4; }
+    .pow.sel {
+      border-color: var(--accent);
+      box-shadow: 0 0 8px rgba(124,134,255,.3), 0 0 0 1px rgba(124,134,255,.35), inset 0 1px 0 rgba(255,255,255,.05);
+    }
+    .pow.sel::after {
+      content: ""; position: absolute; top: 7px; right: 7px;
+      width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+      box-shadow: 0 0 6px rgba(124,134,255,.7);
+    }
+    .pc-teal { --pc: #2dd4bf; } .pc-rose { --pc: #fb7185; } .pc-pink { --pc: #f472b6; }
+    .pc-emerald { --pc: #34d399; } .pc-violet { --pc: #a78bfa; } .pc-amber { --pc: #fbbf24; }
+
+    /* ============ switcher ============ */
+    #switcher a {
+      width: 26px; height: 26px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--panel); border: 1px solid var(--line);
+      color: var(--muted); font-size: 11px; font-weight: 600; text-decoration: none;
+      font-family: var(--mono);
+    }
+
+    /* ============ 1 · home ============ */
+    .home-wrap { min-height: calc(100vh - 48px); display: flex; flex-direction: column; justify-content: center; }
+    .home-top { position: absolute; top: 20px; right: 18px; }
+    .icon-btn {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: var(--panel); border: 1px solid var(--line);
+      display: inline-flex; align-items: center; justify-content: center; color: var(--muted);
+    }
+    .wordmark {
+      font-size: 58px; font-weight: 700; letter-spacing: -.025em; line-height: 1;
+      text-align: center;
+    }
+    .wordmark .a { color: var(--text); }
+    .wordmark .b { color: var(--accent); text-shadow: 0 0 28px rgba(124,134,255,.35); }
+    .tagline { text-align: center; margin-top: 14px; }
+    .home-strip {
+      display: flex; justify-content: center; gap: 7px; margin: 34px 0 40px;
+    }
+    .home-strip .num {
+      width: 38px; height: 50px; font-size: 17px; border-radius: 9px;
+      color: var(--muted); box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+    }
+    .home-strip .num.sel { color: var(--accent); }
+    .home-btns { display: flex; flex-direction: column; gap: 12px; }
+
+    /* ============ 2 · lobby ============ */
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 26px; }
+    .code-block { text-align: center; margin-bottom: 30px; }
+    .code-cells { display: inline-flex; gap: 8px; }
+    .code-cells span {
+      width: 56px; height: 66px; border-radius: 12px;
+      background: linear-gradient(180deg, #1c2027, #171a20);
+      border: 1px solid var(--line2);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 28px; font-weight: 600; color: var(--text);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 2px 8px rgba(0,0,0,.3);
+    }
+    .code-hint { margin-top: 10px; }
+    .sect { margin-bottom: 10px; display: flex; justify-content: space-between; align-items: baseline; }
+    .prow {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px;
+    }
+    .prow + .prow { border-top: 1px solid var(--line); }
+    .prow .name { font-size: 15px; font-weight: 600; flex: 1; }
+    .badge {
+      font-size: 9.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+      padding: 3px 7px; border-radius: 6px; flex: none;
+    }
+    .badge.host { color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px rgba(124,134,255,.3); }
+    .badge.you  { color: var(--text); background: rgba(255,255,255,.07); box-shadow: inset 0 0 0 1px var(--line2); }
+    .badge.bot  { color: var(--muted); background: rgba(255,255,255,.045); box-shadow: inset 0 0 0 1px var(--line); }
+    .setting {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 14px;
+    }
+    .setting + .setting { border-top: 1px solid var(--line); }
+    .setting .sname { font-size: 14.5px; font-weight: 600; }
+    .stepper { display: flex; align-items: center; gap: 14px; }
+    .stepper button {
+      width: 34px; height: 34px; border-radius: 9px;
+      background: var(--panel2); border: 1px solid var(--line2);
+      color: var(--text); font-size: 17px; font-weight: 600; line-height: 1;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .stepper .val { font-size: 17px; font-weight: 700; min-width: 14px; text-align: center; }
+    .seg {
+      display: flex; gap: 4px; background: var(--panel2);
+      border: 1px solid var(--line); border-radius: 10px; padding: 4px;
+    }
+    .seg button {
+      flex: 1; height: 36px; border-radius: 7px; font-size: 13px; font-weight: 600; color: var(--muted);
+    }
+    .seg button.on {
+      background: var(--accent); color: #0b0d12;
+      box-shadow: 0 0 10px rgba(124,134,255,.3), inset 0 1px 0 rgba(255,255,255,.3);
+    }
+    .seg-help { margin-top: 9px; font-size: 12.5px; color: var(--muted); }
+    .lobby-start { margin-top: 26px; }
+
+    /* ============ 3 · game ============ */
+    .ghead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 8px; }
+    .gcounters { font-size: 14px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+    .gcounters .sep { color: var(--faint); }
+    .gcounters .of { color: var(--faint); font-weight: 500; }
+    .gcounters .room { font-family: var(--mono); font-size: 12.5px; color: var(--accent); letter-spacing: .08em; }
+    .ghead-btns { display: flex; gap: 6px; }
+    .ghead-btns .btn-chip { height: 28px; padding: 0 9px; font-size: 9.5px; }
+
+    .scoregrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px; }
+    .schip {
+      display: flex; align-items: center; gap: 9px;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+      padding: 9px 12px;
+    }
+    .schip .name { font-size: 13.5px; font-weight: 600; flex: 1; }
+    .schip .sc { font-family: var(--mono); font-size: 15px; font-weight: 700; }
+
+    .pool-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 9px; }
+    .pool-head .count { font-size: 12px; font-weight: 600; color: var(--text); }
+    .pool-head .count em { font-style: normal; color: var(--faint); }
+    .pool { padding: 0 0 12px; margin-bottom: 18px; overflow: hidden; }
+    .pool-banner {
+      background: var(--accent-soft);
+      border-bottom: 1px solid rgba(124,134,255,.22);
+      color: var(--accent);
+      font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+      text-align: center; padding: 9px 8px;
+      border-radius: 13px 13px 0 0;
+    }
+    .pool-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px 12px 0; }
+
+    .pstat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .pstat {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .pstat .top { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+    .pstat .name { font-size: 13px; font-weight: 600; }
+    .pstat .name small { color: var(--faint); font-weight: 500; font-size: 11px; }
+    .pstat .hand-mini { font-size: 11px; letter-spacing: .22em; color: var(--faint); margin-bottom: 6px; }
+    .pstat .st { display: flex; align-items: center; gap: 6px; font-size: 9.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+    .pstat .st.wait { color: #c7ccd4; }
+    .picker-name { color: var(--accent); }
+
+    .skipbtn {
+      width: 100%; height: 42px; border-radius: 10px;
+      background: transparent; border: 1px dashed var(--line2);
+      color: var(--muted); font-size: 10.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+      margin-bottom: 22px;
+    }
+
+    .hand-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 10px 0 18px; }
+    .hand-grid .num { height: 78px; font-size: 27px; }
+
+    /* ============ 4 · reveal ============ */
+    .reveal-wrap {
+      min-height: calc(100vh - 48px);
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      text-align: center;
+    }
+    .reveal-glow {
+      position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(ellipse 65% 34% at 50% 30%, rgba(124,134,255,.1), transparent 70%);
+    }
+    .reveal-eyebrow { margin-bottom: 34px; }
+    .played-lbl { margin-bottom: 12px; }
+    .played-card { width: 104px; margin: 0 auto 38px; padding: 16px 8px 13px; }
+    .played-card .glyph { font-size: 26px; margin-bottom: 9px; }
+
+    .rgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; margin-bottom: 40px; }
+    .rcol { display: flex; flex-direction: column; align-items: center; gap: 9px; }
+    .rcol .who { display: flex; align-items: center; gap: 5px; }
+    .rcol .who .lbl-sm { font-size: 9.5px; }
+    .rcol .num { width: 100%; height: 96px; font-size: 30px; }
+
+    .num.dead { }
+    .num.dead .face { opacity: .3; }
+    .num.dead::after {
+      content: ""; position: absolute; left: 10px; right: 10px; top: 50%;
+      height: 2px; margin-top: -1px; border-radius: 1px;
+      background: var(--red);
+      box-shadow: 0 0 7px rgba(255,84,104,.55);
+    }
+    .num.alive {
+      border-color: rgba(63,207,142,.5);
+      box-shadow: 0 0 8px rgba(63,207,142,.22), inset 0 1px 0 rgba(255,255,255,.07);
+    }
+    .num.alive .face { color: var(--green); }
+
+    .outcome { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .outcome .pts { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--text); }
+    .outcome .pts.dim { color: var(--faint); }
+    .outcome .tag { display: flex; align-items: center; gap: 4px; font-size: 8.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .outcome .tag.dead { color: var(--red); }
+    .outcome .tag.alive { color: var(--green); }
+    .outcome .tag .dot { width: 5px; height: 5px; }
+    .reveal-cta { width: 100%; }
+
+    /* ============ 5 · end ============ */
+    .end-wrap { min-height: calc(100vh - 48px); display: flex; flex-direction: column; justify-content: center; position: relative; }
+    .sparkles { position: absolute; inset: 0; pointer-events: none; }
+    .sparkles i {
+      position: absolute; display: block; border-radius: 50%;
+      width: 4px; height: 4px; background: var(--accent); opacity: .35;
+    }
+    .sparkles i.sm { width: 3px; height: 3px; opacity: .25; }
+    .sparkles i.plus {
+      width: auto; height: auto; background: none; border-radius: 0;
+      font-style: normal; font-size: 11px; font-weight: 600; color: var(--accent); opacity: .4;
+    }
+    .sparkles .c-ben { background: var(--ben); color: var(--ben); }
+    .sparkles .c-vol { background: var(--vol); color: var(--vol); }
+    .sparkles .c-mech { background: var(--mech); color: var(--mech); }
+    .sparkles .c-dan { background: var(--dan); color: var(--dan); }
+    .sparkles i.plus.c-ben, .sparkles i.plus.c-vol, .sparkles i.plus.c-mech, .sparkles i.plus.c-dan { background: none; }
+
+    .end-eyebrow { text-align: center; margin-bottom: 12px; }
+    .end-hero { text-align: center; font-size: 46px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 36px; }
+    .end-hero .b { color: var(--accent); text-shadow: 0 0 26px rgba(124,134,255,.4); }
+
+    .table { overflow: hidden; margin-bottom: 30px; }
+    .trow {
+      display: grid; grid-template-columns: 20px 26px 1fr 30px 30px 30px 52px;
+      align-items: center; gap: 6px; padding: 13px 14px;
+    }
+    .trow + .trow { border-top: 1px solid var(--line); }
+    .trow.thead { padding: 9px 14px; background: rgba(255,255,255,.02); }
+    .trow .rank { font-family: var(--mono); font-size: 12px; color: var(--faint); font-weight: 600; }
+    .trow .tname { font-size: 14.5px; font-weight: 600; }
+    .trow .tname small { color: var(--faint); font-weight: 500; font-size: 11.5px; }
+    .trow .r { font-family: var(--mono); font-size: 12.5px; color: var(--muted); text-align: right; }
+    .trow .tot { font-family: var(--mono); font-size: 16px; font-weight: 700; text-align: right; }
+    .trow .seat { width: 9px; height: 9px; }
+    .trow.winner {
+      position: relative;
+      background: linear-gradient(90deg, rgba(124,134,255,.13), rgba(124,134,255,.025) 62%, transparent);
+    }
+    .trow.winner::before {
+      content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px;
+      border-radius: 0 2px 2px 0; background: var(--accent);
+      box-shadow: 0 0 8px rgba(124,134,255,.6);
+    }
+    .trow.winner .tot { color: var(--accent); }
+    .end-btns { display: flex; flex-direction: column; gap: 12px; }
+
+    /* ============ motion (flourish only) ============ */
+    @media (prefers-reduced-motion: no-preference) {
+      [data-screen].active > * { animation: rise .42s cubic-bezier(.21,.8,.32,1) both; }
+      @keyframes rise { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+      .num.sel, .pow.sel { transition: box-shadow .2s ease, border-color .2s ease; }
+      .num.sel { animation: selglow 2.4s ease-in-out infinite; }
+      @keyframes selglow {
+        0%, 100% { box-shadow: 0 0 8px rgba(124,134,255,.32), 0 0 0 1px rgba(124,134,255,.32), inset 0 1px 0 rgba(255,255,255,.08); }
+        50% { box-shadow: 0 0 14px rgba(124,134,255,.5), 0 0 0 1px rgba(124,134,255,.45), inset 0 1px 0 rgba(255,255,255,.08); }
+      }
+      .sparkles i { animation: twinkle 2.8s ease-in-out infinite; }
+      .sparkles i:nth-child(2n) { animation-delay: .7s; }
+      .sparkles i:nth-child(3n) { animation-delay: 1.4s; }
+      @keyframes twinkle { 0%, 100% { opacity: .2; } 50% { opacity: .55; } }
+      .btn-primary { transition: filter .15s ease, transform .15s ease; }
+      .btn-primary:hover { filter: brightness(1.07); transform: translateY(-1px); }
+      .btn-ghost:hover, .btn-chip:hover { border-color: var(--line2); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ 1 · HOME ============ -->
+  <main data-screen="home">
+    <div class="home-top">
+      <button class="icon-btn" aria-label="mute">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2.5 6h2.2L8 3.2v9.6L4.7 10H2.5z"/><path d="M11 6l4 4M15 6l-4 4"/>
+        </svg>
+      </button>
+    </div>
+    <div class="home-wrap">
+      <h1 class="wordmark"><span class="a">CAN</span><span class="b">CEL</span></h1>
+      <p class="tagline lbl">a number-picking party game</p>
+      <div class="home-strip" aria-hidden="true">
+        <div class="num zero">Ø</div>
+        <div class="num">1</div>
+        <div class="num">2</div>
+        <div class="num sel">3</div>
+        <div class="num">4</div>
+        <div class="num">5</div>
+      </div>
+      <div class="home-btns">
+        <button class="btn-primary">New game</button>
+        <button class="btn-ghost">Single player</button>
+        <button class="btn-ghost">Join with code</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ 2 · LOBBY ============ -->
+  <main data-screen="lobby">
+    <div class="topbar">
+      <button class="btn-chip">← Leave</button>
+      <button class="btn-chip">Rules</button>
+    </div>
+
+    <div class="code-block">
+      <div class="code-cells"><span>D</span><span>N</span><span>2</span><span>H</span></div>
+      <p class="code-hint lbl-sm">press to copy</p>
+    </div>
+
+    <div class="sect"><span class="lbl">Players · 4</span></div>
+    <div class="panel" style="margin-bottom:22px;">
+      <div class="prow">
+        <span class="avatar av-ben">B</span>
+        <span class="name">Ben</span>
+        <span class="badge host">Host</span>
+        <span class="badge you">You</span>
+        <span class="dot on"></span>
+      </div>
+      <div class="prow">
+        <span class="avatar av-vol">V</span>
+        <span class="name">Voltaire</span>
+        <span class="badge bot">Bot</span>
+        <span class="dot on"></span>
+      </div>
+      <div class="prow">
+        <span class="avatar av-mech">M</span>
+        <span class="name">Mechano</span>
+        <span class="badge bot">Bot</span>
+        <span class="dot on"></span>
+      </div>
+      <div class="prow">
+        <span class="avatar av-dan">D</span>
+        <span class="name">Data Dan</span>
+        <span class="badge bot">Bot</span>
+        <span class="dot on"></span>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="setting">
+        <span class="sname">Rounds</span>
+        <span class="stepper">
+          <button aria-label="fewer rounds">−</button>
+          <span class="val">3</span>
+          <button aria-label="more rounds">+</button>
+        </span>
+      </div>
+      <div class="setting">
+        <span class="sname">AI players</span>
+        <span class="stepper">
+          <button aria-label="fewer AI players">−</button>
+          <span class="val">3</span>
+          <button aria-label="more AI players">+</button>
+        </span>
+      </div>
+    </div>
+
+    <div class="panel" style="padding:14px;">
+      <p class="sname" style="font-size:14.5px;font-weight:600;margin-bottom:11px;">Power-ups</p>
+      <div class="seg">
+        <button>None</button>
+        <button class="on">Random</button>
+        <button>Choose</button>
+      </div>
+      <p class="seg-help">A fresh random pool each round.</p>
+    </div>
+
+    <div class="lobby-start">
+      <button class="btn-primary">Start game</button>
+    </div>
+  </main>
+
+  <!-- ============ 3 · GAME ============ -->
+  <main data-screen="game">
+    <div class="ghead">
+      <div class="gcounters">
+        <span>R1<span class="of">/3</span></span>
+        <span class="sep">·</span>
+        <span>T2<span class="of">/6</span></span>
+        <span class="sep">·</span>
+        <span class="room">DN2H</span>
+      </div>
+      <div class="ghead-btns">
+        <button class="btn-chip">Rules</button>
+        <button class="btn-chip">Leave</button>
+        <button class="btn-chip danger">End game</button>
+      </div>
+    </div>
+
+    <div class="scoregrid">
+      <div class="schip"><span class="seat seat-ben"></span><span class="name">Ben</span><span class="sc">4</span></div>
+      <div class="schip"><span class="seat seat-vol"></span><span class="name">Voltaire</span><span class="sc">0</span></div>
+      <div class="schip"><span class="seat seat-mech"></span><span class="name">Mechano</span><span class="sc">2</span></div>
+      <div class="schip"><span class="seat seat-dan"></span><span class="name">Data Dan</span><span class="sc">5</span></div>
+    </div>
+
+    <div class="pool-head">
+      <span class="lbl">Power-ups remaining</span>
+      <span class="count">6 <em>/ 6</em></span>
+    </div>
+    <div class="panel pool">
+      <div class="pool-banner">Your turn, press to select</div>
+      <div class="pool-grid">
+        <div class="pow pc-teal"><span class="glyph">⇄</span><span class="pname">Swap Hands</span></div>
+        <div class="pow pc-rose"><span class="glyph">✖</span><span class="pname">Sabotage</span></div>
+        <div class="pow pc-pink sel"><span class="glyph">=</span><span class="pname">Jinx</span></div>
+        <div class="pow pc-emerald"><span class="glyph">+2</span><span class="pname">Plus Two</span></div>
+        <div class="pow pc-violet"><span class="glyph">?</span><span class="pname">Wild</span></div>
+        <div class="pow pc-amber"><span class="glyph">↧</span><span class="pname">Drain</span></div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <span class="lbl">Players · Power picker: <span class="picker-name">Ben</span></span>
+    </div>
+    <div class="pstat-grid">
+      <div class="pstat">
+        <div class="top"><span class="seat seat-ben"></span><span class="name">Ben <small>(you)</small></span></div>
+        <div class="hand-mini">Ø 1 2 3 4 5</div>
+        <div class="st wait"><span class="dot think"></span>Thinking…</div>
+      </div>
+      <div class="pstat">
+        <div class="top"><span class="seat seat-vol"></span><span class="name">Voltaire</span></div>
+        <div class="hand-mini">Ø 1 2 3 4 5</div>
+        <div class="st done"><span class="dot on"></span>Submitted</div>
+      </div>
+      <div class="pstat">
+        <div class="top"><span class="seat seat-mech"></span><span class="name">Mechano</span></div>
+        <div class="hand-mini">Ø 1 2 3 4 5</div>
+        <div class="st done"><span class="dot on"></span>Submitted</div>
+      </div>
+      <div class="pstat">
+        <div class="top"><span class="seat seat-dan"></span><span class="name">Data Dan</span></div>
+        <div class="hand-mini">Ø 1 2 3 4 5</div>
+        <div class="st done"><span class="dot on"></span>Submitted</div>
+      </div>
+    </div>
+
+    <button class="skipbtn">Skip waiting, auto-play who's left</button>
+
+    <div class="sect"><span class="lbl">Your hand</span></div>
+    <div class="hand-grid">
+      <div class="num zero"><span class="face">Ø</span></div>
+      <div class="num"><span class="face">1</span></div>
+      <div class="num"><span class="face">2</span></div>
+      <div class="num"><span class="face">3</span></div>
+      <div class="num"><span class="face">4</span></div>
+      <div class="num sel"><span class="face">5</span></div>
+    </div>
+
+    <button class="btn-primary">Lock it in</button>
+  </main>
+
+  <!-- ============ 4 · REVEAL ============ -->
+  <main data-screen="reveal">
+    <div class="reveal-glow"></div>
+    <div class="reveal-wrap">
+      <p class="reveal-eyebrow lbl">Turn 2 reveal</p>
+
+      <p class="played-lbl lbl-sm">Ben played</p>
+      <div class="pow pc-pink played-card">
+        <span class="glyph">=</span>
+        <span class="pname">Jinx</span>
+      </div>
+
+      <div class="rgrid">
+        <div class="rcol">
+          <span class="who"><span class="seat seat-ben"></span><span class="lbl-sm">Ben</span></span>
+          <div class="num dead"><span class="face">5</span></div>
+          <div class="outcome">
+            <span class="pts dim">0</span>
+            <span class="tag dead"><span class="dot dead"></span>Cancelled</span>
+          </div>
+        </div>
+        <div class="rcol">
+          <span class="who"><span class="seat seat-vol"></span><span class="lbl-sm">Voltaire</span></span>
+          <div class="num alive"><span class="face">Ø</span></div>
+          <div class="outcome">
+            <span class="pts">0</span>
+            <span class="tag alive"><span class="dot on"></span>Scored</span>
+          </div>
+        </div>
+        <div class="rcol">
+          <span class="who"><span class="seat seat-mech"></span><span class="lbl-sm">Mechano</span></span>
+          <div class="num dead"><span class="face">5</span></div>
+          <div class="outcome">
+            <span class="pts dim">0</span>
+            <span class="tag dead"><span class="dot dead"></span>Cancelled</span>
+          </div>
+        </div>
+        <div class="rcol">
+          <span class="who"><span class="seat seat-dan"></span><span class="lbl-sm">Data Dan</span></span>
+          <div class="num dead"><span class="face">3</span></div>
+          <div class="outcome">
+            <span class="pts dim">0</span>
+            <span class="tag dead"><span class="dot dead"></span>Cancelled</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-primary reveal-cta">Continue</button>
+    </div>
+  </main>
+
+  <!-- ============ 5 · END ============ -->
+  <main data-screen="end">
+    <div class="sparkles" aria-hidden="true">
+      <i style="left:8%;top:7%;"></i>
+      <i class="sm c-ben" style="left:22%;top:12%;"></i>
+      <i class="plus" style="left:34%;top:5%;">+</i>
+      <i class="c-mech" style="left:47%;top:10%;"></i>
+      <i class="sm" style="left:60%;top:6%;"></i>
+      <i class="plus c-dan" style="left:73%;top:11%;">+</i>
+      <i class="c-vol" style="left:88%;top:7%;"></i>
+      <i class="sm c-mech" style="left:14%;top:19%;"></i>
+      <i style="left:41%;top:17%;"></i>
+      <i class="plus c-ben" style="left:55%;top:21%;">+</i>
+      <i class="sm c-dan" style="left:68%;top:16%;"></i>
+      <i style="left:81%;top:20%;"></i>
+      <i class="sm c-vol" style="left:28%;top:24%;"></i>
+      <i class="plus" style="left:91%;top:26%;">+</i>
+      <i class="sm" style="left:6%;top:30%;"></i>
+      <i class="c-ben" style="left:17%;top:76%;"></i>
+      <i class="plus c-vol" style="left:9%;top:86%;">+</i>
+      <i class="sm c-mech" style="left:30%;top:82%;"></i>
+      <i style="left:52%;top:88%;"></i>
+      <i class="sm c-dan" style="left:70%;top:80%;"></i>
+      <i class="plus" style="left:84%;top:85%;">+</i>
+      <i class="sm c-ben" style="left:93%;top:78%;"></i>
+    </div>
+
+    <div class="end-wrap">
+      <p class="end-eyebrow lbl">Game over</p>
+      <h2 class="end-hero">You <span class="b">won.</span></h2>
+
+      <div class="panel table">
+        <div class="trow thead">
+          <span></span><span></span><span></span>
+          <span class="r lbl-sm" style="font-size:9px;">R1</span>
+          <span class="r lbl-sm" style="font-size:9px;">R2</span>
+          <span class="r lbl-sm" style="font-size:9px;">R3</span>
+          <span class="r lbl-sm" style="font-size:9px;text-align:right;">Total</span>
+        </div>
+        <div class="trow winner">
+          <span class="rank">1</span>
+          <span class="seat seat-ben"></span>
+          <span class="tname">Ben <small>(you)</small></span>
+          <span class="r">5</span><span class="r">9</span><span class="r">6</span>
+          <span class="tot">20</span>
+        </div>
+        <div class="trow">
+          <span class="rank">2</span>
+          <span class="seat seat-dan"></span>
+          <span class="tname">Data Dan</span>
+          <span class="r">5</span><span class="r">4</span><span class="r">3</span>
+          <span class="tot">12</span>
+        </div>
+        <div class="trow">
+          <span class="rank">3</span>
+          <span class="seat seat-vol"></span>
+          <span class="tname">Voltaire</span>
+          <span class="r">3</span><span class="r">2</span><span class="r">4</span>
+          <span class="tot">9</span>
+        </div>
+        <div class="trow">
+          <span class="rank">4</span>
+          <span class="seat seat-mech"></span>
+          <span class="tname">Mechano</span>
+          <span class="r">0</span><span class="r">5</span><span class="r">2</span>
+          <span class="tot">7</span>
+        </div>
+      </div>
+
+      <div class="end-btns">
+        <button class="btn-primary">Play again</button>
+        <button class="btn-ghost">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

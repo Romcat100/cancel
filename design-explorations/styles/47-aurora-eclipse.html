@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Aurora Eclipse</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ============ tokens ============ */
+    :root{
+      --bg:#0a120e;
+      --ink:#f4f1e6;
+      --muted:rgba(244,241,230,.68);
+      --faint:rgba(244,241,230,.46);
+      --line:rgba(232,213,160,.22);
+      --gold:#e8d5a0; --goldhi:#f6e8c4; --golddeep:#caa55a;
+      --emer:#1f8a5f; --emerhi:#5ad6a0;
+      --ben:#cf6157; --vol:#7290d8; --mech:#dcb152; --dan:#4cbf8d;
+      --glassbg:linear-gradient(165deg, rgba(150,216,184,.10), rgba(150,216,184,.035) 38%, rgba(186,228,202,.055));
+      --gradmark:linear-gradient(95deg,#5ad6a0 0%,#bfe3b4 42%,#e8d5a0 100%);
+      --gradgold:linear-gradient(120deg, rgba(246,232,188,.96), rgba(219,184,117,.93));
+    }
+    *{ box-sizing:border-box; margin:0; padding:0; }
+    html{ background:var(--bg); }
+    body{
+      font-family:"Outfit",ui-sans-serif,sans-serif;
+      color:var(--ink);
+      -webkit-font-smoothing:antialiased;
+      background-color:var(--bg);
+      background-image:
+        radial-gradient(1px 1px at 23px 41px, rgba(255,248,230,.5) 50%, transparent 51%),
+        radial-gradient(1px 1px at 151px 117px, rgba(255,248,230,.32) 50%, transparent 51%),
+        radial-gradient(1.4px 1.4px at 84px 201px, rgba(232,213,160,.3) 50%, transparent 51%),
+        repeating-linear-gradient(108deg, transparent 0px, transparent 86px, rgba(232,213,160,.05) 87px, rgba(232,213,160,.05) 88px, transparent 89px, transparent 210px),
+        repeating-linear-gradient(64deg, transparent 0px, transparent 140px, rgba(232,213,160,.04) 141px, rgba(232,213,160,.04) 142px, transparent 143px, transparent 330px),
+        radial-gradient(13% 44% at 12% 0%, rgba(90,214,160,.16), transparent 72%),
+        radial-gradient(11% 52% at 30% 0%, rgba(31,138,95,.3), transparent 74%),
+        radial-gradient(15% 47% at 52% 0%, rgba(90,214,160,.2), transparent 72%),
+        radial-gradient(11% 42% at 72% 0%, rgba(31,138,95,.26), transparent 74%),
+        radial-gradient(14% 54% at 90% 0%, rgba(90,214,160,.13), transparent 72%),
+        radial-gradient(62% 22% at 50% 0%, rgba(31,138,95,.2), transparent 70%),
+        radial-gradient(44% 22% at 6% 66%, rgba(31,138,95,.12), transparent 64%),
+        radial-gradient(50% 24% at 94% 90%, rgba(31,138,95,.14), transparent 66%),
+        radial-gradient(40% 20% at 80% 44%, rgba(232,213,160,.05), transparent 62%);
+      background-size:230px 230px,290px 290px,340px 340px,auto,auto,100% 100%,100% 100%,100% 100%,100% 100%,100% 100%,100% 100%,100% 100%,100% 100%,100% 100%;
+      background-repeat:repeat,repeat,repeat,repeat,repeat,no-repeat,no-repeat,no-repeat,no-repeat,no-repeat,no-repeat,no-repeat,no-repeat,no-repeat;
+    }
+    main[data-screen]{ min-height:100vh; }
+    .wrap{ max-width:420px; margin:0 auto; padding:22px 20px 30px; position:relative; }
+
+    /* ============ shared surfaces ============ */
+    .glass{
+      background:var(--glassbg);
+      border:1px solid var(--line);
+      border-radius:18px;
+      backdrop-filter:blur(14px) saturate(1.25);
+      -webkit-backdrop-filter:blur(14px) saturate(1.25);
+      box-shadow:0 18px 44px rgba(2,9,6,.5);
+    }
+    .grad-text{
+      background:var(--gradmark);
+      -webkit-background-clip:text; background-clip:text;
+      color:transparent;
+    }
+    .micro{
+      font-size:11px; font-weight:700; letter-spacing:.22em;
+      text-transform:uppercase; color:var(--faint);
+    }
+    .seclabel{
+      font-size:11px; font-weight:700; letter-spacing:.22em;
+      text-transform:uppercase; color:var(--faint);
+      margin:0 4px 10px;
+    }
+
+    /* ============ buttons ============ */
+    .btn{
+      display:flex; align-items:center; justify-content:center;
+      width:100%; min-height:56px; border-radius:17px;
+      font-family:"Outfit",sans-serif; font-size:17px; font-weight:700;
+      color:var(--ink); cursor:pointer;
+      border:1px solid var(--line);
+      background:var(--glassbg);
+      backdrop-filter:blur(14px) saturate(1.25);
+      -webkit-backdrop-filter:blur(14px) saturate(1.25);
+      box-shadow:0 14px 34px rgba(2,9,6,.45);
+    }
+    .btn.primary{
+      position:relative; overflow:hidden;
+      background:var(--gradgold);
+      border:1px solid rgba(255,237,184,.95);
+      color:#241b07; font-weight:800; letter-spacing:.01em;
+      box-shadow:0 14px 36px rgba(216,181,114,.26), 0 4px 18px rgba(232,213,160,.16), inset 0 1px 0 rgba(255,255,255,.6);
+    }
+    .btn.primary::after{
+      content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+      background:linear-gradient(180deg, rgba(255,255,255,.32), rgba(255,255,255,0) 46%);
+    }
+    .btn.ghost{
+      background:rgba(232,213,160,.03);
+      border:1px dashed rgba(232,213,160,.3);
+      color:var(--muted); font-size:12px; font-weight:700;
+      letter-spacing:.14em; text-transform:uppercase;
+      min-height:46px; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none;
+    }
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      min-height:42px; padding:0 18px; border-radius:999px;
+      background:var(--glassbg); border:1px solid var(--line);
+      backdrop-filter:blur(12px) saturate(1.25); -webkit-backdrop-filter:blur(12px) saturate(1.25);
+      font-family:"Outfit",sans-serif; font-size:14px; font-weight:600; color:var(--ink);
+      cursor:pointer; box-shadow:0 10px 24px rgba(2,9,6,.35);
+    }
+    .pill.tiny{
+      min-height:30px; padding:0 11px; font-size:10px; font-weight:800;
+      letter-spacing:.12em; color:var(--muted); box-shadow:none;
+    }
+    .pill.danger{ color:#eba49b; border-color:rgba(207,97,87,.45); }
+
+    /* ============ switcher ============ */
+    #switcher a{
+      width:30px; height:30px; display:grid; place-items:center;
+      border-radius:10px; background:rgba(10,18,14,.78);
+      border:1px solid var(--line); color:var(--muted);
+      font:700 12px "Outfit",sans-serif; text-decoration:none;
+      backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    }
+
+    /* ============ HOME ============ */
+    main[data-screen="home"]{
+      background:
+        radial-gradient(64% 26% at 50% 32%, rgba(232,213,160,.09), transparent 70%),
+        radial-gradient(80% 34% at 50% 0%, rgba(31,138,95,.16), transparent 72%),
+        radial-gradient(46% 18% at 50% 46%, rgba(90,214,160,.1), transparent 66%);
+    }
+    .home-wrap{ min-height:100vh; display:flex; flex-direction:column; }
+    .home-top{ display:flex; justify-content:flex-end; }
+    .iconbtn{
+      width:44px; height:44px; border-radius:50%;
+      display:grid; place-items:center; cursor:pointer;
+      color:var(--muted); background:rgba(232,213,160,.05);
+      border:1px solid var(--line);
+      backdrop-filter:blur(10px) saturate(1.25); -webkit-backdrop-filter:blur(10px) saturate(1.25);
+    }
+    .home-hero{
+      flex:1; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; text-align:center;
+      position:relative; padding:30px 0 18px;
+    }
+    .wordmark{
+      position:relative; font-size:66px; font-weight:900;
+      letter-spacing:.04em; line-height:1;
+      filter:drop-shadow(0 8px 34px rgba(31,138,95,.6)) drop-shadow(0 2px 16px rgba(232,213,160,.22));
+    }
+    .wordmark .w1{ color:#f8f5ea; }
+    .wordmark .w2{
+      background:var(--gradmark);
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+    .tagline{
+      margin-top:16px; font-size:13px; font-weight:500;
+      letter-spacing:.3em; text-transform:uppercase; color:var(--muted);
+    }
+    .home-fan{ display:flex; justify-content:center; margin-top:40px; position:relative; }
+    .mini-card{
+      width:42px; height:56px; border-radius:11px; margin:0 -2px;
+      display:grid; place-items:center;
+      font-family:"Sora",sans-serif; font-weight:700; font-size:18px;
+      color:rgba(248,243,228,.9); text-shadow:0 0 12px rgba(232,213,160,.55);
+      background:var(--glassbg); border:1px solid var(--line);
+      backdrop-filter:blur(10px) saturate(1.25); -webkit-backdrop-filter:blur(10px) saturate(1.25);
+      box-shadow:0 10px 22px rgba(2,9,6,.45);
+    }
+    .mini-card:nth-child(1){ transform:rotate(-12deg) translateY(9px); }
+    .mini-card:nth-child(2){ transform:rotate(-7deg) translateY(3px); }
+    .mini-card:nth-child(3){ transform:rotate(-2deg) translateY(0); }
+    .mini-card:nth-child(4){ transform:rotate(3deg) translateY(0); }
+    .mini-card:nth-child(5){ transform:rotate(8deg) translateY(4px); }
+    .mini-card:nth-child(6){ transform:rotate(13deg) translateY(10px); }
+    .home-actions{ display:flex; flex-direction:column; gap:12px; padding-bottom:16px; }
+
+    /* ============ LOBBY ============ */
+    .topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+    .code-panel{ padding:24px 20px 20px; text-align:center; margin-bottom:24px; }
+    .code{
+      font-family:"Sora",sans-serif; font-size:58px; font-weight:800;
+      letter-spacing:.2em; text-indent:.2em; line-height:1;
+      filter:drop-shadow(0 4px 22px rgba(232,213,160,.32));
+    }
+    .hint{ margin-top:8px; font-size:12px; letter-spacing:.1em; color:var(--faint); }
+    .players{ list-style:none; display:flex; flex-direction:column; gap:10px; margin-bottom:24px; }
+    .prow{ border-radius:16px; padding:9px 14px; display:flex; align-items:center; gap:12px; }
+    .avatar{
+      width:38px; height:38px; border-radius:12px; flex:none;
+      display:grid; place-items:center;
+      font-weight:800; font-size:16px; color:#13100a;
+    }
+    .avatar.ben{ background:linear-gradient(140deg,#e8a098,#b84a44); box-shadow:0 0 16px rgba(207,97,87,.38); }
+    .avatar.vol{ background:linear-gradient(140deg,#a9bde8,#5470b8); box-shadow:0 0 16px rgba(114,144,216,.38); }
+    .avatar.mech{ background:linear-gradient(140deg,#eed79e,#bf8c30); box-shadow:0 0 16px rgba(220,177,82,.38); }
+    .avatar.dan{ background:linear-gradient(140deg,#9adcbc,#2e9166); box-shadow:0 0 16px rgba(76,191,141,.38); }
+    .pname{ font-size:16px; font-weight:600; flex:1; }
+    .badges{ display:flex; gap:6px; align-items:center; }
+    .badge{
+      font-size:9.5px; font-weight:800; letter-spacing:.12em;
+      padding:4px 8px; border-radius:999px; border:1px solid transparent;
+    }
+    .badge.host{ color:#f3e3b2; border-color:rgba(232,213,160,.5); background:rgba(232,213,160,.1); }
+    .badge.you{ color:#f1eee0; border-color:rgba(244,241,230,.3); background:rgba(244,241,230,.09); }
+    .badge.bot{ color:#c2d0f2; border-color:rgba(114,144,216,.42); background:rgba(114,144,216,.12); }
+    .dot{
+      width:8px; height:8px; border-radius:50%; flex:none;
+      background:#5ad6a0; box-shadow:0 0 9px rgba(90,214,160,.95);
+    }
+    .setrow{
+      border-radius:16px; padding:12px 14px; margin-bottom:10px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .setlabel{ font-size:15px; font-weight:600; }
+    .stepper{ display:flex; align-items:center; gap:14px; }
+    .stepbtn{
+      width:38px; height:38px; border-radius:12px; cursor:pointer;
+      background:rgba(232,213,160,.07); border:1px solid var(--line);
+      color:var(--ink); font-size:18px; font-weight:600;
+      display:grid; place-items:center;
+    }
+    .stepval{ font-family:"Sora",sans-serif; font-weight:700; font-size:18px; min-width:18px; text-align:center; }
+    .setcol{ border-radius:16px; padding:14px; margin-bottom:20px; }
+    .setcol .setlabel{ margin-bottom:11px; }
+    .seg{
+      display:flex; gap:3px; padding:3px; border-radius:12px;
+      background:rgba(6,12,9,.55); border:1px solid rgba(232,213,160,.14);
+    }
+    .seg button{
+      flex:1; min-height:40px; border:none; border-radius:9px;
+      background:transparent; color:var(--muted); cursor:pointer;
+      font-family:"Outfit",sans-serif; font-size:13.5px; font-weight:600;
+    }
+    .seg button.on{
+      background:var(--gradgold);
+      color:#241b07; font-weight:800;
+      box-shadow:0 4px 14px rgba(216,181,114,.4), inset 0 1px 0 rgba(255,255,255,.5);
+    }
+    .helper{ font-size:12.5px; color:var(--faint); margin-top:9px; }
+
+    /* ============ GAME ============ */
+    .ghead{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:16px; }
+    .gmeta{
+      font-family:"Sora",sans-serif; font-size:13.5px; font-weight:800;
+      letter-spacing:.03em; color:var(--ink); white-space:nowrap;
+    }
+    .gmeta .dim{ color:var(--faint); font-weight:600; }
+    .gmeta .codesm{ color:var(--muted); font-weight:700; letter-spacing:.14em; margin-left:6px; }
+    .gbtns{ display:flex; gap:5px; }
+    .scoregrid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:20px; }
+    .schip{ border-radius:14px; min-height:46px; padding:0 13px; display:flex; align-items:center; gap:9px; }
+    .schip .sdot{ width:9px; height:9px; border-radius:50%; flex:none; background:currentColor; box-shadow:0 0 10px currentColor; }
+    .schip .nm{ flex:1; font-size:14px; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .schip .sc{ font-family:"Sora",sans-serif; font-weight:800; font-size:17px; color:var(--ink); }
+    .c-ben{ color:var(--ben); } .c-vol{ color:var(--vol); } .c-mech{ color:var(--mech); } .c-dan{ color:var(--dan); }
+    .poolhead{ display:flex; justify-content:space-between; align-items:baseline; margin:0 4px 10px; }
+    .poolcount{ font-family:"Sora",sans-serif; font-size:13px; font-weight:700; color:var(--muted); }
+    .banner{
+      border-radius:14px; border:1.5px solid transparent;
+      background:
+        linear-gradient(rgba(12,20,15,.7), rgba(12,20,15,.7)) padding-box,
+        linear-gradient(100deg,#caa55a,#e8d5a0 52%,#7fd6ac) border-box;
+      padding:11px 14px; text-align:center; margin-bottom:10px;
+      box-shadow:0 0 22px rgba(232,213,160,.16);
+    }
+    .banner span{
+      font-size:11.5px; font-weight:800; letter-spacing:.22em;
+      background:linear-gradient(95deg,#f6e8c4,#e8d5a0 50%,#9fe8c6);
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+    .powergrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px; }
+    .power{
+      position:relative; border-radius:16px; padding:15px 6px 12px;
+      display:flex; flex-direction:column; align-items:center; gap:8px;
+      background:var(--glassbg); border:1px solid var(--line);
+      backdrop-filter:blur(14px) saturate(1.25); -webkit-backdrop-filter:blur(14px) saturate(1.25);
+      box-shadow:0 12px 30px rgba(2,9,6,.4), inset 0 0 36px rgba(var(--pc),.1);
+      cursor:pointer;
+    }
+    .power .glyph{
+      font-family:"Sora",sans-serif; font-size:25px; font-weight:800; line-height:1;
+      color:rgb(var(--pc)); text-shadow:0 0 15px rgba(var(--pc),.8);
+    }
+    .power .pnamel{
+      font-size:10px; font-weight:700; letter-spacing:.1em;
+      text-transform:uppercase; color:var(--muted); text-align:center;
+    }
+    .power.swap{ --pc:222,230,224; } .power.sab{ --pc:217,103,106; }
+    .power.jinx{ --pc:236,217,168; } .power.plus{ --pc:86,212,148; }
+    .power.wild{ --pc:128,156,228; } .power.drain{ --pc:217,154,91; }
+    .power.sel{
+      border:2px solid transparent; padding:14px 5px 11px;
+      background:
+        linear-gradient(rgba(17,27,21,.68), rgba(17,27,21,.68)) padding-box,
+        linear-gradient(135deg,#f6e8c4,#caa55a 55%,#e8d5a0) border-box;
+      box-shadow:0 0 22px rgba(232,213,160,.4), 0 0 46px rgba(216,181,114,.24), inset 0 0 36px rgba(var(--pc),.16);
+      transform:translateY(-3px);
+    }
+    .power.sel .pnamel{ color:#f6e8c4; }
+    .pstat{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+    .pcard{ border-radius:14px; padding:11px 13px; }
+    .pcard .ptop{ display:flex; align-items:center; gap:7px; }
+    .pcard .pdot{ width:10px; height:10px; border-radius:50%; flex:none; background:currentColor; box-shadow:0 0 9px currentColor; }
+    .pcard .pn{ font-size:14px; font-weight:600; color:var(--ink); white-space:nowrap; }
+    .pcard .yo{ font-size:11px; color:var(--faint); font-weight:500; }
+    .pstatus{ margin-top:6px; font-size:10px; font-weight:800; letter-spacing:.16em; }
+    .pstatus.think{ color:#f0dfae; text-shadow:0 0 11px rgba(232,213,160,.55); }
+    .pstatus.sub{ color:#6fdcae; text-shadow:0 0 11px rgba(90,214,160,.5); }
+    .handread{
+      margin-top:6px; font-family:"Sora",sans-serif; font-size:11px;
+      font-weight:600; letter-spacing:.24em; color:var(--faint);
+    }
+    .skipbtn{ margin-bottom:22px; }
+    .hand{ display:grid; grid-template-columns:repeat(6,1fr); gap:8px; padding-top:8px; margin-bottom:18px; }
+    .num{
+      position:relative; height:86px; border-radius:14px;
+      display:grid; place-items:center; cursor:pointer;
+      font-family:"Sora",sans-serif; font-size:27px; font-weight:800;
+      color:#f8f4e6; text-shadow:0 0 16px rgba(232,213,160,.4), 0 2px 6px rgba(0,0,0,.45);
+      background:var(--glassbg); border:1px solid var(--line);
+      backdrop-filter:blur(14px) saturate(1.25); -webkit-backdrop-filter:blur(14px) saturate(1.25);
+      box-shadow:0 10px 26px rgba(2,9,6,.42);
+    }
+    .num::before{
+      content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+      background:linear-gradient(168deg, rgba(255,252,240,.2), rgba(255,252,240,0) 40%);
+    }
+    .num.sel{
+      border:2px solid transparent;
+      background:
+        linear-gradient(rgba(16,26,20,.72), rgba(16,26,20,.72)) padding-box,
+        linear-gradient(135deg,#f6e8c4,#caa55a 60%,#e8d5a0) border-box;
+      box-shadow:0 0 20px rgba(232,213,160,.42), 0 0 44px rgba(216,181,114,.26), 0 12px 28px rgba(2,9,6,.5);
+      transform:translateY(-7px);
+      color:#fff8e2; text-shadow:0 0 20px rgba(246,232,196,.9), 0 0 38px rgba(232,213,160,.55);
+    }
+
+    /* ============ REVEAL ============ */
+    main[data-screen="reveal"]{
+      background:
+        radial-gradient(80% 46% at 50% 36%, rgba(31,138,95,.18), transparent 70%),
+        radial-gradient(56% 34% at 50% 26%, rgba(232,213,160,.1), transparent 70%),
+        radial-gradient(70% 40% at 50% 80%, rgba(31,138,95,.1), transparent 70%);
+    }
+    .reveal-wrap{
+      min-height:100vh; max-width:420px; margin:0 auto;
+      display:flex; flex-direction:column; justify-content:center;
+      padding:36px 20px;
+    }
+    .reyebrow{ text-align:center; margin-bottom:26px; letter-spacing:.3em; color:var(--muted); }
+    .played-label{ text-align:center; margin-bottom:12px; }
+    .playedcard{
+      --pc:236,217,168;
+      width:96px; margin:0 auto 30px; border-radius:16px;
+      padding:16px 8px 12px;
+      display:flex; flex-direction:column; align-items:center; gap:8px;
+      border:2px solid transparent;
+      background:
+        linear-gradient(rgba(18,28,22,.68), rgba(18,28,22,.68)) padding-box,
+        linear-gradient(135deg,#f6e8c4,#caa55a) border-box;
+      backdrop-filter:blur(14px) saturate(1.25); -webkit-backdrop-filter:blur(14px) saturate(1.25);
+      box-shadow:0 0 24px rgba(232,213,160,.4), 0 0 50px rgba(216,181,114,.22), inset 0 0 36px rgba(236,217,168,.13);
+    }
+    .playedcard .glyph{
+      font-family:"Sora",sans-serif; font-size:30px; font-weight:800; line-height:1;
+      color:#f0dfae; text-shadow:0 0 16px rgba(236,217,168,.9);
+    }
+    .playedcard .pnamel{
+      font-size:10px; font-weight:800; letter-spacing:.18em;
+      text-transform:uppercase; color:#f6e8c4;
+    }
+    .rgrid{
+      display:grid; grid-template-columns:1fr 1fr;
+      gap:20px 12px; margin-bottom:32px; justify-items:center;
+    }
+    .rcell{ display:flex; flex-direction:column; align-items:center; gap:9px; }
+    .rname{ font-size:11px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); }
+    .rcard{
+      position:relative; width:106px; height:130px; border-radius:18px;
+      display:grid; place-items:center; overflow:hidden;
+      font-family:"Sora",sans-serif; font-size:42px; font-weight:800;
+    }
+    /* — eclipsed (cancelled): card falls into shadow, a matte disc with a gold
+       corona ring slides over the numeral, half the digit left in the light — */
+    .rcard.dim{
+      background:
+        radial-gradient(130% 90% at 50% 16%, rgba(150,216,184,.12), rgba(150,216,184,.04) 70%),
+        rgba(12,20,15,.55);
+      border:1px solid rgba(232,213,160,.2);
+      backdrop-filter:blur(18px) saturate(1.1); -webkit-backdrop-filter:blur(18px) saturate(1.1);
+      box-shadow:0 14px 34px rgba(2,9,6,.55), inset 0 0 30px rgba(6,12,9,.5);
+      color:rgba(244,241,230,.92);
+      text-shadow:0 0 14px rgba(232,213,160,.22);
+    }
+    .rcard.dim .rn{ position:relative; z-index:1; transform:translateX(20px); }
+    .rcard.dim::before{
+      content:""; position:absolute; inset:0; z-index:2; pointer-events:none;
+      background:radial-gradient(circle at 14% 50%, rgba(3,7,5,.62), rgba(3,7,5,.24) 38%, transparent 62%);
+    }
+    .rcard.dim::after{
+      content:""; position:absolute; z-index:3; pointer-events:none;
+      width:48px; height:48px; border-radius:50%;
+      left:-14px; top:50%; transform:translateY(-50%);
+      background:radial-gradient(circle at 36% 30%, #1a231d, #080d0a 72%);
+      border:1.5px solid rgba(240,223,174,.85);
+      box-shadow:0 0 12px rgba(232,213,160,.5), 0 0 32px rgba(232,213,160,.18), inset 0 0 12px rgba(0,0,0,.85);
+    }
+    /* — the lone zero: an annular eclipse, the ring-shaped digit wears a full
+       golden corona — */
+    .rcard.zero{
+      border:2px solid transparent;
+      background:
+        radial-gradient(120% 100% at 50% 28%, rgba(56,100,78,.5), rgba(12,20,15,.78) 78%) padding-box,
+        conic-gradient(from 210deg, #f6e8c4, #caa55a, #e8d5a0, #f6e8c4) border-box;
+      color:#fdf3d2;
+      text-shadow:0 0 18px rgba(248,233,190,.95), 0 0 42px rgba(232,213,160,.75);
+      box-shadow:0 0 28px rgba(232,213,160,.5), 0 0 64px rgba(216,181,114,.32), 0 14px 34px rgba(2,9,6,.5);
+    }
+    .rcard.zero .rn{ position:relative; z-index:1; }
+    .rcard.zero::before{
+      content:""; position:absolute; left:50%; top:50%; width:106px; height:106px;
+      transform:translate(-50%,-50%); border-radius:50%; pointer-events:none;
+      background:radial-gradient(circle, transparent 24px, rgba(248,233,190,.08) 27px, rgba(248,233,190,.55) 32px, rgba(232,213,160,.22) 39px, transparent 50px);
+      filter:blur(.5px);
+    }
+    .rout{ display:flex; flex-direction:column; align-items:center; gap:3px; min-height:34px; }
+    .rzero{ font-family:"Sora",sans-serif; font-weight:800; font-size:15px; color:rgba(244,241,230,.55); }
+    .rcancel{
+      font-size:10px; font-weight:800; letter-spacing:.26em; color:#f0dfae;
+      text-shadow:0 0 12px rgba(232,213,160,.85), 0 0 28px rgba(216,181,114,.45);
+    }
+    .rsafe{
+      font-family:"Sora",sans-serif; font-weight:800; font-size:16px; color:#f6e8c4;
+      text-shadow:0 0 13px rgba(232,213,160,.8);
+    }
+
+    /* ============ END ============ */
+    main[data-screen="end"]{
+      position:relative; overflow:hidden;
+      background:
+        radial-gradient(70% 36% at 50% 6%, rgba(31,138,95,.26), transparent 70%),
+        radial-gradient(56% 30% at 18% 30%, rgba(232,213,160,.09), transparent 70%),
+        radial-gradient(56% 30% at 86% 56%, rgba(31,138,95,.12), transparent 70%);
+    }
+    .spark{
+      position:absolute; pointer-events:none; line-height:1;
+      font-style:normal; text-shadow:0 0 10px currentColor;
+    }
+    .end-wrap{
+      min-height:100vh; max-width:420px; margin:0 auto;
+      display:flex; flex-direction:column; padding:46px 20px 30px;
+      position:relative;
+    }
+    .end-hero{ text-align:center; margin-bottom:34px; }
+    .end-hero .micro{ letter-spacing:.32em; margin-bottom:14px; display:block; }
+    .wonline{
+      font-size:56px; font-weight:900; line-height:1;
+      filter:drop-shadow(0 8px 30px rgba(31,138,95,.55)) drop-shadow(0 2px 14px rgba(232,213,160,.25));
+    }
+    .wonline .w1{ color:#f8f5ea; }
+    .wonline .w2{
+      background:var(--gradmark);
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+    .thead{
+      display:grid; grid-template-columns:1fr 32px 32px 32px 54px;
+      align-items:center; padding:0 16px; margin-bottom:9px;
+    }
+    .thead .h{ font-size:10px; font-weight:800; letter-spacing:.14em; color:var(--faint); text-align:center; }
+    .thead .h.tot{ text-align:right; }
+    .trow{
+      display:grid; grid-template-columns:1fr 32px 32px 32px 54px;
+      align-items:center; min-height:58px; padding:0 16px;
+      border-radius:16px; margin-bottom:10px;
+    }
+    .trow .who{ display:flex; align-items:center; gap:9px; min-width:0; }
+    .trow .rk{ width:14px; font-family:"Sora",sans-serif; font-weight:700; font-size:13px; color:var(--faint); }
+    .trow .pdot{ width:10px; height:10px; border-radius:50%; flex:none; background:currentColor; box-shadow:0 0 9px currentColor; }
+    .trow .pn{ font-size:15px; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .trow .yo{ font-size:11px; color:var(--faint); font-weight:500; }
+    .trow .r{ font-family:"Sora",sans-serif; font-size:13px; font-weight:600; color:var(--muted); text-align:center; }
+    .trow .tt{ font-family:"Sora",sans-serif; font-size:19px; font-weight:800; text-align:right; color:var(--ink); }
+    .trow.win{
+      border:2px solid transparent;
+      background:
+        linear-gradient(rgba(19,30,24,.78), rgba(19,30,24,.78)) padding-box,
+        linear-gradient(100deg,#caa55a,#f6e8c4 50%,#e8d5a0) border-box;
+      box-shadow:0 0 26px rgba(232,213,160,.32), 0 10px 30px rgba(2,9,6,.5);
+    }
+    .trow.win .rk{ color:#f3e3b2; text-shadow:0 0 9px rgba(232,213,160,.6); }
+    .trow.win .tt{
+      background:linear-gradient(95deg,#f6e8c4,#e8d5a0 55%,#9fe8c6);
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+    .end-actions{ margin-top:auto; display:flex; flex-direction:column; gap:12px; padding-top:30px; }
+
+    /* ============ flourish (humans only; shots capture resting state) ============ */
+    @media (prefers-reduced-motion: no-preference){
+      @keyframes goldPulse{
+        0%,100%{ box-shadow:0 0 20px rgba(232,213,160,.42), 0 0 44px rgba(216,181,114,.26), 0 12px 28px rgba(2,9,6,.5); }
+        50%{ box-shadow:0 0 30px rgba(232,213,160,.6), 0 0 60px rgba(216,181,114,.4), 0 12px 28px rgba(2,9,6,.5); }
+      }
+      .num.sel{ animation:goldPulse 2.6s ease-in-out infinite; }
+      @keyframes selPulse{
+        0%,100%{ box-shadow:0 0 22px rgba(232,213,160,.4), 0 0 46px rgba(216,181,114,.24), inset 0 0 36px rgba(var(--pc),.16); }
+        50%{ box-shadow:0 0 32px rgba(232,213,160,.58), 0 0 60px rgba(216,181,114,.36), inset 0 0 36px rgba(var(--pc),.22); }
+      }
+      .power.sel{ animation:selPulse 2.4s ease-in-out infinite; }
+      @keyframes coronaPulse{
+        0%,100%{ box-shadow:0 0 28px rgba(232,213,160,.5), 0 0 64px rgba(216,181,114,.32), 0 14px 34px rgba(2,9,6,.5); }
+        50%{ box-shadow:0 0 40px rgba(232,213,160,.7), 0 0 88px rgba(216,181,114,.46), 0 14px 34px rgba(2,9,6,.5); }
+      }
+      .rcard.zero{ animation:coronaPulse 3s ease-in-out infinite; }
+      @keyframes thinkBlink{ 0%,100%{ opacity:1; } 50%{ opacity:.45; } }
+      .pstatus.think{ animation:thinkBlink 1.4s ease-in-out infinite; }
+      @keyframes dotPulse{ 0%,100%{ box-shadow:0 0 9px rgba(90,214,160,.95); } 50%{ box-shadow:0 0 4px rgba(90,214,160,.5); } }
+      .dot{ animation:dotPulse 2.2s ease-in-out infinite; }
+      @keyframes twinkle{ 0%,100%{ opacity:1; } 50%{ opacity:.35; } }
+      .spark{ animation:twinkle 3.4s ease-in-out infinite; }
+      .spark:nth-of-type(2n){ animation-duration:4.6s; animation-delay:-1.4s; }
+      .spark:nth-of-type(3n){ animation-duration:5.4s; animation-delay:-2.8s; }
+      @keyframes sheen{ 0%{ background-position:120% 0; } 100%{ background-position:-20% 0; } }
+      .wordmark .w2, .wonline .w2{ background-size:220% 100%; animation:sheen 5.5s ease-in-out infinite alternate; }
+    }
+  </style>
+</head>
+<body>
+  <main data-screen="home">
+    <div class="wrap home-wrap">
+      <div class="home-top">
+        <button class="iconbtn" aria-label="Mute sounds">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg>
+        </button>
+      </div>
+      <div class="home-hero">
+        <h1 class="wordmark"><span class="w1">CAN</span><span class="w2">CEL</span></h1>
+        <p class="tagline">a number-picking party game</p>
+        <div class="home-fan">
+          <div class="mini-card">Ø</div>
+          <div class="mini-card">1</div>
+          <div class="mini-card">2</div>
+          <div class="mini-card">3</div>
+          <div class="mini-card">4</div>
+          <div class="mini-card">5</div>
+        </div>
+      </div>
+      <div class="home-actions">
+        <button class="btn primary">New game</button>
+        <button class="btn">Single player</button>
+        <button class="btn">Join with code</button>
+      </div>
+    </div>
+  </main>
+
+  <main data-screen="lobby">
+    <div class="wrap">
+      <header class="topbar">
+        <button class="pill">← Leave</button>
+        <button class="pill">Rules</button>
+      </header>
+      <section class="glass code-panel">
+        <div class="code grad-text">DN2H</div>
+        <div class="hint">press to copy</div>
+      </section>
+      <div class="seclabel">Players · 4</div>
+      <ul class="players">
+        <li class="glass prow">
+          <div class="avatar ben">B</div>
+          <div class="pname">Ben</div>
+          <div class="badges"><span class="badge host">HOST</span><span class="badge you">YOU</span><span class="dot"></span></div>
+        </li>
+        <li class="glass prow">
+          <div class="avatar vol">V</div>
+          <div class="pname">Voltaire</div>
+          <div class="badges"><span class="badge bot">BOT</span><span class="dot"></span></div>
+        </li>
+        <li class="glass prow">
+          <div class="avatar mech">M</div>
+          <div class="pname">Mechano</div>
+          <div class="badges"><span class="badge bot">BOT</span><span class="dot"></span></div>
+        </li>
+        <li class="glass prow">
+          <div class="avatar dan">D</div>
+          <div class="pname">Data Dan</div>
+          <div class="badges"><span class="badge bot">BOT</span><span class="dot"></span></div>
+        </li>
+      </ul>
+      <section class="glass setrow">
+        <div class="setlabel">Rounds</div>
+        <div class="stepper">
+          <button class="stepbtn">−</button>
+          <div class="stepval">3</div>
+          <button class="stepbtn">+</button>
+        </div>
+      </section>
+      <section class="glass setrow">
+        <div class="setlabel">AI players</div>
+        <div class="stepper">
+          <button class="stepbtn">−</button>
+          <div class="stepval">3</div>
+          <button class="stepbtn">+</button>
+        </div>
+      </section>
+      <section class="glass setcol">
+        <div class="setlabel">Power-ups</div>
+        <div class="seg">
+          <button>None</button>
+          <button class="on">Random</button>
+          <button>Choose</button>
+        </div>
+        <p class="helper">A fresh random pool each round.</p>
+      </section>
+      <button class="btn primary">Start game</button>
+    </div>
+  </main>
+
+  <main data-screen="game">
+    <div class="wrap">
+      <header class="ghead">
+        <div class="gmeta">R1<span class="dim">/3</span> · T2<span class="dim">/6</span><span class="codesm">DN2H</span></div>
+        <div class="gbtns">
+          <button class="pill tiny">RULES</button>
+          <button class="pill tiny">LEAVE</button>
+          <button class="pill tiny danger">END GAME</button>
+        </div>
+      </header>
+      <div class="scoregrid">
+        <div class="glass schip c-ben"><span class="sdot"></span><span class="nm">Ben</span><span class="sc">4</span></div>
+        <div class="glass schip c-vol"><span class="sdot"></span><span class="nm">Voltaire</span><span class="sc">0</span></div>
+        <div class="glass schip c-mech"><span class="sdot"></span><span class="nm">Mechano</span><span class="sc">2</span></div>
+        <div class="glass schip c-dan"><span class="sdot"></span><span class="nm">Data Dan</span><span class="sc">5</span></div>
+      </div>
+      <div class="poolhead">
+        <div class="micro">Power-ups remaining</div>
+        <div class="poolcount">6 / 6</div>
+      </div>
+      <div class="banner"><span>YOUR TURN, PRESS TO SELECT</span></div>
+      <div class="powergrid">
+        <div class="power swap"><div class="glyph">⇄</div><div class="pnamel">Swap Hands</div></div>
+        <div class="power sab"><div class="glyph">✖</div><div class="pnamel">Sabotage</div></div>
+        <div class="power jinx sel"><div class="glyph">=</div><div class="pnamel">Jinx</div></div>
+        <div class="power plus"><div class="glyph">+2</div><div class="pnamel">Plus Two</div></div>
+        <div class="power wild"><div class="glyph">?</div><div class="pnamel">Wild</div></div>
+        <div class="power drain"><div class="glyph">↧</div><div class="pnamel">Drain</div></div>
+      </div>
+      <div class="seclabel">Players · Power picker: Ben</div>
+      <div class="pstat">
+        <div class="glass pcard c-ben">
+          <div class="ptop"><span class="pdot"></span><span class="pn">Ben</span><span class="yo">(you)</span></div>
+          <div class="handread">Ø 1 2 3 4 5</div>
+          <div class="pstatus think">THINKING…</div>
+        </div>
+        <div class="glass pcard c-vol">
+          <div class="ptop"><span class="pdot"></span><span class="pn">Voltaire</span></div>
+          <div class="handread">Ø 1 2 3 4 5</div>
+          <div class="pstatus sub">SUBMITTED</div>
+        </div>
+        <div class="glass pcard c-mech">
+          <div class="ptop"><span class="pdot"></span><span class="pn">Mechano</span></div>
+          <div class="handread">Ø 1 2 3 4 5</div>
+          <div class="pstatus sub">SUBMITTED</div>
+        </div>
+        <div class="glass pcard c-dan">
+          <div class="ptop"><span class="pdot"></span><span class="pn">Data Dan</span></div>
+          <div class="handread">Ø 1 2 3 4 5</div>
+          <div class="pstatus sub">SUBMITTED</div>
+        </div>
+      </div>
+      <button class="btn ghost skipbtn">SKIP WAITING, AUTO-PLAY WHO'S LEFT</button>
+      <div class="seclabel">Your hand</div>
+      <div class="hand">
+        <div class="num">Ø</div>
+        <div class="num">1</div>
+        <div class="num">2</div>
+        <div class="num">3</div>
+        <div class="num">4</div>
+        <div class="num sel">5</div>
+      </div>
+      <button class="btn primary">Lock it in</button>
+    </div>
+  </main>
+
+  <main data-screen="reveal">
+    <div class="reveal-wrap">
+      <div class="micro reyebrow">Turn 2 Reveal</div>
+      <div class="micro played-label">Ben played</div>
+      <div class="playedcard">
+        <div class="glyph">=</div>
+        <div class="pnamel">Jinx</div>
+      </div>
+      <div class="rgrid">
+        <div class="rcell">
+          <div class="rname">Ben</div>
+          <div class="rcard dim"><span class="rn">5</span></div>
+          <div class="rout"><span class="rzero">0</span><span class="rcancel">CANCELLED</span></div>
+        </div>
+        <div class="rcell">
+          <div class="rname">Voltaire</div>
+          <div class="rcard zero"><span class="rn">Ø</span></div>
+          <div class="rout"><span class="rsafe">0</span></div>
+        </div>
+        <div class="rcell">
+          <div class="rname">Mechano</div>
+          <div class="rcard dim"><span class="rn">5</span></div>
+          <div class="rout"><span class="rzero">0</span><span class="rcancel">CANCELLED</span></div>
+        </div>
+        <div class="rcell">
+          <div class="rname">Data Dan</div>
+          <div class="rcard dim"><span class="rn">3</span></div>
+          <div class="rout"><span class="rzero">0</span><span class="rcancel">CANCELLED</span></div>
+        </div>
+      </div>
+      <button class="btn primary">Continue</button>
+    </div>
+  </main>
+
+  <main data-screen="end">
+    <i class="spark" style="top:4%;  left:8%;  font-size:22px; color:#e8d5a0; opacity:.7;  transform:rotate(12deg);">✦</i>
+    <i class="spark" style="top:7%;  left:80%; font-size:14px; color:#5ad6a0; opacity:.6;  transform:rotate(-18deg);">✦</i>
+    <i class="spark" style="top:12%; left:30%; font-size:10px; color:#f6e8c4; opacity:.85; transform:rotate(30deg);">✧</i>
+    <i class="spark" style="top:16%; left:91%; font-size:18px; color:#caa55a; opacity:.55; transform:rotate(-8deg);">✦</i>
+    <i class="spark" style="top:21%; left:5%;  font-size:12px; color:#7290d8; opacity:.55; transform:rotate(20deg);">✧</i>
+    <i class="spark" style="top:26%; left:64%; font-size:11px; color:#f6e8c4; opacity:.7;  transform:rotate(-25deg);">✦</i>
+    <i class="spark" style="top:33%; left:14%; font-size:16px; color:#e8d5a0; opacity:.45; transform:rotate(8deg);">✦</i>
+    <i class="spark" style="top:38%; left:88%; font-size:12px; color:#5ad6a0; opacity:.6;  transform:rotate(-12deg);">✧</i>
+    <i class="spark" style="top:47%; left:4%;  font-size:20px; color:#caa55a; opacity:.4;  transform:rotate(16deg);">✦</i>
+    <i class="spark" style="top:52%; left:73%; font-size:9px;  color:#fdf3d2; opacity:.75; transform:rotate(-30deg);">✧</i>
+    <i class="spark" style="top:60%; left:22%; font-size:13px; color:#dcb152; opacity:.55; transform:rotate(24deg);">✦</i>
+    <i class="spark" style="top:64%; left:92%; font-size:15px; color:#5ad6a0; opacity:.45; transform:rotate(-6deg);">✦</i>
+    <i class="spark" style="top:72%; left:10%; font-size:11px; color:#cf6157; opacity:.55; transform:rotate(14deg);">✧</i>
+    <i class="spark" style="top:78%; left:62%; font-size:18px; color:#e8d5a0; opacity:.4;  transform:rotate(-20deg);">✦</i>
+    <i class="spark" style="top:86%; left:28%; font-size:12px; color:#4cbf8d; opacity:.5;  transform:rotate(10deg);">✧</i>
+    <i class="spark" style="top:90%; left:85%; font-size:14px; color:#f6e8c4; opacity:.5;  transform:rotate(-16deg);">✦</i>
+    <div class="end-wrap">
+      <div class="end-hero">
+        <span class="micro">Game over</span>
+        <h2 class="wonline"><span class="w1">You </span><span class="w2">won.</span></h2>
+      </div>
+      <div class="thead">
+        <div></div>
+        <div class="h">R1</div>
+        <div class="h">R2</div>
+        <div class="h">R3</div>
+        <div class="h tot">TOTAL</div>
+      </div>
+      <div class="trow win c-ben">
+        <div class="who"><span class="rk">1</span><span class="pdot"></span><span class="pn">Ben</span><span class="yo">(you)</span></div>
+        <div class="r">5</div><div class="r">9</div><div class="r">6</div><div class="tt">20</div>
+      </div>
+      <div class="glass trow c-dan">
+        <div class="who"><span class="rk">2</span><span class="pdot"></span><span class="pn">Data Dan</span></div>
+        <div class="r">5</div><div class="r">4</div><div class="r">3</div><div class="tt">12</div>
+      </div>
+      <div class="glass trow c-vol">
+        <div class="who"><span class="rk">3</span><span class="pdot"></span><span class="pn">Voltaire</span></div>
+        <div class="r">3</div><div class="r">2</div><div class="r">4</div><div class="tt">9</div>
+      </div>
+      <div class="glass trow c-mech">
+        <div class="who"><span class="rk">4</span><span class="pdot"></span><span class="pn">Mechano</span></div>
+        <div class="r">0</div><div class="r">5</div><div class="r">2</div><div class="tt">7</div>
+      </div>
+      <div class="end-actions">
+        <button class="btn primary">Play again</button>
+        <button class="btn">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

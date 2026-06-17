@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Refined Current</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ============ tokens ============ */
+    :root {
+      --ink: #0d0c14;
+      --paper: #f5f1e8;
+      --coral: #ff5b3a;
+      --coral-edge: #c93f24;
+      --cool: #5e6ee3;
+      --gold: #e8c25c;
+      --green: #3ecf8e;
+      --pink: #f472b6;
+      --teal: #2dd4bf;
+      --rose: #e8445f;
+      --emerald: #34d399;
+      --violet: #a78bfa;
+      --amber: #f0a51f;
+      --s1: #14131d;          /* surface 1 */
+      --s2: #1a1925;          /* surface 2 */
+      --line: rgba(245,241,232,0.07);
+      --line-strong: rgba(245,241,232,0.14);
+      --mut: rgba(245,241,232,0.45);
+      --mut2: rgba(245,241,232,0.66);
+      --r-panel: 12px;
+      --r-chip: 8px;
+      --r-cta: 16px;
+      --paper-tex: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='90' height='90' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { background: var(--ink); }
+    body {
+      font-family: "Space Grotesk", sans-serif;
+      color: var(--paper);
+      background:
+        radial-gradient(90% 46% at 50% 0%, rgba(94,110,227,0.05), transparent 70%),
+        radial-gradient(80% 40% at 50% 100%, rgba(255,91,58,0.04), transparent 70%),
+        var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+    main { max-width: 420px; margin: 0 auto; min-height: 100vh; padding: 24px 16px 32px; }
+
+    /* ============ shared primitives ============ */
+    .eyebrow {
+      font: 500 11px/1.3 "JetBrains Mono", monospace;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--mut);
+    }
+    .mono { font-family: "JetBrains Mono", monospace; }
+
+    .btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 100%; min-height: 56px; padding: 12px 24px;
+      border: 1px solid var(--line); border-radius: var(--r-cta);
+      background: var(--s1); color: var(--paper);
+      font: 600 17px/1 "Space Grotesk", sans-serif;
+      cursor: pointer; text-align: center;
+    }
+    .btn.primary {
+      background: var(--coral); border-color: var(--coral); color: var(--ink);
+      box-shadow: 0 2px 0 var(--coral-edge);
+    }
+    .chip-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--r-chip);
+      background: var(--s1); color: var(--mut2);
+      font: 500 10px/1 "JetBrains Mono", monospace; letter-spacing: 0.12em;
+      text-transform: uppercase; cursor: pointer;
+    }
+    .panel {
+      background: var(--s1); border: 1px solid var(--line);
+      border-radius: var(--r-panel);
+    }
+
+    /* ============ number cards (the heroes) ============ */
+    .ncard {
+      position: relative;
+      width: 64px; height: 86px; border-radius: var(--r-panel);
+      background: var(--paper-tex), var(--paper);
+      color: var(--ink);
+      display: flex; align-items: center; justify-content: center;
+      font: 700 34px/1 "Space Grotesk", sans-serif;
+      box-shadow:
+        inset 0 0 0 1px rgba(13,12,20,0.08),
+        0 1px 0 rgba(0,0,0,0.45),
+        0 6px 12px rgba(0,0,0,0.28);
+      cursor: pointer;
+    }
+    .ncard .pip {
+      position: absolute; font: 700 9px/1 "JetBrains Mono", monospace;
+      color: rgba(13,12,20,0.42); letter-spacing: 0;
+    }
+    .ncard .pip.tl { top: 7px; left: 8px; }
+    .ncard .pip.br { bottom: 7px; right: 8px; transform: rotate(180deg); }
+    .ncard.zero {
+      background: var(--s1); color: var(--coral);
+      border: 1px solid var(--line-strong);
+      box-shadow: 0 1px 0 rgba(0,0,0,0.45), 0 6px 12px rgba(0,0,0,0.28);
+    }
+    .ncard.zero .pip { color: rgba(255,91,58,0.55); }
+    .ncard.sel {
+      transform: translateY(-6px);
+      box-shadow:
+        inset 0 0 0 1px rgba(13,12,20,0.08),
+        0 0 0 2px var(--ink),
+        0 0 0 4px var(--coral),
+        0 12px 18px rgba(0,0,0,0.45);
+    }
+
+    /* ============ power cards ============ */
+    .pcard {
+      position: relative;
+      width: 100%; height: 92px; border-radius: var(--r-panel);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 8px; color: var(--ink); cursor: pointer;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.4), 0 4px 10px rgba(0,0,0,0.25);
+    }
+    .pcard .glyph { font: 700 26px/1 "Space Grotesk", sans-serif; }
+    .pcard .pname {
+      font: 700 9px/1.2 "JetBrains Mono", monospace; letter-spacing: 0.1em;
+      text-transform: uppercase; text-align: center; opacity: 0.82; padding: 0 4px;
+    }
+    .pcard.teal    { background: var(--teal); }
+    .pcard.rose    { background: var(--rose); color: var(--paper); }
+    .pcard.pink    { background: var(--pink); }
+    .pcard.emerald { background: var(--emerald); }
+    .pcard.violet  { background: var(--violet); }
+    .pcard.amber   { background: var(--amber); }
+    .pcard.sel {
+      transform: translateY(-4px);
+      box-shadow:
+        0 0 0 2px var(--s2),
+        0 0 0 4px var(--coral),
+        0 10px 16px rgba(0,0,0,0.4);
+    }
+
+    /* seat colors */
+    .seat-ben  { background: var(--coral); }
+    .seat-vol  { background: var(--cool); }
+    .seat-mech { background: var(--gold); }
+    .seat-dan  { background: var(--green); }
+    .t-ben  { color: var(--coral); }
+    .t-vol  { color: #8d98ef; }
+    .t-mech { color: var(--gold); }
+    .t-dan  { color: var(--green); }
+
+    .avatar {
+      width: 36px; height: 36px; border-radius: var(--r-chip);
+      display: flex; align-items: center; justify-content: center;
+      font: 700 16px/1 "Space Grotesk", sans-serif; color: var(--ink);
+      flex: none;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+    .dot.on { background: var(--green); }
+
+    .badge {
+      font: 700 9px/1 "JetBrains Mono", monospace; letter-spacing: 0.12em;
+      padding: 5px 8px; border-radius: 6px; text-transform: uppercase;
+    }
+    .badge.host { background: rgba(232,194,92,0.14); color: var(--gold); border: 1px solid rgba(232,194,92,0.3); }
+    .badge.you  { background: rgba(245,241,232,0.1); color: var(--paper); border: 1px solid var(--line-strong); }
+    .badge.bot  { background: rgba(94,110,227,0.16); color: #97a1f0; border: 1px solid rgba(94,110,227,0.35); }
+
+    /* ================= HOME ================= */
+    .home { display: flex; flex-direction: column; padding-top: 64px; }
+    [data-screen="home"] .top-util { position: absolute; top: 16px; right: 16px; }
+    [data-screen="home"] { position: relative; }
+    .icon-btn {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 1px solid var(--line); background: var(--s1);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--mut2); cursor: pointer;
+    }
+    .wordmark {
+      text-align: center;
+      font: 700 64px/0.95 "Space Grotesk", sans-serif;
+      letter-spacing: -0.03em;
+    }
+    .wordmark em { font-style: normal; color: var(--coral); }
+    .tagline { text-align: center; margin-top: 16px; }
+
+    .minifan { display: flex; justify-content: center; align-items: flex-end; margin: 32px 0 8px; height: 64px; }
+    .mini {
+      width: 34px; height: 46px; border-radius: 6px;
+      background: var(--paper-tex), var(--paper); color: var(--ink);
+      display: flex; align-items: center; justify-content: center;
+      font: 700 16px/1 "Space Grotesk", sans-serif;
+      box-shadow: inset 0 0 0 1px rgba(13,12,20,0.08), 0 3px 6px rgba(0,0,0,0.35);
+      margin: 0 -2px;
+    }
+    .mini.zero { background: var(--s2); color: var(--coral); border: 1px solid var(--line-strong); }
+    .mini.r1 { transform: rotate(-12deg) translateY(8px); }
+    .mini.r2 { transform: rotate(-7deg) translateY(3px); }
+    .mini.r3 { transform: rotate(-2deg); }
+    .mini.r4 { transform: rotate(3deg); }
+    .mini.r5 { transform: rotate(8deg) translateY(3px); }
+    .mini.r6 { transform: rotate(13deg) translateY(9px); }
+
+    .home .actions { display: flex; flex-direction: column; gap: 12px; margin-top: 32px; }
+
+    /* ================= LOBBY ================= */
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .roomcode-block { text-align: center; margin-bottom: 32px; }
+    .roomcode {
+      font: 700 46px/1 "Space Grotesk", sans-serif; letter-spacing: 0.28em;
+      margin: 12px 0 8px; padding-left: 0.28em; /* optically recenters tracked text */
+    }
+    .copyhint { font: 400 11px/1 "JetBrains Mono", monospace; letter-spacing: 0.14em; color: var(--mut); text-transform: uppercase; }
+
+    .sect-label { margin: 24px 0 12px; display: flex; justify-content: space-between; align-items: baseline; }
+    .plist { display: flex; flex-direction: column; gap: 8px; }
+    .prow {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px; background: var(--s1);
+      border: 1px solid var(--line); border-radius: var(--r-panel);
+    }
+    .prow .pname2 { font: 600 16px/1 "Space Grotesk", sans-serif; flex: 1; }
+    .prow .badges { display: flex; gap: 6px; align-items: center; }
+
+    .settings { display: flex; flex-direction: column; gap: 8px; margin-top: 24px; }
+    .srow {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; background: var(--s1);
+      border: 1px solid var(--line); border-radius: var(--r-panel);
+      min-height: 64px;
+    }
+    .srow .slabel { font: 600 16px/1.2 "Space Grotesk", sans-serif; }
+    .stepper { display: flex; align-items: center; gap: 12px; }
+    .step-btn {
+      width: 44px; height: 44px; border-radius: var(--r-chip);
+      background: var(--s2); border: 1px solid var(--line);
+      color: var(--paper); font: 600 18px/1 "Space Grotesk", sans-serif;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+    }
+    .step-val { font: 700 18px/1 "JetBrains Mono", monospace; min-width: 20px; text-align: center; }
+
+    .pu-panel { padding: 16px; background: var(--s1); border: 1px solid var(--line); border-radius: var(--r-panel); }
+    .seg {
+      display: flex; gap: 4px; margin-top: 12px;
+      background: rgba(0,0,0,0.32); border: 1px solid var(--line);
+      border-radius: 10px; padding: 4px;
+    }
+    .seg button {
+      flex: 1; min-height: 44px; border: 0; border-radius: var(--r-chip);
+      background: transparent; color: var(--mut2);
+      font: 600 14px/1 "Space Grotesk", sans-serif; cursor: pointer;
+    }
+    .seg button.sel { background: var(--paper); color: var(--ink); box-shadow: 0 1px 0 rgba(0,0,0,0.4); }
+    .helper { margin-top: 12px; font: 400 12px/1.5 "JetBrains Mono", monospace; color: var(--mut); }
+    .lobby-start { margin-top: 32px; }
+
+    /* ================= GAME ================= */
+    .gheader { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .gmeta { font: 700 13px/1 "JetBrains Mono", monospace; letter-spacing: 0.06em; white-space: nowrap; }
+    .gmeta .dim { color: var(--mut); font-weight: 400; }
+    .gactions { display: flex; gap: 4px; }
+    .gactions .chip-btn { padding: 8px 9px; }
+
+    .scoreboard { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 24px; }
+    .schip {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 12px; background: var(--s1);
+      border: 1px solid var(--line); border-radius: var(--r-chip);
+    }
+    .schip .sname { font: 600 14px/1 "Space Grotesk", sans-serif; flex: 1; }
+    .schip .sscore { font: 700 15px/1 "JetBrains Mono", monospace; }
+
+    .pool-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+    .pool-count { font: 700 12px/1 "JetBrains Mono", monospace; color: var(--mut2); }
+    .pool {
+      background: var(--s2); border: 1px solid var(--line);
+      border-radius: var(--r-panel); padding: 16px; margin-bottom: 24px;
+    }
+    .pool-banner {
+      text-align: center; font: 700 10px/1 "JetBrains Mono", monospace;
+      letter-spacing: 0.22em; color: var(--gold); text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .pool-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 8px; }
+
+    .pstat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 8px; margin-bottom: 16px; }
+    .pstat { display: flex; gap: 10px; align-items: flex-start; }
+    .pstat .avatar { width: 32px; height: 32px; font-size: 14px; position: relative; }
+    .pstat .avatar .odot {
+      position: absolute; right: -2px; bottom: -2px; width: 9px; height: 9px;
+      border-radius: 50%; background: var(--green); border: 2px solid var(--ink);
+    }
+    .pstat .info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .pstat .nm { font: 600 14px/1.1 "Space Grotesk", sans-serif; }
+    .pstat .nm .you { color: var(--mut); font-weight: 400; font-size: 12px; }
+    .pstat .hand { font: 400 10px/1 "JetBrains Mono", monospace; letter-spacing: 0.18em; color: var(--mut); }
+    .pstat .st { font: 700 9px/1 "JetBrains Mono", monospace; letter-spacing: 0.16em; }
+    .st.thinking { color: var(--gold); }
+    .st.submitted { color: var(--green); }
+
+    .skipbtn {
+      width: 100%; min-height: 44px; margin-bottom: 32px;
+      background: transparent; border: 1px solid var(--line); border-radius: var(--r-panel);
+      color: var(--mut); font: 500 10px/1 "JetBrains Mono", monospace;
+      letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer;
+    }
+
+    .hand-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin: 16px 0 24px; padding-top: 8px; }
+
+    /* ================= REVEAL ================= */
+    [data-screen="reveal"] {
+      background:
+        radial-gradient(120% 80% at 50% 30%, rgba(244,114,182,0.045), transparent 65%),
+        radial-gradient(140% 100% at 50% 50%, transparent 55%, rgba(0,0,0,0.4)),
+        var(--ink);
+    }
+    .reveal-wrap { display: flex; flex-direction: column; align-items: center; padding-top: 48px; }
+    .reveal-eyebrow { margin-bottom: 32px; }
+    .played-label { margin-bottom: 12px; }
+    .played-card { width: 104px; margin-bottom: 32px; }
+    .played-card .pcard { height: 96px; }
+
+    .reveal-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px 12px; margin-bottom: 32px; }
+    .rcell { width: 104px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .rcell .rname { font: 700 10px/1 "JetBrains Mono", monospace; letter-spacing: 0.18em; text-transform: uppercase; }
+    .rcell .ncard { width: 84px; height: 112px; font-size: 46px; cursor: default; }
+    .rcell .ncard .num { position: relative; display: inline-block; }
+    .rcell.cancelled .ncard .num { opacity: 0.4; }
+    .rcell.cancelled .ncard .num::after {
+      content: ""; position: absolute; left: -8px; right: -8px; top: 50%;
+      height: 4px; border-radius: 2px; background: var(--pink);
+      transform: translateY(-50%) rotate(-7deg);
+    }
+    .rcell .outcome { display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 38px; }
+    .rcell .opts { font: 700 17px/1 "JetBrains Mono", monospace; }
+    .rcell.cancelled .opts { color: var(--pink); }
+    .rcell .otag { font: 700 9px/1 "JetBrains Mono", monospace; letter-spacing: 0.2em; color: var(--pink); text-transform: uppercase; }
+    .reveal-cta { width: 240px; }
+
+    /* ================= END ================= */
+    [data-screen="end"] { position: relative; overflow: hidden; }
+    .confetti { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+    .cf { position: absolute; width: 8px; height: 14px; border-radius: 2px; opacity: 0.85; }
+    .end-wrap { position: relative; z-index: 1; display: flex; flex-direction: column; padding-top: 56px; }
+    .end-eyebrow { text-align: center; }
+    .end-hero {
+      text-align: center; font: 700 48px/1.1 "Space Grotesk", sans-serif;
+      letter-spacing: -0.02em; margin: 12px 0 32px;
+    }
+    .end-hero em { font-style: normal; color: var(--coral); }
+
+    .table-head {
+      display: grid; grid-template-columns: 20px 10px 1fr 30px 30px 30px 48px;
+      gap: 8px; align-items: center; padding: 0 16px; margin-bottom: 8px;
+      font: 500 10px/1 "JetBrains Mono", monospace; letter-spacing: 0.14em; color: var(--mut);
+    }
+    .table-head span { text-align: right; }
+    .rank-list { display: flex; flex-direction: column; gap: 8px; }
+    .rrow {
+      display: grid; grid-template-columns: 20px 10px 1fr 30px 30px 30px 48px;
+      gap: 8px; align-items: center; padding: 14px 16px;
+      background: var(--s1); border: 1px solid var(--line); border-radius: var(--r-panel);
+    }
+    .rrow.winner { border-color: rgba(232,194,92,0.45); background: linear-gradient(rgba(232,194,92,0.07), rgba(232,194,92,0.07)), var(--s1); }
+    .rrow .rk { font: 700 13px/1 "JetBrains Mono", monospace; color: var(--mut); }
+    .rrow.winner .rk { color: var(--gold); }
+    .rrow .rdot { width: 10px; height: 10px; border-radius: 50%; }
+    .rrow .rnm { font: 600 15px/1.2 "Space Grotesk", sans-serif; }
+    .rrow .rnm .you { color: var(--mut); font-weight: 400; font-size: 12px; }
+    .rrow .rs { font: 400 13px/1 "JetBrains Mono", monospace; color: var(--mut2); text-align: right; }
+    .rrow .rt { font: 700 20px/1 "JetBrains Mono", monospace; text-align: right; }
+    .end-actions { display: flex; flex-direction: column; gap: 12px; margin-top: 32px; }
+
+    /* switcher chrome */
+    #switcher a {
+      font: 500 11px/1 "JetBrains Mono", monospace; color: var(--mut2);
+      text-decoration: none; padding: 6px 9px; background: var(--s2);
+      border: 1px solid var(--line); border-radius: var(--r-chip);
+    }
+
+    /* ============ motion (flourish only) ============ */
+    @media (prefers-reduced-motion: no-preference) {
+      .btn, .chip-btn, .step-btn, .seg button, .ncard, .pcard { transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease; }
+      .btn:hover { transform: translateY(-1px); }
+      .ncard:hover:not(.sel) { transform: translateY(-3px); }
+      .pcard:hover:not(.sel) { transform: translateY(-2px); }
+      [data-screen].active > * { animation: rise 0.35s ease both; }
+      @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+      .st.thinking { animation: blink 1.4s ease-in-out infinite; }
+      @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+      .cf { animation: drift 3.2s ease-in-out infinite alternate; }
+      @keyframes drift { from { transform: translateY(-4px) rotate(var(--rot, 12deg)); } to { transform: translateY(5px) rotate(var(--rot, 12deg)); } }
+    }
+  </style>
+</head>
+<body>
+  <main data-screen="home">
+    <div class="top-util"><button class="icon-btn" aria-label="mute">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M18.63 13A17.89 17.89 0 0 1 18 8a6 6 0 0 0-9.33-5"/><path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+    </button></div>
+    <div class="home">
+      <h1 class="wordmark">CAN<em>CEL</em></h1>
+      <p class="tagline eyebrow">a number-picking party game</p>
+      <div class="minifan">
+        <div class="mini zero r1">Ø</div>
+        <div class="mini r2">1</div>
+        <div class="mini r3">2</div>
+        <div class="mini r4">3</div>
+        <div class="mini r5">4</div>
+        <div class="mini r6">5</div>
+      </div>
+      <div class="actions">
+        <button class="btn primary">New game</button>
+        <button class="btn">Single player</button>
+        <button class="btn">Join with code</button>
+      </div>
+    </div>
+  </main>
+
+  <main data-screen="lobby">
+    <div class="topbar">
+      <button class="chip-btn">← Leave</button>
+      <button class="chip-btn">Rules</button>
+    </div>
+
+    <div class="roomcode-block">
+      <div class="eyebrow">Room code</div>
+      <div class="roomcode">DN2H</div>
+      <div class="copyhint">press to copy</div>
+    </div>
+
+    <div class="sect-label"><span class="eyebrow">Players · 4</span></div>
+    <div class="plist">
+      <div class="prow">
+        <div class="avatar seat-ben">B</div>
+        <span class="pname2">Ben</span>
+        <div class="badges">
+          <span class="badge host">Host</span>
+          <span class="badge you">You</span>
+          <span class="dot on"></span>
+        </div>
+      </div>
+      <div class="prow">
+        <div class="avatar seat-vol">V</div>
+        <span class="pname2">Voltaire</span>
+        <div class="badges"><span class="badge bot">Bot</span><span class="dot on"></span></div>
+      </div>
+      <div class="prow">
+        <div class="avatar seat-mech">M</div>
+        <span class="pname2">Mechano</span>
+        <div class="badges"><span class="badge bot">Bot</span><span class="dot on"></span></div>
+      </div>
+      <div class="prow">
+        <div class="avatar seat-dan">D</div>
+        <span class="pname2">Data Dan</span>
+        <div class="badges"><span class="badge bot">Bot</span><span class="dot on"></span></div>
+      </div>
+    </div>
+
+    <div class="settings">
+      <div class="srow">
+        <span class="slabel">Rounds</span>
+        <div class="stepper">
+          <button class="step-btn">−</button>
+          <span class="step-val">3</span>
+          <button class="step-btn">+</button>
+        </div>
+      </div>
+      <div class="srow">
+        <span class="slabel">AI players</span>
+        <div class="stepper">
+          <button class="step-btn">−</button>
+          <span class="step-val">3</span>
+          <button class="step-btn">+</button>
+        </div>
+      </div>
+      <div class="pu-panel">
+        <span class="slabel">Power-ups</span>
+        <div class="seg">
+          <button>None</button>
+          <button class="sel">Random</button>
+          <button>Choose</button>
+        </div>
+        <p class="helper">A fresh random pool each round.</p>
+      </div>
+    </div>
+
+    <button class="btn primary lobby-start">Start game</button>
+  </main>
+
+  <main data-screen="game">
+    <div class="gheader">
+      <span class="gmeta">R1<span class="dim">/3</span> <span class="dim">·</span> T2<span class="dim">/6</span> <span class="dim">·</span> <span class="dim">DN2H</span></span>
+      <div class="gactions">
+        <button class="chip-btn">Rules</button>
+        <button class="chip-btn">Leave</button>
+        <button class="chip-btn">End game</button>
+      </div>
+    </div>
+
+    <div class="scoreboard">
+      <div class="schip"><span class="dot seat-ben"></span><span class="sname">Ben</span><span class="sscore">4</span></div>
+      <div class="schip"><span class="dot seat-vol"></span><span class="sname">Voltaire</span><span class="sscore">0</span></div>
+      <div class="schip"><span class="dot seat-mech"></span><span class="sname">Mechano</span><span class="sscore">2</span></div>
+      <div class="schip"><span class="dot seat-dan"></span><span class="sname">Data Dan</span><span class="sscore">5</span></div>
+    </div>
+
+    <div class="pool-head">
+      <span class="eyebrow">Power-ups remaining</span>
+      <span class="pool-count">6 / 6</span>
+    </div>
+    <div class="pool">
+      <div class="pool-banner">Your turn, press to select</div>
+      <div class="pool-grid">
+        <div class="pcard teal"><span class="glyph">⇄</span><span class="pname">Swap Hands</span></div>
+        <div class="pcard rose"><span class="glyph">✖</span><span class="pname">Sabotage</span></div>
+        <div class="pcard pink sel"><span class="glyph">=</span><span class="pname">Jinx</span></div>
+        <div class="pcard emerald"><span class="glyph">+2</span><span class="pname">Plus Two</span></div>
+        <div class="pcard violet"><span class="glyph">?</span><span class="pname">Wild</span></div>
+        <div class="pcard amber"><span class="glyph">↧</span><span class="pname">Drain</span></div>
+      </div>
+    </div>
+
+    <div class="sect-label"><span class="eyebrow">Players · Power picker: Ben</span></div>
+    <div class="pstat-grid">
+      <div class="pstat">
+        <div class="avatar seat-ben">B<span class="odot"></span></div>
+        <div class="info">
+          <span class="nm">Ben <span class="you">(you)</span></span>
+          <span class="hand">Ø 1 2 3 4 5</span>
+          <span class="st thinking">Thinking…</span>
+        </div>
+      </div>
+      <div class="pstat">
+        <div class="avatar seat-vol">V<span class="odot"></span></div>
+        <div class="info">
+          <span class="nm">Voltaire</span>
+          <span class="hand">Ø 1 2 4 5</span>
+          <span class="st submitted">Submitted</span>
+        </div>
+      </div>
+      <div class="pstat">
+        <div class="avatar seat-mech">M<span class="odot"></span></div>
+        <div class="info">
+          <span class="nm">Mechano</span>
+          <span class="hand">Ø 1 3 4 5</span>
+          <span class="st submitted">Submitted</span>
+        </div>
+      </div>
+      <div class="pstat">
+        <div class="avatar seat-dan">D<span class="odot"></span></div>
+        <div class="info">
+          <span class="nm">Data Dan</span>
+          <span class="hand">Ø 2 3 4 5</span>
+          <span class="st submitted">Submitted</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="skipbtn">Skip waiting, auto-play who's left</button>
+
+    <div class="sect-label"><span class="eyebrow">Your hand</span></div>
+    <div class="hand-row">
+      <div class="ncard zero"><span class="pip tl">Ø</span>Ø<span class="pip br">Ø</span></div>
+      <div class="ncard"><span class="pip tl">1</span>1<span class="pip br">1</span></div>
+      <div class="ncard"><span class="pip tl">2</span>2<span class="pip br">2</span></div>
+      <div class="ncard"><span class="pip tl">3</span>3<span class="pip br">3</span></div>
+      <div class="ncard"><span class="pip tl">4</span>4<span class="pip br">4</span></div>
+      <div class="ncard sel"><span class="pip tl">5</span>5<span class="pip br">5</span></div>
+    </div>
+
+    <button class="btn primary">Lock it in</button>
+  </main>
+
+  <main data-screen="reveal">
+    <div class="reveal-wrap">
+      <div class="eyebrow reveal-eyebrow">Turn 2 reveal</div>
+
+      <div class="eyebrow played-label">Ben played</div>
+      <div class="played-card">
+        <div class="pcard pink"><span class="glyph">=</span><span class="pname">Jinx</span></div>
+      </div>
+
+      <div class="reveal-grid">
+        <div class="rcell cancelled">
+          <span class="rname t-ben">Ben</span>
+          <div class="ncard"><span class="num">5</span></div>
+          <div class="outcome"><span class="opts">0</span><span class="otag">Cancelled</span></div>
+        </div>
+        <div class="rcell">
+          <span class="rname t-vol">Voltaire</span>
+          <div class="ncard zero"><span class="num">Ø</span></div>
+          <div class="outcome"><span class="opts">0</span></div>
+        </div>
+        <div class="rcell cancelled">
+          <span class="rname t-mech">Mechano</span>
+          <div class="ncard"><span class="num">5</span></div>
+          <div class="outcome"><span class="opts">0</span><span class="otag">Cancelled</span></div>
+        </div>
+        <div class="rcell cancelled">
+          <span class="rname t-dan">Data Dan</span>
+          <div class="ncard"><span class="num">3</span></div>
+          <div class="outcome"><span class="opts">0</span><span class="otag">Cancelled</span></div>
+        </div>
+      </div>
+
+      <button class="btn primary reveal-cta">Continue</button>
+    </div>
+  </main>
+
+  <main data-screen="end">
+    <div class="confetti">
+      <span class="cf" style="top:4%;  left:8%;  background:var(--coral); --rot:18deg;  transform:rotate(18deg);"></span>
+      <span class="cf" style="top:7%;  left:78%; background:var(--cool);  --rot:-24deg; transform:rotate(-24deg);"></span>
+      <span class="cf" style="top:12%; left:30%; background:var(--gold);  --rot:40deg;  transform:rotate(40deg);"></span>
+      <span class="cf" style="top:15%; left:60%; background:var(--green); --rot:-10deg; transform:rotate(-10deg);"></span>
+      <span class="cf" style="top:18%; left:90%; background:var(--paper); --rot:30deg;  transform:rotate(30deg);"></span>
+      <span class="cf" style="top:22%; left:14%; background:var(--cool);  --rot:-38deg; transform:rotate(-38deg);"></span>
+      <span class="cf" style="top:27%; left:48%; background:var(--coral); --rot:12deg;  transform:rotate(12deg);"></span>
+      <span class="cf" style="top:31%; left:72%; background:var(--gold);  --rot:-18deg; transform:rotate(-18deg);"></span>
+      <span class="cf" style="top:38%; left:6%;  background:var(--green); --rot:26deg;  transform:rotate(26deg);"></span>
+      <span class="cf" style="top:43%; left:88%; background:var(--coral); --rot:-30deg; transform:rotate(-30deg);"></span>
+      <span class="cf" style="top:50%; left:24%; background:var(--paper); --rot:8deg;   transform:rotate(8deg);"></span>
+      <span class="cf" style="top:55%; left:64%; background:var(--cool);  --rot:35deg;  transform:rotate(35deg);"></span>
+      <span class="cf" style="top:62%; left:42%; background:var(--gold);  --rot:-15deg; transform:rotate(-15deg);"></span>
+      <span class="cf" style="top:67%; left:84%; background:var(--green); --rot:22deg;  transform:rotate(22deg);"></span>
+      <span class="cf" style="top:72%; left:12%; background:var(--coral); --rot:-26deg; transform:rotate(-26deg);"></span>
+      <span class="cf" style="top:80%; left:56%; background:var(--paper); --rot:16deg;  transform:rotate(16deg);"></span>
+      <span class="cf" style="top:85%; left:32%; background:var(--cool);  --rot:-8deg;  transform:rotate(-8deg);"></span>
+      <span class="cf" style="top:90%; left:76%; background:var(--gold);  --rot:28deg;  transform:rotate(28deg);"></span>
+    </div>
+
+    <div class="end-wrap">
+      <div class="eyebrow end-eyebrow">Game over</div>
+      <h2 class="end-hero">You <em>won.</em></h2>
+
+      <div class="table-head">
+        <i></i><i></i><i></i>
+        <span>R1</span><span>R2</span><span>R3</span><span>Total</span>
+      </div>
+      <div class="rank-list">
+        <div class="rrow winner">
+          <span class="rk">1</span><span class="rdot seat-ben"></span>
+          <span class="rnm">Ben <span class="you">(you)</span></span>
+          <span class="rs">5</span><span class="rs">9</span><span class="rs">6</span><span class="rt">20</span>
+        </div>
+        <div class="rrow">
+          <span class="rk">2</span><span class="rdot seat-dan"></span>
+          <span class="rnm">Data Dan</span>
+          <span class="rs">5</span><span class="rs">4</span><span class="rs">3</span><span class="rt">12</span>
+        </div>
+        <div class="rrow">
+          <span class="rk">3</span><span class="rdot seat-vol"></span>
+          <span class="rnm">Voltaire</span>
+          <span class="rs">3</span><span class="rs">2</span><span class="rs">4</span><span class="rt">9</span>
+        </div>
+        <div class="rrow">
+          <span class="rk">4</span><span class="rdot seat-mech"></span>
+          <span class="rnm">Mechano</span>
+          <span class="rs">0</span><span class="rs">5</span><span class="rs">2</span><span class="rt">7</span>
+        </div>
+      </div>
+
+      <div class="end-actions">
+        <button class="btn primary">Play again</button>
+        <button class="btn">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

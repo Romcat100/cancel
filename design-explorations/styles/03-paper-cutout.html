@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Paper Cutout</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ============ PAPER CUTOUT — base styles are the FINAL resting state ============ */
+
+    :root{
+      --kraft:#c9a06d;
+      --ink:#3c2a17;
+      --ink-soft:#6e5234;
+      --cream:#f8f0dc;
+      --cream-2:#efe1c1;
+      --cream-3:#e2cfa6;
+      --red:#d8472f;
+      --red-deep:#b53a26;
+      --blue:#3f8ec9;
+      --yellow:#f2bd35;
+      --green:#5f9c47;
+      --pink:#e0619b;
+      --teal:#2f9d8c;
+      --violet:#8a6fc4;
+      --amber:#e09a2b;
+      --sh:rgba(77,47,17,.30);
+      --strip-clip:polygon(0% 24%,3% 8%,7% 26%,11% 6%,15% 22%,20% 8%,25% 28%,30% 8%,35% 24%,40% 6%,45% 26%,50% 10%,55% 26%,60% 6%,65% 24%,70% 8%,75% 28%,80% 8%,85% 24%,90% 6%,95% 24%,100% 10%,100% 78%,97% 94%,93% 76%,89% 94%,85% 74%,80% 92%,75% 72%,70% 94%,65% 76%,60% 92%,55% 72%,50% 92%,45% 74%,40% 94%,35% 76%,30% 92%,25% 72%,20% 94%,15% 74%,10% 90%,5% 72%,0% 90%);
+      --tag-clip:polygon(0% 35%,4% 10%,14% 22%,25% 6%,36% 20%,48% 4%,60% 18%,72% 6%,84% 20%,95% 8%,100% 30%,100% 70%,96% 92%,85% 78%,73% 96%,61% 80%,49% 96%,37% 82%,25% 96%,13% 80%,4% 92%,0% 68%);
+      --burst:polygon(50% 0%,61% 30%,92% 14%,72% 42%,100% 50%,73% 60%,88% 90%,58% 68%,50% 100%,41% 68%,12% 88%,28% 58%,0% 48%,27% 41%,10% 12%,39% 30%);
+      --crown:polygon(6% 100%,2% 26%,25% 52%,43% 8%,58% 50%,78% 16%,98% 44%,93% 100%);
+      --tape-clip:polygon(4% 0%,100% 8%,97% 100%,0% 90%);
+      --tearL:polygon(0% 0%,56% 0%,47% 9%,58% 19%,46% 30%,57% 41%,47% 52%,59% 63%,47% 74%,56% 84%,46% 93%,53% 100%,0% 100%);
+      --tearR:polygon(63% 0%,100% 0%,100% 100%,60% 100%,53% 93%,63% 84%,54% 74%,66% 63%,54% 52%,64% 41%,53% 30%,65% 19%,54% 9%);
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{overflow-x:hidden}
+    body{
+      position:relative;
+      min-height:100vh;
+      font-family:"Nunito",sans-serif;
+      font-weight:700;
+      color:var(--ink);
+      background:
+        radial-gradient(130% 70% at 50% -6%, #d8b387 0%, rgba(216,179,135,0) 55%),
+        radial-gradient(120% 60% at 50% 108%, #a97f47 0%, rgba(169,127,71,0) 52%),
+        var(--kraft);
+    }
+    /* paper grain over everything */
+    body::after{
+      content:"";position:absolute;inset:0;z-index:6;pointer-events:none;
+      mix-blend-mode:multiply;opacity:.17;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+      background-size:240px 240px;
+    }
+
+    main{max-width:420px;margin:0 auto;padding:24px 16px 70px;position:relative}
+    main[data-screen="home"]{min-height:100vh;padding-top:110px}
+    main[data-screen="end"]{min-height:100vh}
+
+    #switcher a{
+      width:26px;height:26px;display:grid;place-items:center;
+      background:var(--cream);color:var(--ink);
+      font:800 13px/1 "Baloo 2",sans-serif;text-decoration:none;
+      border-radius:8px 10px 7px 11px;box-shadow:2px 2px 0 var(--sh);
+    }
+
+    /* ---------- shared paper bits ---------- */
+
+    .rA{rotate:-1.2deg}.rB{rotate:.9deg}.rC{rotate:-.7deg}.rD{rotate:1.3deg}.rE{rotate:-1.7deg}.rF{rotate:.6deg}
+    .mt{margin-top:20px}
+
+    .btn{
+      display:block;width:100%;border:0;cursor:pointer;position:relative;
+      font:800 21px/1.2 "Baloo 2",sans-serif;color:var(--ink);
+      background:var(--cream);padding:17px 18px;
+      border-radius:16px 22px 14px 20px / 20px 14px 22px 16px;
+      box-shadow:5px 6px 0 var(--sh), inset 0 1px 0 rgba(255,255,255,.55);
+    }
+    .btn.primary{
+      background:var(--red);color:var(--cream);
+      text-shadow:1px 2px 0 rgba(0,0,0,.14);
+      box-shadow:5px 6px 0 var(--sh), inset 0 1px 0 rgba(255,255,255,.28);
+    }
+
+    .chipbtn{
+      background:var(--cream);border:0;cursor:pointer;padding:11px 16px;
+      font:800 14px/1 "Baloo 2",sans-serif;color:var(--ink);
+      border-radius:10px 14px 9px 13px / 13px 9px 14px 10px;
+      box-shadow:3px 4px 0 var(--sh);
+    }
+
+    .strip{
+      display:flex;align-items:center;justify-content:space-between;gap:8px;
+      background:var(--cream-2);clip-path:var(--strip-clip);
+      padding:11px 16px 12px;
+      font:900 11px/1 "Nunito",sans-serif;letter-spacing:2px;text-transform:uppercase;
+      color:var(--ink-soft);
+      filter:drop-shadow(2px 3px 0 rgba(77,47,17,.22));
+    }
+    .stripnum b{color:var(--ink);font-size:13px}
+
+    .tag{
+      display:inline-block;padding:5px 10px 6px;
+      font:900 9px/1 "Nunito",sans-serif;letter-spacing:1.2px;
+      clip-path:var(--tag-clip);color:var(--cream);
+      filter:drop-shadow(1px 2px 0 rgba(77,47,17,.2));
+    }
+    .t-host{background:var(--yellow);color:var(--ink)}
+    .t-you{background:var(--ink);color:var(--cream)}
+    .t-bot{background:var(--blue)}
+    .t-sub{background:var(--green)}
+    .t-think{background:var(--amber);color:var(--ink)}
+
+    .av{
+      flex:none;width:38px;height:38px;display:grid;place-items:center;
+      font:800 18px/1 "Baloo 2",sans-serif;color:var(--cream);
+      border-radius:46% 54% 52% 48% / 52% 46% 54% 48%;
+      box-shadow:2px 3px 0 var(--sh);
+    }
+    .av.sm{width:32px;height:32px;font-size:15px}
+    .av.red{background:var(--red)}.av.blue{background:var(--blue)}
+    .av.yellow{background:var(--yellow);color:var(--ink)}.av.green{background:var(--green)}
+
+    .dot{flex:none;width:11px;height:11px;background:#6db14e;border-radius:50% 45% 55% 50%;box-shadow:1px 2px 0 var(--sh)}
+
+    .sq{flex:none;width:14px;height:14px;rotate:-7deg;border-radius:3px 5px 3px 5px;box-shadow:1px 2px 0 var(--sh)}
+    .c-red{background:var(--red)}.c-blue{background:var(--blue)}
+    .c-yellow{background:var(--yellow)}.c-green{background:var(--green)}
+
+    .tape{
+      position:absolute;top:-9px;left:-12px;width:48px;height:17px;z-index:2;
+      background:rgba(252,246,228,.82);clip-path:var(--tape-clip);rotate:-32deg;
+    }
+
+    /* ---------- number cards: the heroes ---------- */
+
+    .nstack{position:relative;display:inline-block}
+    .nstack::before{ /* the sheet underneath: stacked paper */
+      content:"";position:absolute;inset:4px -5px -6px 4px;
+      background:#eadab2;border-radius:12px 9px 15px 8px / 9px 15px 8px 13px;
+      rotate:2.5deg;box-shadow:3px 4px 0 var(--sh);
+    }
+    .ncard{
+      position:relative;display:grid;place-items:center;
+      width:58px;height:78px;background:var(--cream);border:0;cursor:pointer;
+      border-radius:10px 15px 9px 14px / 15px 9px 14px 10px;
+      box-shadow:4px 5px 0 var(--sh), inset 0 1px 0 rgba(255,255,255,.6);
+    }
+    .npatch{
+      position:absolute;width:36px;height:46px;rotate:4deg;opacity:.9;
+      border-radius:8px 11px 7px 12px / 11px 7px 12px 8px;
+    }
+    .pa-red{background:#f0a08e}.pa-blue{background:#9fcbe9}
+    .pa-yel{background:#f8d878}.pa-grn{background:#b3d49b}
+    .nnum{
+      position:relative;font:800 38px/1 "Baloo 2",sans-serif;color:var(--ink);
+      text-shadow:2px 2px 0 rgba(77,47,17,.16);
+    }
+    .nnum.zero{color:var(--red-deep)}
+
+    .nstack.sel{translate:0 -10px;rotate:-4deg}
+    .nstack.sel .ncard{box-shadow:7px 9px 0 var(--sh), inset 0 1px 0 rgba(255,255,255,.6)}
+    .nstack.sel .npatch{
+      background:var(--yellow);clip-path:var(--burst);
+      width:52px;height:52px;border-radius:0;rotate:8deg;opacity:1;
+    }
+
+    .hand{display:flex;justify-content:center;gap:6px;padding:18px 0 6px}
+
+    /* ---------- power cards ---------- */
+
+    .pcard{
+      position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
+      border:0;cursor:pointer;width:100%;height:92px;color:var(--cream);
+      border-radius:12px 18px 10px 16px / 16px 10px 18px 12px;
+      box-shadow:4px 5px 0 var(--sh), inset 0 1px 0 rgba(255,255,255,.25);
+    }
+    .pglyph{font:800 30px/1 "Baloo 2",sans-serif;text-shadow:2px 2px 0 rgba(0,0,0,.18)}
+    .pcname{font:900 10px/1.15 "Nunito",sans-serif;letter-spacing:1.3px;text-transform:uppercase;text-align:center;padding:0 4px}
+    .pc-teal{background:var(--teal)}.pc-rose{background:var(--red)}.pc-pink{background:var(--pink)}
+    .pc-em{background:#3f9658}.pc-vio{background:var(--violet)}
+    .pc-amber{background:var(--amber);color:var(--ink)}
+    .pc-amber .pglyph{text-shadow:2px 2px 0 rgba(255,255,255,.3)}
+    .pcard.sel{translate:0 -6px;rotate:-2.5deg;box-shadow:7px 9px 0 var(--sh), inset 0 1px 0 rgba(255,255,255,.25)}
+    .pstar{position:absolute;top:-13px;right:-9px;width:34px;height:34px;background:var(--yellow);clip-path:var(--burst);z-index:2;filter:drop-shadow(2px 2px 0 rgba(77,47,17,.3))}
+
+    /* ================= HOME ================= */
+
+    .wordmark{display:flex;justify-content:center;gap:6px;margin:44px 0 22px}
+    .wm{
+      display:inline-grid;place-items:center;width:56px;height:64px;
+      font:800 40px/1 "Baloo 2",sans-serif;color:var(--cream);
+      border-radius:12px 16px 10px 15px / 15px 10px 16px 12px;
+      box-shadow:4px 5px 0 var(--sh), inset 0 1px 0 rgba(255,255,255,.3);
+    }
+    .wm:nth-child(1){background:var(--red);rotate:-2.6deg;translate:0 2px}
+    .wm:nth-child(2){background:var(--blue);rotate:2deg;translate:0 -3px}
+    .wm:nth-child(3){background:var(--yellow);color:var(--ink);rotate:-1.6deg;translate:0 3px}
+    .wm:nth-child(4){background:var(--green);rotate:2.4deg;translate:0 -2px}
+    .wm:nth-child(5){background:var(--cream);color:var(--red-deep);rotate:-2deg;translate:0 4px}
+    .wm:nth-child(6){background:var(--red);rotate:1.8deg;translate:0 -3px}
+
+    .tagline-wrap{text-align:center}
+    .tagline{
+      display:inline-block;background:var(--cream);clip-path:var(--strip-clip);
+      padding:11px 20px 12px;rotate:-1deg;
+      font:800 13.5px/1 "Nunito",sans-serif;letter-spacing:.6px;color:var(--ink-soft);
+      filter:drop-shadow(2px 3px 0 rgba(77,47,17,.22));
+    }
+
+    .fan{position:relative;width:210px;height:120px;margin:30px auto 6px}
+    .fan .nstack{position:absolute;top:8px}
+    .fan .nstack .ncard{cursor:default}
+    .f1{left:18px;rotate:-11deg}
+    .f2{left:76px;top:0!important;rotate:1.5deg}
+    .f3{left:134px;rotate:10deg}
+
+    .home-btns{display:flex;flex-direction:column;gap:18px;margin-top:30px;padding:0 6px}
+
+    .scatter{position:absolute;inset:0;pointer-events:none;z-index:0}
+    .scatter span{position:absolute;width:13px;height:19px;border-radius:2px 4px 2px 4px;box-shadow:1px 2px 0 rgba(77,47,17,.22)}
+    .scatter span:nth-child(5n+1){background:var(--red)}
+    .scatter span:nth-child(5n+2){background:var(--blue)}
+    .scatter span:nth-child(5n+3){background:var(--yellow)}
+    .scatter span:nth-child(5n+4){background:var(--green)}
+    .scatter span:nth-child(5n){background:var(--cream)}
+    .scatter span:nth-child(4n+2){clip-path:polygon(50% 0,100% 100%,0 100%);border-radius:0;box-shadow:none}
+    .scatter span:nth-child(3n+1){width:9px;height:21px}
+    .scatter span:nth-child(1){left:6%;top:4%;rotate:-24deg}
+    .scatter span:nth-child(2){left:88%;top:5%;rotate:31deg}
+    .scatter span:nth-child(3){left:12%;top:36%;rotate:-12deg}
+    .scatter span:nth-child(4){left:90%;top:34%;rotate:18deg}
+    .scatter span:nth-child(5){left:4%;top:64%;rotate:-31deg}
+    .scatter span:nth-child(6){left:92%;top:63%;rotate:12deg}
+    .scatter span:nth-child(7){left:9%;top:88%;rotate:-19deg}
+    .scatter span:nth-child(8){left:87%;top:89%;rotate:26deg}
+    .scatter span:nth-child(9){left:22%;top:6%;rotate:-8deg}
+    .scatter span:nth-child(10){left:36%;top:3%;rotate:40deg}
+    .scatter span:nth-child(11){left:51%;top:6%;rotate:-28deg}
+    .scatter span:nth-child(12){left:66%;top:3%;rotate:8deg}
+    .scatter span:nth-child(13){left:77%;top:9%;rotate:-37deg}
+    .scatter span:nth-child(14){left:15%;top:13%;rotate:14deg}
+    .scatter span:nth-child(15){left:44%;top:14%;rotate:-22deg}
+    .scatter span:nth-child(16){left:60%;top:12%;rotate:-31deg}
+    .scatter span:nth-child(17){left:30%;top:11%;rotate:21deg}
+    .scatter span:nth-child(18){left:83%;top:17%;rotate:9deg}
+    .scatter span:nth-child(19){left:7%;top:20%;rotate:-26deg}
+    .scatter span:nth-child(20){left:48%;top:24%;rotate:24deg}
+    .scatter span:nth-child(21){left:25%;top:26%;rotate:-14deg}
+    .scatter span:nth-child(22){left:70%;top:27%;rotate:33deg}
+    .scatter span:nth-child(23){left:5%;top:46%;rotate:19deg}
+    .scatter span:nth-child(24){left:91%;top:48%;rotate:-27deg}
+    .scatter span:nth-child(25){left:10%;top:62%;rotate:35deg}
+    .scatter span:nth-child(26){left:88%;top:66%;rotate:-11deg}
+    .scatter span:nth-child(27){left:30%;top:74%;rotate:23deg}
+    .scatter span:nth-child(28){left:64%;top:76%;rotate:-33deg}
+    .scatter span:nth-child(29){left:6%;top:84%;rotate:-17deg}
+    .scatter span:nth-child(30){left:90%;top:86%;rotate:29deg}
+    .scatter span:nth-child(31){left:45%;top:92%;rotate:-24deg}
+    .scatter span:nth-child(32){left:74%;top:94%;rotate:13deg}
+    .above-scatter{position:relative;z-index:1}
+
+    /* ================= LOBBY ================= */
+
+    .topbar{display:flex;justify-content:space-between;align-items:center}
+
+    .codewrap{text-align:center;margin:30px 0 26px}
+    .codes{display:flex;justify-content:center;gap:8px}
+    .code{
+      position:relative;display:inline-grid;place-items:center;width:62px;height:72px;
+      background:var(--cream);font:800 38px/1 "Baloo 2",sans-serif;color:var(--ink);
+      border-radius:10px 15px 9px 14px / 15px 9px 14px 10px;
+      box-shadow:4px 5px 0 var(--sh), inset 0 1px 0 rgba(255,255,255,.6);
+    }
+    .code .npatch{width:40px;height:50px}
+    .code i{position:relative;font-style:normal}
+    .hint-copy{margin-top:14px;font:800 11px/1 "Nunito",sans-serif;letter-spacing:2px;text-transform:uppercase;color:var(--ink-soft)}
+
+    .players{list-style:none;display:flex;flex-direction:column;gap:11px;margin-top:16px}
+    .prow{
+      display:flex;align-items:center;gap:11px;background:var(--cream);
+      padding:10px 14px;border-radius:13px 18px 11px 16px / 16px 11px 18px 13px;
+      box-shadow:4px 5px 0 var(--sh), inset 0 1px 0 rgba(255,255,255,.5);
+    }
+    .prow .pname{font:800 17px/1 "Baloo 2",sans-serif;margin-right:auto}
+
+    .settings{display:flex;flex-direction:column;gap:12px;margin-top:18px}
+    .srow{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      background:var(--cream);padding:13px 14px;
+      border-radius:13px 18px 11px 16px / 16px 11px 18px 13px;
+      box-shadow:4px 5px 0 var(--sh), inset 0 1px 0 rgba(255,255,255,.5);
+    }
+    .srow.block{display:block}
+    .sname{font:800 16px/1 "Baloo 2",sans-serif}
+    .stepper{display:flex;align-items:center;gap:8px}
+    .step{
+      width:42px;height:42px;display:grid;place-items:center;border:0;cursor:pointer;
+      background:var(--cream-2);font:800 21px/1 "Baloo 2",sans-serif;color:var(--ink);
+      border-radius:9px 12px 8px 11px / 11px 8px 12px 9px;
+      box-shadow:2px 3px 0 var(--sh);
+    }
+    .sval{font:800 20px/1 "Baloo 2",sans-serif;min-width:28px;text-align:center}
+    .seg{display:flex;gap:8px;margin-top:12px}
+    .segbtn{
+      flex:1;border:0;cursor:pointer;padding:11px 4px;
+      background:var(--cream-2);color:var(--ink-soft);
+      font:800 14px/1 "Baloo 2",sans-serif;
+      border-radius:9px 13px 8px 12px / 12px 8px 13px 9px;
+      box-shadow:2px 3px 0 var(--sh);
+    }
+    .segbtn.on{
+      background:var(--red);color:var(--cream);rotate:-1.4deg;translate:0 -2px;
+      box-shadow:3px 5px 0 var(--sh);
+    }
+    .seghint{margin-top:11px;font:700 12.5px/1.4 "Nunito",sans-serif;color:var(--ink-soft)}
+
+    .startwrap{margin-top:24px;padding:0 4px}
+
+    /* ================= GAME ================= */
+
+    .ghead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:16px}
+    .gstats{
+      background:var(--cream);padding:10px 12px;
+      border-radius:10px 14px 9px 13px / 13px 9px 14px 10px;
+      box-shadow:3px 4px 0 var(--sh);
+      font:800 13px/1 "Baloo 2",sans-serif;white-space:nowrap;
+    }
+    .gstats .soft{color:var(--ink-soft);font-weight:700}
+    .gstats .sep{color:var(--ink-soft);padding:0 4px}
+    .gbtns{display:flex;gap:5px}
+    .minibtn{
+      background:var(--cream);border:0;cursor:pointer;padding:9px 8px;
+      font:900 9px/1 "Nunito",sans-serif;letter-spacing:1px;color:var(--ink-soft);
+      border-radius:7px 10px 7px 10px / 10px 7px 10px 7px;
+      box-shadow:2px 3px 0 var(--sh);
+    }
+    .minibtn.danger{color:var(--red-deep)}
+
+    .sbgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+    .schip{
+      display:flex;align-items:center;gap:8px;background:var(--cream);
+      padding:8px 12px;font:800 15px/1 "Baloo 2",sans-serif;
+      border-radius:10px 14px 9px 13px / 13px 9px 14px 10px;
+      box-shadow:3px 4px 0 var(--sh);
+    }
+    .score{
+      margin-left:auto;font:800 16px/1 "Baloo 2",sans-serif;
+      background:var(--cream-2);padding:4px 9px 5px;
+      border-radius:6px 9px 6px 9px / 9px 6px 9px 6px;
+    }
+
+    .poolwrap{margin-top:6px}
+    .ribbon{
+      position:relative;z-index:2;display:inline-block;
+      background:var(--yellow);clip-path:var(--strip-clip);
+      padding:11px 18px 12px;rotate:-1.6deg;margin:0 0 -9px 14px;
+      font:900 10.5px/1 "Nunito",sans-serif;letter-spacing:1.8px;text-transform:uppercase;color:var(--ink);
+      filter:drop-shadow(2px 3px 0 rgba(77,47,17,.25));
+    }
+    .pool{
+      display:grid;grid-template-columns:repeat(3,1fr);gap:14px 11px;
+      background:var(--cream);padding:18px 14px 16px;
+      border-radius:14px 20px 12px 18px / 18px 12px 20px 14px;
+      box-shadow:4px 5px 0 var(--sh), inset 0 1px 0 rgba(255,255,255,.5);
+    }
+
+    .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+    .pstat{
+      display:flex;align-items:flex-start;gap:9px;background:var(--cream);
+      padding:10px 11px;
+      border-radius:11px 15px 10px 14px / 14px 10px 15px 11px;
+      box-shadow:3px 4px 0 var(--sh);
+    }
+    .pcol{display:flex;flex-direction:column;gap:5px;min-width:0}
+    .pn{font:800 14px/1.1 "Baloo 2",sans-serif;white-space:nowrap}
+    .pn .you2{font:700 10.5px/1 "Nunito",sans-serif;color:var(--ink-soft)}
+    .handline{font:800 10px/1 "Nunito",sans-serif;letter-spacing:2px;color:var(--ink-soft)}
+    .pstat .tag{align-self:flex-start}
+
+    .ghost{
+      display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+      margin-top:16px;padding:13px 10px;cursor:pointer;
+      background:rgba(248,240,220,.22);border:2.5px dashed rgba(60,42,23,.5);
+      border-radius:14px 18px 12px 16px / 16px 12px 18px 14px;
+      font:900 10.5px/1 "Nunito",sans-serif;letter-spacing:1.6px;text-transform:uppercase;color:#5b4327;
+    }
+    .scis{font-size:15px;letter-spacing:0}
+
+    .lockwrap{margin-top:18px;padding:0 4px}
+
+    /* ================= REVEAL ================= */
+
+    main[data-screen="reveal"]{
+      min-height:100vh;padding:72px 18px 70px;text-align:center;
+      background:
+        radial-gradient(120% 70% at 50% -4%, #64492c 0%, rgba(100,73,44,0) 60%),
+        radial-gradient(120% 60% at 50% 110%, #2e2010 0%, rgba(46,32,16,0) 55%),
+        #46321d;
+    }
+    .eyebrow{
+      display:inline-block;background:var(--cream-2);clip-path:var(--strip-clip);
+      padding:10px 18px 11px;rotate:-1.2deg;
+      font:900 11px/1 "Nunito",sans-serif;letter-spacing:2.6px;text-transform:uppercase;color:var(--ink);
+      filter:drop-shadow(2px 3px 0 rgba(15,9,4,.45));
+    }
+    .played{margin:26px 0 14px;font:900 12px/1 "Nunito",sans-serif;letter-spacing:2.6px;text-transform:uppercase;color:#e9dab6}
+    .bigpc{
+      position:relative;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+      width:96px;height:118px;background:var(--pink);color:var(--cream);rotate:2deg;
+      border-radius:14px 20px 12px 18px / 18px 12px 20px 14px;
+      box-shadow:6px 7px 0 rgba(15,9,4,.45), inset 0 1px 0 rgba(255,255,255,.3);
+    }
+    .bigpc .pglyph{font-size:44px}
+    .bigpc .pcname{font-size:12px;letter-spacing:2.4px}
+
+    .rgrid{display:grid;grid-template-columns:1fr 1fr;gap:30px 12px;margin:30px 6px 10px}
+    .rcell{display:flex;flex-direction:column;align-items:center;gap:9px}
+    .rname{
+      display:inline-block;padding:6px 12px 7px;clip-path:var(--tag-clip);
+      font:900 10px/1 "Nunito",sans-serif;letter-spacing:1.8px;text-transform:uppercase;color:var(--cream);
+      filter:drop-shadow(1px 2px 0 rgba(15,9,4,.4));
+    }
+    .bg-red{background:var(--red)}.bg-blue{background:var(--blue)}
+    .bg-yellow{background:var(--yellow);color:var(--ink)}.bg-green{background:var(--green)}
+
+    .tcwrap{position:relative;width:78px;height:100px}
+    .tcwrap .ncard{width:78px;height:100px;cursor:default;box-shadow:4px 5px 0 rgba(15,9,4,.42), inset 0 1px 0 rgba(255,255,255,.6)}
+    .tcwrap .nnum{font-size:46px}
+    .tcwrap .npatch{width:46px;height:58px}
+    .half{position:absolute;inset:0}
+    .half-l{clip-path:var(--tearL);rotate:-2.5deg;translate:-3px 2px}
+    .half-r{clip-path:var(--tearR);rotate:2deg;translate:3px -2px}
+    .half .nnum{translate:-18px -13px}
+    .half .npatch{translate:-8px -6px}
+    .solo{position:absolute;inset:0;rotate:-2deg}
+    .winstar{position:absolute;top:-13px;right:-13px;width:38px;height:38px;background:var(--yellow);clip-path:var(--burst);z-index:2;filter:drop-shadow(2px 2px 0 rgba(15,9,4,.4))}
+    .xtag{
+      position:absolute;left:50%;top:80%;translate:-50% -50%;rotate:-7deg;z-index:3;
+      background:var(--red);color:var(--cream);clip-path:var(--tag-clip);
+      padding:7px 11px 8px;font:900 9.5px/1 "Nunito",sans-serif;letter-spacing:1.7px;text-transform:uppercase;
+      filter:drop-shadow(2px 3px 0 rgba(15,9,4,.5));
+    }
+    .rscore{font:800 26px/1 "Baloo 2",sans-serif;color:var(--cream)}
+    .rscore.lost{color:#ef9078}
+
+    .cta-narrow{max-width:230px;margin:26px auto 0}
+    main[data-screen="reveal"] .btn.primary{box-shadow:5px 6px 0 rgba(15,9,4,.5), inset 0 1px 0 rgba(255,255,255,.28)}
+
+    /* ================= END ================= */
+
+    .endcenter{position:relative;z-index:1;text-align:center;padding-top:54px}
+    .won{margin:26px 0 30px;font:800 52px/1 "Baloo 2",sans-serif;display:flex;justify-content:center;gap:12px}
+    .wpiece{
+      display:inline-block;padding:4px 18px 10px;
+      border-radius:14px 20px 12px 18px / 18px 12px 20px 14px;
+      box-shadow:5px 6px 0 var(--sh), inset 0 1px 0 rgba(255,255,255,.4);
+    }
+    .wp1{background:var(--cream);color:var(--ink);rotate:-2.2deg}
+    .wp2{background:var(--red);color:var(--cream);rotate:1.8deg;translate:0 4px}
+
+    .table{display:flex;flex-direction:column;gap:11px;text-align:left;margin-top:22px}
+    .thead,.trow{display:grid;grid-template-columns:24px 1fr 32px 32px 32px 52px;gap:2px;align-items:center}
+    .thead{padding:0 16px;font:900 10px/1 "Nunito",sans-serif;letter-spacing:1.6px;text-transform:uppercase;color:#5b4327}
+    .thead span{text-align:right}
+    .trow{
+      position:relative;background:var(--cream);padding:12px 16px;
+      border-radius:13px 18px 11px 16px / 16px 11px 18px 13px;
+      box-shadow:4px 5px 0 var(--sh), inset 0 1px 0 rgba(255,255,255,.5);
+      font:800 14px/1 "Baloo 2",sans-serif;color:var(--ink-soft);
+    }
+    .trow > span{text-align:right}
+    .trow .rank{text-align:left;font:800 15px/1 "Baloo 2",sans-serif;color:var(--ink-soft)}
+    .trow .tname{display:flex;align-items:center;gap:8px;text-align:left;font:800 16px/1 "Baloo 2",sans-serif;color:var(--ink)}
+    .tname .you2{font:700 11px/1 "Nunito",sans-serif;color:var(--ink-soft)}
+    .trow .tot{font:800 19px/1 "Baloo 2",sans-serif;color:var(--ink)}
+    .trow.win{background:var(--yellow);rotate:-1.3deg;box-shadow:5px 7px 0 var(--sh), inset 0 1px 0 rgba(255,255,255,.45)}
+    .trow.win .rank,.trow.win span{color:var(--ink)}
+    .crown{
+      position:absolute;top:-15px;left:10px;width:34px;height:23px;rotate:-12deg;
+      background:var(--red);clip-path:var(--crown);
+      filter:drop-shadow(2px 2px 0 rgba(77,47,17,.3));
+    }
+    .endbtns{display:flex;flex-direction:column;gap:16px;margin-top:30px;padding:0 6px}
+
+    /* ============ flourishes: ONLY inside reduced-motion guard ============ */
+    @media (prefers-reduced-motion: no-preference) {
+      .btn,.chipbtn,.minibtn,.pcard,.nstack,.step,.segbtn,.ghost,.code{
+        transition:translate .16s ease,rotate .2s ease,box-shadow .16s ease;
+      }
+      .btn:hover{translate:0 -3px}
+      .btn:active{translate:2px 3px;box-shadow:2px 2px 0 var(--sh)}
+      .pcard:hover{translate:0 -4px}
+      .nstack:hover{translate:0 -5px}
+      .nstack.sel{animation:bob 2.2s ease-in-out infinite alternate}
+      .pcard.sel{animation:bob2 2.6s ease-in-out infinite alternate}
+      .scatter span{animation:drift 3.4s ease-in-out infinite alternate}
+      .scatter span:nth-child(even){animation-duration:2.7s;animation-delay:-1.2s}
+      @keyframes bob{from{translate:0 -10px}to{translate:0 -14px}}
+      @keyframes bob2{from{translate:0 -6px}to{translate:0 -10px}}
+      @keyframes drift{from{translate:0 0}to{translate:0 8px}}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= 1. HOME ================= -->
+  <main data-screen="home">
+    <div class="scatter" aria-hidden="true">
+      <span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span>
+    </div>
+    <div class="above-scatter">
+      <h1 class="wordmark" aria-label="CANCEL">
+        <span class="wm">C</span><span class="wm">A</span><span class="wm">N</span><span class="wm">C</span><span class="wm">E</span><span class="wm">L</span>
+      </h1>
+      <div class="tagline-wrap"><p class="tagline">a number-picking party game</p></div>
+      <div class="fan" aria-hidden="true">
+        <div class="nstack f1"><span class="ncard"><span class="npatch pa-red"></span><span class="nnum zero">Ø</span></span></div>
+        <div class="nstack f2"><span class="ncard"><span class="npatch pa-grn"></span><span class="nnum">3</span></span></div>
+        <div class="nstack f3"><span class="ncard"><span class="npatch pa-blue"></span><span class="nnum">5</span></span></div>
+      </div>
+      <div class="home-btns">
+        <button class="btn primary rA">New game</button>
+        <button class="btn rB">Single player</button>
+        <button class="btn rC">Join with code</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ================= 2. LOBBY ================= -->
+  <main data-screen="lobby">
+    <header class="topbar">
+      <button class="chipbtn rA">← Leave</button>
+      <button class="chipbtn rB">Rules</button>
+    </header>
+
+    <div class="codewrap">
+      <div class="codes">
+        <span class="code rA"><span class="npatch pa-red"></span><i>D</i></span>
+        <span class="code rB"><span class="npatch pa-blue"></span><i>N</i></span>
+        <span class="code rC"><span class="npatch pa-yel"></span><i>2</i></span>
+        <span class="code rD"><span class="npatch pa-grn"></span><i>H</i></span>
+      </div>
+      <p class="hint-copy">press to copy</p>
+    </div>
+
+    <div class="strip rB"><span>Players · 4</span></div>
+    <ul class="players">
+      <li class="prow rA">
+        <span class="av red">B</span><span class="pname">Ben</span>
+        <span class="tag t-host">HOST</span><span class="tag t-you">YOU</span><span class="dot"></span>
+      </li>
+      <li class="prow rB">
+        <span class="av blue">V</span><span class="pname">Voltaire</span>
+        <span class="tag t-bot">BOT</span><span class="dot"></span>
+      </li>
+      <li class="prow rC">
+        <span class="av yellow">M</span><span class="pname">Mechano</span>
+        <span class="tag t-bot">BOT</span><span class="dot"></span>
+      </li>
+      <li class="prow rD">
+        <span class="av green">D</span><span class="pname">Data Dan</span>
+        <span class="tag t-bot">BOT</span><span class="dot"></span>
+      </li>
+    </ul>
+
+    <div class="settings">
+      <div class="srow rB">
+        <span class="sname">Rounds</span>
+        <div class="stepper"><button class="step">−</button><span class="sval">3</span><button class="step">+</button></div>
+      </div>
+      <div class="srow rA">
+        <span class="sname">AI players</span>
+        <div class="stepper"><button class="step">−</button><span class="sval">3</span><button class="step">+</button></div>
+      </div>
+      <div class="srow block rC">
+        <span class="sname">Power-ups</span>
+        <div class="seg">
+          <button class="segbtn">None</button>
+          <button class="segbtn on">Random</button>
+          <button class="segbtn">Choose</button>
+        </div>
+        <p class="seghint">A fresh random pool each round.</p>
+      </div>
+    </div>
+
+    <div class="startwrap"><button class="btn primary rA">Start game</button></div>
+  </main>
+
+  <!-- ================= 3. GAME ================= -->
+  <main data-screen="game">
+    <header class="ghead">
+      <div class="gstats rA">R1<span class="soft">/3</span><span class="sep">·</span>T2<span class="soft">/6</span><span class="sep">·</span><span class="soft">DN2H</span></div>
+      <div class="gbtns">
+        <button class="minibtn rB">RULES</button>
+        <button class="minibtn rC">LEAVE</button>
+        <button class="minibtn danger rD">END GAME</button>
+      </div>
+    </header>
+
+    <section class="sbgrid">
+      <div class="schip rA"><span class="sq c-red"></span>Ben<span class="score">4</span></div>
+      <div class="schip rB"><span class="sq c-blue"></span>Voltaire<span class="score">0</span></div>
+      <div class="schip rC"><span class="sq c-yellow"></span>Mechano<span class="score">2</span></div>
+      <div class="schip rD"><span class="sq c-green"></span>Data Dan<span class="score">5</span></div>
+    </section>
+
+    <div class="strip rB mt"><span>Power-ups remaining</span><span class="stripnum"><b>6</b> / 6</span></div>
+
+    <section class="poolwrap">
+      <div class="ribbon">Your turn, press to select</div>
+      <div class="pool rB">
+        <button class="pcard pc-teal rA"><span class="pglyph">⇄</span><span class="pcname">Swap Hands</span></button>
+        <button class="pcard pc-rose rB"><span class="pglyph">✖</span><span class="pcname">Sabotage</span></button>
+        <button class="pcard pc-pink sel"><span class="tape"></span><span class="pstar"></span><span class="pglyph">=</span><span class="pcname">Jinx</span></button>
+        <button class="pcard pc-em rC"><span class="pglyph">+2</span><span class="pcname">Plus Two</span></button>
+        <button class="pcard pc-vio rD"><span class="pglyph">?</span><span class="pcname">Wild</span></button>
+        <button class="pcard pc-amber rE"><span class="pglyph">↧</span><span class="pcname">Drain</span></button>
+      </div>
+    </section>
+
+    <div class="strip rC mt"><span>Players · Power picker: Ben</span></div>
+    <section class="pgrid">
+      <div class="pstat rA">
+        <span class="av red sm">B</span>
+        <div class="pcol">
+          <div class="pn">Ben <span class="you2">(you)</span></div>
+          <div class="handline">Ø 1 2 3 4 5</div>
+          <span class="tag t-think">THINKING…</span>
+        </div>
+      </div>
+      <div class="pstat rB">
+        <span class="av blue sm">V</span>
+        <div class="pcol">
+          <div class="pn">Voltaire</div>
+          <div class="handline">Ø 1 2 3 4 5</div>
+          <span class="tag t-sub">SUBMITTED</span>
+        </div>
+      </div>
+      <div class="pstat rC">
+        <span class="av yellow sm">M</span>
+        <div class="pcol">
+          <div class="pn">Mechano</div>
+          <div class="handline">Ø 1 2 3 4 5</div>
+          <span class="tag t-sub">SUBMITTED</span>
+        </div>
+      </div>
+      <div class="pstat rD">
+        <span class="av green sm">D</span>
+        <div class="pcol">
+          <div class="pn">Data Dan</div>
+          <div class="handline">Ø 1 2 3 4 5</div>
+          <span class="tag t-sub">SUBMITTED</span>
+        </div>
+      </div>
+    </section>
+
+    <button class="ghost rA"><span class="scis">✂</span>Skip waiting, auto-play who's left</button>
+
+    <div class="strip rB mt"><span>Your hand</span></div>
+    <div class="hand">
+      <div class="nstack rA"><button class="ncard"><span class="npatch pa-red"></span><span class="nnum zero">Ø</span></button></div>
+      <div class="nstack rB"><button class="ncard"><span class="npatch pa-blue"></span><span class="nnum">1</span></button></div>
+      <div class="nstack rC"><button class="ncard"><span class="npatch pa-yel"></span><span class="nnum">2</span></button></div>
+      <div class="nstack rD"><button class="ncard"><span class="npatch pa-grn"></span><span class="nnum">3</span></button></div>
+      <div class="nstack rE"><button class="ncard"><span class="npatch pa-red"></span><span class="nnum">4</span></button></div>
+      <div class="nstack sel"><button class="ncard"><span class="tape"></span><span class="npatch"></span><span class="nnum">5</span></button></div>
+    </div>
+    <div class="lockwrap"><button class="btn primary rA">Lock it in</button></div>
+  </main>
+
+  <!-- ================= 4. REVEAL ================= -->
+  <main data-screen="reveal">
+    <div class="eyebrow">Turn 2 reveal</div>
+    <div class="played">Ben played</div>
+    <div class="bigpc"><span class="tape"></span><span class="pglyph">=</span><span class="pcname">Jinx</span></div>
+
+    <div class="rgrid">
+      <div class="rcell">
+        <span class="rname bg-red">Ben</span>
+        <div class="tcwrap">
+          <div class="half half-l"><div class="ncard"><span class="npatch pa-blue"></span><span class="nnum">5</span></div></div>
+          <div class="half half-r"><div class="ncard"><span class="npatch pa-blue"></span><span class="nnum">5</span></div></div>
+          <span class="xtag">Cancelled</span>
+        </div>
+        <div class="rscore lost">0</div>
+      </div>
+      <div class="rcell">
+        <span class="rname bg-blue">Voltaire</span>
+        <div class="tcwrap">
+          <div class="solo"><div class="ncard"><span class="npatch pa-red"></span><span class="nnum zero">Ø</span></div></div>
+          <span class="winstar"></span>
+        </div>
+        <div class="rscore">0</div>
+      </div>
+      <div class="rcell">
+        <span class="rname bg-yellow">Mechano</span>
+        <div class="tcwrap">
+          <div class="half half-l"><div class="ncard"><span class="npatch pa-blue"></span><span class="nnum">5</span></div></div>
+          <div class="half half-r"><div class="ncard"><span class="npatch pa-blue"></span><span class="nnum">5</span></div></div>
+          <span class="xtag">Cancelled</span>
+        </div>
+        <div class="rscore lost">0</div>
+      </div>
+      <div class="rcell">
+        <span class="rname bg-green">Data Dan</span>
+        <div class="tcwrap">
+          <div class="half half-l"><div class="ncard"><span class="npatch pa-grn"></span><span class="nnum">3</span></div></div>
+          <div class="half half-r"><div class="ncard"><span class="npatch pa-grn"></span><span class="nnum">3</span></div></div>
+          <span class="xtag">Cancelled</span>
+        </div>
+        <div class="rscore lost">0</div>
+      </div>
+    </div>
+
+    <button class="btn primary cta-narrow">Continue</button>
+  </main>
+
+  <!-- ================= 5. END ================= -->
+  <main data-screen="end">
+    <div class="scatter" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span>
+    </div>
+    <div class="endcenter">
+      <div class="eyebrow">Game over</div>
+      <h2 class="won"><span class="wpiece wp1">You</span><span class="wpiece wp2">won.</span></h2>
+
+      <section class="table">
+        <div class="thead"><span></span><span></span><span>R1</span><span>R2</span><span>R3</span><span>Total</span></div>
+        <div class="trow win rA">
+          <span class="crown" aria-hidden="true"></span>
+          <span class="rank">1</span>
+          <span class="tname"><span class="sq c-red"></span>Ben <span class="you2">(you)</span></span>
+          <span>5</span><span>9</span><span>6</span><span class="tot">20</span>
+        </div>
+        <div class="trow rB">
+          <span class="rank">2</span>
+          <span class="tname"><span class="sq c-green"></span>Data Dan</span>
+          <span>5</span><span>4</span><span>3</span><span class="tot">12</span>
+        </div>
+        <div class="trow rC">
+          <span class="rank">3</span>
+          <span class="tname"><span class="sq c-blue"></span>Voltaire</span>
+          <span>3</span><span>2</span><span>4</span><span class="tot">9</span>
+        </div>
+        <div class="trow rD">
+          <span class="rank">4</span>
+          <span class="tname"><span class="sq c-yellow"></span>Mechano</span>
+          <span>0</span><span>5</span><span>2</span><span class="tot">7</span>
+        </div>
+      </section>
+
+      <div class="endbtns">
+        <button class="btn primary">Play again</button>
+        <button class="btn rB">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

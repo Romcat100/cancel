@@ -1,0 +1,900 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Daylight Paper</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    :root {
+      --paper: #f5f1e8;
+      --panel: #fffdf7;
+      --ink: #14131d;
+      --line: #e6dfd0;
+      --grey: #8a8374;
+      --coral: #ff5b3a;
+      --coral-deep: #db3d1d;
+      --gold-wash: #f3e3b8;
+      --gold-ink: #8a6a1c;
+      --teal: #14b8a6;
+      --rose: #f43f5e;
+      --pink: #ec4899;
+      --emerald: #10b981;
+      --violet: #8b5cf6;
+      --amber: #f59e0b;
+      --indigo: #5b6cff;
+      --goldc: #f0b429;
+      --stamp: #e8345a;
+      --shadow-sm: 0 1px 2px rgba(20,19,29,0.05), 0 2px 6px rgba(20,19,29,0.07);
+      --shadow-md: 0 2px 4px rgba(20,19,29,0.06), 0 6px 14px rgba(20,19,29,0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background-color: var(--paper);
+      background-image:
+        radial-gradient(130% 460px at 50% -80px, rgba(255,176,108,0.30), rgba(255,176,108,0) 72%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.45 0 0 0 0 0.42 0 0 0 0 0.33 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23f)'/%3E%3C/svg%3E");
+      background-repeat: no-repeat, repeat;
+      background-size: 100% 520px, 180px 180px;
+    }
+    button { font: inherit; color: inherit; cursor: pointer; background: none; border: none; }
+
+    .wrap { max-width: 420px; margin: 0 auto; padding: 20px 18px 36px; }
+
+    .eyebrow {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--grey);
+    }
+    .center { text-align: center; }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 15px 16px;
+      border-radius: 16px;
+      font-weight: 600;
+      font-size: 17px;
+      text-align: center;
+    }
+    .btn-primary {
+      background: var(--coral);
+      color: #fffdf7;
+      box-shadow: 0 3px 0 var(--coral-deep), 0 8px 18px rgba(255,91,58,0.28);
+    }
+    .btn-ghost {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      color: var(--ink);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* ---------- number cards ---------- */
+    .ncard {
+      position: relative;
+      aspect-ratio: 5 / 7;
+      background: #ffffff;
+      border: 1.5px solid var(--line);
+      border-radius: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 2px rgba(20,19,29,0.05), 0 4px 10px rgba(20,19,29,0.08);
+    }
+    .ncard .num { font-size: 30px; font-weight: 700; line-height: 1; }
+    .ncard .cidx {
+      position: absolute;
+      top: 6px;
+      left: 8px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 9px;
+      font-weight: 700;
+      color: #c9c0ad;
+    }
+    .ncard.zero { border-color: var(--coral); }
+    .ncard.zero .num { color: var(--coral); }
+    .ncard.zero .cidx { color: #ffb9a8; }
+    .ncard.sel {
+      background: var(--coral);
+      border-color: var(--coral-deep);
+      transform: translateY(-7px);
+      box-shadow: 0 4px 0 var(--coral-deep), 0 12px 20px rgba(255,91,58,0.35);
+    }
+    .ncard.sel .num { color: #fffdf7; }
+    .ncard.sel .cidx { color: rgba(255,253,247,0.75); }
+
+    /* ---------- power cards ---------- */
+    .pcard {
+      position: relative;
+      border-radius: 14px;
+      padding: 13px 8px 11px;
+      text-align: center;
+      color: #fffdf7;
+      background-image: linear-gradient(rgba(255,255,255,0.20), rgba(255,255,255,0) 45%);
+      box-shadow: 0 2px 5px rgba(20,19,29,0.10), 0 6px 12px rgba(20,19,29,0.08);
+    }
+    .pglyph { font-size: 26px; font-weight: 700; line-height: 1; margin-bottom: 7px; }
+    .pname2 { font-size: 12px; font-weight: 700; letter-spacing: 0.02em; }
+    .pc-teal { background-color: var(--teal); }
+    .pc-rose { background-color: var(--rose); }
+    .pc-pink { background-color: var(--pink); }
+    .pc-emerald { background-color: var(--emerald); }
+    .pc-violet { background-color: var(--violet); }
+    .pc-amber { background-color: var(--amber); }
+    .pcard.sel {
+      transform: translateY(-5px);
+      box-shadow: 0 0 0 2.5px var(--panel), 0 0 0 5px var(--ink), 0 10px 18px rgba(20,19,29,0.20);
+    }
+
+    /* ---------- home ---------- */
+    .home-wrap { position: relative; padding-top: 132px; min-height: 880px; }
+    .iconbtn {
+      position: absolute;
+      top: 18px;
+      right: 4px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--ink);
+    }
+    .home-cards { position: relative; width: 210px; height: 112px; margin: 0 auto 22px; }
+    .mini-card {
+      position: absolute;
+      width: 58px;
+      height: 82px;
+      background: #ffffff;
+      border: 1.5px solid var(--line);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 700;
+      box-shadow: var(--shadow-md);
+    }
+    .mc1 { left: 22px; top: 18px; transform: rotate(-12deg); }
+    .mc2 { left: 76px; top: 4px; transform: rotate(-1deg); z-index: 2; border-color: var(--coral); color: var(--coral); }
+    .mc3 { left: 130px; top: 18px; transform: rotate(11deg); }
+    .wordmark {
+      font-size: 64px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      text-align: center;
+    }
+    .wordmark span { color: var(--coral); }
+    .tagline { text-align: center; margin-top: 14px; }
+    .home-actions { display: grid; gap: 14px; margin-top: 52px; }
+
+    /* ---------- lobby ---------- */
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .pill {
+      padding: 11px 18px;
+      border-radius: 999px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-sm);
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .code-ticket {
+      position: relative;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow-sm);
+      padding: 20px 18px 16px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .code-ticket::before {
+      content: "";
+      position: absolute;
+      inset: 7px;
+      border: 1.5px dashed var(--line);
+      border-radius: 12px;
+      pointer-events: none;
+    }
+    .code {
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 700;
+      font-size: 44px;
+      letter-spacing: 0.3em;
+      text-indent: 0.3em;
+      line-height: 1.1;
+    }
+    .code-hint { margin-top: 4px; font-size: 10px; letter-spacing: 0.26em; }
+    .section-label { margin-bottom: 12px; }
+    .player-list { display: grid; gap: 10px; margin-bottom: 24px; }
+    .prow {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 14px;
+      box-shadow: var(--shadow-sm);
+    }
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      color: #fffdf7;
+      font-weight: 700;
+      font-size: 17px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .av-coral { background: var(--coral); }
+    .av-indigo { background: var(--indigo); }
+    .av-gold { background: var(--goldc); color: #5a4408; }
+    .av-green { background: var(--emerald); }
+    .prow .pname { flex: 1; font-weight: 600; font-size: 16px; }
+    .badge {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 4px 8px;
+      border-radius: 7px;
+    }
+    .badge-host { background: var(--gold-wash); color: var(--gold-ink); }
+    .badge-you { background: var(--ink); color: var(--paper); }
+    .badge-bot { background: #e7eaff; color: #4553d8; }
+    .dot-online { width: 8px; height: 8px; border-radius: 50%; background: var(--emerald); flex-shrink: 0; }
+    .settings { display: grid; gap: 10px; margin-bottom: 24px; }
+    .setrow {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow-sm);
+    }
+    .setname { font-weight: 600; font-size: 15px; }
+    .stepper { display: flex; align-items: center; gap: 10px; }
+    .stepper button {
+      width: 44px;
+      height: 40px;
+      border-radius: 11px;
+      background: #f7f3ea;
+      border: 1px solid var(--line);
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .stepval {
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 700;
+      font-size: 18px;
+      min-width: 22px;
+      text-align: center;
+    }
+    .setcol { display: block; }
+    .seg {
+      display: flex;
+      gap: 4px;
+      background: #f3eee2;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 4px;
+      margin-top: 10px;
+    }
+    .seg button {
+      flex: 1;
+      padding: 10px 0;
+      border-radius: 9px;
+      color: var(--grey);
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .seg button.on {
+      background: var(--coral);
+      color: #fffdf7;
+      box-shadow: 0 2px 6px rgba(255,91,58,0.35);
+    }
+    .helper {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11.5px;
+      color: var(--grey);
+      margin-top: 9px;
+    }
+
+    /* ---------- game ---------- */
+    .ghead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 8px; }
+    .gstat {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .gstat span { color: var(--grey); font-weight: 500; }
+    .gstat em { color: var(--grey); font-style: normal; font-weight: 500; letter-spacing: 0.08em; }
+    .gbtns { display: flex; gap: 5px; }
+    .tinypill {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 7px 8px;
+      border-radius: 8px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      color: var(--grey);
+      box-shadow: var(--shadow-sm);
+      text-align: center;
+    }
+    .tinypill.danger { color: var(--rose); border-color: #f3ccd0; }
+    .scorechips { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px; }
+    .chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      padding: 9px 12px;
+      font-weight: 600;
+      font-size: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+    .chip b { margin-left: auto; font-family: "JetBrains Mono", monospace; font-size: 15px; }
+    .seat { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .seat-coral { background: var(--coral); }
+    .seat-indigo { background: var(--indigo); }
+    .seat-gold { background: var(--goldc); }
+    .seat-green { background: var(--emerald); }
+    .poolhead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 9px; }
+    .poolcount { font-family: "JetBrains Mono", monospace; font-size: 12px; font-weight: 700; color: var(--grey); }
+    .turnbanner {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--coral-deep);
+      background: rgba(255,91,58,0.10);
+      border: 1px solid rgba(255,91,58,0.35);
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    .powergrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+    .plabel b { color: var(--ink); }
+    .pstatus { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0 12px; }
+    .ps {
+      display: flex;
+      gap: 10px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      padding: 11px 10px 9px;
+      box-shadow: var(--shadow-sm);
+    }
+    .avatar.sm { width: 36px; height: 36px; border-radius: 11px; font-size: 15px; position: relative; }
+    .powertag {
+      position: absolute;
+      top: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--goldc);
+      color: #5a4408;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 7.5px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      padding: 2px 5px;
+      border-radius: 6px;
+      box-shadow: 0 1px 2px rgba(20,19,29,0.18);
+      white-space: nowrap;
+    }
+    .psmeta { min-width: 0; }
+    .psname { font-weight: 700; font-size: 13.5px; white-space: nowrap; }
+    .psname i { color: var(--grey); font-style: normal; font-weight: 500; font-size: 11.5px; }
+    .pshand {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10.5px;
+      color: var(--grey);
+      letter-spacing: 0.14em;
+      margin: 3px 0 4px;
+      white-space: nowrap;
+    }
+    .psstat {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+    }
+    .psstat.thinking { color: var(--coral); }
+    .psstat.submitted { color: #0e9f6e; }
+    .skipbtn {
+      width: 100%;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      color: var(--grey);
+      border: 1.5px dashed #d9d1bf;
+      border-radius: 12px;
+      padding: 13px;
+      margin-bottom: 22px;
+    }
+    .handlabel { margin-bottom: 12px; }
+    .hand { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 20px; }
+
+    /* ---------- reveal ---------- */
+    .reveal-wrap { padding-top: 64px; min-height: 880px; }
+    .played { margin-top: 30px; }
+    .reveal-power { width: 90px; margin: 14px auto 32px; padding: 15px 8px 12px; }
+    .reveal-power .pglyph { font-size: 30px; }
+    .rgrid {
+      display: grid;
+      grid-template-columns: repeat(2, 136px);
+      justify-content: center;
+      gap: 24px 30px;
+      margin-bottom: 32px;
+    }
+    .rtile { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .rname {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--grey);
+    }
+    .rcard { width: 84px; }
+    .rcard .num { font-size: 38px; }
+    .ncard.cancelled::after {
+      content: "";
+      position: absolute;
+      left: 6%;
+      right: 6%;
+      top: 50%;
+      height: 4px;
+      margin-top: -2px;
+      background: var(--coral);
+      border-radius: 2px;
+      transform: rotate(-22deg);
+      box-shadow: 0 1px 3px rgba(219,61,29,0.35);
+    }
+    .rout { display: flex; flex-direction: column; align-items: center; gap: 7px; min-height: 56px; }
+    .rzero {
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--stamp);
+      line-height: 1;
+    }
+    .rzero.bank { color: var(--ink); }
+    .stamp {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--stamp);
+      border: 2px solid var(--stamp);
+      border-radius: 6px;
+      padding: 3px 8px;
+      transform: rotate(-7deg);
+      background: rgba(232,52,90,0.06);
+      box-shadow: inset 0 0 8px rgba(232,52,90,0.18), 1px 1px 0 rgba(232,52,90,0.22);
+    }
+    .continue { max-width: 240px; margin: 8px auto 0; }
+
+    /* ---------- end ---------- */
+    main[data-screen="end"] { position: relative; overflow: hidden; }
+    .confetti { position: absolute; inset: 0; pointer-events: none; }
+    .cf { position: absolute; width: 10px; height: 16px; border-radius: 2.5px; opacity: 0.9; transform: rotate(var(--r, 0deg)); }
+    .cf.dotr { width: 9px; height: 9px; border-radius: 50%; }
+    .cf.sliver { width: 5px; height: 18px; }
+    .cf-coral { background: var(--coral); }
+    .cf-teal { background: var(--teal); }
+    .cf-pink { background: var(--pink); }
+    .cf-emerald { background: var(--emerald); }
+    .cf-violet { background: var(--violet); }
+    .cf-amber { background: var(--amber); }
+    .cf-indigo { background: var(--indigo); }
+    .cf-rose { background: var(--rose); }
+    .cfo {
+      position: absolute;
+      font-weight: 700;
+      font-size: 17px;
+      color: var(--coral);
+      opacity: 0.85;
+      transform: rotate(var(--r, 0deg));
+    }
+    .end-wrap {
+      position: relative;
+      z-index: 1;
+      padding-top: 88px;
+      min-height: 880px;
+      display: flex;
+      flex-direction: column;
+    }
+    .winline { font-size: 54px; font-weight: 700; text-align: center; margin: 12px 0 40px; line-height: 1; }
+    .winline span { color: var(--coral); }
+    .scoretable { padding: 6px 14px 8px; }
+    .trow {
+      display: grid;
+      grid-template-columns: 20px 12px 1fr 30px 30px 30px 50px;
+      align-items: center;
+      gap: 6px;
+      padding: 12px 6px;
+      border-bottom: 1px solid #f0ead9;
+    }
+    .trow:last-child { border-bottom: none; }
+    .thead {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--grey);
+      padding: 10px 6px 6px;
+    }
+    .thead .tr, .thead .ttotal { font-size: 9.5px; font-weight: 700; color: var(--grey); }
+    .tr, .ttotal { text-align: right; font-family: "JetBrains Mono", monospace; }
+    .trank { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--grey); font-weight: 700; }
+    .tname { font-weight: 600; font-size: 14.5px; white-space: nowrap; overflow: hidden; }
+    .tname i { color: var(--grey); font-style: normal; font-weight: 500; font-size: 12px; }
+    .tr { font-size: 12.5px; color: var(--grey); }
+    .ttotal { font-size: 16px; font-weight: 700; }
+    .trow.winner {
+      background: var(--gold-wash);
+      border-radius: 12px;
+      border-bottom: none;
+      box-shadow: inset 0 0 0 1px #e3cf8f;
+    }
+    .end-actions { margin-top: auto; display: grid; gap: 12px; padding-top: 40px; }
+
+    /* ---------- switcher ---------- */
+    #switcher a {
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--grey);
+      text-decoration: none;
+      box-shadow: var(--shadow-sm);
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .btn, .pill, .tinypill, .pcard, .ncard, .seg button, .stepper button, .iconbtn, .skipbtn {
+        transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+      }
+      .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 0 var(--coral-deep), 0 12px 22px rgba(255,91,58,0.32); }
+      .btn-primary:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--coral-deep), 0 4px 10px rgba(255,91,58,0.25); }
+      .btn-ghost:hover, .pill:hover, .tinypill:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+      .ncard:not(.sel):hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+      .pcard:not(.sel):hover { transform: translateY(-3px); }
+      @keyframes drift {
+        from { transform: translateY(-6px) rotate(var(--r, 0deg)); }
+        to { transform: translateY(7px) rotate(var(--r, 0deg)); }
+      }
+      .cf, .cfo { animation: drift 3.4s ease-in-out infinite alternate; }
+      .cf:nth-child(3n) { animation-duration: 2.8s; animation-delay: -1.2s; }
+      .cf:nth-child(4n) { animation-duration: 4.1s; animation-delay: -2s; }
+      @keyframes thinkpulse { 50% { opacity: 0.45; } }
+      .psstat.thinking { animation: thinkpulse 1.6s ease-in-out infinite; }
+    }
+  </style>
+</head>
+<body>
+  <main data-screen="home">
+    <div class="wrap home-wrap">
+      <button class="iconbtn" aria-label="Mute sounds">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg>
+      </button>
+      <div class="home-cards">
+        <div class="mini-card mc1">2</div>
+        <div class="mini-card mc2">Ø</div>
+        <div class="mini-card mc3">5</div>
+      </div>
+      <h1 class="wordmark">CAN<span>CEL</span></h1>
+      <p class="tagline eyebrow">a number-picking party game</p>
+      <div class="home-actions">
+        <button class="btn btn-primary">New game</button>
+        <button class="btn btn-ghost">Single player</button>
+        <button class="btn btn-ghost">Join with code</button>
+      </div>
+    </div>
+  </main>
+
+  <main data-screen="lobby">
+    <div class="wrap">
+      <div class="topbar">
+        <button class="pill">← Leave</button>
+        <button class="pill">Rules</button>
+      </div>
+      <div class="code-ticket">
+        <div class="code">DN2H</div>
+        <div class="code-hint eyebrow">press to copy</div>
+      </div>
+      <div class="section-label eyebrow">Players · 4</div>
+      <div class="player-list">
+        <div class="prow">
+          <div class="avatar av-coral">B</div>
+          <div class="pname">Ben</div>
+          <span class="badge badge-host">HOST</span>
+          <span class="badge badge-you">YOU</span>
+          <span class="dot-online"></span>
+        </div>
+        <div class="prow">
+          <div class="avatar av-indigo">V</div>
+          <div class="pname">Voltaire</div>
+          <span class="badge badge-bot">BOT</span>
+          <span class="dot-online"></span>
+        </div>
+        <div class="prow">
+          <div class="avatar av-gold">M</div>
+          <div class="pname">Mechano</div>
+          <span class="badge badge-bot">BOT</span>
+          <span class="dot-online"></span>
+        </div>
+        <div class="prow">
+          <div class="avatar av-green">D</div>
+          <div class="pname">Data Dan</div>
+          <span class="badge badge-bot">BOT</span>
+          <span class="dot-online"></span>
+        </div>
+      </div>
+      <div class="settings">
+        <div class="setrow">
+          <div class="setname">Rounds</div>
+          <div class="stepper"><button>−</button><span class="stepval">3</span><button>+</button></div>
+        </div>
+        <div class="setrow">
+          <div class="setname">AI players</div>
+          <div class="stepper"><button>−</button><span class="stepval">3</span><button>+</button></div>
+        </div>
+        <div class="setrow setcol">
+          <div class="setname">Power-ups</div>
+          <div class="seg">
+            <button>None</button><button class="on">Random</button><button>Choose</button>
+          </div>
+          <div class="helper">A fresh random pool each round.</div>
+        </div>
+      </div>
+      <button class="btn btn-primary">Start game</button>
+    </div>
+  </main>
+
+  <main data-screen="game">
+    <div class="wrap">
+      <div class="ghead">
+        <div class="gstat">R1<span>/3</span> · T2<span>/6</span> <em>DN2H</em></div>
+        <div class="gbtns">
+          <button class="tinypill">RULES</button>
+          <button class="tinypill">LEAVE</button>
+          <button class="tinypill danger">END GAME</button>
+        </div>
+      </div>
+      <div class="scorechips">
+        <div class="chip"><span class="seat seat-coral"></span>Ben<b>4</b></div>
+        <div class="chip"><span class="seat seat-indigo"></span>Voltaire<b>0</b></div>
+        <div class="chip"><span class="seat seat-gold"></span>Mechano<b>2</b></div>
+        <div class="chip"><span class="seat seat-green"></span>Data Dan<b>5</b></div>
+      </div>
+      <div class="poolhead">
+        <span class="eyebrow">Power-ups remaining</span>
+        <span class="poolcount">6 / 6</span>
+      </div>
+      <div class="turnbanner">Your turn, press to select</div>
+      <div class="powergrid">
+        <div class="pcard pc-teal"><div class="pglyph">⇄</div><div class="pname2">Swap Hands</div></div>
+        <div class="pcard pc-rose"><div class="pglyph">✖</div><div class="pname2">Sabotage</div></div>
+        <div class="pcard pc-pink sel"><div class="pglyph">=</div><div class="pname2">Jinx</div></div>
+        <div class="pcard pc-emerald"><div class="pglyph">+2</div><div class="pname2">Plus Two</div></div>
+        <div class="pcard pc-violet"><div class="pglyph">?</div><div class="pname2">Wild</div></div>
+        <div class="pcard pc-amber"><div class="pglyph">↧</div><div class="pname2">Drain</div></div>
+      </div>
+      <div class="eyebrow plabel">Players · Power picker: <b>Ben</b></div>
+      <div class="pstatus">
+        <div class="ps">
+          <div class="avatar sm av-coral">B<span class="powertag">POWER</span></div>
+          <div class="psmeta">
+            <div class="psname">Ben <i>(you)</i></div>
+            <div class="pshand">Ø 1 2 3 4 5</div>
+            <div class="psstat thinking">THINKING…</div>
+          </div>
+        </div>
+        <div class="ps">
+          <div class="avatar sm av-indigo">V</div>
+          <div class="psmeta">
+            <div class="psname">Voltaire</div>
+            <div class="pshand">Ø 1 2 3 4 5</div>
+            <div class="psstat submitted">SUBMITTED</div>
+          </div>
+        </div>
+        <div class="ps">
+          <div class="avatar sm av-gold">M</div>
+          <div class="psmeta">
+            <div class="psname">Mechano</div>
+            <div class="pshand">Ø 1 2 3 4 5</div>
+            <div class="psstat submitted">SUBMITTED</div>
+          </div>
+        </div>
+        <div class="ps">
+          <div class="avatar sm av-green">D</div>
+          <div class="psmeta">
+            <div class="psname">Data Dan</div>
+            <div class="pshand">Ø 1 2 3 4 5</div>
+            <div class="psstat submitted">SUBMITTED</div>
+          </div>
+        </div>
+      </div>
+      <button class="skipbtn">SKIP WAITING, AUTO-PLAY WHO'S LEFT</button>
+      <div class="eyebrow handlabel">Your hand</div>
+      <div class="hand">
+        <div class="ncard zero"><span class="cidx">Ø</span><span class="num">Ø</span></div>
+        <div class="ncard"><span class="cidx">1</span><span class="num">1</span></div>
+        <div class="ncard"><span class="cidx">2</span><span class="num">2</span></div>
+        <div class="ncard"><span class="cidx">3</span><span class="num">3</span></div>
+        <div class="ncard"><span class="cidx">4</span><span class="num">4</span></div>
+        <div class="ncard sel"><span class="cidx">5</span><span class="num">5</span></div>
+      </div>
+      <button class="btn btn-primary">Lock it in</button>
+    </div>
+  </main>
+
+  <main data-screen="reveal">
+    <div class="wrap reveal-wrap">
+      <div class="eyebrow center">Turn 2 reveal</div>
+      <div class="eyebrow center played">Ben played</div>
+      <div class="pcard pc-pink reveal-power"><div class="pglyph">=</div><div class="pname2">Jinx</div></div>
+      <div class="rgrid">
+        <div class="rtile">
+          <div class="rname"><span class="seat seat-coral"></span>Ben</div>
+          <div class="ncard rcard cancelled"><span class="cidx">5</span><span class="num">5</span></div>
+          <div class="rout"><span class="rzero">0</span><span class="stamp">Cancelled</span></div>
+        </div>
+        <div class="rtile">
+          <div class="rname"><span class="seat seat-indigo"></span>Voltaire</div>
+          <div class="ncard rcard zero"><span class="cidx">Ø</span><span class="num">Ø</span></div>
+          <div class="rout"><span class="rzero bank">0</span></div>
+        </div>
+        <div class="rtile">
+          <div class="rname"><span class="seat seat-gold"></span>Mechano</div>
+          <div class="ncard rcard cancelled"><span class="cidx">5</span><span class="num">5</span></div>
+          <div class="rout"><span class="rzero">0</span><span class="stamp">Cancelled</span></div>
+        </div>
+        <div class="rtile">
+          <div class="rname"><span class="seat seat-green"></span>Data Dan</div>
+          <div class="ncard rcard cancelled"><span class="cidx">3</span><span class="num">3</span></div>
+          <div class="rout"><span class="rzero">0</span><span class="stamp">Cancelled</span></div>
+        </div>
+      </div>
+      <button class="btn btn-primary continue">Continue</button>
+    </div>
+  </main>
+
+  <main data-screen="end">
+    <div class="confetti">
+      <span class="cf cf-teal" style="left:6%; top:30px; --r:-18deg;"></span>
+      <span class="cf cf-coral" style="left:16%; top:92px; --r:24deg;"></span>
+      <span class="cf cf-violet sliver" style="left:27%; top:48px; --r:-8deg;"></span>
+      <span class="cf cf-amber" style="left:38%; top:24px; --r:14deg;"></span>
+      <span class="cf cf-indigo sliver" style="left:50%; top:32px; --r:8deg;"></span>
+      <span class="cf cf-pink" style="left:60%; top:62px; --r:-28deg;"></span>
+      <span class="cf cf-emerald" style="left:70%; top:36px; --r:10deg;"></span>
+      <span class="cf cf-indigo" style="left:78%; top:86px; --r:-14deg;"></span>
+      <span class="cf cf-rose" style="left:88%; top:40px; --r:22deg;"></span>
+      <span class="cf cf-teal dotr" style="left:93%; top:130px; --r:-6deg;"></span>
+      <span class="cf cf-pink dotr" style="left:9%; top:168px; --r:30deg;"></span>
+      <span class="cf cf-emerald dotr" style="left:55%; top:150px; --r:-20deg;"></span>
+      <span class="cf cf-amber sliver" style="left:81%; top:188px; --r:12deg;"></span>
+      <span class="cf cf-coral" style="left:28%; top:240px; --r:18deg;"></span>
+      <span class="cfo" style="left:84%; top:250px; --r:15deg;">Ø</span>
+      <span class="cf cf-emerald" style="left:4%; top:320px; --r:-22deg;"></span>
+      <span class="cf cf-coral" style="left:94%; top:340px; --r:18deg;"></span>
+      <span class="cf cf-violet dotr" style="left:12%; top:416px; --r:8deg;"></span>
+      <span class="cf cf-teal" style="left:88%; top:452px; --r:-16deg;"></span>
+      <span class="cf cf-rose sliver" style="left:5%; top:520px; --r:26deg;"></span>
+      <span class="cf cf-pink" style="left:93%; top:560px; --r:-10deg;"></span>
+      <span class="cf cf-amber dotr" style="left:20%; top:568px; --r:16deg;"></span>
+      <span class="cf cf-indigo dotr" style="left:70%; top:540px; --r:-24deg;"></span>
+      <span class="cfo" style="left:10%; top:600px; --r:-12deg;">Ø</span>
+      <span class="cf cf-coral" style="left:33%; top:610px; --r:20deg;"></span>
+      <span class="cf cf-emerald sliver" style="left:60%; top:596px; --r:-12deg;"></span>
+      <span class="cf cf-violet" style="left:47%; top:640px; --r:6deg;"></span>
+      <span class="cf cf-amber" style="left:80%; top:632px; --r:-20deg;"></span>
+      <span class="cf cf-indigo" style="left:14%; top:660px; --r:-4deg;"></span>
+      <span class="cf cf-rose dotr" style="left:40%; top:690px; --r:24deg;"></span>
+      <span class="cf cf-teal" style="left:65%; top:684px; --r:-18deg;"></span>
+    </div>
+    <div class="wrap end-wrap">
+      <div class="eyebrow center">Game over</div>
+      <h2 class="winline">You <span>won.</span></h2>
+      <div class="panel scoretable">
+        <div class="trow thead">
+          <span></span><span></span><span></span>
+          <span class="tr">R1</span><span class="tr">R2</span><span class="tr">R3</span><span class="ttotal">TOTAL</span>
+        </div>
+        <div class="trow winner">
+          <span class="trank">1</span><span class="seat seat-coral"></span>
+          <span class="tname">Ben <i>(you)</i></span>
+          <span class="tr">5</span><span class="tr">9</span><span class="tr">6</span><span class="ttotal">20</span>
+        </div>
+        <div class="trow">
+          <span class="trank">2</span><span class="seat seat-green"></span>
+          <span class="tname">Data Dan</span>
+          <span class="tr">5</span><span class="tr">4</span><span class="tr">3</span><span class="ttotal">12</span>
+        </div>
+        <div class="trow">
+          <span class="trank">3</span><span class="seat seat-indigo"></span>
+          <span class="tname">Voltaire</span>
+          <span class="tr">3</span><span class="tr">2</span><span class="tr">4</span><span class="ttotal">9</span>
+        </div>
+        <div class="trow">
+          <span class="trank">4</span><span class="seat seat-gold"></span>
+          <span class="tname">Mechano</span>
+          <span class="tr">0</span><span class="tr">5</span><span class="tr">2</span><span class="ttotal">7</span>
+        </div>
+      </div>
+      <div class="end-actions">
+        <button class="btn btn-primary">Play again</button>
+        <button class="btn btn-ghost">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

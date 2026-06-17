@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Fable: Interference</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&family=Spline+Sans+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+    #switcher a { font: 600 11px "Spline Sans Mono", monospace; color: #9aa0c8; text-decoration: none;
+      border: 1px solid rgba(255,255,255,.16); border-radius: 7px; padding: 4px 8px;
+      background: rgba(18,16,46,.85); }
+
+    /* ============ base ============ */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { height: 100%; }
+    body {
+      min-height: 100%;
+      font-family: "Hanken Grotesk", sans-serif;
+      color: #eef0fb;
+      background:
+        radial-gradient(900px 520px at 88% -8%, rgba(111,168,255,.10), transparent 62%),
+        radial-gradient(760px 480px at 4% 104%, rgba(255,122,92,.07), transparent 60%),
+        repeating-linear-gradient(180deg, rgba(255,255,255,.014) 0 1px, transparent 1px 64px),
+        linear-gradient(180deg, #12102e 0%, #151240 52%, #1a1748 100%);
+      background-color: #12102e;
+      -webkit-font-smoothing: antialiased;
+    }
+    button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .mono { font-family: "Spline Sans Mono", monospace; }
+    .dim { color: rgba(238,240,251,.5); }
+    .center { text-align: center; }
+    .page { max-width: 420px; margin: 0 auto; padding: 24px 16px 32px; }
+
+    /* player signal colors */
+    .c-ben { color: #ff7a5c; } .c-vol { color: #6fa8ff; } .c-mec { color: #ffd166; } .c-dan { color: #5ad6a0; }
+
+    /* ============ wave plumbing ============ */
+    .wv { display: block; overflow: visible; stroke: currentColor; fill: none;
+      stroke-width: 2.4px; stroke-linecap: round; }
+    .glow { filter: drop-shadow(0 0 3px currentColor) drop-shadow(0 0 10px currentColor); }
+    .glow-soft { filter: drop-shadow(0 0 4px currentColor); }
+    .wv-think { stroke-dasharray: 3 7; }
+
+    .panel { background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.018));
+      border: 1px solid rgba(255,255,255,.09); border-radius: 18px; }
+
+    .sect-label { font-family: "Spline Sans Mono", monospace; font-size: 10.5px; letter-spacing: .24em;
+      text-transform: uppercase; color: rgba(238,240,251,.52); margin: 20px 2px 10px; }
+    .eyebrow { font-family: "Spline Sans Mono", monospace; font-size: 11px; letter-spacing: .3em;
+      text-transform: uppercase; color: rgba(238,240,251,.55); }
+
+    /* ============ buttons ============ */
+    .btn { display: flex; align-items: center; justify-content: center; width: 100%; height: 56px;
+      border-radius: 16px; font-weight: 700; font-size: 16.5px; letter-spacing: .01em; }
+    .btn-primary { background: linear-gradient(180deg, #ff8a6e, #ff6a47); color: #1c0f2e;
+      font-weight: 800;
+      box-shadow: 0 0 22px rgba(255,122,92,.35), 0 6px 18px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.35); }
+    .btn-ghost { border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.03); font-weight: 600; }
+    .btn-pill { width: auto; height: 40px; padding: 0 16px; border-radius: 999px; font-size: 13.5px;
+      font-weight: 600; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.03); }
+
+    /* ============ home ============ */
+    .home { padding-top: 78px; text-align: center; }
+    .hero-sig { width: 232px; margin: 0 auto 10px; }
+    .hero-stack { position: relative; height: 58px; }
+    .hero-stack .wv { position: absolute; inset: 0; width: 100%; height: 100%; stroke-width: 2.2px; }
+    .hero-sum { width: 54%; height: 16px; margin: 8px auto 0; color: #8d92ad; opacity: .75; }
+    .hero-sum .wv { width: 100%; height: 100%; stroke-width: 2.6px; }
+    .wordmark { font-size: 58px; font-weight: 800; letter-spacing: .01em; line-height: 1.05; margin-top: 18px; }
+    .wordmark span { color: #ff8a6e; text-shadow: 0 0 18px rgba(255,122,92,.55), 0 0 44px rgba(255,122,92,.28); }
+    .tagline { font-family: "Spline Sans Mono", monospace; font-size: 11.5px; letter-spacing: .3em;
+      text-transform: uppercase; color: rgba(238,240,251,.55); margin-top: 14px; }
+    .home-actions { max-width: 340px; margin: 44px auto 0; display: grid; gap: 12px; }
+
+    /* ============ lobby ============ */
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+    .codepanel { padding: 20px 22px 16px; text-align: center; }
+    .dial { position: relative; height: 14px;
+      background:
+        repeating-linear-gradient(90deg, rgba(236,238,252,.5) 0 1.5px, transparent 1.5px 45px) bottom / 100% 14px no-repeat,
+        repeating-linear-gradient(90deg, rgba(236,238,252,.16) 0 1px, transparent 1px 9px) bottom / 100% 8px no-repeat; }
+    .dial-b { transform: scaleY(-1); }
+    .needle { position: absolute; left: 50%; top: -2px; bottom: 0; width: 2px; transform: translateX(-50%);
+      background: #ff7a5c; border-radius: 2px; box-shadow: 0 0 8px rgba(255,122,92,.9); }
+    .roomcode { font-family: "Spline Sans Mono", monospace; font-weight: 700; font-size: 42px;
+      letter-spacing: .35em; text-indent: .35em; color: #f2f3ff; margin: 12px 0;
+      text-shadow: 0 0 26px rgba(160,180,255,.35); }
+    .codehint { font-family: "Spline Sans Mono", monospace; font-size: 10px; letter-spacing: .22em;
+      text-transform: uppercase; color: rgba(238,240,251,.42); margin-top: 12px; }
+    .prow { display: flex; align-items: center; gap: 12px; height: 58px; padding: 0 14px; margin-bottom: 8px; }
+    .pw { width: 46px; height: 20px; stroke-width: 2px; flex: none; }
+    .pname { font-weight: 700; font-size: 15px; flex: 1; text-align: left; }
+    .badges { display: flex; align-items: center; gap: 6px; }
+    .bdg { font-family: "Spline Sans Mono", monospace; font-style: normal; font-weight: 500; font-size: 9px;
+      letter-spacing: .14em; padding: 3px 7px; border-radius: 999px; border: 1px solid; }
+    .bdg-host { color: #ffd166; border-color: rgba(255,209,102,.45); }
+    .bdg-you  { color: #ff9e85; border-color: rgba(255,122,92,.45); }
+    .bdg-bot  { color: #9fb6e8; border-color: rgba(111,168,255,.4); }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #5ad6a0;
+      box-shadow: 0 0 8px rgba(90,214,160,.9); margin-left: 4px; }
+    .srow { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px;
+      margin-bottom: 10px; min-height: 60px; }
+    .slab { font-weight: 700; font-size: 15px; }
+    .step { display: flex; align-items: center; gap: 14px; }
+    .step button { width: 40px; height: 40px; border-radius: 11px; border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.04); font-family: "Spline Sans Mono", monospace; font-size: 16px;
+      color: rgba(238,240,251,.85); }
+    .step b { font-family: "Spline Sans Mono", monospace; font-size: 18px; min-width: 18px; text-align: center; }
+    .pwrpanel { padding: 14px; margin-bottom: 18px; }
+    .seg { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; padding: 4px; margin-top: 12px;
+      background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.08); border-radius: 12px; }
+    .seg span { display: flex; align-items: center; justify-content: center; height: 40px; border-radius: 9px;
+      font-weight: 600; font-size: 13.5px; color: rgba(238,240,251,.55); }
+    .seg .on { background: linear-gradient(180deg, #ff8a6e, #ff6a47); color: #1c0f2e; font-weight: 700;
+      box-shadow: 0 0 14px rgba(255,122,92,.35); }
+    .helper { font-family: "Spline Sans Mono", monospace; font-size: 11px; color: rgba(238,240,251,.45); margin-top: 10px; }
+
+    /* ============ game ============ */
+    .ghead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 8px; }
+    .readout { font-family: "Spline Sans Mono", monospace; font-size: 13px; letter-spacing: .04em; white-space: nowrap; }
+    .readout b { font-weight: 700; color: #fff; }
+    .readout span { color: rgba(238,240,251,.4); }
+    .readout .code { margin-left: 7px; letter-spacing: .2em; color: rgba(238,240,251,.55); }
+    .gbtns { display: flex; gap: 5px; }
+    .tiny { font-family: "Spline Sans Mono", monospace; font-size: 9.5px; letter-spacing: .12em;
+      padding: 8px 8px; border: 1px solid rgba(255,255,255,.14); border-radius: 9px;
+      color: rgba(238,240,251,.7); background: rgba(255,255,255,.03); white-space: nowrap; }
+    .tiny.danger { color: #ff9e85; border-color: rgba(255,122,92,.4); }
+    .scoregrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .schip { display: flex; align-items: center; gap: 9px; padding: 10px 12px; border-radius: 13px;
+      background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.08); }
+    .schip .sw { width: 30px; height: 14px; stroke-width: 1.8px; flex: none; }
+    .schip span { font-weight: 600; font-size: 13.5px; flex: 1; }
+    .schip b { font-family: "Spline Sans Mono", monospace; font-size: 15px; }
+    .sect-row { display: flex; justify-content: space-between; align-items: baseline; margin: 20px 2px 10px; }
+    .sect-row .sect-label { margin: 0; }
+    .sect-row .count { font-family: "Spline Sans Mono", monospace; font-size: 11px; color: rgba(238,240,251,.5); }
+    .pool { padding: 14px 12px 12px; }
+    .turn-banner { font-family: "Spline Sans Mono", monospace; font-size: 10px; letter-spacing: .26em;
+      text-align: center; color: #ffa48b; text-shadow: 0 0 12px rgba(255,122,92,.4); margin-bottom: 12px; }
+    .pgrid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+    .pcard { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+      height: 80px; padding: 6px 2px; border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10); background: rgba(255,255,255,.03); }
+    .pcard i { font-style: normal; font-family: "Spline Sans Mono", monospace; font-weight: 700;
+      font-size: 17px; line-height: 1; color: var(--pc); filter: drop-shadow(0 0 6px var(--pc)); }
+    .pcard em { font-style: normal; font-family: "Spline Sans Mono", monospace; font-size: 8.5px;
+      letter-spacing: .06em; text-transform: uppercase; text-align: center; line-height: 1.4;
+      color: rgba(238,240,251,.6); }
+    .t-teal { --pc: #4dd6c4; } .t-rose { --pc: #ff5c7a; } .t-pink { --pc: #ff7ad1; }
+    .t-emerald { --pc: #4ade80; } .t-violet { --pc: #b48bff; } .t-amber { --pc: #ffb84d; }
+    .pcard.lit { border-color: var(--pc);
+      background: color-mix(in srgb, var(--pc) 13%, transparent);
+      box-shadow: 0 0 22px color-mix(in srgb, var(--pc) 30%, transparent); }
+    .pcard.lit em { color: rgba(238,240,251,.85); }
+    .pcard.sel { transform: translateY(-4px); }
+    .pbig { width: 88px; height: 108px; border-radius: 14px; gap: 12px; }
+    .pbig i { font-size: 28px; }
+    .pbig em { font-size: 10px; }
+    .stgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stcard { padding: 11px 12px 10px; border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.09); background: rgba(255,255,255,.035); }
+    .stname { font-weight: 700; font-size: 14px; }
+    .stname span { font-weight: 500; font-size: 11px; color: rgba(238,240,251,.45); }
+    .sthand { font-family: "Spline Sans Mono", monospace; font-size: 10px; letter-spacing: .16em;
+      color: rgba(238,240,251,.42); margin-top: 4px; }
+    .stw { width: 100%; height: 16px; margin-top: 9px; stroke-width: 2px; }
+    .ststatus { font-family: "Spline Sans Mono", monospace; font-size: 9.5px; letter-spacing: .2em; margin-top: 8px; }
+    .ststatus.think { color: #ffa48b; }
+    .ststatus.sub { color: rgba(127,224,178,.75); }
+    .skip { width: 100%; height: 46px; margin-top: 12px; border-radius: 12px;
+      border: 1px dashed rgba(255,255,255,.2);
+      font-family: "Spline Sans Mono", monospace; font-size: 10px; letter-spacing: .18em;
+      color: rgba(238,240,251,.55); }
+    .hand { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+    .ncard { position: relative; height: 100px; padding: 12px 5px 10px; border-radius: 14px;
+      display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+      border: 1px solid rgba(255,255,255,.10);
+      background: linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.015));
+      box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+    .ncard b { font-family: "Spline Sans Mono", monospace; font-weight: 700; font-size: 22px; line-height: 1; }
+    .nwv { display: block; width: 100%; height: 28px; color: rgba(255,122,92,.5);
+      background: linear-gradient(rgba(255,255,255,.08) 0 0) center / 100% 1px no-repeat; }
+    .nwv .wv { width: 100%; height: 100%; stroke-width: 2px; }
+    .ncard.sel { transform: translateY(-6px); border-color: rgba(255,138,110,.85);
+      background: linear-gradient(180deg, rgba(255,122,92,.17), rgba(255,122,92,.05));
+      box-shadow: 0 10px 26px rgba(255,122,92,.28), 0 0 0 1px rgba(255,138,110,.4); }
+    .ncard.sel b { color: #ffb39e; text-shadow: 0 0 12px rgba(255,122,92,.7); }
+    .ncard.sel .nwv { color: #ff8a6e; }
+    .ncard.sel .nwv .wv { filter: drop-shadow(0 0 4px rgba(255,122,92,.8)); }
+    .mt16 { margin-top: 16px; }
+
+    /* ============ reveal ============ */
+    .reveal { padding-top: 38px; }
+    .played { display: flex; justify-content: center; margin-bottom: 18px; }
+    .scope { padding: 14px;
+      background-image:
+        repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 26px),
+        linear-gradient(180deg, rgba(8,7,24,.5), rgba(8,7,24,.3)); }
+    .trow { display: grid; grid-template-columns: 60px 1fr 72px; gap: 12px; align-items: center; padding: 8px 0; }
+    .tmeta { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+    .tname { font-family: "Spline Sans Mono", monospace; font-size: 9px; letter-spacing: .16em; }
+    .minicard { width: 40px; height: 52px; padding: 7px 5px 6px; border-radius: 9px;
+      display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+      border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.05); }
+    .minicard b { font-family: "Spline Sans Mono", monospace; font-weight: 700; font-size: 15px; color: #f2f3ff; }
+    .minicard .wv { width: 28px; height: 11px; stroke-width: 1.6px; }
+    .trace { position: relative; height: 42px; }
+    .trace .wv { position: absolute; inset: 0; width: 100%; height: 100%; stroke-width: 2.6px; }
+    .wv.ghosted { stroke-dasharray: 4 7; opacity: .4; }
+    .wv.sumln { color: #9aa0b8; stroke-width: 3px; }
+    .zmark { position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+      font-family: "Spline Sans Mono", monospace; font-size: 12px; color: #6fa8ff;
+      text-shadow: 0 0 8px rgba(111,168,255,.8); background: #141231; padding: 0 3px; border-radius: 4px; }
+    .tout { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+    .tout b { font-family: "Spline Sans Mono", monospace; font-size: 17px; }
+    .tout.gone b { color: #8d92ad; }
+    .tout.zero b { color: #6fa8ff; font-size: 19px; text-shadow: 0 0 14px rgba(111,168,255,.6); }
+    .stamp { font-family: "Spline Sans Mono", monospace; font-size: 8px; letter-spacing: .2em; color: #9aa0b8;
+      border: 1px solid rgba(141,146,173,.4); border-radius: 4px; padding: 2px 5px; }
+    .sumrow { display: grid; grid-template-columns: 60px 1fr 72px; gap: 12px; align-items: center; padding: 2px 0; }
+    .sumrow .sig { justify-self: end; font-family: "Spline Sans Mono", monospace; font-size: 12px; color: #8d92ad; }
+    .sumtrace { position: relative; height: 24px; }
+    .sumtrace .wv { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .sumlab { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+      font-family: "Spline Sans Mono", monospace; font-size: 8.5px; letter-spacing: .26em; color: #9aa0b8;
+      background: #141231; border: 1px solid rgba(141,146,173,.35); border-radius: 5px; padding: 3px 9px 3px 11px; }
+    .gsep { height: 1px; background: rgba(255,255,255,.07); margin: 8px 0; }
+    .trow.alive { border: 1px solid rgba(111,168,255,.35); border-radius: 12px;
+      background: rgba(111,168,255,.06); padding: 9px 10px; margin-top: 8px; }
+
+    /* ============ end ============ */
+    .end { position: relative; z-index: 0; padding-top: 46px; }
+    .confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: -1; }
+    .cf { position: absolute; height: 11px; stroke-width: 2px; opacity: .5; transform: rotate(var(--r, 0deg)); }
+    .cfd { position: absolute; width: 5px; height: 5px; border-radius: 50%; opacity: .55;
+      background: currentColor; box-shadow: 0 0 8px currentColor; }
+    .cfo { position: absolute; font-family: "Spline Sans Mono", monospace; font-size: 13px; color: #6fa8ff;
+      opacity: .5; text-shadow: 0 0 8px rgba(111,168,255,.6); }
+    .endhead { text-align: center; margin-bottom: 26px; }
+    .won { font-size: 46px; font-weight: 800; letter-spacing: -.01em; margin-top: 8px; }
+    .won span { color: #ff8a6e; text-shadow: 0 0 22px rgba(255,122,92,.55); }
+    .colhead { display: grid; grid-template-columns: 20px 1fr 28px 28px 28px 48px; gap: 6px;
+      padding: 0 14px; margin-bottom: 8px;
+      font-family: "Spline Sans Mono", monospace; font-size: 10px; letter-spacing: .1em;
+      color: rgba(238,240,251,.45); }
+    .colhead .num { text-align: center; }
+    .colhead .tcol { text-align: right; letter-spacing: .08em; }
+    .erow { padding: 12px 14px 9px; margin-bottom: 10px; }
+    .el1 { display: grid; grid-template-columns: 20px 1fr 28px 28px 28px 48px; gap: 6px; align-items: baseline; }
+    .rank { font-family: "Spline Sans Mono", monospace; font-size: 11px; color: rgba(238,240,251,.4); }
+    .ename { font-weight: 700; font-size: 15px; }
+    .ename i { font-style: normal; font-weight: 500; font-size: 11px; color: rgba(238,240,251,.45); }
+    .rs { font-family: "Spline Sans Mono", monospace; font-size: 12px; color: rgba(238,240,251,.5); text-align: center; }
+    .tot { font-family: "Spline Sans Mono", monospace; font-size: 19px; font-weight: 700; text-align: right; }
+    .ew { width: 100%; height: 34px; margin-top: 7px; stroke-width: 2.2px; opacity: .55; }
+    .erow.win { border-color: rgba(255,138,110,.55);
+      background: linear-gradient(180deg, rgba(255,122,92,.10), rgba(255,122,92,.03));
+      box-shadow: 0 0 30px rgba(255,122,92,.14); }
+    .erow.win .ew { opacity: 1; filter: drop-shadow(0 0 5px currentColor); }
+    .erow.win .tot { color: #ff8a6e; text-shadow: 0 0 14px rgba(255,122,92,.5); }
+    .endbtns { display: grid; gap: 12px; margin-top: 24px; }
+
+    /* ============ flourishes (motion only here) ============ */
+    @media (prefers-reduced-motion: no-preference) {
+      @keyframes dashdrift { to { stroke-dashoffset: -60; } }
+      .wv-think { animation: dashdrift 2.4s linear infinite; }
+      @keyframes bannerpulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+      .turn-banner { animation: bannerpulse 2.4s ease-in-out infinite; }
+      @keyframes breath { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+      .trow.alive .trace .wv { animation: breath 3s ease-in-out infinite; }
+      @keyframes ctaglow {
+        0%, 100% { box-shadow: 0 0 22px rgba(255,122,92,.35), 0 6px 18px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.35); }
+        50% { box-shadow: 0 0 36px rgba(255,122,92,.55), 0 6px 18px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.35); }
+      }
+      .btn-primary { animation: ctaglow 3.2s ease-in-out infinite; }
+      @keyframes floaty { 0%, 100% { translate: 0 0; } 50% { translate: 0 -8px; } }
+      .cf, .cfd, .cfo { animation: floaty 5.5s ease-in-out infinite; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- shared waveform paths: rank = frequency; 0 is the flat (silent) signal -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <path id="w0" d="M0 20 L120 20" fill="none" vector-effect="non-scaling-stroke"/>
+      <path id="w1" d="M0 20 Q30 -4 60 20 T120 20" fill="none" vector-effect="non-scaling-stroke"/>
+      <path id="w2" d="M0 20 Q15 -4 30 20 T60 20 T90 20 T120 20" fill="none" vector-effect="non-scaling-stroke"/>
+      <path id="w2i" d="M0 20 Q15 44 30 20 T60 20 T90 20 T120 20" fill="none" vector-effect="non-scaling-stroke"/>
+      <path id="w3" d="M0 20 Q10 -4 20 20 T40 20 T60 20 T80 20 T100 20 T120 20" fill="none" vector-effect="non-scaling-stroke"/>
+      <path id="w4" d="M0 20 Q7.5 -4 15 20 T30 20 T45 20 T60 20 T75 20 T90 20 T105 20 T120 20" fill="none" vector-effect="non-scaling-stroke"/>
+      <path id="w5" d="M0 20 Q6 -4 12 20 T24 20 T36 20 T48 20 T60 20 T72 20 T84 20 T96 20 T108 20 T120 20" fill="none" vector-effect="non-scaling-stroke"/>
+      <path id="w5i" d="M0 20 Q6 44 12 20 T24 20 T36 20 T48 20 T60 20 T72 20 T84 20 T96 20 T108 20 T120 20" fill="none" vector-effect="non-scaling-stroke"/>
+      <path id="a18" d="M0 20 Q10 -16 20 20 T40 20 T60 20 T80 20 T100 20 T120 20" fill="none" vector-effect="non-scaling-stroke"/>
+      <path id="a11" d="M0 20 Q10 -2 20 20 T40 20 T60 20 T80 20 T100 20 T120 20" fill="none" vector-effect="non-scaling-stroke"/>
+      <path id="a8" d="M0 20 Q10 4 20 20 T40 20 T60 20 T80 20 T100 20 T120 20" fill="none" vector-effect="non-scaling-stroke"/>
+      <path id="a6" d="M0 20 Q10 8 20 20 T40 20 T60 20 T80 20 T100 20 T120 20" fill="none" vector-effect="non-scaling-stroke"/>
+    </defs>
+  </svg>
+
+  <!-- ============ 1 · HOME ============ -->
+  <main data-screen="home">
+    <div class="page home">
+      <div class="hero-sig">
+        <div class="hero-stack">
+          <svg class="wv glow c-vol" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w2i"/></svg>
+          <svg class="wv glow c-ben" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w2"/></svg>
+        </div>
+        <div class="hero-sum">
+          <svg class="wv" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w0"/></svg>
+        </div>
+      </div>
+      <h1 class="wordmark">CAN<span>CEL</span></h1>
+      <p class="tagline">a number-picking party game</p>
+      <div class="home-actions">
+        <button class="btn btn-primary">New game</button>
+        <button class="btn btn-ghost">Single player</button>
+        <button class="btn btn-ghost">Join with code</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ 2 · LOBBY ============ -->
+  <main data-screen="lobby">
+    <div class="page">
+      <div class="topbar">
+        <button class="btn-pill">← Leave</button>
+        <button class="btn-pill">Rules</button>
+      </div>
+
+      <section class="panel codepanel">
+        <div class="dial"><i class="needle"></i></div>
+        <div class="roomcode">DN2H</div>
+        <div class="dial dial-b"><i class="needle"></i></div>
+        <div class="codehint">press to copy</div>
+      </section>
+
+      <div class="sect-label">Players · 4</div>
+      <div class="panel prow">
+        <svg class="wv glow-soft pw c-ben" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w2"/></svg>
+        <span class="pname">Ben</span>
+        <span class="badges"><i class="bdg bdg-host">HOST</i><i class="bdg bdg-you">YOU</i><i class="dot"></i></span>
+      </div>
+      <div class="panel prow">
+        <svg class="wv glow-soft pw c-vol" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w1"/></svg>
+        <span class="pname">Voltaire</span>
+        <span class="badges"><i class="bdg bdg-bot">BOT</i><i class="dot"></i></span>
+      </div>
+      <div class="panel prow">
+        <svg class="wv glow-soft pw c-mec" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w3"/></svg>
+        <span class="pname">Mechano</span>
+        <span class="badges"><i class="bdg bdg-bot">BOT</i><i class="dot"></i></span>
+      </div>
+      <div class="panel prow">
+        <svg class="wv glow-soft pw c-dan" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w4"/></svg>
+        <span class="pname">Data Dan</span>
+        <span class="badges"><i class="bdg bdg-bot">BOT</i><i class="dot"></i></span>
+      </div>
+
+      <div class="sect-label">Settings</div>
+      <div class="panel srow">
+        <span class="slab">Rounds</span>
+        <span class="step"><button>−</button><b>3</b><button>+</button></span>
+      </div>
+      <div class="panel srow">
+        <span class="slab">AI players</span>
+        <span class="step"><button>−</button><b>3</b><button>+</button></span>
+      </div>
+      <div class="panel pwrpanel">
+        <span class="slab">Power-ups</span>
+        <div class="seg"><span>None</span><span class="on">Random</span><span>Choose</span></div>
+        <div class="helper">A fresh random pool each round.</div>
+      </div>
+
+      <button class="btn btn-primary">Start game</button>
+    </div>
+  </main>
+
+  <!-- ============ 3 · GAME ============ -->
+  <main data-screen="game">
+    <div class="page">
+      <header class="ghead">
+        <div class="readout"><b>R1</b><span>/3</span> · <b>T2</b><span>/6</span><span class="code">DN2H</span></div>
+        <div class="gbtns">
+          <button class="tiny">RULES</button>
+          <button class="tiny">LEAVE</button>
+          <button class="tiny danger">END GAME</button>
+        </div>
+      </header>
+
+      <div class="scoregrid">
+        <div class="schip"><svg class="wv sw c-ben" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w2"/></svg><span>Ben</span><b>4</b></div>
+        <div class="schip"><svg class="wv sw c-vol" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w1"/></svg><span>Voltaire</span><b>0</b></div>
+        <div class="schip"><svg class="wv sw c-mec" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w3"/></svg><span>Mechano</span><b>2</b></div>
+        <div class="schip"><svg class="wv sw c-dan" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w4"/></svg><span>Data Dan</span><b>5</b></div>
+      </div>
+
+      <div class="sect-row">
+        <span class="sect-label">Power-ups remaining</span>
+        <span class="count">6 / 6</span>
+      </div>
+      <section class="panel pool">
+        <div class="turn-banner">YOUR TURN, PRESS TO SELECT</div>
+        <div class="pgrid">
+          <button class="pcard t-teal"><i>⇄</i><em>Swap Hands</em></button>
+          <button class="pcard t-rose"><i>✖</i><em>Sabotage</em></button>
+          <button class="pcard t-pink lit sel"><i>=</i><em>Jinx</em></button>
+          <button class="pcard t-emerald"><i>+2</i><em>Plus Two</em></button>
+          <button class="pcard t-violet"><i>?</i><em>Wild</em></button>
+          <button class="pcard t-amber"><i>↧</i><em>Drain</em></button>
+        </div>
+      </section>
+
+      <div class="sect-label">Players · Power picker: <b class="c-ben">Ben</b></div>
+      <div class="stgrid">
+        <div class="stcard">
+          <div class="stname c-ben">Ben <span>(you)</span></div>
+          <div class="sthand">Ø 1 2 3 4 5</div>
+          <svg class="wv stw wv-think c-ben" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w2"/></svg>
+          <div class="ststatus think">THINKING…</div>
+        </div>
+        <div class="stcard">
+          <div class="stname c-vol">Voltaire</div>
+          <div class="sthand">Ø 1 2 3 4 5</div>
+          <svg class="wv stw glow-soft c-vol" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w1"/></svg>
+          <div class="ststatus sub">SUBMITTED</div>
+        </div>
+        <div class="stcard">
+          <div class="stname c-mec">Mechano</div>
+          <div class="sthand">Ø 1 2 3 4 5</div>
+          <svg class="wv stw glow-soft c-mec" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w3"/></svg>
+          <div class="ststatus sub">SUBMITTED</div>
+        </div>
+        <div class="stcard">
+          <div class="stname c-dan">Data Dan</div>
+          <div class="sthand">Ø 1 2 3 4 5</div>
+          <svg class="wv stw glow-soft c-dan" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w4"/></svg>
+          <div class="ststatus sub">SUBMITTED</div>
+        </div>
+      </div>
+      <button class="skip">SKIP WAITING, AUTO-PLAY WHO'S LEFT</button>
+
+      <div class="sect-label">Your hand</div>
+      <div class="hand">
+        <button class="ncard"><b>Ø</b><span class="nwv"><svg class="wv" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w0"/></svg></span></button>
+        <button class="ncard"><b>1</b><span class="nwv"><svg class="wv" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w1"/></svg></span></button>
+        <button class="ncard"><b>2</b><span class="nwv"><svg class="wv" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w2"/></svg></span></button>
+        <button class="ncard"><b>3</b><span class="nwv"><svg class="wv" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w3"/></svg></span></button>
+        <button class="ncard"><b>4</b><span class="nwv"><svg class="wv" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w4"/></svg></span></button>
+        <button class="ncard sel"><b>5</b><span class="nwv"><svg class="wv" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w5"/></svg></span></button>
+      </div>
+
+      <button class="btn btn-primary mt16">Lock it in</button>
+    </div>
+  </main>
+
+  <!-- ============ 4 · REVEAL ============ -->
+  <main data-screen="reveal">
+    <div class="page reveal">
+      <p class="eyebrow center">TURN 2 REVEAL</p>
+      <div class="sect-label center">Ben played</div>
+      <div class="played">
+        <span class="pcard pbig t-pink lit"><i>=</i><em>Jinx</em></span>
+      </div>
+
+      <section class="panel scope">
+        <!-- Ben and Mechano: identical signals in antiphase -->
+        <div class="trow">
+          <div class="tmeta">
+            <span class="tname c-ben">BEN</span>
+            <span class="minicard"><b>5</b><svg class="wv c-ben" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w5"/></svg></span>
+          </div>
+          <div class="trace"><svg class="wv glow-soft c-ben" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w5"/></svg></div>
+          <div class="tout gone"><b>0</b><span class="stamp">CANCELLED</span></div>
+        </div>
+        <div class="sumrow">
+          <span class="sig">Σ</span>
+          <div class="sumtrace">
+            <svg class="wv sumln" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w0"/></svg>
+            <span class="sumlab">CANCELLED</span>
+          </div>
+          <span></span>
+        </div>
+        <div class="trow">
+          <div class="tmeta">
+            <span class="tname c-mec">MECHANO</span>
+            <span class="minicard"><b>5</b><svg class="wv c-mec" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w5"/></svg></span>
+          </div>
+          <div class="trace"><svg class="wv glow-soft c-mec" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w5i"/></svg></div>
+          <div class="tout gone"><b>0</b><span class="stamp">CANCELLED</span></div>
+        </div>
+
+        <div class="gsep"></div>
+
+        <!-- Data Dan: zeroed by the lone Ø -->
+        <div class="trow">
+          <div class="tmeta">
+            <span class="tname c-dan">DATA DAN</span>
+            <span class="minicard"><b>3</b><svg class="wv c-dan" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w3"/></svg></span>
+          </div>
+          <div class="trace">
+            <svg class="wv ghosted c-dan" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w3"/></svg>
+            <svg class="wv sumln" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w0"/></svg>
+            <span class="zmark">Ø</span>
+          </div>
+          <div class="tout gone"><b>0</b><span class="stamp">CANCELLED</span></div>
+        </div>
+
+        <!-- Voltaire: the silent signal, still alive -->
+        <div class="trow alive">
+          <div class="tmeta">
+            <span class="tname c-vol">VOLTAIRE</span>
+            <span class="minicard"><b>Ø</b><svg class="wv c-vol" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w0"/></svg></span>
+          </div>
+          <div class="trace"><svg class="wv glow c-vol" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w0"/></svg></div>
+          <div class="tout zero"><b>0</b></div>
+        </div>
+      </section>
+
+      <button class="btn btn-primary mt16">Continue</button>
+    </div>
+  </main>
+
+  <!-- ============ 5 · END ============ -->
+  <main data-screen="end">
+    <div class="page end">
+      <div class="confetti">
+        <svg class="wv cf c-ben" style="left:6%; top:4%; width:26px; --r:-20deg" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w2"/></svg>
+        <svg class="wv cf c-mec" style="left:78%; top:3%; width:22px; --r:28deg" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w3"/></svg>
+        <svg class="wv cf c-vol" style="left:30%; top:8%; width:18px; --r:-8deg" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w1"/></svg>
+        <svg class="wv cf c-dan" style="left:88%; top:12%; width:24px; --r:-30deg" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w2"/></svg>
+        <i class="cfd c-mec" style="left:16%; top:13%"></i>
+        <i class="cfd c-vol" style="left:64%; top:6%"></i>
+        <svg class="wv cf c-vol" style="left:8%; top:26%; width:20px; --r:40deg" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w2"/></svg>
+        <svg class="wv cf c-mec" style="left:50%; top:2%; width:20px; --r:12deg" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w1"/></svg>
+        <i class="cfd c-ben" style="left:84%; top:24%"></i>
+        <svg class="wv cf c-dan" style="left:22%; top:34%; width:22px; --r:18deg" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w3"/></svg>
+        <span class="cfo" style="left:70%; top:20%">Ø</span>
+        <i class="cfd c-dan" style="left:38%; top:18%"></i>
+        <svg class="wv cf c-ben" style="left:58%; top:30%; width:18px; --r:-35deg" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w1"/></svg>
+        <i class="cfd c-mec" style="left:5%; top:44%"></i>
+        <svg class="wv cf c-mec" style="left:90%; top:38%; width:18px; --r:-12deg" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#w2"/></svg>
+        <i class="cfd c-vol" style="left:46%; top:42%"></i>
+        <span class="cfo" style="left:14%; top:56%">Ø</span>
+        <i class="cfd c-ben" style="left:74%; top:52%"></i>
+      </div>
+
+      <div class="endhead">
+        <p class="eyebrow">GAME OVER</p>
+        <h2 class="won">You <span>won.</span></h2>
+      </div>
+
+      <div class="colhead">
+        <span></span><span></span><span class="num">R1</span><span class="num">R2</span><span class="num">R3</span><span class="tcol">TOTAL</span>
+      </div>
+      <div class="panel erow win">
+        <div class="el1">
+          <span class="rank">1</span>
+          <span class="ename c-ben">Ben <i>(you)</i></span>
+          <span class="rs">5</span><span class="rs">9</span><span class="rs">6</span>
+          <b class="tot">20</b>
+        </div>
+        <svg class="wv ew c-ben" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#a18"/></svg>
+      </div>
+      <div class="panel erow">
+        <div class="el1">
+          <span class="rank">2</span>
+          <span class="ename c-dan">Data Dan</span>
+          <span class="rs">5</span><span class="rs">4</span><span class="rs">3</span>
+          <b class="tot">12</b>
+        </div>
+        <svg class="wv ew c-dan" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#a11"/></svg>
+      </div>
+      <div class="panel erow">
+        <div class="el1">
+          <span class="rank">3</span>
+          <span class="ename c-vol">Voltaire</span>
+          <span class="rs">3</span><span class="rs">2</span><span class="rs">4</span>
+          <b class="tot">9</b>
+        </div>
+        <svg class="wv ew c-vol" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#a8"/></svg>
+      </div>
+      <div class="panel erow">
+        <div class="el1">
+          <span class="rank">4</span>
+          <span class="ename c-mec">Mechano</span>
+          <span class="rs">0</span><span class="rs">5</span><span class="rs">2</span>
+          <b class="tot">7</b>
+        </div>
+        <svg class="wv ew c-mec" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#a6"/></svg>
+      </div>
+
+      <div class="endbtns">
+        <button class="btn btn-primary">Play again</button>
+        <button class="btn btn-ghost">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>

@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cancel — Aurora: Tokyo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    [data-screen] { display: none; }
+    [data-screen].active { display: block; }
+    #switcher { position: fixed; bottom: 8px; right: 8px; z-index: 999; display: flex; gap: 4px; }
+
+    /* ============ tokens ============ */
+    :root{
+      --bg:#0a0e1a;
+      --ink:#eef3fb;
+      --muted:rgba(229,239,252,.66);
+      --faint:rgba(229,239,252,.42);
+      --line:rgba(57,216,232,.22);          /* informational cyan edge */
+      --line-soft:rgba(160,205,235,.14);
+      --pink:#ff3b6b; --cyan:#39d8e8; --amber:#ffb347;
+      --ben:#ff7a66; --vol:#54c3f5; --mech:#ffb347; --dan:#3ee6a2;
+      --glassbg:linear-gradient(165deg, rgba(170,215,245,.10), rgba(170,215,245,.04) 38%, rgba(170,215,245,.065));
+      --pinkgrad:linear-gradient(115deg,#ff5d8d,#ff2e5f 55%,#e61a4e);
+    }
+    *{ box-sizing:border-box; margin:0; padding:0; }
+    html{ background:var(--bg); }
+    body{
+      font-family:"Outfit",ui-sans-serif,sans-serif;
+      color:var(--ink);
+      -webkit-font-smoothing:antialiased;
+      background-color:var(--bg);
+      background-image:
+        repeating-linear-gradient(112deg, transparent 0 9px, rgba(165,205,242,.023) 9px 10px),
+        repeating-linear-gradient(90deg, transparent 0 17px, rgba(255,80,122,.05) 17px 19px, transparent 19px 31px, rgba(57,216,232,.04) 31px 33px),
+        radial-gradient(72% 32% at 50% 104%, rgba(255,59,107,.30), transparent 72%),
+        radial-gradient(48% 26% at -6% 80%, rgba(57,216,232,.20), transparent 70%),
+        radial-gradient(44% 22% at 106% 56%, rgba(255,59,107,.15), transparent 70%),
+        radial-gradient(40% 18% at 102% 6%, rgba(57,216,232,.12), transparent 70%),
+        radial-gradient(30% 14% at 2% 14%, rgba(255,179,71,.08), transparent 70%);
+      background-size:100% 100%,100% 24%,100% 100%,100% 100%,100% 100%,100% 100%,100% 100%;
+      background-position:0 0,50% 100%,0 0,0 0,0 0,0 0,0 0;
+      background-repeat:repeat,no-repeat,no-repeat,no-repeat,no-repeat,no-repeat,no-repeat;
+    }
+    main[data-screen]{ min-height:100vh; }
+    .wrap{ max-width:420px; margin:0 auto; padding:22px 20px 30px; position:relative; }
+
+    /* ============ shared surfaces ============ */
+    .glass{
+      background:var(--glassbg);
+      border:1px solid var(--line);
+      border-radius:18px;
+      backdrop-filter:blur(14px) saturate(1.3);
+      -webkit-backdrop-filter:blur(14px) saturate(1.3);
+      box-shadow:0 18px 44px rgba(2,5,14,.55), 0 0 14px rgba(57,216,232,.05);
+    }
+    .micro{
+      font-size:11px; font-weight:700; letter-spacing:.22em;
+      text-transform:uppercase; color:var(--faint);
+    }
+    .seclabel{
+      font-size:11px; font-weight:700; letter-spacing:.22em;
+      text-transform:uppercase; color:var(--faint);
+      margin:0 4px 10px;
+    }
+
+    /* ============ buttons ============ */
+    .btn{
+      display:flex; align-items:center; justify-content:center;
+      width:100%; min-height:56px; border-radius:17px;
+      font-family:"Outfit",sans-serif; font-size:17px; font-weight:700;
+      color:var(--ink); cursor:pointer;
+      border:1px solid var(--line);
+      background:var(--glassbg);
+      backdrop-filter:blur(14px) saturate(1.3);
+      -webkit-backdrop-filter:blur(14px) saturate(1.3);
+      box-shadow:0 14px 34px rgba(2,5,14,.5), 0 0 12px rgba(57,216,232,.06);
+    }
+    .btn.primary{
+      position:relative; overflow:hidden;
+      border:1px solid rgba(255,140,170,.65);
+      background:var(--pinkgrad);
+      color:#1b040d; font-weight:800; letter-spacing:.01em;
+      box-shadow:0 0 22px rgba(255,59,107,.45), 0 14px 36px rgba(255,46,95,.3), inset 0 1px 0 rgba(255,255,255,.5);
+    }
+    .btn.primary::after{
+      content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+      background:linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,0) 46%);
+    }
+    .btn.ghost{
+      background:rgba(170,215,245,.03);
+      border:1px dashed rgba(160,205,235,.26);
+      color:var(--muted); font-size:12px; font-weight:700;
+      letter-spacing:.14em; text-transform:uppercase;
+      min-height:46px; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none;
+    }
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      min-height:42px; padding:0 18px; border-radius:999px;
+      background:var(--glassbg); border:1px solid var(--line);
+      backdrop-filter:blur(12px) saturate(1.3); -webkit-backdrop-filter:blur(12px) saturate(1.3);
+      font-family:"Outfit",sans-serif; font-size:14px; font-weight:600; color:var(--ink);
+      cursor:pointer; box-shadow:0 10px 24px rgba(2,5,14,.4);
+    }
+    .pill.tiny{
+      min-height:30px; padding:0 11px; font-size:10px; font-weight:800;
+      letter-spacing:.12em; color:var(--muted); box-shadow:none;
+    }
+    .pill.danger{ color:#ff9eb4; border-color:rgba(255,59,107,.45); }
+
+    /* ============ switcher ============ */
+    #switcher a{
+      width:30px; height:30px; display:grid; place-items:center;
+      border-radius:10px; background:rgba(10,15,30,.78);
+      border:1px solid var(--line); color:var(--muted);
+      font:700 12px "Outfit",sans-serif; text-decoration:none;
+      backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    }
+
+    /* ============ HOME ============ */
+    .home-wrap{ min-height:100vh; display:flex; flex-direction:column; }
+    .home-top{ display:flex; justify-content:flex-end; }
+    .iconbtn{
+      width:44px; height:44px; border-radius:50%;
+      display:grid; place-items:center; cursor:pointer;
+      color:var(--muted); background:rgba(170,215,245,.05);
+      border:1px solid var(--line);
+      backdrop-filter:blur(10px) saturate(1.3); -webkit-backdrop-filter:blur(10px) saturate(1.3);
+    }
+    .home-hero{
+      flex:1; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; text-align:center;
+      position:relative; padding:30px 0 18px;
+    }
+    .citypool{
+      position:absolute; left:50%; top:46%; width:440px; height:300px;
+      transform:translate(-50%,-50%); pointer-events:none;
+      background:
+        radial-gradient(60% 46% at 50% 64%, rgba(255,59,107,.22), transparent 70%),
+        radial-gradient(46% 36% at 26% 30%, rgba(57,216,232,.12), transparent 70%);
+      filter:blur(10px);
+    }
+    .wordmark{
+      position:relative; font-size:66px; font-weight:900;
+      letter-spacing:.04em; line-height:1;
+    }
+    .wordmark .w1{
+      color:#e9fbff;
+      text-shadow:0 0 12px rgba(57,216,232,.6), 0 0 44px rgba(57,216,232,.38);
+    }
+    .wordmark .w2{
+      color:#ff4d7a;
+      text-shadow:0 0 12px rgba(255,59,107,.8), 0 0 48px rgba(255,59,107,.5);
+    }
+    .tagline{
+      margin-top:16px; font-size:13px; font-weight:500;
+      letter-spacing:.3em; text-transform:uppercase; color:var(--muted);
+    }
+    .home-fan{ display:flex; justify-content:center; margin-top:40px; position:relative; }
+    .mini-card{
+      width:42px; height:56px; border-radius:11px; margin:0 -2px;
+      display:grid; place-items:center;
+      font-family:"Sora",sans-serif; font-weight:700; font-size:18px;
+      color:rgba(238,248,255,.9); text-shadow:0 0 12px rgba(57,216,232,.6);
+      background:var(--glassbg); border:1px solid var(--line);
+      backdrop-filter:blur(10px) saturate(1.3); -webkit-backdrop-filter:blur(10px) saturate(1.3);
+      box-shadow:0 10px 22px rgba(2,5,14,.5);
+    }
+    .mini-card:nth-child(1){ transform:rotate(-12deg) translateY(9px); border-color:rgba(255,99,135,.4); text-shadow:0 0 12px rgba(255,59,107,.75); }
+    .mini-card:nth-child(2){ transform:rotate(-7deg) translateY(3px); }
+    .mini-card:nth-child(3){ transform:rotate(-2deg) translateY(0); }
+    .mini-card:nth-child(4){ transform:rotate(3deg) translateY(0); }
+    .mini-card:nth-child(5){ transform:rotate(8deg) translateY(4px); }
+    .mini-card:nth-child(6){ transform:rotate(13deg) translateY(10px); }
+    .home-actions{ display:flex; flex-direction:column; gap:12px; padding-bottom:16px; }
+
+    /* ============ LOBBY ============ */
+    .topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+    .code-panel{ padding:24px 20px 20px; text-align:center; margin-bottom:24px; }
+    .code{
+      font-family:"Sora",sans-serif; font-size:58px; font-weight:800;
+      letter-spacing:.2em; text-indent:.2em; line-height:1;
+      color:#bdf3fb;
+      text-shadow:0 0 14px rgba(57,216,232,.75), 0 0 46px rgba(57,216,232,.4);
+    }
+    .hint{ margin-top:8px; font-size:12px; letter-spacing:.1em; color:var(--faint); }
+    .players{ list-style:none; display:flex; flex-direction:column; gap:10px; margin-bottom:24px; }
+    .prow{ border-radius:16px; padding:9px 14px; display:flex; align-items:center; gap:12px; }
+    .avatar{
+      width:38px; height:38px; border-radius:12px; flex:none;
+      display:grid; place-items:center;
+      font-weight:800; font-size:16px; color:#0c0410;
+    }
+    .avatar.ben{ background:linear-gradient(140deg,#ffab9c,#ff5a44); box-shadow:0 0 16px rgba(255,122,102,.45); }
+    .avatar.vol{ background:linear-gradient(140deg,#9fe2ff,#2ba6e0); box-shadow:0 0 16px rgba(84,195,245,.45); }
+    .avatar.mech{ background:linear-gradient(140deg,#ffd9a0,#f29a26); box-shadow:0 0 16px rgba(255,179,71,.45); }
+    .avatar.dan{ background:linear-gradient(140deg,#9af2cd,#1fc987); box-shadow:0 0 16px rgba(62,230,162,.45); }
+    .pname{ font-size:16px; font-weight:600; flex:1; }
+    .badges{ display:flex; gap:6px; align-items:center; }
+    .badge{
+      font-size:9.5px; font-weight:800; letter-spacing:.12em;
+      padding:4px 8px; border-radius:999px; border:1px solid transparent;
+    }
+    .badge.host{ color:#ffd9a0; border-color:rgba(255,179,71,.5); background:rgba(255,179,71,.12); }
+    .badge.you{ color:#ffc4d4; border-color:rgba(255,59,107,.45); background:rgba(255,59,107,.12); }
+    .badge.bot{ color:#aee9f5; border-color:rgba(57,216,232,.42); background:rgba(57,216,232,.1); }
+    .dot{
+      width:8px; height:8px; border-radius:50%; flex:none;
+      background:#3ee6a2; box-shadow:0 0 9px rgba(62,230,162,.95);
+    }
+    .setrow{
+      border-radius:16px; padding:12px 14px; margin-bottom:10px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .setlabel{ font-size:15px; font-weight:600; }
+    .stepper{ display:flex; align-items:center; gap:14px; }
+    .stepbtn{
+      width:38px; height:38px; border-radius:12px; cursor:pointer;
+      background:rgba(170,215,245,.07); border:1px solid var(--line);
+      color:var(--ink); font-size:18px; font-weight:600;
+      display:grid; place-items:center;
+    }
+    .stepval{ font-family:"Sora",sans-serif; font-weight:700; font-size:18px; min-width:18px; text-align:center; }
+    .setcol{ border-radius:16px; padding:14px; margin-bottom:20px; }
+    .setcol .setlabel{ margin-bottom:11px; }
+    .seg{
+      display:flex; gap:3px; padding:3px; border-radius:12px;
+      background:rgba(6,9,20,.6); border:1px solid var(--line-soft);
+    }
+    .seg button{
+      flex:1; min-height:40px; border:none; border-radius:9px;
+      background:transparent; color:var(--muted); cursor:pointer;
+      font-family:"Outfit",sans-serif; font-size:13.5px; font-weight:600;
+    }
+    .seg button.on{
+      background:var(--pinkgrad);
+      color:#1b040d; font-weight:800;
+      box-shadow:0 0 14px rgba(255,59,107,.5), inset 0 1px 0 rgba(255,255,255,.4);
+    }
+    .helper{ font-size:12.5px; color:var(--faint); margin-top:9px; }
+
+    /* ============ GAME ============ */
+    .ghead{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:16px; }
+    .gmeta{
+      font-family:"Sora",sans-serif; font-size:13.5px; font-weight:800;
+      letter-spacing:.03em; color:var(--ink); white-space:nowrap;
+    }
+    .gmeta .dim{ color:var(--faint); font-weight:600; }
+    .gmeta .codesm{ color:#8fe6f2; font-weight:700; letter-spacing:.14em; margin-left:6px; text-shadow:0 0 9px rgba(57,216,232,.5); }
+    .gbtns{ display:flex; gap:5px; }
+    .scoregrid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:20px; }
+    .schip{ border-radius:14px; min-height:46px; padding:0 13px; display:flex; align-items:center; gap:9px; }
+    .schip .sdot{ width:9px; height:9px; border-radius:50%; flex:none; background:currentColor; box-shadow:0 0 10px currentColor; }
+    .schip .nm{ flex:1; font-size:14px; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .schip .sc{ font-family:"Sora",sans-serif; font-weight:800; font-size:17px; color:var(--ink); }
+    .c-ben{ color:var(--ben); } .c-vol{ color:var(--vol); } .c-mech{ color:var(--mech); } .c-dan{ color:var(--dan); }
+    .poolhead{ display:flex; justify-content:space-between; align-items:baseline; margin:0 4px 10px; }
+    .poolcount{ font-family:"Sora",sans-serif; font-size:13px; font-weight:700; color:#8fe6f2; text-shadow:0 0 9px rgba(57,216,232,.4); }
+    .banner{
+      border-radius:14px; border:1px solid rgba(255,59,107,.6);
+      background:rgba(26,8,18,.6);
+      padding:11px 14px; text-align:center; margin-bottom:10px;
+      box-shadow:0 0 18px rgba(255,59,107,.25), inset 0 0 22px rgba(255,59,107,.08);
+    }
+    .banner span{
+      font-size:11.5px; font-weight:800; letter-spacing:.22em;
+      color:#ffb6c9;
+      text-shadow:0 0 11px rgba(255,59,107,.85), 0 0 30px rgba(255,59,107,.4);
+    }
+    .powergrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px; }
+    .power{
+      position:relative; border-radius:16px; padding:15px 6px 12px;
+      display:flex; flex-direction:column; align-items:center; gap:8px;
+      background:var(--glassbg); border:1px solid rgba(var(--pc),.4);
+      backdrop-filter:blur(14px) saturate(1.3); -webkit-backdrop-filter:blur(14px) saturate(1.3);
+      box-shadow:0 12px 30px rgba(2,5,14,.45), 0 0 12px rgba(var(--pc),.14), inset 0 0 30px rgba(var(--pc),.09);
+      cursor:pointer;
+    }
+    .power .glyph{
+      font-family:"Sora",sans-serif; font-size:25px; font-weight:800; line-height:1;
+      color:rgb(var(--pc)); text-shadow:0 0 15px rgba(var(--pc),.85);
+    }
+    .power .pnamel{
+      font-size:10px; font-weight:700; letter-spacing:.1em;
+      text-transform:uppercase; color:var(--muted); text-align:center;
+    }
+    .power.swap{ --pc:57,216,232; } .power.sab{ --pc:255,92,92; }
+    .power.jinx{ --pc:255,59,107; } .power.plus{ --pc:62,230,162; }
+    .power.wild{ --pc:178,108,255; } .power.drain{ --pc:255,179,71; }
+    .power.sel{
+      border:2px solid rgba(255,103,140,.95); padding:14px 5px 11px;
+      background:linear-gradient(165deg, rgba(48,14,28,.72), rgba(30,9,20,.78));
+      box-shadow:0 0 20px rgba(255,59,107,.55), 0 0 48px rgba(255,59,107,.28), inset 0 0 30px rgba(var(--pc),.18);
+      transform:translateY(-3px);
+    }
+    .power.sel .pnamel{ color:#ffd2de; }
+    .pstat{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+    .pcard{ border-radius:14px; padding:11px 13px; }
+    .pcard .ptop{ display:flex; align-items:center; gap:7px; }
+    .pcard .pdot{ width:10px; height:10px; border-radius:50%; flex:none; background:currentColor; box-shadow:0 0 9px currentColor; }
+    .pcard .pn{ font-size:14px; font-weight:600; color:var(--ink); white-space:nowrap; }
+    .pcard .yo{ font-size:11px; color:var(--faint); font-weight:500; }
+    .pstatus{ margin-top:6px; font-size:10px; font-weight:800; letter-spacing:.16em; }
+    .pstatus.think{ color:#ffce8e; text-shadow:0 0 11px rgba(255,179,71,.6); }
+    .pstatus.sub{ color:#62e6f2; text-shadow:0 0 11px rgba(57,216,232,.55); }
+    .handread{
+      margin-top:6px; font-family:"Sora",sans-serif; font-size:11px;
+      font-weight:600; letter-spacing:.24em; color:var(--faint);
+    }
+    .skipbtn{ margin-bottom:22px; }
+    .hand{ display:grid; grid-template-columns:repeat(6,1fr); gap:8px; padding-top:8px; margin-bottom:18px; }
+    .num{
+      position:relative; height:86px; border-radius:14px;
+      display:grid; place-items:center; cursor:pointer;
+      font-family:"Sora",sans-serif; font-size:27px; font-weight:800;
+      color:#f2f9ff; text-shadow:0 0 14px rgba(57,216,232,.55), 0 2px 6px rgba(0,0,0,.5);
+      background:var(--glassbg); border:1px solid var(--line);
+      backdrop-filter:blur(14px) saturate(1.3); -webkit-backdrop-filter:blur(14px) saturate(1.3);
+      box-shadow:0 10px 26px rgba(2,5,14,.48);
+    }
+    .num::before{
+      content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+      background:linear-gradient(168deg, rgba(255,255,255,.18), rgba(255,255,255,0) 40%);
+    }
+    .num.sel{
+      border:2px solid rgba(255,103,140,.95);
+      background:linear-gradient(180deg, rgba(52,14,28,.72), rgba(30,9,20,.8));
+      box-shadow:0 0 20px rgba(255,59,107,.55), 0 0 48px rgba(255,59,107,.3), 0 12px 28px rgba(2,5,14,.55);
+      transform:translateY(-7px);
+      color:#fff; text-shadow:0 0 8px rgba(255,255,255,.85), 0 0 24px rgba(255,59,107,.9);
+    }
+
+    /* ============ REVEAL ============ */
+    main[data-screen="reveal"]{
+      background:
+        radial-gradient(80% 44% at 50% 108%, rgba(255,59,107,.2), transparent 72%),
+        radial-gradient(58% 32% at 50% 28%, rgba(57,216,232,.1), transparent 70%);
+    }
+    .reveal-wrap{
+      min-height:100vh; max-width:420px; margin:0 auto;
+      display:flex; flex-direction:column; justify-content:center;
+      padding:36px 20px;
+    }
+    .reyebrow{ text-align:center; margin-bottom:26px; letter-spacing:.3em; color:var(--muted); }
+    .played-label{ text-align:center; margin-bottom:12px; }
+    .playedcard{
+      width:96px; margin:0 auto 30px; border-radius:16px;
+      padding:16px 8px 12px;
+      display:flex; flex-direction:column; align-items:center; gap:8px;
+      border:1.5px solid rgba(255,103,140,.9);
+      background:linear-gradient(165deg, rgba(48,14,28,.7), rgba(28,9,20,.78));
+      backdrop-filter:blur(14px) saturate(1.3); -webkit-backdrop-filter:blur(14px) saturate(1.3);
+      box-shadow:0 0 22px rgba(255,59,107,.5), 0 0 52px rgba(255,59,107,.25), inset 0 0 30px rgba(255,59,107,.14);
+    }
+    .playedcard .glyph{
+      font-family:"Sora",sans-serif; font-size:30px; font-weight:800; line-height:1;
+      color:#ff85a6; text-shadow:0 0 16px rgba(255,59,107,.95);
+    }
+    .playedcard .pnamel{
+      font-size:10px; font-weight:800; letter-spacing:.18em;
+      text-transform:uppercase; color:#ffd2de;
+    }
+    .rgrid{
+      display:grid; grid-template-columns:1fr 1fr;
+      gap:20px 12px; margin-bottom:32px; justify-items:center;
+    }
+    .rcell{ display:flex; flex-direction:column; align-items:center; gap:9px; }
+    .rname{ font-size:11px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); }
+    .rcard{
+      position:relative; width:106px; height:130px; border-radius:18px;
+      display:grid; place-items:center;
+      font-family:"Sora",sans-serif; font-size:42px; font-weight:800;
+    }
+    /* dead neon tube: dimmed card, shorted-out edge-light, unlit outline numeral */
+    .rcard.dead{
+      background:linear-gradient(180deg, rgba(20,24,40,.88), rgba(12,15,27,.92));
+      border:1px dashed rgba(255,86,127,.24);
+      box-shadow:0 12px 30px rgba(2,5,14,.6);
+      color:transparent;
+      -webkit-text-stroke:2px rgba(199,104,133,.62);
+    }
+    .rcard.dead::before{
+      content:""; position:absolute; top:-1px; left:16px; width:24px; height:2px;
+      border-radius:2px; background:#ff3b6b; opacity:.5;
+      box-shadow:0 0 8px rgba(255,59,107,.8); pointer-events:none;
+    }
+    .rcard.dead::after{
+      content:""; position:absolute; right:-1px; bottom:20px; width:2px; height:16px;
+      border-radius:2px; background:#ff3b6b; opacity:.32;
+      box-shadow:0 0 7px rgba(255,59,107,.6); pointer-events:none;
+    }
+    /* the lone zero burns at full neon brightness, double halo */
+    .rcard.zero{
+      background:
+        radial-gradient(120% 100% at 50% 28%, rgba(57,216,232,.32), rgba(57,216,232,.1) 46%, rgba(8,12,24,.55) 100%);
+      border:2px solid rgba(150,242,252,.95);
+      color:#fff;
+      text-shadow:0 0 6px rgba(255,255,255,.95), 0 0 22px rgba(57,216,232,.95), 0 0 48px rgba(57,216,232,.6);
+      box-shadow:
+        0 0 0 5px rgba(57,216,232,.13),
+        0 0 22px rgba(57,216,232,.7),
+        0 0 64px rgba(57,216,232,.42),
+        inset 0 0 28px rgba(57,216,232,.24);
+    }
+    .rout{ display:flex; flex-direction:column; align-items:center; gap:3px; min-height:34px; }
+    .rzero{ font-family:"Sora",sans-serif; font-weight:800; font-size:15px; color:rgba(229,239,252,.5); }
+    .rcancel{
+      font-size:10px; font-weight:800; letter-spacing:.26em;
+      color:rgba(255,150,173,.72);
+    }
+    .rsafe{
+      font-family:"Sora",sans-serif; font-weight:800; font-size:16px; color:#7deef8;
+      text-shadow:0 0 13px rgba(57,216,232,.85);
+    }
+
+    /* ============ END ============ */
+    main[data-screen="end"]{
+      position:relative; overflow:hidden;
+      background:
+        radial-gradient(70% 34% at 50% -2%, rgba(255,59,107,.18), transparent 70%),
+        radial-gradient(50% 28% at 10% 38%, rgba(57,216,232,.1), transparent 70%),
+        radial-gradient(48% 26% at 92% 62%, rgba(255,179,71,.08), transparent 70%);
+    }
+    .nstick{
+      position:absolute; border-radius:2px; pointer-events:none;
+      background:var(--c); box-shadow:0 0 9px var(--c);
+    }
+    .end-wrap{
+      min-height:100vh; max-width:420px; margin:0 auto;
+      display:flex; flex-direction:column; padding:46px 20px 30px;
+      position:relative;
+    }
+    .end-hero{ text-align:center; margin-bottom:34px; }
+    .end-hero .micro{ letter-spacing:.32em; margin-bottom:14px; display:block; }
+    .wonline{ font-size:56px; font-weight:900; line-height:1; }
+    .wonline .w1{
+      color:#e9fbff;
+      text-shadow:0 0 12px rgba(57,216,232,.55), 0 0 40px rgba(57,216,232,.32);
+    }
+    .wonline .w2{
+      color:#ff4d7a;
+      text-shadow:0 0 12px rgba(255,59,107,.8), 0 0 46px rgba(255,59,107,.5);
+    }
+    .thead{
+      display:grid; grid-template-columns:1fr 32px 32px 32px 54px;
+      align-items:center; padding:0 16px; margin-bottom:9px;
+    }
+    .thead .h{ font-size:10px; font-weight:800; letter-spacing:.14em; color:var(--faint); text-align:center; }
+    .thead .h.tot{ text-align:right; }
+    .trow{
+      display:grid; grid-template-columns:1fr 32px 32px 32px 54px;
+      align-items:center; min-height:58px; padding:0 16px;
+      border-radius:16px; margin-bottom:10px;
+    }
+    .trow .who{ display:flex; align-items:center; gap:9px; min-width:0; }
+    .trow .rk{ width:14px; font-family:"Sora",sans-serif; font-weight:700; font-size:13px; color:var(--faint); }
+    .trow .pdot{ width:10px; height:10px; border-radius:50%; flex:none; background:currentColor; box-shadow:0 0 9px currentColor; }
+    .trow .pn{ font-size:15px; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .trow .yo{ font-size:11px; color:var(--faint); font-weight:500; }
+    .trow .r{ font-family:"Sora",sans-serif; font-size:13px; font-weight:600; color:var(--muted); text-align:center; }
+    .trow .tt{ font-family:"Sora",sans-serif; font-size:19px; font-weight:800; text-align:right; color:var(--ink); }
+    .trow.win{
+      border:1.5px solid rgba(255,103,140,.85);
+      background:linear-gradient(165deg, rgba(48,14,28,.74), rgba(28,9,20,.8));
+      box-shadow:0 0 22px rgba(255,59,107,.42), 0 10px 30px rgba(2,5,14,.55), inset 0 0 26px rgba(255,59,107,.1);
+    }
+    .trow.win .rk{ color:#ffd9a0; text-shadow:0 0 9px rgba(255,179,71,.7); }
+    .trow.win .tt{ color:#ffd9a0; text-shadow:0 0 12px rgba(255,179,71,.6); }
+    .end-actions{ margin-top:auto; display:flex; flex-direction:column; gap:12px; padding-top:30px; }
+
+    /* ============ flourish (humans only; shots capture resting state) ============ */
+    @media (prefers-reduced-motion: no-preference){
+      @keyframes cityDrift{
+        0%,100%{ background-position:0 0,50% 100%,0 0,0 0,0 0,0 0,0 0; }
+        50%{ background-position:0 0,50% 100%,-22px 10px,16px -8px,-14px -12px,12px 8px,-12px 10px; }
+      }
+      body{ animation:cityDrift 26s ease-in-out infinite; }
+      @keyframes pinkPulse{
+        0%,100%{ box-shadow:0 0 20px rgba(255,59,107,.55), 0 0 48px rgba(255,59,107,.3), 0 12px 28px rgba(2,5,14,.55); }
+        50%{ box-shadow:0 0 28px rgba(255,59,107,.75), 0 0 64px rgba(255,59,107,.42), 0 12px 28px rgba(2,5,14,.55); }
+      }
+      .num.sel, .power.sel{ animation:pinkPulse 2.5s ease-in-out infinite; }
+      @keyframes zeroPulse{
+        0%,100%{ box-shadow:0 0 0 5px rgba(57,216,232,.13), 0 0 22px rgba(57,216,232,.7), 0 0 64px rgba(57,216,232,.42), inset 0 0 28px rgba(57,216,232,.24); }
+        50%{ box-shadow:0 0 0 7px rgba(57,216,232,.18), 0 0 32px rgba(57,216,232,.9), 0 0 88px rgba(57,216,232,.55), inset 0 0 28px rgba(57,216,232,.3); }
+      }
+      .rcard.zero{ animation:zeroPulse 3s ease-in-out infinite; }
+      @keyframes tubeFlicker{
+        0%, 18%, 22%, 63%, 67%, 100%{ opacity:1; }
+        20%, 65%{ opacity:.62; }
+      }
+      .banner span, .wordmark .w2{ animation:tubeFlicker 7s linear infinite; }
+      @keyframes remnantFizz{ 0%,100%{ opacity:.5; } 50%{ opacity:.15; } }
+      .rcard.dead::before{ animation:remnantFizz 1.8s steps(2,end) infinite; }
+      @keyframes thinkBlink{ 0%,100%{ opacity:1; } 50%{ opacity:.45; } }
+      .pstatus.think{ animation:thinkBlink 1.4s ease-in-out infinite; }
+      @keyframes dotPulse{ 0%,100%{ box-shadow:0 0 9px rgba(62,230,162,.95); } 50%{ box-shadow:0 0 4px rgba(62,230,162,.5); } }
+      .dot{ animation:dotPulse 2.2s ease-in-out infinite; }
+      @keyframes stickGlow{ 0%,100%{ opacity:.85; } 50%{ opacity:.4; } }
+      .nstick{ animation:stickGlow 4s ease-in-out infinite; }
+      .nstick:nth-of-type(2n){ animation-duration:5.4s; animation-delay:-1.6s; }
+      .nstick:nth-of-type(3n){ animation-duration:4.6s; animation-delay:-3s; }
+    }
+  </style>
+</head>
+<body>
+  <main data-screen="home">
+    <div class="wrap home-wrap">
+      <div class="home-top">
+        <button class="iconbtn" aria-label="Mute sounds">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg>
+        </button>
+      </div>
+      <div class="home-hero">
+        <div class="citypool"></div>
+        <h1 class="wordmark"><span class="w1">CAN</span><span class="w2">CEL</span></h1>
+        <p class="tagline">a number-picking party game</p>
+        <div class="home-fan">
+          <div class="mini-card">Ø</div>
+          <div class="mini-card">1</div>
+          <div class="mini-card">2</div>
+          <div class="mini-card">3</div>
+          <div class="mini-card">4</div>
+          <div class="mini-card">5</div>
+        </div>
+      </div>
+      <div class="home-actions">
+        <button class="btn primary">New game</button>
+        <button class="btn">Single player</button>
+        <button class="btn">Join with code</button>
+      </div>
+    </div>
+  </main>
+
+  <main data-screen="lobby">
+    <div class="wrap">
+      <header class="topbar">
+        <button class="pill">← Leave</button>
+        <button class="pill">Rules</button>
+      </header>
+      <section class="glass code-panel">
+        <div class="code">DN2H</div>
+        <div class="hint">press to copy</div>
+      </section>
+      <div class="seclabel">Players · 4</div>
+      <ul class="players">
+        <li class="glass prow">
+          <div class="avatar ben">B</div>
+          <div class="pname">Ben</div>
+          <div class="badges"><span class="badge host">HOST</span><span class="badge you">YOU</span><span class="dot"></span></div>
+        </li>
+        <li class="glass prow">
+          <div class="avatar vol">V</div>
+          <div class="pname">Voltaire</div>
+          <div class="badges"><span class="badge bot">BOT</span><span class="dot"></span></div>
+        </li>
+        <li class="glass prow">
+          <div class="avatar mech">M</div>
+          <div class="pname">Mechano</div>
+          <div class="badges"><span class="badge bot">BOT</span><span class="dot"></span></div>
+        </li>
+        <li class="glass prow">
+          <div class="avatar dan">D</div>
+          <div class="pname">Data Dan</div>
+          <div class="badges"><span class="badge bot">BOT</span><span class="dot"></span></div>
+        </li>
+      </ul>
+      <section class="glass setrow">
+        <div class="setlabel">Rounds</div>
+        <div class="stepper">
+          <button class="stepbtn">−</button>
+          <div class="stepval">3</div>
+          <button class="stepbtn">+</button>
+        </div>
+      </section>
+      <section class="glass setrow">
+        <div class="setlabel">AI players</div>
+        <div class="stepper">
+          <button class="stepbtn">−</button>
+          <div class="stepval">3</div>
+          <button class="stepbtn">+</button>
+        </div>
+      </section>
+      <section class="glass setcol">
+        <div class="setlabel">Power-ups</div>
+        <div class="seg">
+          <button>None</button>
+          <button class="on">Random</button>
+          <button>Choose</button>
+        </div>
+        <p class="helper">A fresh random pool each round.</p>
+      </section>
+      <button class="btn primary">Start game</button>
+    </div>
+  </main>
+
+  <main data-screen="game">
+    <div class="wrap">
+      <header class="ghead">
+        <div class="gmeta">R1<span class="dim">/3</span> · T2<span class="dim">/6</span><span class="codesm">DN2H</span></div>
+        <div class="gbtns">
+          <button class="pill tiny">RULES</button>
+          <button class="pill tiny">LEAVE</button>
+          <button class="pill tiny danger">END GAME</button>
+        </div>
+      </header>
+      <div class="scoregrid">
+        <div class="glass schip c-ben"><span class="sdot"></span><span class="nm">Ben</span><span class="sc">4</span></div>
+        <div class="glass schip c-vol"><span class="sdot"></span><span class="nm">Voltaire</span><span class="sc">0</span></div>
+        <div class="glass schip c-mech"><span class="sdot"></span><span class="nm">Mechano</span><span class="sc">2</span></div>
+        <div class="glass schip c-dan"><span class="sdot"></span><span class="nm">Data Dan</span><span class="sc">5</span></div>
+      </div>
+      <div class="poolhead">
+        <div class="micro">Power-ups remaining</div>
+        <div class="poolcount">6 / 6</div>
+      </div>
+      <div class="banner"><span>YOUR TURN, PRESS TO SELECT</span></div>
+      <div class="powergrid">
+        <div class="power swap"><div class="glyph">⇄</div><div class="pnamel">Swap Hands</div></div>
+        <div class="power sab"><div class="glyph">✖</div><div class="pnamel">Sabotage</div></div>
+        <div class="power jinx sel"><div class="glyph">=</div><div class="pnamel">Jinx</div></div>
+        <div class="power plus"><div class="glyph">+2</div><div class="pnamel">Plus Two</div></div>
+        <div class="power wild"><div class="glyph">?</div><div class="pnamel">Wild</div></div>
+        <div class="power drain"><div class="glyph">↧</div><div class="pnamel">Drain</div></div>
+      </div>
+      <div class="seclabel">Players · Power picker: Ben</div>
+      <div class="pstat">
+        <div class="glass pcard c-ben">
+          <div class="ptop"><span class="pdot"></span><span class="pn">Ben</span><span class="yo">(you)</span></div>
+          <div class="handread">Ø 1 2 3 4 5</div>
+          <div class="pstatus think">THINKING…</div>
+        </div>
+        <div class="glass pcard c-vol">
+          <div class="ptop"><span class="pdot"></span><span class="pn">Voltaire</span></div>
+          <div class="handread">Ø 1 2 3 4 5</div>
+          <div class="pstatus sub">SUBMITTED</div>
+        </div>
+        <div class="glass pcard c-mech">
+          <div class="ptop"><span class="pdot"></span><span class="pn">Mechano</span></div>
+          <div class="handread">Ø 1 2 3 4 5</div>
+          <div class="pstatus sub">SUBMITTED</div>
+        </div>
+        <div class="glass pcard c-dan">
+          <div class="ptop"><span class="pdot"></span><span class="pn">Data Dan</span></div>
+          <div class="handread">Ø 1 2 3 4 5</div>
+          <div class="pstatus sub">SUBMITTED</div>
+        </div>
+      </div>
+      <button class="btn ghost skipbtn">SKIP WAITING, AUTO-PLAY WHO'S LEFT</button>
+      <div class="seclabel">Your hand</div>
+      <div class="hand">
+        <div class="num">Ø</div>
+        <div class="num">1</div>
+        <div class="num">2</div>
+        <div class="num">3</div>
+        <div class="num">4</div>
+        <div class="num sel">5</div>
+      </div>
+      <button class="btn primary">Lock it in</button>
+    </div>
+  </main>
+
+  <main data-screen="reveal">
+    <div class="reveal-wrap">
+      <div class="micro reyebrow">Turn 2 Reveal</div>
+      <div class="micro played-label">Ben played</div>
+      <div class="playedcard">
+        <div class="glyph">=</div>
+        <div class="pnamel">Jinx</div>
+      </div>
+      <div class="rgrid">
+        <div class="rcell">
+          <div class="rname">Ben</div>
+          <div class="rcard dead">5</div>
+          <div class="rout"><span class="rzero">0</span><span class="rcancel">CANCELLED</span></div>
+        </div>
+        <div class="rcell">
+          <div class="rname">Voltaire</div>
+          <div class="rcard zero">Ø</div>
+          <div class="rout"><span class="rsafe">0</span></div>
+        </div>
+        <div class="rcell">
+          <div class="rname">Mechano</div>
+          <div class="rcard dead">5</div>
+          <div class="rout"><span class="rzero">0</span><span class="rcancel">CANCELLED</span></div>
+        </div>
+        <div class="rcell">
+          <div class="rname">Data Dan</div>
+          <div class="rcard dead">3</div>
+          <div class="rout"><span class="rzero">0</span><span class="rcancel">CANCELLED</span></div>
+        </div>
+      </div>
+      <button class="btn primary">Continue</button>
+    </div>
+  </main>
+
+  <main data-screen="end">
+    <i class="nstick" style="top:5%;  left:9%;  width:3px; height:18px; --c:#ff3b6b; transform:rotate(24deg);  opacity:.8;"></i>
+    <i class="nstick" style="top:8%;  left:80%; width:3px; height:14px; --c:#39d8e8; transform:rotate(-30deg); opacity:.75;"></i>
+    <i class="nstick" style="top:13%; left:31%; width:2px; height:10px; --c:#ffffff; transform:rotate(12deg);  opacity:.7;"></i>
+    <i class="nstick" style="top:16%; left:91%; width:4px; height:22px; --c:#ff3b6b; transform:rotate(-18deg); opacity:.55; filter:blur(1px);"></i>
+    <i class="nstick" style="top:21%; left:5%;  width:3px; height:14px; --c:#ffb347; transform:rotate(40deg);  opacity:.7;"></i>
+    <i class="nstick" style="top:26%; left:65%; width:2px; height:12px; --c:#39d8e8; transform:rotate(8deg);   opacity:.75;"></i>
+    <i class="nstick" style="top:33%; left:14%; width:3px; height:16px; --c:#ff3b6b; transform:rotate(-26deg); opacity:.5;  filter:blur(1px);"></i>
+    <i class="nstick" style="top:38%; left:88%; width:2px; height:12px; --c:#39d8e8; transform:rotate(34deg);  opacity:.7;"></i>
+    <i class="nstick" style="top:47%; left:4%;  width:4px; height:20px; --c:#ff3b6b; transform:rotate(16deg);  opacity:.42; filter:blur(2px);"></i>
+    <i class="nstick" style="top:52%; left:73%; width:2px; height:9px;  --c:#ffffff; transform:rotate(-12deg); opacity:.65;"></i>
+    <i class="nstick" style="top:60%; left:22%; width:3px; height:13px; --c:#ffb347; transform:rotate(-38deg); opacity:.55;"></i>
+    <i class="nstick" style="top:64%; left:93%; width:3px; height:16px; --c:#39d8e8; transform:rotate(20deg);  opacity:.5;  filter:blur(1px);"></i>
+    <i class="nstick" style="top:72%; left:9%;  width:2px; height:12px; --c:#ff3b6b; transform:rotate(-8deg);  opacity:.6;"></i>
+    <i class="nstick" style="top:78%; left:63%; width:4px; height:18px; --c:#39d8e8; transform:rotate(28deg);  opacity:.4;  filter:blur(2px);"></i>
+    <i class="nstick" style="top:86%; left:28%; width:2px; height:11px; --c:#ffb347; transform:rotate(14deg);  opacity:.6;"></i>
+    <i class="nstick" style="top:90%; left:85%; width:3px; height:14px; --c:#ff3b6b; transform:rotate(-22deg); opacity:.55;"></i>
+    <div class="end-wrap">
+      <div class="end-hero">
+        <span class="micro">Game over</span>
+        <h2 class="wonline"><span class="w1">You </span><span class="w2">won.</span></h2>
+      </div>
+      <div class="thead">
+        <div></div>
+        <div class="h">R1</div>
+        <div class="h">R2</div>
+        <div class="h">R3</div>
+        <div class="h tot">TOTAL</div>
+      </div>
+      <div class="trow win c-ben">
+        <div class="who"><span class="rk">1</span><span class="pdot"></span><span class="pn">Ben</span><span class="yo">(you)</span></div>
+        <div class="r">5</div><div class="r">9</div><div class="r">6</div><div class="tt">20</div>
+      </div>
+      <div class="glass trow c-dan">
+        <div class="who"><span class="rk">2</span><span class="pdot"></span><span class="pn">Data Dan</span></div>
+        <div class="r">5</div><div class="r">4</div><div class="r">3</div><div class="tt">12</div>
+      </div>
+      <div class="glass trow c-vol">
+        <div class="who"><span class="rk">3</span><span class="pdot"></span><span class="pn">Voltaire</span></div>
+        <div class="r">3</div><div class="r">2</div><div class="r">4</div><div class="tt">9</div>
+      </div>
+      <div class="glass trow c-mech">
+        <div class="who"><span class="rk">4</span><span class="pdot"></span><span class="pn">Mechano</span></div>
+        <div class="r">0</div><div class="r">5</div><div class="r">2</div><div class="tt">7</div>
+      </div>
+      <div class="end-actions">
+        <button class="btn primary">Play again</button>
+        <button class="btn">Leave room</button>
+      </div>
+    </div>
+  </main>
+
+  <nav id="switcher">
+    <a href="#home">1</a><a href="#lobby">2</a><a href="#game">3</a><a href="#reveal">4</a><a href="#end">5</a>
+  </nav>
+  <script>
+    var SCREENS = ["home", "lobby", "game", "reveal", "end"];
+    function show(name) {
+      if (SCREENS.indexOf(name) === -1) name = "home";
+      document.querySelectorAll("[data-screen]").forEach(function (el) {
+        el.classList.toggle("active", el.dataset.screen === name);
+      });
+    }
+    var qp = new URLSearchParams(location.search).get("screen");
+    if (qp) document.getElementById("switcher").style.display = "none";
+    show(qp || location.hash.slice(1) || "home");
+    addEventListener("hashchange", function () { show(location.hash.slice(1) || "home"); });
+  </script>
+</body>
+</html>
