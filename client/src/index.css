@@ -13,8 +13,15 @@
     font-family: theme(fontFamily.display);
     -webkit-font-smoothing: antialiased;
     -webkit-tap-highlight-color: transparent;
-    background: theme(colors.ink);
     color: theme(colors.paper);
+    /* Fable: Interference — deep indigo void with soft signal glows + faint scanlines. */
+    background:
+      radial-gradient(900px 520px at 88% -8%, rgba(111, 168, 255, 0.1), transparent 62%),
+      radial-gradient(760px 480px at 4% 104%, rgba(255, 122, 92, 0.07), transparent 60%),
+      repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 64px),
+      linear-gradient(180deg, #12102e 0%, #151240 52%, #1a1748 100%);
+    background-color: #12102e;
+    background-attachment: fixed;
   }
   button,
   input {
@@ -27,24 +34,184 @@
     @apply inline-flex items-center justify-center rounded-2xl px-5 py-3 font-bold tracking-tight transition active:scale-[.98];
   }
   .btn-primary {
-    @apply btn bg-accent text-ink shadow-[0_4px_0_0_#993224];
+    @apply btn font-extrabold;
+    background: linear-gradient(180deg, #ff8a6e, #ff6a47);
+    color: #1c0f2e;
+    box-shadow:
+      0 0 22px rgba(255, 122, 92, 0.35),
+      0 6px 18px rgba(0, 0, 0, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
   }
   .btn-primary:active {
-    @apply translate-y-1 shadow-none;
+    @apply translate-y-px;
   }
   .btn-ghost {
-    @apply btn bg-transparent text-paper border border-paper/30;
+    @apply btn font-semibold text-paper;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.14);
   }
   .input {
-    @apply w-full rounded-2xl bg-paper text-ink px-4 py-3 text-lg font-bold tracking-tight outline-none ring-0 placeholder:text-ink/40;
+    @apply w-full rounded-2xl px-4 py-3 text-lg font-bold tracking-tight outline-none ring-0;
+    color: theme(colors.paper);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+  }
+  .input::placeholder {
+    color: rgba(238, 240, 251, 0.4);
   }
   .chip {
-    @apply inline-flex items-center gap-2 rounded-full bg-paper/10 px-3 py-1 text-xs font-bold uppercase tracking-widest;
+    @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-widest;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+  }
+  .panel {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.018));
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    @apply rounded-2xl;
   }
   .card-face {
     @apply relative rounded-2xl flex items-center justify-center font-mono font-bold;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 6px 0 0 rgba(0, 0, 0, 0.45);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.015));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
   }
+}
+
+/* ============ wave plumbing (the Interference motif) ============ */
+/* Every player/number is a glowing signal. `color` (inline) drives stroke + glow
+   via currentColor. Resting state is the final still — motion is opt-in below. */
+.cw {
+  display: block;
+  /* The wave path runs 3 windows wide (-120..240); clip it to the 0..120 window
+     horizontally (hard edge) so a scrolling wave never drifts out of its box.
+     The negative top/bottom insets leave the glow free to bleed above/below the
+     thin trace — a box clip (or a border-box mask) would shear the glow flat,
+     which matters most for the small in-game player/number waves. */
+  overflow: visible;
+  clip-path: inset(-100% 0 -100% 0);
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.4px;
+  stroke-linecap: round;
+}
+
+/* Soft, feathered side edges (vs the hard clip above). Used on big, prominent
+   waves like the home title, where the box is tall enough that the mask's
+   border-box clip doesn't visibly cut the glow. `--cw-fade` = fade width / side.
+   `mask-repeat: no-repeat` keeps the area beyond the box transparent so the
+   scrolling wave is still contained. */
+.cw-feather {
+  clip-path: none;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--cw-fade, 12%),
+    #000 calc(100% - var(--cw-fade, 12%)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--cw-fade, 12%),
+    #000 calc(100% - var(--cw-fade, 12%)),
+    transparent 100%
+  );
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+.cw-glow {
+  filter: drop-shadow(0 0 3px currentColor) drop-shadow(0 0 10px currentColor);
+}
+.cw-soft {
+  filter: drop-shadow(0 0 4px currentColor);
+}
+.cw-think {
+  stroke-dasharray: 3 7;
+}
+.cw-ghosted {
+  stroke-dasharray: 4 7;
+  opacity: 0.4;
+}
+.cw-sum {
+  color: #9aa0b8;
+  stroke-width: 3px;
+}
+
+/* The lobby room-code "tuning dial": tick marks above/below with a coral needle. */
+.dial {
+  position: relative;
+  height: 14px;
+  background:
+    repeating-linear-gradient(90deg, rgba(236, 238, 252, 0.5) 0 1.5px, transparent 1.5px 45px) bottom / 100% 14px
+      no-repeat,
+    repeating-linear-gradient(90deg, rgba(236, 238, 252, 0.16) 0 1px, transparent 1px 9px) bottom / 100% 8px no-repeat;
+}
+.dial-b {
+  transform: scaleY(-1);
+}
+.needle {
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  bottom: 0;
+  width: 2px;
+  transform: translateX(-50%);
+  background: #ff7a5c;
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(255, 122, 92, 0.9);
+}
+
+/* The reveal "oscilloscope" panel: a faint vertical grid behind the wave traces. */
+.scope {
+  background-image:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 26px),
+    linear-gradient(180deg, rgba(8, 7, 24, 0.5), rgba(8, 7, 24, 0.3));
+}
+
+/* The wave well inside a number card: a faint center axis the signal rides on. */
+.nwv {
+  display: block;
+  width: 100%;
+  color: rgba(255, 122, 92, 0.5);
+  background: linear-gradient(rgba(255, 255, 255, 0.08) 0 0) center / 100% 1px no-repeat;
+}
+
+/* ============ power-up tiles (dark glyph tile; lit = colored glow) ============ */
+.pcard {
+  @apply relative flex flex-col items-center justify-center;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  transition:
+    transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease;
+}
+.pcard .pc-glyph {
+  font-family: theme(fontFamily.mono);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--pc);
+  filter: drop-shadow(0 0 6px var(--pc));
+}
+.pcard .pc-name {
+  font-family: theme(fontFamily.mono);
+  text-transform: uppercase;
+  text-align: center;
+  line-height: 1.4;
+  color: rgba(238, 240, 251, 0.6);
+}
+.pcard.lit {
+  border-color: var(--pc);
+  background: color-mix(in srgb, var(--pc) 13%, transparent);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--pc) 30%, transparent);
+}
+.pcard.lit .pc-name {
+  color: rgba(238, 240, 251, 0.85);
+}
+.pcard.sel {
+  transform: translateY(-4px);
 }
 
 .confetti {
@@ -53,15 +220,83 @@
   pointer-events: none;
   overflow: hidden;
 }
-.confetti span {
+/* End-screen celebration: little drifting signals (wave shards), glow dots, and
+   silent-Ø glyphs scattered across the indigo void. */
+.cf {
   position: absolute;
-  width: 8px;
-  height: 14px;
-  top: -20px;
-  animation: fall 2.4s linear infinite;
+  height: 11px;
+  stroke-width: 2px;
+  opacity: 0.5;
+  transform: rotate(var(--r, 0deg));
 }
-@keyframes fall {
-  to {
-    transform: translateY(110vh) rotate(720deg);
+.cfd {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  opacity: 0.55;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+}
+.cfo {
+  position: absolute;
+  font-family: theme(fontFamily.mono);
+  font-size: 13px;
+  color: #6fa8ff;
+  opacity: 0.5;
+  text-shadow: 0 0 8px rgba(111, 168, 255, 0.6);
+}
+
+/* ============ motion: opt-in only, so reduced-motion (and the screenshot
+   harness) always see the correct resting frame ============ */
+@media (prefers-reduced-motion: no-preference) {
+  /* Travelling-wave oscillation: the path scrolls left by exactly one viewBox
+     width (120 user units = a whole number of cycles for every rank), so the loop
+     is seamless. A flat (rank 0) wave translates to nothing — silence stays silent.
+     `--cw-osc-dur` tunes the drift speed (one window-width per cycle). */
+  @keyframes cw-osc {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-120px);
+    }
+  }
+  .cw-anim:not(.cw-think) use {
+    animation: cw-osc var(--cw-osc-dur, 8s) linear infinite;
+  }
+  @keyframes cw-dashdrift {
+    to {
+      stroke-dashoffset: -60;
+    }
+  }
+  .cw-think.cw-anim {
+    animation: cw-dashdrift 2.4s linear infinite;
+  }
+  @keyframes cw-breath {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+  .cw-breath {
+    animation: cw-breath 3s ease-in-out infinite;
+  }
+  @keyframes floaty {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    50% {
+      translate: 0 -8px;
+    }
+  }
+  .cf,
+  .cfd,
+  .cfo {
+    animation: floaty 5.5s ease-in-out infinite;
   }
 }

@@ -2,7 +2,8 @@ import { useState } from "react";
 import { api } from "../api.js";
 import { useAppStore } from "../store.js";
 import { getIdentity } from "../identity.js";
-import { MusicToggle, NumberCard, PowerGlyph, Rules, ScopedDescription } from "../components.js";
+import { MusicToggle, NumberCard, PowerGlyph, Rules, ScopedDescription, seatColor } from "../components.js";
+import { Wave } from "../wave.js";
 import {
   POWER_UPS,
   POWER_UP_IDS,
@@ -11,8 +12,6 @@ import {
   type PowerUpId,
   type PowerUpMode,
 } from "../../../shared/types.js";
-
-const SEAT_COLORS = ["bg-accent", "bg-cool", "bg-gold", "bg-emerald-500", "bg-fuchsia-500", "bg-cyan-400", "bg-orange-300", "bg-rose-400"];
 
 const MODES: { mode: PowerUpMode; label: string }[] = [
   { mode: "off", label: "None" },
@@ -255,17 +254,27 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
           <div className="mt-2 font-display font-bold text-5xl tracking-tight text-accent">vs. AI</div>
         </div>
       ) : (
-        <div className="mb-6 text-center">
-          <div className="text-paper/50 text-xs uppercase tracking-[0.3em] font-mono">Room code</div>
-          <button
-            onClick={copyCode}
-            className="mt-2 group inline-flex items-baseline gap-3 active:scale-[.97] transition"
-            aria-label="copy room code"
+        <button
+          onClick={copyCode}
+          className="panel mb-6 block w-full px-5 py-4 text-center group active:scale-[.99] transition"
+          aria-label="copy room code"
+        >
+          <div className="dial">
+            <i className="needle" />
+          </div>
+          <span
+            data-testid="lobby-room-code"
+            className="my-3 block font-mono font-bold text-5xl tracking-[0.3em] indent-[0.3em] text-paper [text-shadow:0_0_26px_rgba(160,180,255,0.35)]"
           >
-            <span data-testid="lobby-room-code" className="font-mono font-bold text-6xl tracking-[0.2em] text-accent">{publicState.roomCode}</span>
-            <span className="text-paper/30 text-sm group-hover:text-paper/60 font-mono">press to copy</span>
-          </button>
-        </div>
+            {publicState.roomCode}
+          </span>
+          <div className="dial dial-b">
+            <i className="needle" />
+          </div>
+          <div className="mt-3 text-paper/40 text-[10px] uppercase tracking-[0.22em] font-mono group-hover:text-paper/60">
+            press to copy
+          </div>
+        </button>
       )}
 
       <div className="text-paper/50 text-xs uppercase tracking-[0.3em] font-mono mb-3">
@@ -276,14 +285,17 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
           <div
             key={p.id}
             data-testid={`lobby-player-${p.seat}`}
-            className="flex items-center gap-3 rounded-2xl bg-paper/5 px-3 py-2 animate-rise"
+            className="panel flex items-center gap-3 px-3 py-3 animate-rise"
           >
-            <div
-              className={`${SEAT_COLORS[p.seat % SEAT_COLORS.length]} text-ink font-bold w-10 h-10 rounded-xl flex items-center justify-center font-display`}
-            >
-              {p.name.slice(0, 1).toUpperCase()}
+            <Wave
+              rank={([2, 1, 3, 4, 2, 4, 3, 1] as const)[p.seat % 8]}
+              color={seatColor(p.seat).hex}
+              variant="soft"
+              className="w-12 h-5 shrink-0"
+            />
+            <div className="flex-1 font-bold" style={{ color: seatColor(p.seat).hex }}>
+              {p.name}
             </div>
-            <div className="flex-1 font-bold">{p.name}</div>
             <div className="flex items-center gap-2 text-xs">
               {p.isBot && <span className="chip bg-cool/20 text-cool">bot</span>}
               {p.id === publicState.hostId && <span className="chip bg-gold/20 text-gold">host</span>}

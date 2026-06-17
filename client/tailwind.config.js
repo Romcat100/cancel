@@ -4,15 +4,16 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"Space Grotesk"', "ui-sans-serif", "system-ui", "sans-serif"],
-        mono: ['"JetBrains Mono"', "ui-monospace", "SFMono-Regular", "monospace"],
+        display: ['"Hanken Grotesk"', "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ['"Spline Sans Mono"', "ui-monospace", "SFMono-Regular", "monospace"],
       },
       colors: {
-        ink: "#0d0c14",
-        paper: "#f5f1e8",
-        accent: "#ff5b3a",
-        cool: "#5e6ee3",
-        gold: "#e8c25c",
+        // Fable: Interference — deep indigo void, soft white text, glowing signals.
+        ink: "#12102e",
+        paper: "#eef0fb",
+        accent: "#ff7a5c", // warm coral — the brand / CTA signal
+        cool: "#6fa8ff", // ice blue
+        gold: "#ffd166",
       },
       keyframes: {
         flip: {
@@ -25,19 +26,19 @@ export default {
           "100%": { transform: "translateY(0)", opacity: "1" },
         },
         "ping-target": {
-          "0%": { transform: "translateX(0) scale(1)", boxShadow: "0 0 0 0 rgba(255,91,58,0.6)" },
-          "10%": { transform: "translateX(-6px) scale(1.06)", boxShadow: "0 0 0 4px rgba(255,91,58,0.4)" },
-          "20%": { transform: "translateX(6px) scale(1.08)", boxShadow: "0 0 0 10px rgba(255,91,58,0.25)" },
+          "0%": { transform: "translateX(0) scale(1)", boxShadow: "0 0 0 0 rgba(255,122,92,0.6)" },
+          "10%": { transform: "translateX(-6px) scale(1.06)", boxShadow: "0 0 0 4px rgba(255,122,92,0.4)" },
+          "20%": { transform: "translateX(6px) scale(1.08)", boxShadow: "0 0 0 10px rgba(255,122,92,0.25)" },
           "32%": { transform: "translateX(-5px) scale(1.06)" },
-          "44%": { transform: "translateX(4px) scale(1.04)", boxShadow: "0 0 0 16px rgba(255,91,58,0)" },
+          "44%": { transform: "translateX(4px) scale(1.04)", boxShadow: "0 0 0 16px rgba(255,122,92,0)" },
           "60%": { transform: "translateX(-3px) scale(1.02)" },
           "78%": { transform: "translateX(1.5px) scale(1.01)" },
-          "100%": { transform: "translateX(0) scale(1)", boxShadow: "0 0 0 0 rgba(255,91,58,0)" },
+          "100%": { transform: "translateX(0) scale(1)", boxShadow: "0 0 0 0 rgba(255,122,92,0)" },
         },
         "ping-sender": {
-          "0%": { boxShadow: "0 0 0 0 rgba(245,241,232,0.7)" },
-          "60%": { boxShadow: "0 0 0 8px rgba(245,241,232,0)" },
-          "100%": { boxShadow: "0 0 0 0 rgba(245,241,232,0)" },
+          "0%": { boxShadow: "0 0 0 0 rgba(238,240,251,0.7)" },
+          "60%": { boxShadow: "0 0 0 8px rgba(238,240,251,0)" },
+          "100%": { boxShadow: "0 0 0 0 rgba(238,240,251,0)" },
         },
         "ping-wiggle": {
           "0%, 100%": { transform: "translateX(0)" },

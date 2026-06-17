@@ -9,6 +9,7 @@ import { api } from "./api.js";
 import { initMusic } from "./music.js";
 import { initSfx } from "./sfx.js";
 import { pollHealth, setStaleHandler } from "./version.js";
+import { WaveDefs } from "./wave.js";
 
 export function App() {
   const state = useAppStore((s) => s.state);
@@ -71,6 +72,7 @@ export function App() {
 
   const withBanner = (content: ReactElement) => (
     <>
+      <WaveDefs />
       {stale && <UpdateBanner />}
       {content}
     </>

@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { POWER_UPS, type PowerUpId, type RevealedTurn } from "../../../shared/types.js";
 import { api } from "../api.js";
 import { getIdentity, hasSeenPreviewLocal, markPreviewSeenLocal } from "../identity.js";
 import { useAppStore } from "../store.js";
-import { MusicToggle, NumberCard, PlayerChip, PowerDescription, PowerUpCard, PowerUpChip, RoundScoreTable, Rules, SEAT_COLORS, type PingKind } from "../components.js";
+import { MusicToggle, NumberCard, PlayerChip, PowerDescription, PowerUpCard, PowerUpChip, RoundScoreTable, Rules, seatColor, type PingKind } from "../components.js";
+import { Wave, rankForNumber } from "../wave.js";
 import { emitPing, onPing } from "../socket.js";
 import { playSfx } from "../sfx.js";
 import { GameEnd } from "./GameEnd.js";
@@ -616,15 +617,18 @@ function Scoreboard({
         <div
           key={p.id}
           data-testid={`game-score-${p.seat}`}
-          className={`rounded-2xl px-3 py-2 flex items-center justify-between ${
-            p.id === selfId ? "bg-paper/15" : "bg-paper/5"
+          className={`rounded-2xl px-3 py-2 flex items-center gap-2 border border-paper/10 ${
+            p.id === selfId ? "bg-paper/15" : "bg-paper/[.035]"
           }`}
         >
-          <div className="flex items-center gap-2">
-            <span className={`${SEAT_COLORS[p.seat % SEAT_COLORS.length]} w-2.5 h-2.5 rounded-full`} />
-            <span className="text-sm font-bold text-paper">{p.name}</span>
-          </div>
-          <span className="font-mono text-xl font-bold text-paper">{p.totalScore}</span>
+          <Wave
+            rank={([2, 1, 3, 4, 2, 4, 3, 1] as const)[p.seat % 8]}
+            color={seatColor(p.seat).hex}
+            variant="soft"
+            className="w-8 h-3.5 shrink-0"
+          />
+          <span className="text-sm font-bold text-paper flex-1 truncate">{p.name}</span>
+          <span className="font-mono text-lg font-bold text-paper">{p.totalScore}</span>
         </div>
       ))}
     </div>
@@ -732,10 +736,108 @@ function PoolPreview({
   );
 }
 
-function zeroReason(notes: string[]): "cancel" | "tie" | null {
-  if (notes.some((n) => n.startsWith("Tied"))) return "tie";
-  if (notes.some((n) => n.startsWith("Cancelled by") || n.includes("cancel suppressed"))) return "cancel";
-  return null;
+// The interference treatment for one revealed card, derived purely from its
+// played number + scored delta + scoring notes (never from hardcoded seats).
+type Treatment = "survivor" | "aliveZero" | "tie" | "zeroed" | "negative" | "neutral";
+
+function revealTreatment(number: number, delta: number, notes: string[]): Treatment {
+  if (delta > 0) return "survivor";
+  if (delta < 0) return "negative";
+  // delta === 0 — distinguish the cancellation flavors from the notes.
+  if (notes.some((n) => n.includes("cancelled all others") || n.includes("0 still cancels")))
+    return "aliveZero"; // the lone surviving Ø — the silent signal that wins
+  if (notes.some((n) => n.startsWith("Tied") || n.includes("Free Three's virtual 3"))) return "tie";
+  if (notes.some((n) => n.includes("Cancelled by 0"))) return "zeroed";
+  return "neutral"; // a suppressed/negated 0, an equalized 0, etc. — flat but not cancelled
+}
+
+type RevealRowItem = {
+  s: { playerId: string; number: number };
+  player: { name: string; seat: number };
+  delta: number;
+  t: Treatment;
+};
+
+const REVEAL_ROW_COLS = "grid grid-cols-[52px_1fr_60px] gap-3 items-center";
+
+// The grey flatline sum sitting between two cancelled signals: 1 + (-1) = silence.
+function RevealSumRow() {
+  return (
+    <div className={`${REVEAL_ROW_COLS} py-0.5`}>
+      <span className="justify-self-end font-mono text-sm text-paper/40">Σ</span>
+      <div className="relative h-6">
+        <Wave pathId="cw0" variant="sum" animated={false} className="absolute inset-0 w-full h-full" />
+        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 font-mono text-[8px] tracking-[0.2em] text-paper/45 bg-ink border border-paper/25 rounded px-2 py-0.5">
+          CANCELLED
+        </span>
+      </div>
+      <span />
+    </div>
+  );
+}
+
+// One signal on the shared axis: minicard (numeral + tiny wave), the full trace,
+// and its outcome. Cancelled signals fade; the surviving Ø glows.
+function RevealTraceRow({ e, settled, antiphase }: { e: RevealRowItem; settled: boolean; antiphase: boolean }) {
+  const { s, player, delta, t } = e;
+  const hex = seatColor(player.seat).hex;
+  const rank = rankForNumber(s.number);
+  const alive = t === "survivor" || t === "aliveZero";
+  const fade = settled ? "animate-rise" : "opacity-0";
+  return (
+    <div
+      data-testid={`reveal-sub-${player.seat}`}
+      className={`${REVEAL_ROW_COLS} py-2 ${alive ? "rounded-xl border border-cool/35 bg-cool/[.06] px-2 my-1" : ""}`}
+    >
+      <div className="flex flex-col items-start gap-1 min-w-0">
+        <span className="font-mono text-[9px] tracking-widest truncate max-w-full" style={{ color: hex }}>
+          {player.name.toUpperCase()}
+        </span>
+        <div className={settled ? "" : "animate-flip"}>
+          <NumberCard n={s.number} state="played" size="sm" testId={`reveal-card-${player.seat}`} />
+        </div>
+      </div>
+      <div className="relative h-10">
+        {t === "zeroed" ? (
+          <>
+            <Wave rank={rank} variant="ghosted" color={hex} className="absolute inset-0 w-full h-full" />
+            <Wave pathId="cw0" variant="sum" animated={false} className="absolute inset-0 w-full h-full" />
+            <span className="absolute right-0 top-1/2 -translate-y-1/2 font-mono text-xs text-cool bg-ink px-1 rounded [text-shadow:0_0_8px_rgba(111,168,255,0.8)]">
+              Ø
+            </span>
+          </>
+        ) : t === "aliveZero" ? (
+          <Wave rank={0} variant="glow" color={hex} className="absolute inset-0 w-full h-full" />
+        ) : (
+          <Wave
+            rank={rank}
+            variant={alive ? "glow" : "soft"}
+            color={hex}
+            antiphase={antiphase}
+            className="absolute inset-0 w-full h-full"
+          />
+        )}
+      </div>
+      <div className={`flex flex-col items-end gap-1 ${fade}`}>
+        {t === "survivor" ? (
+          <b className="font-mono text-lg text-emerald-300 [text-shadow:0_0_10px_rgba(94,234,160,0.4)]">+{delta}</b>
+        ) : t === "aliveZero" ? (
+          <b className="font-mono text-xl text-cool [text-shadow:0_0_14px_rgba(111,168,255,0.6)]">0</b>
+        ) : t === "negative" ? (
+          <b className="font-mono text-lg text-rose-300">{delta}</b>
+        ) : t === "tie" || t === "zeroed" ? (
+          <>
+            <b className="font-mono text-lg text-paper/50">0</b>
+            <span className="font-mono text-[8px] tracking-widest text-paper/45 border border-paper/25 rounded px-1.5 py-0.5">
+              CANCELLED
+            </span>
+          </>
+        ) : (
+          <b className="font-mono text-lg text-paper/40">0</b>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function RevealView({
@@ -760,8 +862,32 @@ function RevealView({
     const sb = playerById.get(b.playerId)?.seat ?? 0;
     return sa - sb;
   });
+  const settled = phase === "score";
+  // Enrich each submission with its scored delta + interference treatment, then
+  // cluster: tie groups (waves in antiphase, summing to a flat CANCELLED line),
+  // cards zeroed by a lone Ø, the rest, then the surviving signals (highlighted).
+  const enriched: RevealRowItem[] = sortedSubs.map((s) => {
+    const player = playerById.get(s.playerId)!;
+    const score = reveal.scoring.find((l) => l.playerId === s.playerId);
+    const delta = score?.delta ?? 0;
+    return { s, player, delta, t: revealTreatment(s.number, delta, score?.notes ?? []) };
+  });
+  const tieGroups = new Map<number, RevealRowItem[]>();
+  for (const e of enriched) {
+    if (e.t !== "tie") continue;
+    const arr = tieGroups.get(e.s.number) ?? [];
+    arr.push(e);
+    tieGroups.set(e.s.number, arr);
+  }
+  const zeroed = enriched.filter((e) => e.t === "zeroed");
+  const others = enriched.filter((e) => e.t === "negative" || e.t === "neutral");
+  const survivors = enriched.filter((e) => e.t === "survivor" || e.t === "aliveZero");
   return (
-    <div className="fixed inset-0 z-40 bg-ink/95 backdrop-blur-md overflow-y-auto" data-testid="reveal-modal">
+    <div
+      className="fixed inset-0 z-40 bg-ink/95 backdrop-blur-md overflow-y-auto"
+      data-testid="reveal-modal"
+      data-reveal-phase={phase}
+    >
       <div className="min-h-full flex flex-col items-center justify-center p-4">
       <div className="font-mono text-xs uppercase tracking-[0.3em] text-paper/50 mb-3" data-testid="reveal-turn">
         Turn {reveal.turnIndex + 1} reveal
@@ -774,7 +900,8 @@ function RevealView({
           <div className="flex items-center gap-3">
             <PowerUpCard
               id={power.powerUp}
-              state={powerTapped ? "selected" : "idle"}
+              size="lg"
+              state="selected"
               onClick={() => setPowerTapped((t) => !t)}
             />
             {power.resolvedPowerUp && (
@@ -782,7 +909,8 @@ function RevealView({
                 <span className="font-mono text-paper/60 text-xl">→</span>
                 <PowerUpCard
                   id={power.resolvedPowerUp}
-                  state={powerTapped ? "selected" : "idle"}
+                  size="lg"
+                  state="selected"
                   onClick={() => setPowerTapped((t) => !t)}
                 />
               </>
@@ -800,56 +928,30 @@ function RevealView({
           )}
         </div>
       )}
-      <div className="grid grid-cols-3 gap-3 max-w-sm">
-        {sortedSubs.map((s, i) => {
-          const score = reveal.scoring.find((l) => l.playerId === s.playerId);
-          const player = playerById.get(s.playerId)!;
-          return (
-            <div
-              key={s.playerId}
-              data-testid={`reveal-sub-${player.seat}`}
-              className="flex flex-col items-center gap-1"
-              style={{ animationDelay: `${i * 80}ms` }}
-            >
-              <div className="text-[10px] font-mono uppercase tracking-widest text-paper/50">{player.name}</div>
-              <div className={phase === "flip" ? "animate-flip" : ""}>
-                <NumberCard n={s.number} state="played" testId={`reveal-card-${player.seat}`} />
-              </div>
-              {(() => {
-                const delta = score?.delta ?? 0;
-                const reason = delta === 0 ? zeroReason(score?.notes ?? []) : null;
-                const animCls = phase === "score" ? "animate-rise" : "opacity-0";
-                if (reason === "tie") {
-                  return (
-                    <div className={`mt-1 flex flex-col items-center ${animCls}`}>
-                      <div className="font-mono font-bold text-xl leading-none text-rose-400">✕</div>
-                      <div className="mt-0.5 text-[9px] font-mono uppercase tracking-widest text-rose-400/80">Tied</div>
-                    </div>
-                  );
-                }
-                if (reason === "cancel") {
-                  return (
-                    <div className={`mt-1 flex flex-col items-center ${animCls}`}>
-                      <div className="font-mono font-bold text-lg leading-none text-rose-400">0</div>
-                      <div className="mt-0.5 text-[9px] font-mono uppercase tracking-widest text-rose-400/80">Cancelled</div>
-                    </div>
-                  );
-                }
-                return (
-                  <div
-                    className={`mt-1 font-mono font-bold text-lg ${animCls} ${
-                      delta > 0 ? "text-emerald-300" : delta < 0 ? "text-rose-300" : "text-paper/40"
-                    }`}
-                  >
-                    {delta > 0 ? "+" : ""}
-                    {delta}
-                  </div>
-                );
-              })()}
-            </div>
-          );
-        })}
-      </div>
+      <section className="panel scope p-3 w-full max-w-sm">
+        {[...tieGroups.values()].map((group, gi) => (
+          <div key={`tie-${gi}`}>
+            {group.map((e, mi) => (
+              <Fragment key={e.s.playerId}>
+                {mi > 0 && <RevealSumRow />}
+                <RevealTraceRow e={e} settled={settled} antiphase={mi % 2 === 1} />
+              </Fragment>
+            ))}
+          </div>
+        ))}
+        {zeroed.map((e) => (
+          <RevealTraceRow key={e.s.playerId} e={e} settled={settled} antiphase={false} />
+        ))}
+        {others.map((e) => (
+          <RevealTraceRow key={e.s.playerId} e={e} settled={settled} antiphase={false} />
+        ))}
+        {survivors.length > 0 && (tieGroups.size > 0 || zeroed.length > 0 || others.length > 0) && (
+          <div className="h-px bg-paper/10 my-2" />
+        )}
+        {survivors.map((e) => (
+          <RevealTraceRow key={e.s.playerId} e={e} settled={settled} antiphase={false} />
+        ))}
+      </section>
       {reveal.peekUsed && (
         <div className="mt-4 text-cyan-200 text-sm font-mono text-center">
           ◎ {playerById.get(reveal.peekUsed.peekerId)?.name} peeked at{" "}

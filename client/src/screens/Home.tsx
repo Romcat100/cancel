@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { api } from "../api.js";
 import { connectSocket, disconnectSocket } from "../socket.js";
 import { clearIdentity, getIdentity, saveIdentity } from "../identity.js";
 import { useAppStore } from "../store.js";
 import { MusicToggle } from "../components.js";
+import { Wave } from "../wave.js";
 
 type Mode = "menu" | "create" | "join" | "single";
 
@@ -91,11 +92,32 @@ export function Home() {
         <MusicToggle />
       </div>
       <header className="mb-12 text-center select-none animate-rise">
-        <div className="font-display text-7xl tracking-tighter leading-none">
-          <span className="text-paper">CAN</span>
-          <span className="text-accent">CEL</span>
+        {/* Two signals in antiphase summing toward silence — the thesis, as a logo. */}
+        <div className="mx-auto mb-2 w-72">
+          <div className="relative h-24">
+            <Wave
+              rank={2}
+              antiphase
+              color="#6fa8ff"
+              variant="glow"
+              className="cw-feather absolute inset-0 h-full w-full"
+              style={{ ["--cw-fade"]: "13%" } as CSSProperties}
+            />
+            <Wave
+              rank={2}
+              color="#ff7a5c"
+              variant="glow"
+              className="cw-feather absolute inset-0 h-full w-full"
+              style={{ ["--cw-fade"]: "13%" } as CSSProperties}
+            />
+          </div>
+          <Wave pathId="cw0" variant="sum" animated={false} className="mx-auto mt-2 h-3 w-1/2 opacity-70" />
         </div>
-        <div className="mt-3 text-paper/50 font-mono text-xs uppercase tracking-[0.3em]">a number-picking party game</div>
+        <div className="font-display text-7xl font-extrabold tracking-tighter leading-none">
+          <span className="text-paper">CAN</span>
+          <span className="text-accent [text-shadow:0_0_18px_rgba(255,122,92,0.55),0_0_44px_rgba(255,122,92,0.28)]">CEL</span>
+        </div>
+        <div className="mt-4 text-paper/55 font-mono text-xs uppercase tracking-[0.3em]">a number-picking party game</div>
       </header>
 
       {mode === "menu" && (

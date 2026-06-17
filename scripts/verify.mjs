@@ -133,10 +133,14 @@ async function typeInto(page, selector, value) {
 
 let shotCount = 0;
 const shots = [];
-async function shot(page, name) {
+// fullPage stitches the whole scrollable page (good for tall screens), but it
+// mis-composites `position: fixed` + `backdrop-filter` overlays (the bg bleeds
+// through). For full-screen modals pass { fullPage: false } to capture the
+// viewport, which matches the real mobile experience.
+async function shot(page, name, { fullPage = true } = {}) {
   const n = String(++shotCount).padStart(2, "0");
   const path = join(SHOTS_DIR, `${n}-${name}.png`);
-  await page.screenshot({ path, fullPage: true });
+  await page.screenshot({ path, fullPage });
   shots.push(path);
   console.log(`[verify] shot -> ${path}`);
   return path;
@@ -366,10 +370,138 @@ async function singlePlayerFlow(browser) {
   await shot(solo, "solo-after-reveal");
 }
 
+// Click the first enabled card in the hand and lock it in (powerups-off turns,
+// so the submission is a plain number).
+async function submitSomeCard(page) {
+  await page.waitForSelector(tid("game-submit"), { timeout: 10_000 });
+  const picked = await page.evaluate(() => {
+    const cards = [...document.querySelectorAll('[data-testid^="game-hand-card-"]')];
+    const btn = cards.find((b) => !b.disabled);
+    if (btn) {
+      btn.click();
+      return true;
+    }
+    return false;
+  });
+  if (!picked) throw new Error("no enabled hand card to play");
+  await page.waitForFunction(
+    () => {
+      const b = document.querySelector('[data-testid="game-submit"]');
+      return b && !b.disabled;
+    },
+    { timeout: 10_000 },
+  );
+  await clickTestId(page, "game-submit");
+}
+
+const has = async (page, id) => !!(await page.$(tid(id)));
+
+// Wait until an element has finished its `animate-rise` entrance (opacity → 1),
+// so a modal screenshot isn't caught mid-fade with the background showing through.
+async function waitOpaque(page, id) {
+  await page.waitForFunction(
+    (sel) => {
+      const el = document.querySelector(sel);
+      return !!el && parseFloat(getComputedStyle(el).opacity) >= 0.99;
+    },
+    { timeout: 5_000 },
+    tid(id),
+  );
+}
+
+// Interference reskin coverage. Phase A (powerups Random) reaches the round-start
+// pool preview + the in-game pool. Phase B (powerups off, 2 rounds vs 1 AI) plays
+// a whole game to reach a settled reveal, the round-results summary, and game over.
+async function interferenceFlow(browser) {
+  // --- Phase A: pool preview + pool UI ---
+  const a = await newPlayer(browser, "Solo");
+  await waitForText(a, "CANCEL");
+  await shot(a, "home"); // the entry menu
+  await clickTestId(a, "home-single-player");
+  await typeInto(a, tid("home-name-input"), "Solo");
+  await clickTestId(a, "home-start-single");
+  await a.waitForSelector(tid("lobby-solo-header"), { timeout: 10_000 });
+  await clickTestId(a, "lobby-powerup-random");
+  await shot(a, "lobby-solo-random"); // lobby with a random power-up pool
+  await clickTestId(a, "lobby-start-game");
+  await a.waitForSelector(tid("pool-preview-modal"), { timeout: 10_000 });
+  await waitOpaque(a, "pool-preview-modal");
+  await shot(a, "round-start-preview", { fullPage: false }); // "this round's powers"
+  await clickTestId(a, "pool-preview-play");
+  await a.waitForSelector(tid("game-submit"), { timeout: 10_000 });
+  await waitForText(a, "SUBMITTED");
+  await shot(a, "game-turn-with-pool"); // the turn screen showing the power pool
+
+  // --- Phase B: full playthrough to round results + game over ---
+  const b = await newPlayer(browser, "Solo");
+  await waitForText(b, "CANCEL");
+  await clickTestId(b, "home-single-player");
+  await typeInto(b, tid("home-name-input"), "Solo");
+  await clickTestId(b, "home-start-single");
+  await b.waitForSelector(tid("lobby-solo-header"), { timeout: 10_000 });
+  await setStepper(b, "lobby-ai", 1); // 2 players → 4 turns/round
+  await setRounds(b, 2);
+  await clickTestId(b, "lobby-powerup-off");
+  await clickTestId(b, "lobby-start-game");
+  await b.waitForSelector(tid("game-submit"), { timeout: 10_000 });
+
+  let revealShot = false;
+  let roundShot = false;
+  for (let guard = 0; guard < 50; guard++) {
+    if (await has(b, "game-end-winner")) break;
+    if (await has(b, "reveal-continue")) {
+      // Wait for the flip → score transition so the deltas/CANCELLED stamps show.
+      await b
+        .waitForFunction(
+          () => document.querySelector('[data-testid="reveal-modal"]')?.getAttribute("data-reveal-phase") === "score",
+          { timeout: 5_000 },
+        )
+        .catch(() => {});
+      if (!revealShot) {
+        await shot(b, "reveal-settled", { fullPage: false });
+        revealShot = true;
+      }
+      await clickTestId(b, "reveal-continue");
+      await b.waitForFunction(() => !document.querySelector('[data-testid="reveal-modal"]'), { timeout: 10_000 });
+      continue;
+    }
+    if (await has(b, "round-end-modal")) {
+      if (!roundShot) {
+        await waitOpaque(b, "round-end-modal");
+        await shot(b, "round-results", { fullPage: false });
+        roundShot = true;
+      }
+      await clickTestId(b, "round-end-ack");
+      await b.waitForFunction(
+        () =>
+          !document.querySelector('[data-testid="round-end-modal"]') ||
+          !!document.querySelector('[data-testid="game-end-winner"]'),
+        { timeout: 10_000 },
+      );
+      continue;
+    }
+    if (await has(b, "game-submit")) {
+      await submitSomeCard(b);
+      await b.waitForFunction(
+        () =>
+          !!document.querySelector('[data-testid="reveal-continue"]') ||
+          !!document.querySelector('[data-testid="round-end-modal"]') ||
+          !!document.querySelector('[data-testid="game-end-winner"]'),
+        { timeout: 10_000 },
+      );
+      continue;
+    }
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  await b.waitForSelector(tid("game-end-winner"), { timeout: 10_000 });
+  await shot(b, "game-end"); // win or lose, with score-amplitude waves
+}
+
 const flows = {
   "lobby-rounds": lobbyRoundsFlow,
   "host-leave": hostLeaveFlow,
   "single-player": singlePlayerFlow,
+  interference: interferenceFlow,
 };
 
 // ---------------------------------------------------------------------------

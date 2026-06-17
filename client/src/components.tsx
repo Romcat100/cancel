@@ -1,7 +1,32 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { POWER_UPS, type PowerUpId, type PowerUpDef } from "../../shared/types.js";
 import { useMusicMuted, useMusicUnlocked } from "./music.js";
+import { Wave, rankForNumber, amplitudePathForScore } from "./wave.js";
 
+// The 8 player signals. Each seat has a tailwind bg/text class (for solid fills
+// like the avatar) and a `hex` that drives its glowing waveform (inline color).
+// Seats 0-3 are the demo's named players (Ben/Voltaire/Mechano/Data Dan); 4-7 are
+// distinct glow colors that read clearly on the indigo void and against the
+// cancelled grey (#9aa0b8). The class strings below MUST stay literal (see note).
+export const SEATS = [
+  { bg: "bg-accent", text: "text-accent", hex: "#ff7a5c" }, // Ben — warm coral
+  { bg: "bg-cool", text: "text-cool", hex: "#6fa8ff" }, // Voltaire — ice blue
+  { bg: "bg-gold", text: "text-gold", hex: "#ffd166" }, // Mechano — gold
+  { bg: "bg-emerald-500", text: "text-emerald-500", hex: "#5ad6a0" }, // Data Dan — green
+  { bg: "bg-fuchsia-500", text: "text-fuchsia-500", hex: "#e879f9" }, // magenta
+  { bg: "bg-cyan-400", text: "text-cyan-400", hex: "#22d3ee" }, // cyan
+  { bg: "bg-orange-300", text: "text-orange-300", hex: "#fdba74" }, // peach
+  { bg: "bg-rose-400", text: "text-rose-400", hex: "#fb7185" }, // rose
+] as const;
+
+export function seatColor(seat: number) {
+  return SEATS[seat % SEATS.length];
+}
+
+// Class-name views of SEATS, kept as literal lists (not derived via .map/.replace)
+// so Tailwind's JIT actually emits each rule. Otherwise classes like text-cool
+// silently no-op because their string never appears in source. The `hex` field is
+// only ever used inline (style.color), never as a class, so it needs no JIT entry.
 export const SEAT_COLORS = [
   "bg-accent",
   "bg-cool",
@@ -13,9 +38,6 @@ export const SEAT_COLORS = [
   "bg-rose-400",
 ];
 
-// Parallel to SEAT_COLORS — kept as a literal list (not derived via .replace) so
-// Tailwind's JIT actually emits each text-* rule. Otherwise classes like text-cool
-// silently no-op because their string never appears in source.
 export const SEAT_TEXT_COLORS = [
   "text-accent",
   "text-cool",
@@ -28,8 +50,12 @@ export const SEAT_TEXT_COLORS = [
 ];
 
 const NUMBER_CARD_DIM = { sm: "w-12 h-16", md: "w-[60px] h-20", lg: "w-20 h-28" } as const;
-const NUMBER_CARD_TEXT = { sm: "text-2xl", md: "text-4xl", lg: "text-5xl" } as const;
+const NUMBER_CARD_TEXT = { sm: "text-xl", md: "text-3xl", lg: "text-4xl" } as const;
+const NUMBER_WAVE_H = { sm: "h-3", md: "h-4", lg: "h-6" } as const;
 
+// A number is a signal: the numeral plus a waveform whose frequency = its rank
+// (0 is a flat, silent line). The card is a dark panel; state tints the numeral
+// and its wave (selected glows coral; played settles to paper; ghost fades).
 export function NumberCard({
   n,
   state = "idle",
@@ -44,50 +70,72 @@ export function NumberCard({
   testId?: string;
 }) {
   const isZero = n === 0;
-  const base =
-    state === "selected"
-      ? "bg-accent text-ink ring-4 ring-accent/40"
+  const rank = rankForNumber(n);
+  const sel = state === "selected";
+  const numCls =
+    sel
+      ? "text-[#ffb39e] [text-shadow:0_0_12px_rgba(255,122,92,0.7)]"
       : state === "played"
-      ? "bg-paper text-ink"
+      ? "text-paper"
       : state === "ghost"
-      ? "bg-paper/10 text-paper/30"
+      ? "text-paper/30"
       : state === "muted"
-      ? "bg-paper/20 text-ink/40"
-      : isZero
-      ? "bg-ink/80 text-accent border-2 border-accent"
-      : "bg-paper text-ink";
-  const cx = `card-face shrink-0 ${NUMBER_CARD_DIM[size]} ${NUMBER_CARD_TEXT[size]} ${base} ${
+      ? "text-paper/40"
+      : "text-paper";
+  // undefined color → wave inherits the faint coral on .nwv (idle hand look).
+  const waveColor =
+    sel
+      ? "#ff8a6e"
+      : state === "played"
+      ? "rgba(238,240,251,0.55)"
+      : state === "ghost"
+      ? "rgba(238,240,251,0.18)"
+      : state === "muted"
+      ? "rgba(238,240,251,0.22)"
+      : undefined;
+  const waveVariant = sel ? "soft" : state === "ghost" ? "ghosted" : "solid";
+  const animated = state === "idle" || sel;
+  const cx = `card-face shrink-0 flex-col justify-between items-stretch px-1.5 py-2 ${NUMBER_CARD_DIM[size]} ${
     onClick ? "cursor-pointer" : ""
-  } ${state === "selected" ? "-translate-y-2" : ""} transition`;
+  } ${sel ? "-translate-y-1.5 border-accent/80 shadow-[0_10px_26px_rgba(255,122,92,0.28),0_0_0_1px_rgba(255,138,110,0.4)]" : ""} transition`;
   return (
     <button type="button" disabled={!onClick} onClick={onClick} className={cx} data-sfx="tap" data-testid={testId}>
-      {isZero ? <span className="font-display font-bold">Ø</span> : n}
+      <span className={`block text-center leading-none ${NUMBER_CARD_TEXT[size]} ${numCls}`}>
+        {isZero ? <span className="font-display font-bold">Ø</span> : n}
+      </span>
+      <span className={`nwv ${NUMBER_WAVE_H[size]}`}>
+        <Wave rank={rank} variant={waveVariant} color={waveColor} animated={animated} className="w-full h-full" />
+      </span>
     </button>
   );
 }
 
-const POWER_VISUAL: Record<PowerUpId, { abbr: string; bg: string; text: string }> = {
-  double: { abbr: "×2", bg: "bg-gold", text: "text-ink" },
-  tie_die: { abbr: "⚔", bg: "bg-cool", text: "text-paper" },
-  negate_zero: { abbr: "Ø!", bg: "bg-accent", text: "text-ink" },
-  plus_two: { abbr: "+2", bg: "bg-emerald-500", text: "text-ink" },
-  free_three: { abbr: "3", bg: "bg-emerald-400", text: "text-ink" },
-  make_negative: { abbr: "−", bg: "bg-rose-500", text: "text-paper" },
-  minus_two: { abbr: "−2", bg: "bg-rose-400", text: "text-ink" },
-  peek: { abbr: "◎", bg: "bg-cyan-400", text: "text-ink" },
-  mute: { abbr: "⌖", bg: "bg-paper/40", text: "text-ink" },
-  slide: { abbr: "↻", bg: "bg-fuchsia-500", text: "text-paper" },
-  equalize: { abbr: "≈", bg: "bg-cyan-300", text: "text-ink" },
-  sabotage: { abbr: "✖", bg: "bg-rose-600", text: "text-paper" },
-  flip: { abbr: "⇋", bg: "bg-indigo-400", text: "text-ink" },
-  drain: { abbr: "↧", bg: "bg-amber-500", text: "text-ink" },
-  jinx: { abbr: "=", bg: "bg-pink-400", text: "text-ink" },
-  wild: { abbr: "?", bg: "bg-violet-400", text: "text-ink" },
-  swap_hands: { abbr: "⇄", bg: "bg-teal-400", text: "text-ink" },
-  switch_cards: { abbr: "⇌", bg: "bg-sky-400", text: "text-ink" },
-  sacrifice: { abbr: "▼", bg: "bg-stone-600", text: "text-paper" },
-  random_ray: { abbr: "↯", bg: "bg-violet-500", text: "text-paper" },
-  nothingburger: { abbr: "∅", bg: "bg-paper/20", text: "text-paper/70" },
+// Each power is a glyph that glows in its family color on a dark tile (the .pcard
+// recipe in index.css drives --pc). Families: green = good-for-you, rose/red =
+// harm, teal = swap/shield, blue = zero/flip/mirror structural, violet =
+// wild/random, slate = inert/silence, amber = amplify/drain.
+const POWER_VISUAL: Record<PowerUpId, { abbr: string; color: string }> = {
+  double: { abbr: "×2", color: "#ffb84d" },
+  tie_die: { abbr: "⚔", color: "#4dd6c4" },
+  negate_zero: { abbr: "Ø!", color: "#6fa8ff" },
+  plus_two: { abbr: "+2", color: "#4ade80" },
+  free_three: { abbr: "3", color: "#7ef0a0" },
+  make_negative: { abbr: "−", color: "#ff5c7a" },
+  minus_two: { abbr: "−2", color: "#ff8095" },
+  peek: { abbr: "◎", color: "#5bd6e6" },
+  mute: { abbr: "⌖", color: "#9aa0c8" },
+  slide: { abbr: "↻", color: "#c98bff" },
+  equalize: { abbr: "≈", color: "#7fe4ee" },
+  sabotage: { abbr: "✖", color: "#ff5c7a" },
+  flip: { abbr: "⇋", color: "#8ea2ff" },
+  drain: { abbr: "↧", color: "#ffa64d" },
+  jinx: { abbr: "=", color: "#ff7ad1" },
+  wild: { abbr: "?", color: "#b48bff" },
+  swap_hands: { abbr: "⇄", color: "#4dd6c4" },
+  switch_cards: { abbr: "⇌", color: "#52c8d8" },
+  sacrifice: { abbr: "▼", color: "#e04a68" },
+  random_ray: { abbr: "↯", color: "#9a6dff" },
+  nothingburger: { abbr: "∅", color: "#7c819c" },
 };
 
 // Defensive fallbacks: a room persisted before a power-up rename can carry an
@@ -95,9 +143,9 @@ const POWER_VISUAL: Record<PowerUpId, { abbr: string; bg: string; text: string }
 // undefined and crash the whole tree (white screen). These resolvers degrade a
 // stale id to a neutral "?" card instead. The description keeps a scope prefix
 // so ScopedDescription still parses cleanly.
-const FALLBACK_VISUAL = { abbr: "?", bg: "bg-paper/20", text: "text-paper/60" };
+const FALLBACK_VISUAL = { abbr: "?", color: "#9aa0c8" };
 
-function powerVisual(id: PowerUpId): { abbr: string; bg: string; text: string } {
+function powerVisual(id: PowerUpId): { abbr: string; color: string } {
   return POWER_VISUAL[id] ?? FALLBACK_VISUAL;
 }
 
@@ -115,16 +163,19 @@ function powerDef(id: PowerUpId): PowerUpDef {
 const POWER_CARD_DIM = "w-[68px] h-[88px]";
 const POWER_CARD_DIM_LG = "w-[88px] h-[112px]";
 
-// Non-interactive colored abbr badge. Used in lists (e.g. the lobby power picker)
+// A `--pc` style object for the .pcard glyph-tile recipe (custom prop needs a cast).
+function pc(color: string): CSSProperties {
+  return { ["--pc"]: color } as CSSProperties;
+}
+
+// Non-interactive glowing glyph tile. Used in lists (e.g. the lobby power picker)
 // where the whole row is the button, so a nested <button> would be invalid markup.
 export function PowerGlyph({ id, size = "md" }: { id: PowerUpId; size?: "sm" | "md" }) {
   const v = powerVisual(id);
   const dim = size === "sm" ? "w-8 h-8 text-xs" : "w-9 h-9 text-sm";
   return (
-    <span
-      className={`shrink-0 ${dim} ${v.bg} ${v.text} rounded-lg flex items-center justify-center font-mono font-bold`}
-    >
-      {v.abbr}
+    <span className={`pcard lit shrink-0 ${dim} rounded-lg`} style={pc(v.color)}>
+      <span className="pc-glyph">{v.abbr}</span>
     </span>
   );
 }
@@ -132,11 +183,12 @@ export function PowerGlyph({ id, size = "md" }: { id: PowerUpId; size?: "sm" | "
 // Scope prefix tags live at the start of every POWER_UPS description as
 // "(Everyone|Opponents|Just you) …". Parsed out here and rendered as a chip.
 // Class strings are literals so Tailwind's JIT actually emits them (see SEAT_COLORS note).
+// Outlined glow pills on the indigo void (transparent fill + colored rim + text).
 const SCOPE_CHIP: Record<string, string> = {
-  Everyone: "bg-cool text-ink",
-  Opponents: "bg-rose-500 text-paper",
-  "Just you": "bg-emerald-500 text-ink",
-  Anyone: "bg-violet-500 text-paper",
+  Everyone: "text-cool border border-cool/45",
+  Opponents: "text-rose-400 border border-rose-400/45",
+  "Just you": "text-emerald-400 border border-emerald-400/45",
+  Anyone: "text-violet-400 border border-violet-400/45",
 };
 
 function parseScopedDescription(description: string): { scope: string | null; body: string } {
@@ -183,26 +235,24 @@ export function PowerUpCard({
 }) {
   const v = powerVisual(id);
   const dim = size === "lg" ? POWER_CARD_DIM_LG : POWER_CARD_DIM;
-  const ring = state === "selected" ? "ring-4 ring-paper/40 -translate-y-2" : "";
-  const dim2 = used ? "opacity-30 grayscale" : "";
+  const sel = state === "selected";
+  const glyphSize = size === "lg" ? "text-3xl" : "text-xl";
+  const nameSize = size === "lg" ? "text-[10px]" : "text-[8.5px]";
   return (
     <button
       type="button"
       disabled={!onClick}
       onClick={onClick}
-      className={`card-face shrink-0 ${dim} ${v.bg} ${v.text} ${ring} ${dim2} ${
-        onClick ? "cursor-pointer" : ""
-      } transition px-1`}
+      className={`pcard shrink-0 ${dim} gap-1.5 px-1 ${sel ? "lit sel" : ""} ${
+        used ? "opacity-30 grayscale" : ""
+      } ${onClick ? "cursor-pointer" : ""}`}
+      style={pc(v.color)}
       title={powerDef(id).name}
       data-sfx="tap"
       data-testid={testId}
     >
-      <div className="flex flex-col items-center justify-center gap-1 w-full overflow-hidden">
-        <span className="font-mono font-bold leading-none text-xl">{v.abbr}</span>
-        <span className="text-[9px] uppercase tracking-tight font-display opacity-80 text-center leading-tight break-words px-0.5">
-          {powerDef(id).name}
-        </span>
-      </div>
+      <span className={`pc-glyph ${glyphSize}`}>{v.abbr}</span>
+      <span className={`pc-name ${nameSize} tracking-tight break-words px-0.5`}>{powerDef(id).name}</span>
     </button>
   );
 }
@@ -237,14 +287,15 @@ export function PowerUpChip({
       <button
         type="button"
         onClick={onClick}
-        className={`shrink-0 w-9 h-12 rounded-lg ${v.bg} ${v.text} flex items-center justify-center font-mono font-bold text-sm shadow-[0_3px_0_0_rgba(0,0,0,0.4)] ${
+        className={`pcard shrink-0 w-9 h-12 ${
           used ? "opacity-25 grayscale" : ""
-        } ${selected ? "ring-2 ring-paper/70 -translate-y-0.5" : ""} transition`}
+        } ${selected ? "lit -translate-y-0.5" : ""}`}
+        style={pc(v.color)}
         title={POWER_UPS[id].name}
         data-sfx="tap"
         data-testid={testId}
       >
-        {v.abbr}
+        <span className="pc-glyph text-sm">{v.abbr}</span>
       </button>
       {count !== undefined && count > 1 && (
         <span className="absolute -top-1 -right-1 bg-paper text-ink text-[9px] font-bold rounded-full px-1.5 py-0.5">
@@ -385,14 +436,12 @@ export function Rules({
             </div>
             <ul className="space-y-3">
               {roundPowers.map(({ id, count }) => {
-                const v = POWER_VISUAL[id];
-                const def = POWER_UPS[id];
+                const v = powerVisual(id);
+                const def = powerDef(id);
                 return (
                   <li key={id} className="flex gap-3 items-start">
-                    <div
-                      className={`relative shrink-0 ${v.bg} ${v.text} w-9 h-9 rounded-lg flex items-center justify-center font-mono font-bold text-sm`}
-                    >
-                      {v.abbr}
+                    <div className="relative shrink-0 pcard lit w-9 h-9 text-sm" style={pc(v.color)}>
+                      <span className="pc-glyph">{v.abbr}</span>
                       {count > 1 && (
                         <span className="absolute -top-1 -right-1 bg-paper text-ink text-[9px] font-bold rounded-full px-1.5 py-0.5">
                           ×{count}
@@ -443,8 +492,8 @@ export function PowerDescription({ id }: { id: PowerUpId }) {
   return (
     <div className="rounded-2xl border border-paper/15 bg-paper/[.04] p-4 animate-rise">
       <div className="flex items-center gap-3 mb-2">
-        <div className={`${v.bg} ${v.text} w-10 h-10 rounded-xl flex items-center justify-center font-mono font-bold`}>
-          {v.abbr}
+        <div className="pcard lit w-10 h-10 text-base" style={pc(v.color)}>
+          <span className="pc-glyph">{v.abbr}</span>
         </div>
         <div className="font-display font-bold text-lg">{def.name}</div>
       </div>
@@ -490,6 +539,9 @@ export function PlayerChip({
   testId?: string;
 }) {
   const color = SEAT_COLORS[seat % SEAT_COLORS.length];
+  const hex = seatColor(seat).hex;
+  // A stable standby frequency per seat so each player's idle signal looks distinct.
+  const standbyRank = ([2, 1, 3, 4, 2, 4, 3, 1] as const)[seat % 8];
   const sz = small ? "w-8 h-8 text-sm" : "w-10 h-10";
   const pingClass =
     pingKind === "target"
@@ -543,7 +595,7 @@ export function PlayerChip({
           {avatarInner}
         </div>
       )}
-      <div className="flex flex-col leading-tight min-w-0">
+      <div className="flex flex-col leading-tight min-w-0 flex-1">
         <span className="font-bold text-sm truncate">
           {name}
           {isSelf && <span className="ml-1 text-paper/40 font-mono text-[10px]">(you)</span>}
@@ -553,7 +605,17 @@ export function PlayerChip({
             {hand.map((n) => (n === 0 ? "Ø" : n)).join(" ")}
           </span>
         )}
-        <span className="text-[10px] uppercase tracking-widest font-mono text-paper/50 mt-0.5">
+        <Wave
+          rank={standbyRank}
+          color={hex}
+          variant={submitted ? "soft" : "think"}
+          className={`w-full ${small ? "h-2.5" : "h-3.5"} mt-1`}
+        />
+        <span
+          className={`text-[10px] uppercase tracking-widest font-mono mt-0.5 ${
+            submitted ? "text-emerald-300/70" : "text-paper/50"
+          }`}
+        >
           {submitted ? "submitted" : "thinking…"}
         </span>
       </div>
@@ -561,29 +623,70 @@ export function PlayerChip({
   );
 }
 
+// Celebration: drifting signals (wave shards) + glow dots + silent-Ø glyphs in
+// the player colors, scattered over the void. Randomness is seeded once so a
+// single render (and the screenshot harness) is stable.
 export function Confetti() {
-  const [pieces] = useState(() =>
-    Array.from({ length: 50 }, (_, i) => ({
-      key: i,
-      left: Math.random() * 100,
-      delay: Math.random() * 2,
-      bg: ["#ff5b3a", "#5e6ee3", "#e8c25c", "#f5f1e8"][Math.floor(Math.random() * 4)],
-      duration: 2 + Math.random() * 2,
-    })),
-  );
+  const [pieces] = useState(() => {
+    const hexes = SEATS.map((s) => s.hex);
+    const pick = () => hexes[Math.floor(Math.random() * hexes.length)];
+    const waves = Array.from({ length: 14 }, (_, i) => ({
+      kind: "wave" as const,
+      key: `w${i}`,
+      left: Math.random() * 92,
+      top: Math.random() * 58,
+      rot: Math.round(Math.random() * 80 - 40),
+      w: Math.round(16 + Math.random() * 14),
+      rank: ((i % 3) + 1) as 1 | 2 | 3,
+      color: pick(),
+      delay: Math.random() * 3,
+    }));
+    const dots = Array.from({ length: 8 }, (_, i) => ({
+      kind: "dot" as const,
+      key: `d${i}`,
+      left: Math.random() * 94,
+      top: Math.random() * 58,
+      color: pick(),
+      delay: Math.random() * 3,
+    }));
+    const zeros = Array.from({ length: 3 }, (_, i) => ({
+      kind: "zero" as const,
+      key: `z${i}`,
+      left: 10 + Math.random() * 80,
+      top: Math.random() * 56,
+      delay: Math.random() * 3,
+    }));
+    return [...waves, ...dots, ...zeros];
+  });
   return (
     <div className="confetti">
-      {pieces.map((p) => (
-        <span
-          key={p.key}
-          style={{
-            left: `${p.left}%`,
-            animationDelay: `${p.delay}s`,
-            animationDuration: `${p.duration}s`,
-            background: p.bg,
-          }}
-        />
-      ))}
+      {pieces.map((p) => {
+        const common: CSSProperties = {
+          left: `${p.left}%`,
+          top: `${p.top}%`,
+          animationDelay: `${p.delay}s`,
+        };
+        if (p.kind === "wave") {
+          return (
+            <Wave
+              key={p.key}
+              rank={p.rank}
+              color={p.color}
+              animated={false}
+              className="cf"
+              style={{ ...common, width: `${p.w}px`, ["--r"]: `${p.rot}deg` } as CSSProperties}
+            />
+          );
+        }
+        if (p.kind === "dot") {
+          return <i key={p.key} className="cfd" style={{ ...common, color: p.color }} />;
+        }
+        return (
+          <span key={p.key} className="cfo" style={common}>
+            Ø
+          </span>
+        );
+      })}
     </div>
   );
 }
@@ -600,6 +703,7 @@ export function RoundScoreTable({
   currentRoundIndex?: number;
 }) {
   const rounds = [...roundHistory].sort((a, b) => a.index - b.index);
+  const maxScore = ranked.reduce((m, p) => Math.max(m, p.totalScore), 0);
   return (
     <div className="w-full flex flex-col gap-2">
       <div className="flex items-center gap-2 px-3 text-[10px] uppercase tracking-widest font-mono text-paper/40">
@@ -620,40 +724,49 @@ export function RoundScoreTable({
         <div
           key={p.id}
           data-testid={`score-row-${p.seat}`}
-          className={`rounded-2xl px-3 py-3 flex items-center gap-2 ${
+          className={`rounded-2xl px-3 pt-3 pb-2 ${
             i === 0 ? "bg-gold/15 border border-gold/40" : "bg-paper/5 border border-paper/10"
           }`}
         >
-          <span className="font-mono text-paper/40 w-5 text-right text-sm">{i + 1}</span>
-          <span className={`${SEAT_COLORS[p.seat % SEAT_COLORS.length]} w-3 h-3 rounded-full`} />
-          <span className="font-bold flex-1 text-sm truncate">
-            {p.name}
-            {p.id === selfId && <span className="ml-1 text-paper/40 font-mono text-[10px]">(you)</span>}
-          </span>
-          {rounds.map((r) => {
-            const score = r.scores[p.id] ?? 0;
-            const isCurrent = r.index === currentRoundIndex;
-            return (
-              <span
-                key={r.index}
-                className={`w-8 text-center font-mono text-sm ${
-                  score > 0
-                    ? isCurrent
-                      ? "text-emerald-300 font-bold"
-                      : "text-emerald-300/70"
-                    : score < 0
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-paper/40 w-5 text-right text-sm">{i + 1}</span>
+            <span className={`${SEAT_COLORS[p.seat % SEAT_COLORS.length]} w-3 h-3 rounded-full`} />
+            <span className="font-bold flex-1 text-sm truncate">
+              {p.name}
+              {p.id === selfId && <span className="ml-1 text-paper/40 font-mono text-[10px]">(you)</span>}
+            </span>
+            {rounds.map((r) => {
+              const score = r.scores[p.id] ?? 0;
+              const isCurrent = r.index === currentRoundIndex;
+              return (
+                <span
+                  key={r.index}
+                  className={`w-8 text-center font-mono text-sm ${
+                    score > 0
                       ? isCurrent
-                        ? "text-rose-300 font-bold"
-                        : "text-rose-300/70"
-                      : "text-paper/30"
-                }`}
-              >
-                {score > 0 ? "+" : ""}
-                {score}
-              </span>
-            );
-          })}
-          <span className="font-mono text-xl font-bold text-paper w-9 text-right">{p.totalScore}</span>
+                        ? "text-emerald-300 font-bold"
+                        : "text-emerald-300/70"
+                      : score < 0
+                        ? isCurrent
+                          ? "text-rose-300 font-bold"
+                          : "text-rose-300/70"
+                        : "text-paper/30"
+                  }`}
+                >
+                  {score > 0 ? "+" : ""}
+                  {score}
+                </span>
+              );
+            })}
+            <span className="font-mono text-xl font-bold text-paper w-9 text-right">{p.totalScore}</span>
+          </div>
+          {/* Score as amplitude: a wave whose height tracks this player's total. */}
+          <Wave
+            pathId={amplitudePathForScore(p.totalScore, maxScore)}
+            color={seatColor(p.seat).hex}
+            variant={i === 0 ? "glow" : "solid"}
+            className={`w-full h-7 mt-1.5 ${i === 0 ? "opacity-100" : "opacity-40"}`}
+          />
         </div>
       ))}
     </div>

@@ -57,7 +57,7 @@ export function GameEnd({ onLeave }: { onLeave: () => void }) {
       </div>
       <div className="text-center mb-6 animate-rise shrink-0">
         <div className="font-mono text-xs uppercase tracking-[0.3em] text-paper/50">Game over</div>
-        <div className="font-display text-5xl font-bold mt-2" data-testid="game-end-winner">
+        <div className="font-display text-5xl font-extrabold mt-2 [&_span]:[text-shadow:0_0_22px_currentColor]" data-testid="game-end-winner">
           {isTie ? (
             selfIsLeader ? (
               <>
