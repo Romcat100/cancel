@@ -285,18 +285,25 @@
   .cw-breath {
     animation: cw-breath 3s ease-in-out infinite;
   }
-  @keyframes floaty {
-    0%,
-    100% {
-      translate: 0 0;
+  /* Continuous top-to-bottom fall: animates `translate` (not `transform`) so it
+     composes with `.cf`'s separate `transform: rotate(var(--r))` static tilt.
+     The from/to offsets are sized against the pieces' base `top` range (see
+     Confetti(): 0-58% for waves/dots, 0-56% for zeros) so every piece is fully
+     off-screen at both ends of its cycle -- the instantaneous loop-restart snap
+     (100% -> 0%) is therefore invisible. Per-piece `animation-duration` (inline,
+     alongside the existing `animationDelay`) varies the fall speed; this rule's
+     `7s` is just the CSS-level fallback. */
+  @keyframes cf-fall {
+    from {
+      translate: 0 -70dvh;
     }
-    50% {
-      translate: 0 -8px;
+    to {
+      translate: 0 110dvh;
     }
   }
   .cf,
   .cfd,
   .cfo {
-    animation: floaty 5.5s ease-in-out infinite;
+    animation: cf-fall 7s linear infinite;
   }
 }

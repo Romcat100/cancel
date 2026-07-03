@@ -31,17 +31,7 @@ they're done.
    kept. It appears in header comments in `wave.tsx`, `index.css`, `tailwind.config.js`,
    `components.tsx`, and the CLAUDE.md visual-theme note. Cosmetic.
 
-7. **Win-screen confetti should be velocity-dynamic, not hovering.** The wave-shard
-   confetti currently sits at random positions and just bobs in place (the `floaty`
-   keyframe in `index.css` translates ±8px), which reads as awkward hovering. Make it a real
-   celebration: ideally a party-popper burst from below the screen — shards fly up and out
-   with varied velocity, then arc and fall — or at minimum fall like confetti (the
-   pre-reskin `fall` keyframe did this) instead of hovering. Touches the `Confetti` component
-   in `components.tsx` (per-piece positions/velocities, seeded once) and the
-   `.cf`/`.cfd`/`.cfo` + keyframes in `index.css`. Keep it behind
-   `prefers-reduced-motion: no-preference`.
-
-8. **Trim the extra vertical scroll space below the title-screen buttons.** Home scrolls
+7. **Trim the extra vertical scroll space below the title-screen buttons.** Home scrolls
    past the content, leaving dead space under the menu buttons. Likely the `min-h-screen`
    root + top-aligned content in `Home.tsx` (`min-h-screen flex flex-col … pt-12 pb-8`);
    consider `min-h-[100dvh]`, centering the block, or otherwise sizing it so the page

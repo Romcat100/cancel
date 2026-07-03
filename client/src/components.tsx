@@ -630,32 +630,50 @@ export function Confetti() {
   const [pieces] = useState(() => {
     const hexes = SEATS.map((s) => s.hex);
     const pick = () => hexes[Math.floor(Math.random() * hexes.length)];
-    const waves = Array.from({ length: 14 }, (_, i) => ({
-      kind: "wave" as const,
-      key: `w${i}`,
-      left: Math.random() * 92,
-      top: Math.random() * 58,
-      rot: Math.round(Math.random() * 80 - 40),
-      w: Math.round(16 + Math.random() * 14),
-      rank: ((i % 3) + 1) as 1 | 2 | 3,
-      color: pick(),
-      delay: Math.random() * 3,
-    }));
-    const dots = Array.from({ length: 8 }, (_, i) => ({
-      kind: "dot" as const,
-      key: `d${i}`,
-      left: Math.random() * 94,
-      top: Math.random() * 58,
-      color: pick(),
-      delay: Math.random() * 3,
-    }));
-    const zeros = Array.from({ length: 3 }, (_, i) => ({
-      kind: "zero" as const,
-      key: `z${i}`,
-      left: 10 + Math.random() * 80,
-      top: Math.random() * 56,
-      delay: Math.random() * 3,
-    }));
+    const dur = () => 5.5 + Math.random() * 4; // 5.5-9.5s: staggered fall speeds
+    // Negative delay starts each piece already mid-fall (a random phase of its own
+    // cycle) the instant it mounts, instead of holding it static at its resting
+    // `top` until a positive delay elapses -- that hold read as "hovering" before
+    // the fall kicked in.
+    const phase = (d: number) => -Math.random() * d;
+    const waves = Array.from({ length: 19 }, (_, i) => {
+      const d = dur();
+      return {
+        kind: "wave" as const,
+        key: `w${i}`,
+        left: Math.random() * 92,
+        top: Math.random() * 58,
+        rot: Math.round(Math.random() * 80 - 40),
+        w: Math.round(16 + Math.random() * 14),
+        rank: ((i % 3) + 1) as 1 | 2 | 3,
+        color: pick(),
+        delay: phase(d),
+        dur: d,
+      };
+    });
+    const dots = Array.from({ length: 13 }, (_, i) => {
+      const d = dur();
+      return {
+        kind: "dot" as const,
+        key: `d${i}`,
+        left: Math.random() * 94,
+        top: Math.random() * 58,
+        color: pick(),
+        delay: phase(d),
+        dur: d,
+      };
+    });
+    const zeros = Array.from({ length: 4 }, (_, i) => {
+      const d = dur();
+      return {
+        kind: "zero" as const,
+        key: `z${i}`,
+        left: 10 + Math.random() * 80,
+        top: Math.random() * 56,
+        delay: phase(d),
+        dur: d,
+      };
+    });
     return [...waves, ...dots, ...zeros];
   });
   return (
@@ -665,6 +683,7 @@ export function Confetti() {
           left: `${p.left}%`,
           top: `${p.top}%`,
           animationDelay: `${p.delay}s`,
+          animationDuration: `${p.dur}s`,
         };
         if (p.kind === "wave") {
           return (
