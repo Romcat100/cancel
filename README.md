@@ -64,7 +64,7 @@ When on: at the start of each round, one power is drawn and shown to everyone. I
 | **Static** (`Ø!`) | Zeros are lost in the noise. A `0` is inert this round and cancels nothing. |
 | **Ultraviolet** (`UV`) | The whole spectrum shifts up. Every card plays 2 higher than its face value, so a `0` becomes a `2` and a `3` becomes a `5`. Ties use the raised values. |
 | **Crosstalk** (`◂▸`) | Signals bleed across channels. Each turn you glimpse the number the player beside you means to play, then everyone gets one chance to change their pick before the reveal. |
-| **Refraction** (`△`) | Each turn you glimpse a random player's number, then everyone gets one chance to change their pick before the reveal. |
+| **Refraction** (`△`) | Light bends to a new angle. Each turn you glimpse the number a random player means to play, then everyone gets one chance to change their pick before the reveal. |
 
 ## Project layout
 

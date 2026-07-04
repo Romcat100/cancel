@@ -360,7 +360,7 @@ export const ROUND_POWERS: Record<RoundPowerId, RoundPowerDef> = {
     id: "refraction",
     name: "Refraction",
     description:
-      "Each turn you glimpse a random player's number, then everyone gets one chance to change their pick.",
+      "Light bends to a new angle. Each turn you glimpse the number a random player means to play, then everyone gets one chance to change their pick.",
   },
 };
 
