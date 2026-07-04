@@ -98,6 +98,9 @@ export interface RoundState {
   reveals: RevealedTurn[];
   roundScores: { [playerId: string]: number };
   endAcksBy: string[];
+  // The one power applying to everyone this round (public). Absent when the round
+  // power mode is off, or on rounds persisted before the round-power feature.
+  roundPower?: RoundPowerId;
 }
 
 export interface RoundHistoryEntry {
@@ -130,6 +133,7 @@ export interface PublicState {
     turnDeadlineMs: number | null;
     powerUpMode: PowerUpMode;
     selectedPowerUps: PowerUpId[];
+    selectedRoundPowers: RoundPowerId[];
     showHands: boolean;
     numberMode: NumberMode;
     customNumbers: number[];
@@ -286,3 +290,67 @@ export const POWER_UPS: Record<PowerUpId, PowerUpDef> = {
 };
 
 export const POWER_UP_IDS = Object.keys(POWER_UPS) as PowerUpId[];
+
+// --- Round powers ---
+// One power is rolled per ROUND and applies to every player on every turn of that
+// round, publicly visible all round. This replaces the per-turn picker system above
+// (which stays in the codebase, dormant). Deliberately a separate id space from
+// PowerUpId — note "equalize" exists in both unions; never index POWER_UPS or the
+// client's POWER_VISUAL with a RoundPowerId.
+
+export type RoundPowerId =
+  | "pure_tone"
+  | "harmony"
+  | "amplify"
+  | "static"
+  | "infrared"
+  | "equalize";
+
+export interface RoundPowerDef {
+  id: RoundPowerId;
+  name: string;
+  // Must start with a scope prefix tag like the per-turn powers; round powers are
+  // always "(Everyone)". The client's parseScopedDescription depends on it.
+  description: string;
+}
+
+export const ROUND_POWERS: Record<RoundPowerId, RoundPowerDef> = {
+  pure_tone: {
+    id: "pure_tone",
+    name: "Pure Tone",
+    description:
+      "(Everyone) A clean signal. No power this round, every card scores by the normal rules.",
+  },
+  harmony: {
+    id: "harmony",
+    name: "Harmony",
+    description:
+      "(Everyone) Tied cards resonate instead of cancelling. Every card that ties this round scores 2 points, including matching zeros.",
+  },
+  amplify: {
+    id: "amplify",
+    name: "Amplify",
+    description:
+      "(Everyone) The signal is boosted. Every point scored this round is doubled, gains and losses alike.",
+  },
+  static: {
+    id: "static",
+    name: "Static",
+    description:
+      "(Everyone) Zeros are lost in the noise. A 0 is inert this round and cancels nothing.",
+  },
+  infrared: {
+    id: "infrared",
+    name: "Infrared",
+    description:
+      "(Everyone) The whole spectrum shifts down. Every card plays 2 lower than its face value, so a 2 becomes a 0 and cancels, and a 0 becomes a -2.",
+  },
+  equalize: {
+    id: "equalize",
+    name: "Equalize",
+    description:
+      "(Everyone) Signals level out. Each turn, players who score above zero all get the average of those positive scores.",
+  },
+};
+
+export const ROUND_POWER_IDS = Object.keys(ROUND_POWERS) as RoundPowerId[];

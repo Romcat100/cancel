@@ -409,11 +409,12 @@ async function waitOpaque(page, id) {
   );
 }
 
-// Interference reskin coverage. Phase A (powerups Random) reaches the round-start
-// pool preview + the in-game pool. Phase B (powerups off, 2 rounds vs 1 AI) plays
-// a whole game to reach a settled reveal, the round-results summary, and game over.
+// Interference reskin coverage. Phase A (powerups Random) reaches the Choose
+// modal, the round-start round-power preview, and the in-game round-power banner.
+// Phase B (powerups off, 2 rounds vs 1 AI) plays a whole game to reach a settled
+// reveal, the round-results summary, and game over.
 async function interferenceFlow(browser) {
-  // --- Phase A: pool preview + pool UI ---
+  // --- Phase A: round-power select modal + preview + banner ---
   const a = await newPlayer(browser, "Solo");
   await waitForText(a, "CANCEL");
   await shot(a, "home"); // the entry menu
@@ -421,16 +422,27 @@ async function interferenceFlow(browser) {
   await typeInto(a, tid("home-name-input"), "Solo");
   await clickTestId(a, "home-start-single");
   await a.waitForSelector(tid("lobby-solo-header"), { timeout: 10_000 });
+  // Cheap coverage of the Choose roster modal, then back to Random.
+  await clickTestId(a, "lobby-powerup-selected");
+  await a.waitForSelector(tid("round-power-select-modal"), { timeout: 10_000 });
+  await waitOpaque(a, "round-power-select-modal");
+  await shot(a, "round-power-select", { fullPage: false });
+  await clickTestId(a, "round-power-select-save");
+  await a.waitForFunction(
+    () => !document.querySelector('[data-testid="round-power-select-modal"]'),
+    { timeout: 10_000 },
+  );
   await clickTestId(a, "lobby-powerup-random");
-  await shot(a, "lobby-solo-random"); // lobby with a random power-up pool
+  await shot(a, "lobby-solo-random"); // lobby with a random round power
   await clickTestId(a, "lobby-start-game");
-  await a.waitForSelector(tid("pool-preview-modal"), { timeout: 10_000 });
-  await waitOpaque(a, "pool-preview-modal");
-  await shot(a, "round-start-preview", { fullPage: false }); // "this round's powers"
-  await clickTestId(a, "pool-preview-play");
+  await a.waitForSelector(tid("round-power-preview-modal"), { timeout: 10_000 });
+  await waitOpaque(a, "round-power-preview-modal");
+  await shot(a, "round-start-preview", { fullPage: false }); // "this round's power"
+  await clickTestId(a, "round-power-preview-play");
   await a.waitForSelector(tid("game-submit"), { timeout: 10_000 });
+  await a.waitForSelector(tid("game-round-power"), { timeout: 10_000 });
   await waitForText(a, "SUBMITTED");
-  await shot(a, "game-turn-with-pool"); // the turn screen showing the power pool
+  await shot(a, "game-turn-with-round-power"); // the turn screen showing the round-power banner
 
   // --- Phase B: full playthrough to round results + game over ---
   const b = await newPlayer(browser, "Solo");
@@ -444,6 +456,9 @@ async function interferenceFlow(browser) {
   await clickTestId(b, "lobby-powerup-off");
   await clickTestId(b, "lobby-start-game");
   await b.waitForSelector(tid("game-submit"), { timeout: 10_000 });
+  if (await has(b, "game-round-power")) {
+    throw new Error("round-power banner rendered in powerups-off mode");
+  }
 
   let revealShot = false;
   let roundShot = false;

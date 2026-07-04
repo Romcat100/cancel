@@ -94,6 +94,7 @@ export function projectStateForPlayer(
         reveals: round.reveals.map((rv) => toRevealedTurn(rv, round.index)),
         roundScores: round.perPlayerRoundScore,
         endAcksBy: round.endAcksBy,
+        roundPower: round.roundPower,
       }
     : undefined;
 

@@ -8,12 +8,13 @@ import {
   removePlayer,
   resetToLobby,
   setBotCount,
+  setRoomConfig,
   startGame,
   stepDownHost,
   submitTurn,
   type RoomDoc,
 } from "./engine.js";
-import { POWER_UPS, type PowerUpId } from "../../../shared/types.js";
+import { POWER_UPS, ROUND_POWER_IDS, type PowerUpId, type RoundPowerId } from "../../../shared/types.js";
 
 function room3p(): RoomDoc {
   let r = createRoom({ code: "ABCD", hostId: "A", hostName: "Alice", rounds: 3, turnDeadlineMs: null });
@@ -134,12 +135,15 @@ describe("engine lifecycle", () => {
     expect(() => addPlayer(r, "B", "alice")).toThrow(/Name taken/);
   });
 
-  it("startGame deals N+2 cards and N+2 power-ups; first picker is seat 0", () => {
+  it("startGame deals N+2 cards, an empty pool, and rolls a round power; first picker is seat 0", () => {
     const r = startGame0(room3p());
     expect(r.phase).toBe("turn_submitting");
     const round = r.rounds[0];
-    expect(round.poolFull).toHaveLength(5);
-    expect(round.poolRemaining).toHaveLength(5);
+    // Per-turn pools are dormant: never dealt. The round power replaces them.
+    expect(round.poolFull).toEqual([]);
+    expect(round.poolRemaining).toEqual([]);
+    // startGame0 pins rng to 0, so random mode rolls the first roster entry.
+    expect(round.roundPower).toBe(ROUND_POWER_IDS[0]);
     expect(round.hands["A"]).toEqual([0, 1, 2, 3, 4]);
     expect(round.rotation).toHaveLength(5);
     expect(round.rotation[0]).toBe("A");
@@ -150,49 +154,86 @@ describe("engine lifecycle", () => {
     expect(() => startGame0(r)).toThrow(/2 players/);
   });
 
-  it("off mode deals an empty pool", () => {
+  it("off mode deals an empty pool and rolls no round power", () => {
     let r = createRoom({ code: "OFF1", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, powerUpMode: "off" });
     r = addPlayer(r, "B", "Bob");
     r = addPlayer(r, "C", "Carol");
     r = startGame0(r);
     expect(r.rounds[0].poolFull).toEqual([]);
+    expect(r.rounds[0].roundPower).toBeUndefined();
   });
 
-  it("selected mode draws only from the chosen allow-list (repeating to fill)", () => {
-    const allow: PowerUpId[] = ["double", "plus_two"];
-    let r = createRoom({ code: "SEL1", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, powerUpMode: "selected", selectedPowerUps: allow });
+  it("random mode rolls a round power from the full roster", () => {
+    // rng 0.999 → the last roster entry; the roll is rng-threaded through startGame.
+    let r = createRoom({ code: "RND1", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null });
+    r = addPlayer(r, "B", "Bob");
+    r = startGame(r, () => 0.999);
+    expect(r.rounds[0].roundPower).toBe(ROUND_POWER_IDS[ROUND_POWER_IDS.length - 1]);
+    expect(ROUND_POWER_IDS).toContain(r.rounds[0].roundPower!);
+  });
+
+  it("selected mode rolls only from the curated round-power list", () => {
+    const allow: RoundPowerId[] = ["harmony", "static"];
+    let r = createRoom({ code: "SEL1", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, powerUpMode: "selected", selectedRoundPowers: allow });
     r = addPlayer(r, "B", "Bob");
     r = addPlayer(r, "C", "Carol");
-    r = startGame0(r);
-    const pool = r.rounds[0].poolFull;
-    expect(pool).toHaveLength(5); // handSize 5, repeats the 2 chosen powers
-    expect(pool.every((p) => allow.includes(p))).toBe(true);
-    expect(new Set(pool)).toEqual(new Set(allow));
+    // rng 0.6 → floor(0.6 * 2) = index 1 of the curated list.
+    r = startGame(r, () => 0.6);
+    expect(r.rounds[0].roundPower).toBe("static");
+    expect(r.rounds[0].poolFull).toEqual([]);
   });
 
-  it("2-player selected mode filters out Peek and Sabotage", () => {
-    const allow: PowerUpId[] = ["peek", "sabotage", "double"];
-    let r = createRoom({ code: "SEL2", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, powerUpMode: "selected", selectedPowerUps: allow });
+  it("rejects starting when selected mode has no round powers chosen (legacy per-turn list doesn't count)", () => {
+    // A legacy lobby may still carry selectedPowerUps; only selectedRoundPowers matters now.
+    let r = createRoom({ code: "SEL3", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, powerUpMode: "selected", selectedPowerUps: ["double"] });
     r = addPlayer(r, "B", "Bob");
-    r = startGame0(r);
-    const pool = r.rounds[0].poolFull;
-    expect(pool).not.toContain("peek");
-    expect(pool).not.toContain("sabotage");
-    expect(pool.every((p) => p === "double")).toBe(true);
-  });
-
-  it("rejects starting when a selected pool is effectively empty", () => {
-    // Only Peek+Sabotage chosen in a 2-player game leaves nothing to deal.
-    let r = createRoom({ code: "SEL3", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, powerUpMode: "selected", selectedPowerUps: ["peek", "sabotage"] });
-    r = addPlayer(r, "B", "Bob");
-    expect(() => startGame0(r)).toThrow(/at least one power-up/);
+    expect(() => startGame0(r)).toThrow(/at least one round power/);
   });
 
   it("rejects starting when selected mode has no powers chosen", () => {
-    let r = createRoom({ code: "SEL4", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, powerUpMode: "selected", selectedPowerUps: [] });
+    let r = createRoom({ code: "SEL4", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, powerUpMode: "selected", selectedRoundPowers: [] });
     r = addPlayer(r, "B", "Bob");
     r = addPlayer(r, "C", "Carol");
-    expect(() => startGame0(r)).toThrow(/at least one power-up/);
+    expect(() => startGame0(r)).toThrow(/at least one round power/);
+  });
+
+  it("setRoomConfig round-trips selectedRoundPowers", () => {
+    let r = room3p();
+    r = setRoomConfig(r, { powerUpMode: "selected", selectedRoundPowers: ["amplify", "equalize"] });
+    expect(r.config.powerUpMode).toBe("selected");
+    expect(r.config.selectedRoundPowers).toEqual(["amplify", "equalize"]);
+    // Untouched by an unrelated patch.
+    r = setRoomConfig(r, { rounds: 2 });
+    expect(r.config.selectedRoundPowers).toEqual(["amplify", "equalize"]);
+  });
+
+  it("the next round re-rolls the round power", () => {
+    let r = startGame0(room3p());
+    expect(r.rounds[0].roundPower).toBe(ROUND_POWER_IDS[0]);
+    // Fast-forward to a finished round, then ack everyone through with a pinned rng.
+    r = { ...r, phase: "round_end" };
+    for (const p of r.players) r = ackRoundEnd(r, p.id, () => 0.999);
+    expect(r.currentRoundIndex).toBe(1);
+    expect(r.rounds[1].roundPower).toBe(ROUND_POWER_IDS[ROUND_POWER_IDS.length - 1]);
+  });
+
+  it("resolveTurn scores under the round power (amplify doubles, harmony pays ties)", () => {
+    let r = startGame0(room3p());
+    r.rounds[0].roundPower = "amplify";
+    r = submitTurn(r, { playerId: "A", number: 4 });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+    const lines = Object.fromEntries(r.rounds[0].reveals[0].scoreLines.map((l) => [l.playerId, l.delta]));
+    expect(lines).toEqual({ A: 8, B: 6, C: 4 });
+    expect(r.rounds[0].perPlayerRoundScore).toEqual({ A: 8, B: 6, C: 4 });
+
+    let h = startGame0(room3p());
+    h.rounds[0].roundPower = "harmony";
+    h = submitTurn(h, { playerId: "A", number: 4 });
+    h = submitTurn(h, { playerId: "B", number: 4 });
+    h = submitTurn(h, { playerId: "C", number: 2 });
+    const hLines = Object.fromEntries(h.rounds[0].reveals[0].scoreLines.map((l) => [l.playerId, l.delta]));
+    expect(hLines).toEqual({ A: 2, B: 2, C: 2 });
   });
 
   it("custom number mode deals [0, ...customNumbers] sorted to every player", () => {
@@ -232,7 +273,7 @@ describe("engine lifecycle", () => {
   });
 
   it("submitting a number locks it in; turn auto-resolves when everyone has submitted", () => {
-    let r = startGame0(room3p());
+    let r = forceSafePool(startGame0(room3p()));
     const picker = r.rounds[0].rotation[0];
     expect(picker).toBe("A");
     const power = pickSafePower(r.rounds[0].poolRemaining);
@@ -250,15 +291,22 @@ describe("engine lifecycle", () => {
     expect(r.rounds[0].hands["A"]).toEqual([0, 1, 2, 3]);
   });
 
-  it("non-pickers cannot play power-ups", () => {
-    const r = startGame0(room3p());
+  it("non-pickers cannot play power-ups (dormant per-turn rule, forced pool)", () => {
+    const r = forceSafePool(startGame0(room3p()));
     const power = pickSafePower(r.rounds[0].poolRemaining);
     expect(() => submitTurn(r, { playerId: "B", number: 0, powerUp: power })).toThrow(/picker/);
   });
 
-  it("picker must pick a power-up while pool is non-empty", () => {
-    const r = startGame0(room3p());
+  it("picker must pick a power-up while pool is non-empty (dormant per-turn rule, forced pool)", () => {
+    const r = forceSafePool(startGame0(room3p()));
     expect(() => submitTurn(r, { playerId: "A", number: 0 })).toThrow(/must pick/);
+  });
+
+  it("picker submits a plain number when the pool is empty (the live round-power flow)", () => {
+    let r = startGame0(room3p());
+    r = submitTurn(r, { playerId: "A", number: 4 });
+    expect(r.pendingSubmissions["A"]?.number).toBe(4);
+    expect(r.pendingSubmissions["A"]?.powerUp).toBeUndefined();
   });
 
   it("rejects already-submitted player", () => {
@@ -929,18 +977,12 @@ describe("random_ray", () => {
 
   it("works in a 2-player game", () => {
     vi.spyOn(Math, "random").mockReturnValue(0 / 4); // 2p pool is 0..3 (handSize 4); rolls a 0
-    let r = createRoom({
-      code: "RR2P",
-      hostId: "A",
-      hostName: "Alice",
-      rounds: 1,
-      turnDeadlineMs: null,
-      powerUpMode: "selected",
-      selectedPowerUps: ["random_ray", "double"],
-    });
+    let r = createRoom({ code: "RR2P", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null });
     r = addPlayer(r, "B", "Bob");
     r = startGame0(r);
-    expect(r.rounds[0].poolFull).toContain("random_ray");
+    // Pools are dormant (never dealt); force one so the per-turn power stays testable.
+    r.rounds[0].poolFull = ["random_ray", "double", "double", "double"];
+    r.rounds[0].poolRemaining = [...r.rounds[0].poolFull];
 
     r = submitTurn(r, { playerId: "A", number: 3, powerUp: "random_ray", powerUpTarget: "B" });
     r = submitTurn(r, { playerId: "B", number: 1 });
@@ -1033,18 +1075,12 @@ describe("switch_cards", () => {
   });
 
   it("works in a 2-player game", () => {
-    let r = createRoom({
-      code: "SC2P",
-      hostId: "A",
-      hostName: "Alice",
-      rounds: 1,
-      turnDeadlineMs: null,
-      powerUpMode: "selected",
-      selectedPowerUps: ["switch_cards", "double"],
-    });
+    let r = createRoom({ code: "SC2P", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null });
     r = addPlayer(r, "B", "Bob");
     r = startGame0(r);
-    expect(r.rounds[0].poolFull).toContain("switch_cards");
+    // Pools are dormant (never dealt); force one so the per-turn power stays testable.
+    r.rounds[0].poolFull = ["switch_cards", "double", "double", "double"];
+    r.rounds[0].poolRemaining = [...r.rounds[0].poolFull];
 
     r = submitTurn(r, { playerId: "A", number: 3, powerUp: "switch_cards", powerUpTarget: "B" });
     r = submitTurn(r, { playerId: "B", number: 1 });
@@ -1148,18 +1184,9 @@ describe("swap_hands", () => {
   });
 
   it("works in a 2-player game (not in TWO_PLAYER_EXCLUDED)", () => {
-    let r = createRoom({
-      code: "SW2P",
-      hostId: "A",
-      hostName: "Alice",
-      rounds: 1,
-      turnDeadlineMs: null,
-      powerUpMode: "selected",
-      selectedPowerUps: ["swap_hands", "double"],
-    });
+    let r = createRoom({ code: "SW2P", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null });
     r = addPlayer(r, "B", "Bob");
     r = startGame0(r);
-    expect(r.rounds[0].poolFull).toContain("swap_hands");
 
     r.rounds[0].hands["A"] = [0, 2, 3];
     r.rounds[0].hands["B"] = [1, 4, 5];

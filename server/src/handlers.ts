@@ -172,6 +172,7 @@ export function apiCreateRoom(req: CreateRoomReq, ctx: ApiCtx) {
   const turnDeadlineMs = req.turnDeadlineMs ?? null;
   const powerUpMode = req.powerUpMode ?? "random";
   const selectedPowerUps = req.selectedPowerUps ?? [];
+  const selectedRoundPowers = req.selectedRoundPowers ?? [];
   const showHands = req.showHands ?? true;
   const numberMode = req.numberMode ?? "default";
   const customNumbers = req.customNumbers ?? [];
@@ -183,6 +184,7 @@ export function apiCreateRoom(req: CreateRoomReq, ctx: ApiCtx) {
     turnDeadlineMs,
     powerUpMode,
     selectedPowerUps,
+    selectedRoundPowers,
     showHands,
     numberMode,
     customNumbers,
@@ -256,6 +258,7 @@ export function apiSetRoomConfig(req: SetRoomConfigReq, ctx: ApiCtx) {
     rounds: req.rounds,
     powerUpMode: req.powerUpMode,
     selectedPowerUps: req.selectedPowerUps,
+    selectedRoundPowers: req.selectedRoundPowers,
     showHands: req.showHands,
     numberMode: req.numberMode,
     customNumbers: req.customNumbers,

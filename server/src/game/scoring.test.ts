@@ -690,3 +690,239 @@ describe("scoreTurn — Sacrifice", () => {
     expect(points(r)).toEqual({ A: 0, B: 0 });
   });
 });
+
+describe("scoreTurn — round powers", () => {
+  it("pure_tone is identical to no power (uniques, a tie, a lone-0 cancel)", () => {
+    const plays = [
+      { playerId: "A", number: 4 },
+      { playerId: "B", number: 4 },
+      { playerId: "C", number: 3 },
+    ];
+    expect(points(scoreTurn(plays, undefined, "pure_tone"))).toEqual(points(scoreTurn(plays)));
+    const cancelPlays = [
+      { playerId: "A", number: 0 },
+      { playerId: "B", number: 5 },
+      { playerId: "C", number: 3 },
+    ];
+    expect(points(scoreTurn(cancelPlays, undefined, "pure_tone"))).toEqual(
+      points(scoreTurn(cancelPlays)),
+    );
+  });
+
+  it("harmony: a tied pair scores 2 each, uniques unaffected", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 4 },
+        { playerId: "B", number: 4 },
+        { playerId: "C", number: 3 },
+      ],
+      undefined,
+      "harmony",
+    );
+    expect(points(r)).toEqual({ A: 2, B: 2, C: 3 });
+  });
+
+  it("harmony: a three-way tie scores 2 each", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 5 },
+        { playerId: "B", number: 5 },
+        { playerId: "C", number: 5 },
+      ],
+      undefined,
+      "harmony",
+    );
+    expect(points(r)).toEqual({ A: 2, B: 2, C: 2 });
+  });
+
+  it("harmony: matching zeros score 2 each and still don't cancel", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 0 },
+        { playerId: "B", number: 0 },
+        { playerId: "C", number: 5 },
+      ],
+      undefined,
+      "harmony",
+    );
+    expect(points(r)).toEqual({ A: 2, B: 2, C: 5 });
+  });
+
+  it("harmony does not rescue cards cancelled by a lone 0", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 0 },
+        { playerId: "B", number: 3 },
+        { playerId: "C", number: 3 },
+      ],
+      undefined,
+      "harmony",
+    );
+    // B and C tie, but the lone 0 cancels the whole board before ties matter.
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
+  });
+
+  it("harmony notes avoid the client's cancelled-treatment substrings", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 4 },
+        { playerId: "B", number: 4 },
+        { playerId: "C", number: 0 },
+        { playerId: "D", number: 0 },
+      ],
+      undefined,
+      "harmony",
+    );
+    for (const l of r.lines) {
+      for (const n of l.notes) {
+        expect(n.startsWith("Tied")).toBe(false);
+        expect(n.includes("cancel suppressed")).toBe(false);
+      }
+    }
+  });
+
+  it("amplify doubles unique scores; tied and cancelled stay 0", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 4 },
+        { playerId: "B", number: 4 },
+        { playerId: "C", number: 3 },
+      ],
+      undefined,
+      "amplify",
+    );
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 6 });
+  });
+
+  it("amplify doubles negative deltas too", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 4, powerUp: "sacrifice" },
+        { playerId: "B", number: 3 },
+        { playerId: "C", number: 5 },
+      ],
+      undefined,
+      "amplify",
+    );
+    // Sacrifice lands: B (3-4=-1) and C (5-4=1), then amplify doubles both.
+    expect(points(r)).toEqual({ A: 0, B: -2, C: 2 });
+  });
+
+  it("static: a lone 0 no longer cancels; everyone scores normally", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 0 },
+        { playerId: "B", number: 5 },
+        { playerId: "C", number: 3 },
+      ],
+      undefined,
+      "static",
+    );
+    expect(points(r)).toEqual({ A: 0, B: 5, C: 3 });
+    const zeroLine = r.lines.find((l) => l.playerId === "A")!;
+    expect(zeroLine.notes.join(" ")).toContain("Static");
+  });
+
+  it("infrared: every face drops 2; a 2 becomes a 0 and cancels the board", () => {
+    const flat = scoreTurn(
+      [
+        { playerId: "A", number: 4 },
+        { playerId: "B", number: 5 },
+        { playerId: "C", number: 3 },
+      ],
+      undefined,
+      "infrared",
+    );
+    expect(points(flat)).toEqual({ A: 2, B: 3, C: 1 });
+
+    const cancel = scoreTurn(
+      [
+        { playerId: "A", number: 2 },
+        { playerId: "B", number: 5 },
+        { playerId: "C", number: 4 },
+      ],
+      undefined,
+      "infrared",
+    );
+    expect(points(cancel)).toEqual({ A: 0, B: 0, C: 0 });
+  });
+
+  it("infrared: a 0 scores -2 when nothing cancels, and ties use shifted faces", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 0 },
+        { playerId: "B", number: 5 },
+        { playerId: "C", number: 3 },
+      ],
+      undefined,
+      "infrared",
+    );
+    // A's 0 becomes -2 (no cancel), B's 5 becomes 3, C's 3 becomes 1.
+    expect(points(r)).toEqual({ A: -2, B: 3, C: 1 });
+
+    const tied = scoreTurn(
+      [
+        { playerId: "A", number: 6 },
+        { playerId: "B", number: 6 },
+        { playerId: "C", number: 3 },
+      ],
+      undefined,
+      "infrared",
+    );
+    expect(points(tied)).toEqual({ A: 0, B: 0, C: 1 });
+  });
+
+  it("equalize: positive scorers get the floored average, others untouched", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 6 },
+        { playerId: "B", number: 3 },
+        { playerId: "C", number: 2 },
+        { playerId: "D", number: 2 },
+      ],
+      undefined,
+      "equalize",
+    );
+    // A 6 + B 3 average to floor(9/2) = 4; the tied 2s stay at 0.
+    expect(points(r)).toEqual({ A: 4, B: 4, C: 0, D: 0 });
+  });
+
+  it("dormant composition: per-play double + amplify stack to x4", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 4, powerUp: "double" },
+        { playerId: "B", number: 3 },
+        { playerId: "C", number: 5 },
+      ],
+      undefined,
+      "amplify",
+    );
+    expect(points(r)).toEqual({ A: 16, B: 12, C: 20 });
+  });
+
+  it("dormant composition: tie_die user keeps card value under harmony, others get 2", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 4, powerUp: "tie_die" },
+        { playerId: "B", number: 4 },
+        { playerId: "C", number: 3 },
+      ],
+      undefined,
+      "harmony",
+    );
+    expect(points(r)).toEqual({ A: 4, B: 2, C: 3 });
+  });
+
+  it("dormant composition: per-play negate_zero + static is idempotent", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 0, powerUp: "negate_zero" },
+        { playerId: "B", number: 5 },
+        { playerId: "C", number: 3 },
+      ],
+      undefined,
+      "static",
+    );
+    expect(points(r)).toEqual({ A: 0, B: 5, C: 3 });
+  });
+});

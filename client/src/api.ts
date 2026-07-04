@@ -1,5 +1,5 @@
 import type { CreateRoomRes, JoinRoomRes } from "../../shared/protocol.js";
-import type { NumberMode, PowerUpId, PowerUpMode, RoomStateForPlayer } from "../../shared/types.js";
+import type { NumberMode, PowerUpId, PowerUpMode, RoomStateForPlayer, RoundPowerId } from "../../shared/types.js";
 
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, {
@@ -29,6 +29,7 @@ export const api = {
       rounds?: number;
       powerUpMode?: PowerUpMode;
       selectedPowerUps?: PowerUpId[];
+      selectedRoundPowers?: RoundPowerId[];
       showHands?: boolean;
       numberMode?: NumberMode;
       customNumbers?: number[];

@@ -1,6 +1,6 @@
 # Cancel
 
-A multiplayer browser game where everyone secretly picks a number, then reveals at once. If two players pick the same number, both score zero. The `0` card is "Cancel" — one zero negates everyone else's points; two or more zeros cancel each other out and the rest of the table scores normally. Power-ups (`×2`, `Tie Die`, `Negate Zero`, `+2`, `Mute`, `Peek`, `Sabotage`, etc.) add twists.
+A multiplayer browser game where everyone secretly picks a number, then reveals at once. If two players pick the same number, both score zero. The `0` card is "Cancel" — one zero negates everyone else's points; two or more zeros cancel each other out and the rest of the table scores normally. Each round a random **round power** (Harmony, Amplify, Static, Infrared, Equalize, or plain Pure Tone) bends the scoring rules for everyone.
 
 The same engine supports both **live** play (everyone in the room at once) and **async** play (over hours/days — close your browser, come back later, your seat reclaims itself).
 
@@ -33,13 +33,12 @@ You can play **solo against AI** from the Home screen (tap **Single player**), o
 
 1. **Create a room** → you get a 4-character code.
 2. **Share the code** with friends; they tap "Join with code" on the same site.
-3. In the lobby, the **Rules** button opens a full how-to-play overlay. The host sets the round count (1-5, default 3), picks the number pool (the standard set or a host-chosen custom set), and chooses a power-up mode: **None** (pure numbers, no powers dealt), **Random** (a random pool each round), or **Choose** (hand-pick which powers can appear). The same Rules button is in the in-game header so anyone can re-read the rules mid-match.
-4. **Host taps Start.** When power-ups are on, a "This round's powers" screen shows what's in this round's pool — tap any card to read what it does, then tap Let's play. (Skipped when power-ups are off.)
+3. In the lobby, the **Rules** button opens a full how-to-play overlay. The host sets the round count (1-5, default 3), picks the number pool (the standard set or a host-chosen custom set), and chooses a round-power mode: **None** (pure numbers, no powers), **Random** (one random power drawn each round), or **Choose** (hand-pick which powers can appear). The same Rules button is in the in-game header so anyone can re-read the rules mid-match.
+4. **Host taps Start.** When round powers are on, a "This round's power" screen reveals the power drawn for the round and what it does, then a banner keeps it visible for the whole round. (Skipped when powers are off.)
 5. **Each turn:**
    - Everyone privately picks a number from their hand. Each player's remaining hand is shown publicly under their name so you can see what cards your opponents still have.
-   - With power-ups on, a picker rotates each turn (shown by a **PICK** badge) and additionally picks one power-up from the pool — face-up to all so others know what's available, but only the picker plays it. With power-ups off, there's no picker — every turn is a pure simultaneous number pick.
    - You can **un-lock** your submission by tapping the locked-in button — as long as the turn hasn't fully resolved (i.e. not everyone has locked in yet), you can change your pick.
-   - When all submissions are in, numbers and the played power-up flip face-up at once, scores tally, the next turn starts. (Exception: if **Peek** was played, the peeker is sent back to thinking with their target's number revealed; everyone waits while they re-pick.)
+   - When all submissions are in, the numbers flip face-up at once, scores tally under the round power's rules, and the next turn starts.
 6. **End of round** — a tally screen shows what each player scored that round and the running totals. Tap **Next round** when you're ready; the round advances when all players are.
 7. **Each round is (N+2) turns; the host picks 1-5 rounds (default 3).** Highest total wins.
 
@@ -49,39 +48,22 @@ You can play **solo against AI** from the Home screen (tap **Single player**), o
 - **Unique numbers:** score equals card value.
 - **One `0`:** all other players score 0 this turn.
 - **Two or more `0`s:** the cancel effect is suppressed; standard rules apply.
-- **Power-ups** modify the above — see below.
+- **Round powers** modify the above — see below.
 
-## Power-ups
+## Round powers
 
-Power-ups are on by default. In the lobby the host picks a mode: **None** (a pure-numbers game), **Random** (a random subset dealt each round), or **Choose** (the host hand-picks which powers can appear in the pool).
+Round powers are on by default. In the lobby the host picks a mode: **None** (a pure-numbers game), **Random** (one power drawn at random each round), or **Choose** (the host hand-picks which powers can appear).
 
-When on: at the start of each round, `N+2` power-ups are dealt face-up. They stay face-up the whole round so everyone sees what's still in the pool. Press any card to read its description. Only the picker for each turn (rotation shifts every round) can actually play one. Power-ups resolve at the same instant numbers do, except for **Peek** which pauses the turn for a re-pick.
+When on: at the start of each round, one power is drawn and shown to everyone. It applies to every player, on every turn of that round. A banner keeps it visible during play and on each reveal.
 
-| Card | What it does |
+| Power | What it does |
 |---|---|
-| **Double** (`×2`) | Every player's scored points this turn are multiplied by 2. Time it for a turn you expect to play a unique high card, but note it doubles your opponents' scores too. |
-| **Tie Die** (`▽`) | Your card still scores its full value even if you tied with another player, and your `0` still cancels everyone even if another player also plays a `0`. Opponents who tied with you still score 0. Only your own tie/zero penalty is removed. |
-| **Negate Zero** (`Ø!`) | All `0` cards are inert this turn, with no cancel effect. Use it to neuter someone's expected `0` play, or to play your own `0` safely without wasting it. |
-| **Plus Two** (`+2`) | Bumps your card's face value up by 2. A `0` becomes `2` (so it no longer cancels), a `3` becomes `5`, and so on. Tie checks use the bumped value, so a Plus Two `0` ties with someone else's `2`. |
-| **Free Three** (`3`) | Plays a virtual `3` alongside your card. If nobody plays a 3, you gain `+3`. If anyone plays a 3 (including you), that 3 cancels with the virtual 3 and the bonus is lost. |
-| **Make Negative** (`−`) | All scored points this turn are inverted (positive becomes negative). Useful when you expect to be cancelled or tied (you score 0 either way) while your opponents are about to score big. |
-| **Minus Two** (`−2`) | Universal mirror of Plus Two: every player's face value drops by 2. A played `2` becomes `0` and now cancels everyone, a `5` becomes `3`, a `0` becomes `−2` and no longer cancels. Tie checks, scoring, and the cancel effect all use the lowered value. |
-| **Peek** (`◎`) | Pick an opponent. After everyone submits this turn, you privately see what they played and your own submission is wiped, then you re-pick a number while everyone waits. The cost is everyone has to pause for you. |
-| **Mute** (`⌖`) | A chosen opponent's card is treated as `0`-value, non-cancel, this turn. Wipes their score, removes their `0` cancel if they played one, and breaks any tie they would have caused on their card's face. |
-| **Slide** (`↻`) | Everyone's score this turn slides one seat. Your score goes to the next player, and you receive the previous player's score. Whether you "win" depends on who's behind you in seat order. |
-| **Equalize** (`≈`) | Every player who scored above zero this turn receives the *average* of those positive scores. High earners come down, low earners come up. Cancelled and tied players are unaffected. |
-| **Sabotage** (`✖`) | Pick an opponent AND choose which card from their visible hand they'll play this turn. Their submitted pick is overridden and they don't find out until the reveal. Their original choice stays in their hand for a future turn. |
-| **Flip** (`⇋`) | Every card's face value is mirrored across the range, so a `0` becomes the high card and the high card becomes a `0`. Tie checks, scoring, and the cancel effect all use the mirrored values. |
-| **Drain** (`↧`) | Pick an opponent. Your card's face value goes up by 1 and theirs goes down by 1 for this turn. The new values flow into scoring, ties, and the cancel effect, so a target who played a `1` becomes a board-cancelling `0`. |
-| **Jinx** (`=`) | Tying pays off instead of wiping you out. Each opponent who plays your number adds `+2` to your score, on top of your card's value. If nobody ties, your card scores as normal. |
-| **Wild** (`?`) | Rolls a random power from the rest of the set and plays that instead. Targeted powers (Peek, Mute, Sabotage, Drain) are excluded from the roll, since Wild is submitted without a target. |
-| **Swap hands** (`⇄`) | Pick an opponent. After this turn's cards are played, swap your remaining hand with theirs for the rest of the round. |
-| **Switch cards** (`⇌`) | Pick an opponent. This turn you score the number they chose and they score yours. Each of you still discards your own original card. |
-| **Sacrifice** (`†`) | Your card scores 0. Every other player loses your card's face value from their score this turn. Martyr a high card to drag the table down. |
-| **Random Ray** (`↯`) | Pick any target, yourself included. Their score this turn becomes a random draw from the game's full number pool. Their original card still leaves their hand. |
-| **Nothing Burger** (`∅`) | Does nothing at all. Your card scores exactly as if you'd played no power-up. It exists so the picker can deliberately decline to use the turn's power slot. |
-
-The pool is drawn from this 21-card master list, a random subset each round (or the host's chosen subset in **Choose** mode). (In 2-player games, **Peek** and **Sabotage** are excluded as they're too dominant 1-on-1.)
+| **Pure Tone** (`~`) | A clean signal. No power this round, every card scores by the normal rules. |
+| **Harmony** (`≋`) | Tied cards resonate instead of cancelling. Every card that ties this round scores 2 points, including matching zeros. A lone `0` still cancels the board. |
+| **Amplify** (`×2`) | The signal is boosted. Every point scored this round is doubled, gains and losses alike. |
+| **Static** (`Ø!`) | Zeros are lost in the noise. A `0` is inert this round and cancels nothing. |
+| **Infrared** (`−2`) | The whole spectrum shifts down. Every card plays 2 lower than its face value, so a `2` becomes a `0` and cancels, and a `0` becomes a `−2`. Ties use the shifted values. |
+| **Equalize** (`≈`) | Signals level out. Each turn, players who score above zero all get the average of those positive scores. Cancelled and tied players are unaffected. |
 
 ## Project layout
 
@@ -103,7 +85,7 @@ Game state is persisted in `server/data/cancel.sqlite` so games survive server r
 
 - **Web Push notifications** ("your turn!" pings when offline). The PWA manifest is in place, so the app installs to a home screen, but push subscriptions and the VAPID key flow are not wired up yet.
 - **Per-turn deadlines / auto-skip** for stuck async games — the current model just waits.
-- **Player-count limits and other rule tuning** still live only in code (`server/src/game/engine.ts`). Round count (1-5), the power-up mode/subset, and a custom number pool are now host-configurable in the lobby.
+- **Player-count limits and other rule tuning** still live only in code (`server/src/game/engine.ts`). Round count (1-5), the round-power mode/roster, and a custom number pool are now host-configurable in the lobby.
 - **Sounds, music, theming.**
 
 ## Mobile PWA

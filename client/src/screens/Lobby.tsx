@@ -2,15 +2,26 @@ import { useState } from "react";
 import { api } from "../api.js";
 import { useAppStore } from "../store.js";
 import { getIdentity } from "../identity.js";
-import { MusicToggle, NumberCard, PowerGlyph, Rules, ScopedDescription, seatColor } from "../components.js";
+import {
+  MusicToggle,
+  NumberCard,
+  PowerGlyph,
+  RoundPowerGlyph,
+  Rules,
+  ScopedDescription,
+  roundPowerDef,
+  seatColor,
+} from "../components.js";
 import { Wave } from "../wave.js";
 import {
   POWER_UPS,
   POWER_UP_IDS,
+  ROUND_POWER_IDS,
   TWO_PLAYER_EXCLUDED_POWERS,
   type NumberMode,
   type PowerUpId,
   type PowerUpMode,
+  type RoundPowerId,
 } from "../../../shared/types.js";
 
 const MODES: { mode: PowerUpMode; label: string }[] = [
@@ -56,18 +67,15 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
   const handSize = playerCount + 2;
   const rounds = publicState.config.rounds ?? 3;
   const powerUpMode: PowerUpMode = publicState.config.powerUpMode ?? "random";
-  const selectedPowerUps = publicState.config.selectedPowerUps ?? [];
+  const selectedRoundPowers = publicState.config.selectedRoundPowers ?? [];
   const showHandsOn = publicState.config.showHands !== false;
   const numberMode: NumberMode = publicState.config.numberMode ?? "default";
   const customNumbers = publicState.config.customNumbers ?? [];
   // 0 is always dealt, so a custom set needs one fewer than the hand size.
   const numbersNeeded = handSize - 1;
 
-  // Powers actually in play after the 2-player exclusion (Peek/Sabotage need 3+).
-  const usableSelected = selectedPowerUps.filter(
-    (pid) => playerCount > 2 || !TWO_PLAYER_EXCLUDED_POWERS.includes(pid),
-  );
-  const selectedEmpty = powerUpMode === "selected" && usableSelected.length === 0;
+  // Round powers apply to everyone, so no 2-player exclusion applies.
+  const selectedEmpty = powerUpMode === "selected" && selectedRoundPowers.length === 0;
   const customCountOk = numberMode === "default" || customNumbers.length === numbersNeeded;
   const canStart = playerCount >= 2 && !selectedEmpty && customCountOk;
 
@@ -75,9 +83,11 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
     if (!id || !isHost) return;
     setErr(null);
     try {
-      const patch: { powerUpMode: PowerUpMode; selectedPowerUps?: PowerUpId[] } = { powerUpMode: mode };
-      // First time into Choose, seed the full set so it starts as a valid pool to trim down.
-      if (mode === "selected" && selectedPowerUps.length === 0) patch.selectedPowerUps = [...POWER_UP_IDS];
+      const patch: { powerUpMode: PowerUpMode; selectedRoundPowers?: RoundPowerId[] } = { powerUpMode: mode };
+      // First time into Choose, seed the full roster so it starts valid to trim down.
+      if (mode === "selected" && selectedRoundPowers.length === 0) {
+        patch.selectedRoundPowers = [...ROUND_POWER_IDS];
+      }
       const res = await api.setConfig(publicState.roomCode, id.claimToken, patch);
       setState(res.state);
       if (mode === "selected") setShowPowerModal(true);
@@ -86,14 +96,14 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
     }
   }
 
-  async function savePowers(ids: PowerUpId[]) {
+  async function saveRoundPowers(ids: RoundPowerId[]) {
     if (!id || !isHost) return;
     setSavingPowers(true);
     setErr(null);
     try {
       const res = await api.setConfig(publicState.roomCode, id.claimToken, {
         powerUpMode: "selected",
-        selectedPowerUps: ids,
+        selectedRoundPowers: ids,
       });
       setState(res.state);
       setShowPowerModal(false);
@@ -211,10 +221,10 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
   const modeChip = powerUpMode === "off" ? "off" : powerUpMode === "random" ? "random" : "custom";
   const modeText =
     powerUpMode === "off"
-      ? "No power-ups"
+      ? "No round power"
       : powerUpMode === "random"
-        ? "Random pool each round"
-        : `${usableSelected.length} powers chosen`;
+        ? "Random power each round"
+        : `${selectedRoundPowers.length} powers chosen`;
 
   const numberModeText =
     numberMode === "default"
@@ -227,7 +237,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
     playerCount < 2
       ? "Waiting for players…"
       : selectedEmpty
-        ? "Pick a power-up first"
+        ? "Pick a round power first"
         : !customCountOk
           ? `Pick ${numbersNeeded} numbers first`
           : busy
@@ -387,7 +397,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
         </div>
         {isHost ? (
           <div className="rounded-2xl bg-paper/5 px-4 py-3">
-            <span className="font-bold text-sm">Power-ups</span>
+            <span className="font-bold text-sm">Round power</span>
             <div className="mt-2 grid grid-cols-3 gap-1 rounded-xl bg-paper/10 p-1">
               {MODES.map(({ mode, label }) => {
                 const active = powerUpMode === mode;
@@ -420,24 +430,26 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
                   data-testid="lobby-select-powers"
                 >
                   <span>Select powers</span>
-                  <span className="font-mono text-paper/70">{usableSelected.length} chosen →</span>
+                  <span className="font-mono text-paper/70">{selectedRoundPowers.length} chosen →</span>
                 </button>
                 <p className={`text-xs font-mono ${selectedEmpty ? "text-accent" : "text-paper/40"}`}>
                   {selectedEmpty
-                    ? "Pick at least one power-up to start."
-                    : `Around ${handSize} is one per turn. Fewer repeat, more adds variety.`}
+                    ? "Pick at least one round power to start."
+                    : "One of these is drawn each round."}
                 </p>
               </div>
             ) : (
               <p className="mt-2 text-xs font-mono text-paper/40">
-                {powerUpMode === "off" ? "Pure number picks, no twists." : "A fresh random pool each round."}
+                {powerUpMode === "off"
+                  ? "Pure number picks, no twists."
+                  : "One random power each round. It applies to everyone."}
               </p>
             )}
           </div>
         ) : (
           <div className="rounded-2xl bg-paper/5 px-4 py-3 flex items-center justify-between">
             <div className="flex flex-col">
-              <span className="font-bold text-sm">Power-ups</span>
+              <span className="font-bold text-sm">Round power</span>
               <span className="text-paper/50 text-xs font-mono">{modeText}</span>
             </div>
             <span data-testid="lobby-powerup-chip" className="chip bg-accent/20 text-accent">{modeChip}</span>
@@ -570,12 +582,11 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
 
       {showRules && <Rules onClose={() => setShowRules(false)} includePowerUps={powerUpMode !== "off"} />}
       {showPowerModal && isHost && (
-        <PowerSelectModal
-          players={playerCount}
-          initial={selectedPowerUps}
+        <RoundPowerSelectModal
+          initial={selectedRoundPowers}
           busy={savingPowers}
           onCancel={() => setShowPowerModal(false)}
-          onSave={savePowers}
+          onSave={saveRoundPowers}
         />
       )}
       {showNumberModal && isHost && (
@@ -675,6 +686,129 @@ function NumberSelectModal({
   );
 }
 
+function RoundPowerSelectModal({
+  initial,
+  busy,
+  onCancel,
+  onSave,
+}: {
+  initial: RoundPowerId[];
+  busy: boolean;
+  onCancel: () => void;
+  onSave: (ids: RoundPowerId[]) => void;
+}) {
+  const [draft, setDraft] = useState<Set<RoundPowerId>>(
+    () => new Set(initial.length ? initial : ROUND_POWER_IDS),
+  );
+
+  function toggle(id: RoundPowerId) {
+    setDraft((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const count = draft.size;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-ink/95 backdrop-blur-md flex flex-col animate-rise" data-testid="round-power-select-modal">
+      <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0 border-b border-paper/10">
+        <div>
+          <div className="font-mono text-xs uppercase tracking-[0.3em] text-paper/50">Round power</div>
+          <div className="font-display text-2xl font-bold text-paper">Choose the roster</div>
+        </div>
+        <button className="btn-ghost text-xs px-3 py-2" onClick={onCancel} data-testid="round-power-select-cancel">
+          Cancel
+        </button>
+      </div>
+
+      <div className="px-5 pt-3 pb-2 max-w-md w-full mx-auto shrink-0">
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-paper/60 text-xs leading-snug">
+            One power is drawn per round and applies to everyone. Pick which ones can appear.
+          </p>
+          <div className="flex gap-1.5 shrink-0">
+            <button
+              type="button"
+              className="btn-ghost text-[11px] px-2.5 py-1.5"
+              onClick={() => setDraft(new Set(ROUND_POWER_IDS))}
+              data-testid="round-power-select-all"
+            >
+              All
+            </button>
+            <button
+              type="button"
+              className="btn-ghost text-[11px] px-2.5 py-1.5"
+              onClick={() => setDraft(new Set())}
+              data-testid="round-power-select-none"
+            >
+              None
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 pb-3 max-w-md w-full mx-auto">
+        <ul className="flex flex-col gap-2">
+          {ROUND_POWER_IDS.map((pid) => {
+            const def = roundPowerDef(pid);
+            const checked = draft.has(pid);
+            return (
+              <li key={pid}>
+                <button
+                  type="button"
+                  onClick={() => toggle(pid)}
+                  className={`w-full text-left flex gap-3 items-start rounded-2xl border px-3 py-2.5 transition ${
+                    checked
+                      ? "border-accent/60 bg-accent/10"
+                      : "border-paper/10 bg-paper/5 hover:border-paper/25"
+                  }`}
+                  data-sfx="tap"
+                  data-testid={`round-power-select-option-${pid}`}
+                >
+                  <RoundPowerGlyph id={pid} />
+                  <div className="flex-1 min-w-0">
+                    <span className="font-display font-bold text-paper">{def.name}</span>
+                    <ScopedDescription
+                      description={def.description}
+                      className="text-paper/70 text-xs leading-snug mt-0.5"
+                    />
+                  </div>
+                  <span
+                    className={`shrink-0 mt-0.5 w-6 h-6 rounded-md border flex items-center justify-center text-sm font-bold ${
+                      checked ? "bg-accent border-accent text-ink" : "border-paper/30 text-transparent"
+                    }`}
+                    aria-hidden
+                  >
+                    ✓
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      <div className="px-5 pb-5 pt-3 border-t border-paper/10 max-w-md w-full mx-auto shrink-0 flex items-center gap-3">
+        <span data-testid="round-power-select-count" className="font-mono text-sm text-paper/60 flex-1">{count} selected</span>
+        <button
+          className="btn-primary text-lg py-3 px-6 disabled:opacity-40"
+          disabled={count === 0 || busy}
+          onClick={() => onSave([...draft])}
+          data-sfx="confirm"
+          data-testid="round-power-select-save"
+        >
+          {busy ? "Saving…" : "Save"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Dormant: the per-turn power pool picker, kept for reference alongside the dormant
+// engine path. No longer rendered — the lobby's Choose mode opens RoundPowerSelectModal.
 function PowerSelectModal({
   players,
   initial,

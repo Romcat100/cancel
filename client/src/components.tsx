@@ -1,5 +1,12 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import { POWER_UPS, type PowerUpId, type PowerUpDef } from "../../shared/types.js";
+import {
+  POWER_UPS,
+  ROUND_POWERS,
+  type PowerUpId,
+  type PowerUpDef,
+  type RoundPowerDef,
+  type RoundPowerId,
+} from "../../shared/types.js";
 import { useMusicMuted, useMusicUnlocked } from "./music.js";
 import { Wave, rankForNumber, amplitudePathForScore } from "./wave.js";
 
@@ -160,6 +167,32 @@ function powerDef(id: PowerUpId): PowerUpDef {
   );
 }
 
+// Round powers get their own visual map: the id spaces overlap ("equalize" exists
+// in both PowerUpId and RoundPowerId), so never index POWER_VISUAL/POWER_UPS with
+// a RoundPowerId. Colors reuse the same family language as the per-turn tiles.
+const ROUND_POWER_VISUAL: Record<RoundPowerId, { abbr: string; color: string }> = {
+  pure_tone: { abbr: "~", color: "#7c819c" }, // slate = inert
+  harmony: { abbr: "≋", color: "#4ade80" }, // green = good for you
+  amplify: { abbr: "×2", color: "#ffb84d" }, // amber = amplify (matches double)
+  static: { abbr: "Ø!", color: "#6fa8ff" }, // blue = zero/structural (matches negate_zero)
+  infrared: { abbr: "−2", color: "#ff8095" }, // rose = harm (matches minus_two)
+  equalize: { abbr: "≈", color: "#7fe4ee" }, // teal (matches per-turn equalize)
+};
+
+function roundPowerVisual(id: RoundPowerId): { abbr: string; color: string } {
+  return ROUND_POWER_VISUAL[id] ?? FALLBACK_VISUAL;
+}
+
+export function roundPowerDef(id: RoundPowerId): RoundPowerDef {
+  return (
+    ROUND_POWERS[id] ?? {
+      id,
+      name: "Unknown power",
+      description: "(Everyone) This power is no longer available.",
+    }
+  );
+}
+
 const POWER_CARD_DIM = "w-[68px] h-[88px]";
 const POWER_CARD_DIM_LG = "w-[88px] h-[112px]";
 
@@ -177,6 +210,70 @@ export function PowerGlyph({ id, size = "md" }: { id: PowerUpId; size?: "sm" | "
     <span className={`pcard lit shrink-0 ${dim} rounded-lg`} style={pc(v.color)}>
       <span className="pc-glyph">{v.abbr}</span>
     </span>
+  );
+}
+
+// Round-power siblings of PowerGlyph/PowerUpCard/PowerDescription. The per-turn
+// components stay untouched (dormant, still serving legacy saves); these read the
+// ROUND_POWERS maps instead.
+export function RoundPowerGlyph({ id, size = "md" }: { id: RoundPowerId; size?: "sm" | "md" }) {
+  const v = roundPowerVisual(id);
+  const dim = size === "sm" ? "w-8 h-8 text-xs" : "w-9 h-9 text-sm";
+  return (
+    <span className={`pcard lit shrink-0 ${dim} rounded-lg`} style={pc(v.color)}>
+      <span className="pc-glyph">{v.abbr}</span>
+    </span>
+  );
+}
+
+export function RoundPowerCard({
+  id,
+  onClick,
+  size = "md",
+  testId,
+}: {
+  id: RoundPowerId;
+  onClick?: () => void;
+  size?: "md" | "lg";
+  testId?: string;
+}) {
+  const v = roundPowerVisual(id);
+  const dim = size === "lg" ? POWER_CARD_DIM_LG : POWER_CARD_DIM;
+  const glyphSize = size === "lg" ? "text-3xl" : "text-xl";
+  const nameSize = size === "lg" ? "text-[10px]" : "text-[8.5px]";
+  return (
+    <button
+      type="button"
+      disabled={!onClick}
+      onClick={onClick}
+      className={`pcard lit shrink-0 ${dim} gap-1.5 px-1 ${onClick ? "cursor-pointer" : ""}`}
+      style={pc(v.color)}
+      title={roundPowerDef(id).name}
+      data-sfx="tap"
+      data-testid={testId}
+    >
+      <span className={`pc-glyph ${glyphSize}`}>{v.abbr}</span>
+      <span className={`pc-name ${nameSize} tracking-tight break-words px-0.5`}>{roundPowerDef(id).name}</span>
+    </button>
+  );
+}
+
+export function RoundPowerDescription({ id }: { id: RoundPowerId }) {
+  const def = roundPowerDef(id);
+  const v = roundPowerVisual(id);
+  return (
+    <div className="rounded-2xl border border-paper/15 bg-paper/[.04] p-4 animate-rise">
+      <div className="flex items-center gap-3 mb-2">
+        <div className="pcard lit w-10 h-10 text-base" style={pc(v.color)}>
+          <span className="pc-glyph">{v.abbr}</span>
+        </div>
+        <div className="font-display font-bold text-lg">{def.name}</div>
+      </div>
+      <ScopedDescription
+        description={def.description}
+        className="text-paper/80 text-sm leading-relaxed"
+      />
+    </div>
   );
 }
 
@@ -354,18 +451,21 @@ export function Rules({
   onClose,
   includePowerUps = true,
   pool,
+  roundPower,
 }: {
   onClose: () => void;
   includePowerUps?: boolean;
   pool?: PowerUpId[];
+  roundPower?: RoundPowerId;
 }) {
-  // Dedupe the current round's pool, preserving deal order, with a count per power.
-  const roundPowers: { id: PowerUpId; count: number }[] = [];
+  // Dedupe the (dormant, legacy-only) per-turn pool, preserving deal order.
+  const poolPowers: { id: PowerUpId; count: number }[] = [];
   for (const id of pool ?? []) {
-    const existing = roundPowers.find((p) => p.id === id);
+    const existing = poolPowers.find((p) => p.id === id);
     if (existing) existing.count++;
-    else roundPowers.push({ id, count: 1 });
+    else poolPowers.push({ id, count: 1 });
   }
+  const roundPowerIds = Object.keys(ROUND_POWERS) as RoundPowerId[];
   return (
     <div className="fixed inset-0 z-50 bg-ink/95 backdrop-blur-md flex flex-col animate-rise">
       <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0 border-b border-paper/10">
@@ -421,21 +521,48 @@ export function Rules({
         </RulesSection>
 
         {includePowerUps && (
-          <RulesSection title="Power-ups">
-            At the start of each round, a small pool of power-ups is dealt face-up. On each turn,
-            the player who is the <b>picker</b> for that turn chooses a number <i>and</i> one power-up
-            from the pool. Used power-ups are gone for the rest of the round.
+          <RulesSection title="Round powers">
+            At the start of each round, one power is drawn and shown to everyone. It applies to
+            every player on every turn of that round.
+            <ul className="space-y-3 mt-3">
+              {roundPowerIds.map((id) => {
+                const def = roundPowerDef(id);
+                const isCurrent = roundPower === id;
+                return (
+                  <li
+                    key={id}
+                    className={`flex gap-3 items-start ${isCurrent ? "rounded-xl border border-gold/40 bg-gold/[.06] p-2 -mx-2" : ""}`}
+                  >
+                    <RoundPowerGlyph id={id} />
+                    <div>
+                      <div className="font-display font-bold text-paper">
+                        {def.name}
+                        {isCurrent && (
+                          <span className="ml-2 align-middle rounded-full border border-gold/50 text-gold px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+                            This round
+                          </span>
+                        )}
+                      </div>
+                      <ScopedDescription
+                        description={def.description}
+                        className="text-paper/75 text-sm leading-snug"
+                      />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           </RulesSection>
         )}
 
-        {includePowerUps && roundPowers.length > 0 && (
+        {includePowerUps && poolPowers.length > 0 && (
           <RulesSection title="This round's power-ups">
             <div className="text-paper/60 text-xs mb-3">
-              The exact pool dealt for the current round. Shared by everyone — each one is gone once any
+              The exact pool dealt for the current round. Shared by everyone, and each one is gone once any
               picker uses it.
             </div>
             <ul className="space-y-3">
-              {roundPowers.map(({ id, count }) => {
+              {poolPowers.map(({ id, count }) => {
                 const v = powerVisual(id);
                 const def = powerDef(id);
                 return (
@@ -463,8 +590,8 @@ export function Rules({
         )}
 
         {!includePowerUps && (
-          <RulesSection title="Power-ups (off)">
-            This game is set to <b>no power-ups</b>. Every turn is a pure number pick, without any twists.
+          <RulesSection title="Round powers (off)">
+            This game is set to <b>no round powers</b>. Every turn is a pure number pick, without any twists.
           </RulesSection>
         )}
       </div>

@@ -1,10 +1,12 @@
 import {
   POWER_UP_IDS,
   POWER_UPS,
+  ROUND_POWER_IDS,
   TWO_PLAYER_EXCLUDED_POWERS,
   type NumberMode,
   type PowerUpId,
   type PowerUpMode,
+  type RoundPowerId,
 } from "../../../shared/types.js";
 import { scoreTurn } from "./scoring.js";
 import { BOT_NAMES } from "./bot-names.js";
@@ -51,6 +53,8 @@ export interface RevealDoc {
 
 export interface RoundDoc {
   index: number;
+  // Per-turn power pool: dormant. startRound always deals [] now; kept so legacy
+  // mid-round saves (and the tests that force pools) stay playable.
   poolFull: PowerUpId[];
   poolRemaining: PowerUpId[];
   rotation: string[];
@@ -58,6 +62,9 @@ export interface RoundDoc {
   hands: { [playerId: string]: number[] };
   endAcksBy: string[];
   perPlayerRoundScore: { [playerId: string]: number };
+  // The one power applying to everyone this round. Absent when powerUpMode is off,
+  // or on rounds persisted before the round-power feature.
+  roundPower?: RoundPowerId;
 }
 
 export interface PeekReviewDoc {
@@ -75,6 +82,7 @@ export interface RoomDoc {
     turnDeadlineMs: number | null;
     powerUpMode: PowerUpMode;
     selectedPowerUps: PowerUpId[];
+    selectedRoundPowers: RoundPowerId[];
     showHands: boolean;
     numberMode: NumberMode;
     customNumbers: number[];
@@ -108,6 +116,7 @@ export function createRoom(opts: {
   turnDeadlineMs: number | null;
   powerUpMode?: PowerUpMode;
   selectedPowerUps?: PowerUpId[];
+  selectedRoundPowers?: RoundPowerId[];
   showHands?: boolean;
   numberMode?: NumberMode;
   customNumbers?: number[];
@@ -122,6 +131,7 @@ export function createRoom(opts: {
       turnDeadlineMs: opts.turnDeadlineMs,
       powerUpMode: opts.powerUpMode ?? "random",
       selectedPowerUps: opts.selectedPowerUps ?? [],
+      selectedRoundPowers: opts.selectedRoundPowers ?? [],
       showHands: opts.showHands ?? true,
       numberMode: opts.numberMode ?? "default",
       customNumbers: opts.customNumbers ?? [],
@@ -219,6 +229,21 @@ function rollWildPower(rng: () => number = Math.random): PowerUpId {
   return WILD_ROLL_POOL[Math.floor(rng() * WILD_ROLL_POOL.length)];
 }
 
+// One power per round, applying to everyone. "off" rolls nothing; "random" draws
+// uniformly from the full roster; "selected" draws from the host's curated list.
+// A legacy save in selected mode with no curated round powers rolls nothing
+// (plain rounds) rather than surprising players with the full roster.
+function rollRoundPower(
+  config: RoomDoc["config"],
+  rng: () => number = Math.random,
+): RoundPowerId | undefined {
+  if (config.powerUpMode === "off") return undefined;
+  const roster =
+    config.powerUpMode === "selected" ? config.selectedRoundPowers : ROUND_POWER_IDS;
+  if (roster.length === 0) return undefined;
+  return roster[Math.floor(rng() * roster.length)];
+}
+
 // `allowed` narrows the eligible powers (the host's "selected" allow-list). When omitted,
 // the full set is used (the "random" mode). Repeats to fill when the pool is larger than
 // the eligible set, so a small selection still produces one power per turn.
@@ -268,11 +293,8 @@ function buildRotation(
 export function startGame(room: RoomDoc, rng: () => number = Math.random): RoomDoc {
   if (room.phase !== "lobby") throw new Error("Not in lobby");
   if (room.players.length < 2) throw new Error("Need at least 2 players");
-  if (
-    room.config.powerUpMode === "selected" &&
-    effectiveAllowed(room.config.selectedPowerUps, room.players.length).length === 0
-  ) {
-    throw new Error("Pick at least one power-up, or switch power-ups off");
+  if (room.config.powerUpMode === "selected" && room.config.selectedRoundPowers.length === 0) {
+    throw new Error("Pick at least one round power, or switch powers off");
   }
   if (
     room.config.numberMode === "custom" &&
@@ -282,7 +304,7 @@ export function startGame(room: RoomDoc, rng: () => number = Math.random): RoomD
   }
   // Roll the first picker randomly instead of always seating the host first.
   const firstPickerSeat = Math.floor(rng() * room.players.length);
-  return startRound({ ...room, firstPickerSeat }, 0);
+  return startRound({ ...room, firstPickerSeat }, 0, rng);
 }
 
 export function setRoomConfig(
@@ -291,6 +313,7 @@ export function setRoomConfig(
     rounds?: number;
     powerUpMode?: PowerUpMode;
     selectedPowerUps?: PowerUpId[];
+    selectedRoundPowers?: RoundPowerId[];
     showHands?: boolean;
     numberMode?: NumberMode;
     customNumbers?: number[];
@@ -307,6 +330,7 @@ export function setRoomConfig(
           : room.config.rounds,
       powerUpMode: patch.powerUpMode ?? room.config.powerUpMode,
       selectedPowerUps: patch.selectedPowerUps ?? room.config.selectedPowerUps,
+      selectedRoundPowers: patch.selectedRoundPowers ?? room.config.selectedRoundPowers,
       showHands: patch.showHands ?? room.config.showHands,
       numberMode: patch.numberMode ?? room.config.numberMode,
       customNumbers: patch.customNumbers ?? room.config.customNumbers,
@@ -315,17 +339,15 @@ export function setRoomConfig(
   };
 }
 
-function startRound(room: RoomDoc, roundIndex: number): RoomDoc {
+function startRound(room: RoomDoc, roundIndex: number, rng: () => number = Math.random): RoomDoc {
   const handSize = room.players.length + 2;
-  const poolFull =
-    room.config.powerUpMode === "off"
-      ? []
-      : room.config.powerUpMode === "selected"
-        ? dealPool(handSize, room.players.length, room.config.selectedPowerUps)
-        : dealPool(handSize, room.players.length);
+  // Per-turn pools are dormant: never dealt anymore (dealPool is retained for the
+  // dormant per-turn system). Each round instead rolls one power for everyone.
+  const poolFull: PowerUpId[] = [];
   const round: RoundDoc = {
     index: roundIndex,
     poolFull,
+    roundPower: rollRoundPower(room.config, rng),
     poolRemaining: [],
     rotation: buildRotation(room.players, handSize, roundIndex, room.firstPickerSeat ?? 0),
     reveals: [],
@@ -556,7 +578,7 @@ function resolveTurn(room: RoomDoc): RoomDoc {
     sabotageNumber: s.sabotageNumber,
   }));
 
-  const result = scoreTurn(plays, gameNumbers(room));
+  const result = scoreTurn(plays, gameNumbers(room), round.roundPower);
 
   let peekUsed: RevealDoc["peekUsed"];
   if (room.peekReview) {
@@ -665,7 +687,11 @@ export function unsubmitTurn(room: RoomDoc, playerId: string): RoomDoc {
   };
 }
 
-export function ackRoundEnd(room: RoomDoc, playerId: string): RoomDoc {
+export function ackRoundEnd(
+  room: RoomDoc,
+  playerId: string,
+  rng: () => number = Math.random,
+): RoomDoc {
   if (room.phase !== "round_end") return room;
   const round = room.rounds[room.currentRoundIndex];
   if (round.endAcksBy.includes(playerId)) return room;
@@ -680,15 +706,19 @@ export function ackRoundEnd(room: RoomDoc, playerId: string): RoomDoc {
   if (!allReady) return next;
   const nextRoundIdx = room.currentRoundIndex + 1;
   if (nextRoundIdx >= room.config.rounds) return endGame(next);
-  return startRound(next, nextRoundIdx);
+  return startRound(next, nextRoundIdx, rng);
 }
 
-export function forceAdvanceRound(room: RoomDoc, playerId: string): RoomDoc {
+export function forceAdvanceRound(
+  room: RoomDoc,
+  playerId: string,
+  rng: () => number = Math.random,
+): RoomDoc {
   if (playerId !== room.hostId) throw new Error("Only host can force-advance");
   if (room.phase !== "round_end") return room;
   const nextRoundIdx = room.currentRoundIndex + 1;
   if (nextRoundIdx >= room.config.rounds) return endGame(room);
-  return startRound(room, nextRoundIdx);
+  return startRound(room, nextRoundIdx, rng);
 }
 
 function endGame(room: RoomDoc): RoomDoc {

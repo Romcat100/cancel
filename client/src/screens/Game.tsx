@@ -1,9 +1,9 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { POWER_UPS, type PowerUpId, type RevealedTurn } from "../../../shared/types.js";
+import { POWER_UPS, type PowerUpId, type RevealedTurn, type RoundPowerId } from "../../../shared/types.js";
 import { api } from "../api.js";
 import { getIdentity, hasSeenPreviewLocal, markPreviewSeenLocal } from "../identity.js";
 import { useAppStore } from "../store.js";
-import { MusicToggle, NumberCard, PlayerChip, PowerDescription, PowerUpCard, PowerUpChip, RoundScoreTable, Rules, seatColor, type PingKind } from "../components.js";
+import { MusicToggle, NumberCard, PlayerChip, PowerDescription, PowerUpCard, PowerUpChip, RoundPowerCard, RoundPowerDescription, RoundPowerGlyph, RoundScoreTable, Rules, roundPowerDef, seatColor, type PingKind } from "../components.js";
 import { Wave, rankForNumber } from "../wave.js";
 import { emitPing, onPing } from "../socket.js";
 import { playSfx } from "../sfx.js";
@@ -38,6 +38,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
 
   const [showPreview, setShowPreview] = useState(false);
   const [showRules, setShowRules] = useState(false);
+  const [roundPowerOpen, setRoundPowerOpen] = useState(false);
   const [revealOverlay, setRevealOverlay] = useState<RevealedTurn | null>(null);
   const [nameChip, setNameChip] = useState<PowerUpId | null>(null);
   const [pingedByPlayer, setPingedByPlayer] = useState<Record<string, { kind: PingKind; nonce: number }>>({});
@@ -339,6 +340,33 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
 
       <Scoreboard players={publicState.players} selfId={selfPlayerId} />
 
+      {round.roundPower != null && (
+        <div className="mt-4" data-testid="game-round-power">
+          <button
+            type="button"
+            onClick={() => setRoundPowerOpen((o) => !o)}
+            className="w-full rounded-2xl px-3 py-2.5 bg-gold/10 border border-gold/30 flex items-center gap-3 text-left active:scale-[.99] transition"
+            data-sfx="tap"
+          >
+            <RoundPowerGlyph id={round.roundPower} />
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] font-mono uppercase tracking-widest text-gold">Round power</div>
+              <div className="font-display font-bold text-paper leading-tight">
+                {roundPowerDef(round.roundPower).name}
+              </div>
+            </div>
+            <span className="text-paper/40 text-[11px] font-mono shrink-0">
+              {roundPowerOpen ? "hide" : "what's this?"}
+            </span>
+          </button>
+          {roundPowerOpen && (
+            <div className="mt-2" data-testid="game-round-power-description">
+              <RoundPowerDescription id={round.roundPower} />
+            </div>
+          )}
+        </div>
+      )}
+
       {round.poolFull.length > 0 && (
       <div className="mt-4 mb-3">
         <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] font-mono text-paper/50 mb-2">
@@ -570,7 +598,11 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
         )}
       </div>
 
-      {showPreview && phase !== "round_end" && round.poolFull.length > 0 && (
+      {showPreview && phase !== "round_end" && round.roundPower != null && (
+        <RoundPowerPreview id={round.roundPower} onDismiss={dismissPreview} roundIndex={round.index} />
+      )}
+      {/* Dormant: pool previews only appear for legacy in-flight rounds with a dealt pool. */}
+      {showPreview && phase !== "round_end" && round.roundPower == null && round.poolFull.length > 0 && (
         <PoolPreview pool={round.poolFull} onDismiss={dismissPreview} roundIndex={round.index} />
       )}
       {showRules && (
@@ -578,10 +610,16 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
           onClose={() => setShowRules(false)}
           includePowerUps={publicState.config.powerUpMode !== "off"}
           pool={round.poolFull}
+          roundPower={round.roundPower}
         />
       )}
       {revealOverlay && (
-        <RevealView reveal={revealOverlay} players={publicState.players} onClose={() => setRevealOverlay(null)} />
+        <RevealView
+          reveal={revealOverlay}
+          players={publicState.players}
+          roundPower={revealOverlay.roundIndex === round.index ? round.roundPower : undefined}
+          onClose={() => setRevealOverlay(null)}
+        />
       )}
       {phase === "round_end" && !revealOverlay && (
         <RoundEnd
@@ -736,6 +774,41 @@ function PoolPreview({
   );
 }
 
+function RoundPowerPreview({
+  id,
+  onDismiss,
+  roundIndex,
+}: {
+  id: RoundPowerId;
+  onDismiss: () => void;
+  roundIndex: number;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-ink/95 backdrop-blur-md flex flex-col items-center justify-center p-4 animate-rise overflow-y-auto"
+      data-testid="round-power-preview-modal"
+    >
+      <div className="text-center mb-4">
+        <div className="font-mono text-xs uppercase tracking-[0.3em] text-paper/50">Round {roundIndex + 1}</div>
+        <div className="font-display text-3xl font-bold text-gold mt-2">This round's power</div>
+        <div className="text-paper/50 text-sm mt-1">It applies to everyone, on every turn this round.</div>
+      </div>
+      <RoundPowerCard id={id} size="lg" testId="round-power-preview-card" />
+      <div className="mt-4 max-w-sm w-full">
+        <RoundPowerDescription id={id} />
+      </div>
+      <button
+        className="btn-primary mt-6 px-8 py-4 text-lg"
+        onClick={onDismiss}
+        data-sfx="confirm"
+        data-testid="round-power-preview-play"
+      >
+        Let's play
+      </button>
+    </div>
+  );
+}
+
 // The interference treatment for one revealed card, derived purely from its
 // played number + scored delta + scoring notes (never from hardcoded seats).
 type Treatment = "survivor" | "aliveZero" | "tie" | "zeroed" | "negative" | "neutral";
@@ -843,10 +916,12 @@ function RevealTraceRow({ e, settled, antiphase }: { e: RevealRowItem; settled: 
 function RevealView({
   reveal,
   players,
+  roundPower,
   onClose,
 }: {
   reveal: RevealedTurn;
   players: { id: string; name: string; seat: number }[];
+  roundPower?: RoundPowerId;
   onClose: () => void;
 }) {
   const [phase, setPhase] = useState<"flip" | "score">("flip");
@@ -892,6 +967,14 @@ function RevealView({
       <div className="font-mono text-xs uppercase tracking-[0.3em] text-paper/50 mb-3" data-testid="reveal-turn">
         Turn {reveal.turnIndex + 1} reveal
       </div>
+      {roundPower && (
+        <div className="mb-3 flex items-center gap-2" data-testid="reveal-round-power">
+          <RoundPowerGlyph id={roundPower} size="sm" />
+          <span className="text-xs font-mono uppercase tracking-widest text-paper/60">
+            {roundPowerDef(roundPower).name}
+          </span>
+        </div>
+      )}
       {power?.powerUp && (
         <div className="mb-4 flex flex-col items-center">
           <span className="text-xs font-mono uppercase tracking-widest text-paper/50 mb-3">

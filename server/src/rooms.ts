@@ -66,6 +66,7 @@ export function loadRoom(code: string): RoomDoc | null {
   // "reverse" was renamed to "flip" — remap any legacy id a saved lobby still carries.
   cfg.selectedPowerUps = cfg.selectedPowerUps.map((id) => ((id as string) === "reverse" ? "flip" : id));
   delete cfg.powerUps;
+  if (cfg.selectedRoundPowers === undefined) cfg.selectedRoundPowers = [];
   if (cfg.showHands === undefined) cfg.showHands = true;
   if (cfg.numberMode === undefined) cfg.numberMode = "default";
   if (cfg.customNumbers === undefined) cfg.customNumbers = [];

@@ -1,4 +1,4 @@
-import type { PowerUpId } from "../../../shared/types.js";
+import type { PowerUpId, RoundPowerId } from "../../../shared/types.js";
 
 export interface PlayInput {
   playerId: string;
@@ -17,17 +17,29 @@ export interface ScoreResult {
   lines: ScoreLineInternal[];
 }
 
-export function scoreTurn(plays: PlayInput[], gameNumbers?: number[]): ScoreResult {
+export function scoreTurn(
+  plays: PlayInput[],
+  gameNumbers?: number[],
+  roundPower?: RoundPowerId,
+): ScoreResult {
   const powerPlay = plays.find((p) => p.powerUp);
   const powerUp = powerPlay?.powerUp;
   const powerUserId = powerPlay?.playerId;
   const powerTarget = powerPlay?.powerUpTarget;
 
-  const negateZeroActive = powerUp === "negate_zero";
+  // Round powers apply to everyone for the whole round. Static and Infrared reuse the
+  // per-play flags below (same math, distinct notes); Harmony rewires the tie branches;
+  // Amplify and Equalize are post-passes at the very end of the pipeline. Pure Tone has
+  // no branch anywhere on purpose (the nothingburger pattern) — don't "fix" it.
+  const staticActive = roundPower === "static";
+  const infraredActive = roundPower === "infrared";
+  const harmonyActive = roundPower === "harmony";
+
+  const negateZeroActive = powerUp === "negate_zero" || staticActive;
   const mutedId = powerUp === "mute" ? powerTarget : undefined;
   const freeThreeActive = powerUp === "free_three";
   const plusTwoUserId = powerUp === "plus_two" ? powerUserId : undefined;
-  const minusTwoActive = powerUp === "minus_two"; // "Minus Two" — Universal −2 to every face
+  const minusTwoActive = powerUp === "minus_two" || infraredActive; // Universal −2 to every face
   const flipActive = powerUp === "flip";
   const drainUserId = powerUp === "drain" ? powerUserId : undefined;
   const drainTargetId = powerUp === "drain" ? powerTarget : undefined;
@@ -73,7 +85,13 @@ export function scoreTurn(plays: PlayInput[], gameNumbers?: number[]): ScoreResu
     const notes: string[] = [];
     if (isMuted) notes.push("Muted (treated as 0)");
     if (isPlusTwoUser) notes.push(`Plus Two: ${p.number} → ${bumped}`);
-    if (minusTwoActive) notes.push(`Minus Two: ${p.number} → ${bumped}`);
+    if (minusTwoActive && !isPlusTwoUser) {
+      // Plus Two preempts the −2 in the face ternary above, so skip the note for
+      // that player (dormant per-play composition only; live play has no per-play powers).
+      notes.push(
+        infraredActive ? `Infrared: ${p.number} → ${bumped}` : `Minus Two: ${p.number} → ${bumped}`,
+      );
+    }
     if (isDrainUser) notes.push(`Drain: ${p.number} → ${bumped}`);
     if (isDrainTarget) notes.push(`Drained: ${p.number} → ${bumped}`);
     if (flipActive && flipped !== p.number) notes.push(`Flip: ${p.number} → ${flipped}`);
@@ -126,6 +144,11 @@ export function scoreTurn(plays: PlayInput[], gameNumbers?: number[]): ScoreResu
         const matches = (faceCount.get(e.face) ?? 1) - 1;
         delta = e.scoreValue + 2 * matches;
         notes.push(`Jinx: matched ${matches} → +${2 * matches}`);
+      } else if (harmonyActive) {
+        // Matching zeros are a face tie like any other under Harmony. Note must not
+        // contain "cancel suppressed" (revealTreatment keys off that substring).
+        delta = 2;
+        notes.push("Harmony: matched zeros scored 2");
       } else {
         delta = 0;
         notes.push("Played 0 (multiple zeros — cancel suppressed)");
@@ -145,6 +168,11 @@ export function scoreTurn(plays: PlayInput[], gameNumbers?: number[]): ScoreResu
           const matches = (faceCount.get(e.face) ?? 1) - 1;
           delta = e.scoreValue + 2 * matches;
           notes.push(`Jinx: matched ${matches} on ${e.face} → ${e.scoreValue} +${2 * matches}`);
+        } else if (harmonyActive) {
+          // Harmony: tied cards pay 2 instead of wiping out. Note must not start with
+          // "Tied" — revealTreatment keys off that prefix to render CANCELLED pairs.
+          delta = 2;
+          notes.push(`Harmony: tied on ${e.face}, scored 2`);
         } else {
           delta = 0;
           if (e.face === 3 && phantomThreeIsContested) {
@@ -160,7 +188,7 @@ export function scoreTurn(plays: PlayInput[], gameNumbers?: number[]): ScoreResu
       } else {
         delta = e.scoreValue;
         if (e.face === 0 && negateZeroActive) {
-          notes.push("Played 0 (Negate Zero — no cancel)");
+          notes.push(staticActive ? "Played 0 (Static, no cancel)" : "Played 0 (Negate Zero — no cancel)");
         } else {
           notes.push(`Unique ${e.face}`);
         }
@@ -244,6 +272,30 @@ export function scoreTurn(plays: PlayInput[], gameNumbers?: number[]): ScoreResu
           l.delta -= penalty;
           l.notes.push(`Sacrifice: ${penalty > 0 ? "−" : "+"}${Math.abs(penalty)}`);
         }
+      }
+    }
+  }
+
+  // Round-power post-passes run at the very END of the pipeline (after Sacrifice), so
+  // they act on the final per-play result even when a dormant per-play power is forced
+  // in tests. Only one round power exists per round, so their relative order here is
+  // unobservable. Notes stay distinct from the per-play "Doubled" / "Equalized to avg N".
+  if (roundPower === "equalize") {
+    const positives = lines.filter((l) => l.delta > 0);
+    if (positives.length > 1) {
+      const avg = Math.floor(positives.reduce((s, l) => s + l.delta, 0) / positives.length);
+      for (const l of positives) {
+        l.delta = avg;
+        l.notes.push(`Equalize: averaged to ${avg}`);
+      }
+    }
+  }
+
+  if (roundPower === "amplify") {
+    for (const l of lines) {
+      if (l.delta !== 0) {
+        l.delta *= 2;
+        l.notes.push("Amplify: doubled");
       }
     }
   }
