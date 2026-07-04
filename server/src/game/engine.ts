@@ -16,6 +16,7 @@ export type RoomPhaseDoc =
   | "lobby"
   | "turn_submitting"
   | "turn_peek_review"
+  | "turn_neighbor_review"
   | "round_end"
   | "game_end";
 
@@ -48,6 +49,7 @@ export interface RevealDoc {
   swapUsed?: { swapperId: string; targetId: string };
   switchUsed?: { switcherId: string; targetId: string; switcherOriginal: number; targetOriginal: number };
   rayUsed?: { rayUserId: string; targetId: string; rolledNumber: number; originalNumber: number };
+  crosstalkUsed?: { playerId: string; initialNumber: number; finalNumber: number }[];
   revealedAt: number;
 }
 
@@ -74,6 +76,16 @@ export interface PeekReviewDoc {
   originalNumber: number;
 }
 
+// The "glimpse and re-pick" round powers (Crosstalk, Refraction) pause the turn in
+// `turn_neighbor_review` after everyone's initial submission: each player sees one
+// other player's initial pick (their `targets` entry) and re-submits. Crosstalk
+// targets the next seat; Refraction targets a random other player. `initialPicks`
+// holds each player's pre-review pick until the turn resolves.
+export interface NeighborReviewDoc {
+  initialPicks: { [playerId: string]: number };
+  targets: { [playerId: string]: string };
+}
+
 export interface RoomDoc {
   code: string;
   hostId: string;
@@ -98,6 +110,7 @@ export interface RoomDoc {
   currentTurnIndex: number;
   pendingSubmissions: { [playerId: string]: SubmissionDoc };
   peekReview?: PeekReviewDoc;
+  neighborReview?: NeighborReviewDoc;
   winnerId?: string;
   createdAt: number;
   updatedAt: number;
@@ -369,6 +382,7 @@ function startRound(room: RoomDoc, roundIndex: number, rng: () => number = Math.
     currentTurnIndex: 0,
     pendingSubmissions: {},
     peekReview: undefined,
+    neighborReview: undefined,
     updatedAt: Date.now(),
   };
 }
@@ -383,6 +397,7 @@ export interface SubmitInput {
 
 export function submitTurn(room: RoomDoc, input: SubmitInput): RoomDoc {
   if (room.phase === "turn_peek_review") return submitPeekReview(room, input);
+  if (room.phase === "turn_neighbor_review") return submitNeighborReview(room, input);
   if (room.phase !== "turn_submitting") throw new Error("Not accepting submissions");
 
   const round = room.rounds[room.currentRoundIndex];
@@ -456,7 +471,67 @@ export function submitTurn(room: RoomDoc, input: SubmitInput): RoomDoc {
         };
       }
     }
+    // Crosstalk / Refraction (round powers): pause the turn so everyone glimpses one
+    // other player's initial pick and gets one chance to re-pick before it resolves.
+    if ((round.roundPower === "crosstalk" || round.roundPower === "refraction") && room.players.length >= 2) {
+      const initialPicks = Object.fromEntries(
+        Object.values(next.pendingSubmissions).map((s) => [s.playerId, s.number]),
+      );
+      const targets = assignPeekTargets(next, round.roundPower === "refraction" ? "random" : "neighbor");
+      return {
+        ...next,
+        phase: "turn_neighbor_review",
+        neighborReview: { initialPicks, targets },
+        pendingSubmissions: {},
+        updatedAt: Date.now(),
+      };
+    }
     next = resolveTurn(next);
+  }
+  return next;
+}
+
+// Who each player glimpses during a Crosstalk/Refraction re-pick. "neighbor" points at
+// the next seat (wrapping); "random" points at a random OTHER player (never yourself).
+// Sorted seat order keeps it robust even if seat numbers ever had gaps. Random mode
+// uses Math.random like the Wild roll — tests mock it for determinism.
+function assignPeekTargets(
+  room: RoomDoc,
+  mode: "neighbor" | "random",
+  rng: () => number = Math.random,
+): { [playerId: string]: string } {
+  const sorted = [...room.players].sort((a, b) => a.seat - b.seat);
+  const n = sorted.length;
+  const targets: { [playerId: string]: string } = {};
+  for (let i = 0; i < n; i++) {
+    if (mode === "neighbor") {
+      targets[sorted[i].id] = sorted[(i + 1) % n].id;
+    } else {
+      const others = sorted.filter((_, j) => j !== i);
+      targets[sorted[i].id] = others[Math.floor(rng() * others.length)].id;
+    }
+  }
+  return targets;
+}
+
+// Crosstalk re-pick: number-only, from the player's (still full) hand. When everyone
+// has re-submitted, resolve the turn with the final picks.
+function submitNeighborReview(room: RoomDoc, input: SubmitInput): RoomDoc {
+  if (!room.neighborReview) throw new Error("No neighbor review pending");
+  if (input.powerUp) throw new Error("No power-up during neighbor review");
+  const round = room.rounds[room.currentRoundIndex];
+  if (!room.players.some((p) => p.id === input.playerId)) throw new Error("Not in room");
+  if (!round.hands[input.playerId].includes(input.number)) throw new Error("Number not in hand");
+  if (room.pendingSubmissions[input.playerId]) throw new Error("Already submitted");
+
+  const submission: SubmissionDoc = { playerId: input.playerId, number: input.number };
+  const next: RoomDoc = {
+    ...room,
+    pendingSubmissions: { ...room.pendingSubmissions, [input.playerId]: submission },
+    updatedAt: Date.now(),
+  };
+  if (Object.keys(next.pendingSubmissions).length === room.players.length) {
+    return resolveTurn(next);
   }
   return next;
 }
@@ -633,6 +708,18 @@ function resolveTurn(room: RoomDoc): RoomDoc {
     swapUsed = { swapperId: a, targetId: b };
   }
 
+  // Crosstalk: record each player's pre-review pick vs. their final pick so the
+  // reveal can show who adjusted after glimpsing their neighbor.
+  let crosstalkUsed: RevealDoc["crosstalkUsed"];
+  if (room.neighborReview) {
+    const initial = room.neighborReview.initialPicks;
+    crosstalkUsed = room.players.map((p) => ({
+      playerId: p.id,
+      initialNumber: initial[p.id] ?? room.pendingSubmissions[p.id]?.number ?? 0,
+      finalNumber: room.pendingSubmissions[p.id]?.number ?? 0,
+    }));
+  }
+
   const reveal: RevealDoc = {
     turnIndex,
     pickerId,
@@ -643,6 +730,7 @@ function resolveTurn(room: RoomDoc): RoomDoc {
     swapUsed,
     switchUsed,
     rayUsed,
+    crosstalkUsed,
     revealedAt: Date.now(),
   };
 
@@ -659,11 +747,16 @@ function resolveTurn(room: RoomDoc): RoomDoc {
 
   const next: RoomDoc = {
     ...room,
+    // Always land back in turn_submitting for the next turn: resolveTurn can be
+    // entered from turn_peek_review or turn_neighbor_review, whose phase would
+    // otherwise leak through the `...room` spread. (isLastTurn overrides below.)
+    phase: "turn_submitting",
     players: updatedPlayers,
     rounds: room.rounds.map((r, i) => (i === room.currentRoundIndex ? updatedRound : r)),
     pendingSubmissions: {},
     currentTurnIndex: turnIndex + 1,
     peekReview: undefined,
+    neighborReview: undefined,
     updatedAt: Date.now(),
   };
 
@@ -820,6 +913,20 @@ export function forceResolveTurn(room: RoomDoc, rng: () => number = Math.random)
       pendingSubmissions: { ...room.pendingSubmissions, [peekerId]: submission },
       updatedAt: Date.now(),
     });
+  }
+  if (room.phase === "turn_neighbor_review") {
+    // Crosstalk re-pick phase: fill non-submitters with their initial pick (or a
+    // sampled card as a fallback) and resolve.
+    if (!room.neighborReview) throw new Error("Nothing to skip");
+    const filled = { ...room.pendingSubmissions };
+    for (const p of room.players) {
+      if (filled[p.id]) continue;
+      const initial = room.neighborReview.initialPicks[p.id];
+      const number =
+        initial != null ? initial : chooseNumber(round.hands[p.id] ?? [], handsExcept(p.id), [], rng);
+      filled[p.id] = { playerId: p.id, number };
+    }
+    return resolveTurn({ ...room, pendingSubmissions: filled, updatedAt: Date.now() });
   }
   if (room.phase !== "turn_submitting") throw new Error("Nothing to skip");
   const missing = room.players.filter((p) => !room.pendingSubmissions[p.id]);

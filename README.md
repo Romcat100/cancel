@@ -1,6 +1,6 @@
 # Cancel
 
-A multiplayer browser game where everyone secretly picks a number, then reveals at once. If two players pick the same number, both score zero. The `0` card is "Cancel" — one zero negates everyone else's points; two or more zeros cancel each other out and the rest of the table scores normally. Each round a random **round power** (Harmony, Amplify, Static, Infrared, Equalize, or plain Pure Tone) bends the scoring rules for everyone.
+A multiplayer browser game where everyone secretly picks a number, then reveals at once. If two players pick the same number, both score zero. The `0` card is "Cancel" — one zero negates everyone else's points; two or more zeros cancel each other out and the rest of the table scores normally. Each round a random **round power** (Harmony, Amplify, Static, Ultraviolet, Crosstalk, or plain Pure Tone) bends the rules for everyone.
 
 The same engine supports both **live** play (everyone in the room at once) and **async** play (over hours/days — close your browser, come back later, your seat reclaims itself).
 
@@ -59,11 +59,12 @@ When on: at the start of each round, one power is drawn and shown to everyone. I
 | Power | What it does |
 |---|---|
 | **Pure Tone** (`~`) | A clean signal. No power this round, every card scores by the normal rules. |
-| **Harmony** (`≋`) | Tied cards resonate instead of cancelling. Every card that ties this round scores 2 points, including matching zeros. A lone `0` still cancels the board. |
+| **Harmony** (`≋`) | Tied signals resonate instead of cancelling. If players tie, each tied card scores double its value instead of being wiped. A lone `0` still cancels the board. |
 | **Amplify** (`×2`) | The signal is boosted. Every point scored this round is doubled, gains and losses alike. |
 | **Static** (`Ø!`) | Zeros are lost in the noise. A `0` is inert this round and cancels nothing. |
-| **Infrared** (`−2`) | The whole spectrum shifts down. Every card plays 2 lower than its face value, so a `2` becomes a `0` and cancels, and a `0` becomes a `−2`. Ties use the shifted values. |
-| **Equalize** (`≈`) | Signals level out. Each turn, players who score above zero all get the average of those positive scores. Cancelled and tied players are unaffected. |
+| **Ultraviolet** (`UV`) | The whole spectrum shifts up. Every card plays 2 higher than its face value, so a `0` becomes a `2` and a `3` becomes a `5`. Ties use the raised values. |
+| **Crosstalk** (`◂▸`) | Signals bleed across channels. Each turn you glimpse the number the player beside you means to play, then everyone gets one chance to change their pick before the reveal. |
+| **Refraction** (`△`) | Each turn you glimpse a random player's number, then everyone gets one chance to change their pick before the reveal. |
 
 ## Project layout
 

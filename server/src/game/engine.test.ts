@@ -15,6 +15,7 @@ import {
   type RoomDoc,
 } from "./engine.js";
 import { POWER_UPS, ROUND_POWER_IDS, type PowerUpId, type RoundPowerId } from "../../../shared/types.js";
+import { projectStateForPlayer } from "../projection.js";
 
 function room3p(): RoomDoc {
   let r = createRoom({ code: "ABCD", hostId: "A", hostName: "Alice", rounds: 3, turnDeadlineMs: null });
@@ -35,8 +36,10 @@ function startGame0(r: RoomDoc): RoomDoc {
   return startGame(r, () => 0);
 }
 
+// Pin the round-power roll to index 0 (pure_tone) so multi-round structural tests
+// stay deterministic and never roll a flow-changing power like crosstalk.
 function ackAll(r: RoomDoc): RoomDoc {
-  for (const p of r.players) r = ackRoundEnd(r, p.id);
+  for (const p of r.players) r = ackRoundEnd(r, p.id, () => 0);
   return r;
 }
 
@@ -199,12 +202,12 @@ describe("engine lifecycle", () => {
 
   it("setRoomConfig round-trips selectedRoundPowers", () => {
     let r = room3p();
-    r = setRoomConfig(r, { powerUpMode: "selected", selectedRoundPowers: ["amplify", "equalize"] });
+    r = setRoomConfig(r, { powerUpMode: "selected", selectedRoundPowers: ["amplify", "ultraviolet"] });
     expect(r.config.powerUpMode).toBe("selected");
-    expect(r.config.selectedRoundPowers).toEqual(["amplify", "equalize"]);
+    expect(r.config.selectedRoundPowers).toEqual(["amplify", "ultraviolet"]);
     // Untouched by an unrelated patch.
     r = setRoomConfig(r, { rounds: 2 });
-    expect(r.config.selectedRoundPowers).toEqual(["amplify", "equalize"]);
+    expect(r.config.selectedRoundPowers).toEqual(["amplify", "ultraviolet"]);
   });
 
   it("the next round re-rolls the round power", () => {
@@ -233,7 +236,8 @@ describe("engine lifecycle", () => {
     h = submitTurn(h, { playerId: "B", number: 4 });
     h = submitTurn(h, { playerId: "C", number: 2 });
     const hLines = Object.fromEntries(h.rounds[0].reveals[0].scoreLines.map((l) => [l.playerId, l.delta]));
-    expect(hLines).toEqual({ A: 2, B: 2, C: 2 });
+    // A and B tie on 4 → each doubles to 8; C's 2 is unique.
+    expect(hLines).toEqual({ A: 8, B: 8, C: 2 });
   });
 
   it("custom number mode deals [0, ...customNumbers] sorted to every player", () => {
@@ -449,6 +453,131 @@ describe("engine lifecycle", () => {
   it("resetToLobby rejects unless the game is over", () => {
     const r = startGame0(room3p());
     expect(() => resetToLobby(r)).toThrow(/not over/);
+  });
+});
+
+describe("crosstalk (round power)", () => {
+  function crosstalkRoom(): RoomDoc {
+    const r = startGame0(room3p());
+    r.rounds[0].roundPower = "crosstalk";
+    return r;
+  }
+
+  it("pauses the turn for a neighbor re-pick, then resolves with the final picks", () => {
+    let r = crosstalkRoom();
+    r = submitTurn(r, { playerId: "A", number: 4 });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+    // Everyone submitted, but the turn does not resolve — it enters neighbor review.
+    expect(r.phase).toBe("turn_neighbor_review");
+    expect(r.rounds[0].reveals).toHaveLength(0);
+    expect(r.neighborReview?.initialPicks).toEqual({ A: 4, B: 3, C: 2 });
+    expect(Object.keys(r.pendingSubmissions)).toHaveLength(0);
+
+    // Re-pick: A swaps to 1 after seeing the board; B and C keep their cards.
+    r = submitTurn(r, { playerId: "A", number: 1 });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+    expect(r.phase).toBe("turn_submitting");
+    expect(r.currentTurnIndex).toBe(1);
+    expect(r.neighborReview).toBeUndefined();
+    const reveal = r.rounds[0].reveals[0];
+    expect(reveal.submissions.find((s) => s.playerId === "A")!.number).toBe(1);
+    expect(reveal.crosstalkUsed).toContainEqual({ playerId: "A", initialNumber: 4, finalNumber: 1 });
+    expect(reveal.crosstalkUsed).toContainEqual({ playerId: "B", initialNumber: 3, finalNumber: 3 });
+    // A's original 4 stays in hand (only the played 1 is discarded).
+    expect(r.rounds[0].hands["A"]).toContain(4);
+    expect(r.rounds[0].hands["A"]).not.toContain(1);
+  });
+
+  it("shows each player only their next-seat neighbor's initial pick", () => {
+    let r = crosstalkRoom();
+    r = submitTurn(r, { playerId: "A", number: 4 });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+    const online = new Set(["A", "B", "C"]);
+    // A (seat 0) sees B (seat 1); C (seat 2) wraps around to A (seat 0).
+    expect(projectStateForPlayer(r, "A", online).privateState.neighborReveal).toEqual({
+      neighborPlayerId: "B",
+      number: 3,
+    });
+    expect(projectStateForPlayer(r, "C", online).privateState.neighborReveal).toEqual({
+      neighborPlayerId: "A",
+      number: 4,
+    });
+    // The neighbor's pick is the only in-flight number leaked: no full board.
+    expect(projectStateForPlayer(r, "A", online).publicState.currentSubmissions.every((s) => !s.submitted)).toBe(true);
+  });
+
+  it("rejects a power-up during the neighbor re-pick", () => {
+    let r = crosstalkRoom();
+    r = submitTurn(r, { playerId: "A", number: 4 });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+    expect(() => submitTurn(r, { playerId: "A", number: 1, powerUp: "double" })).toThrow(/neighbor review/);
+  });
+
+  it("skip-waiting during the re-pick keeps each absentee's initial pick", () => {
+    let r = crosstalkRoom();
+    r = submitTurn(r, { playerId: "A", number: 4 });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+    // Only A re-picks; the host skips the rest.
+    r = submitTurn(r, { playerId: "A", number: 1 });
+    r = forceResolveTurn(r);
+    expect(r.phase).toBe("turn_submitting");
+    const subs = r.rounds[0].reveals[0].submissions;
+    expect(subs.find((s) => s.playerId === "A")!.number).toBe(1);
+    expect(subs.find((s) => s.playerId === "B")!.number).toBe(3);
+    expect(subs.find((s) => s.playerId === "C")!.number).toBe(2);
+  });
+});
+
+describe("refraction (round power)", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  function refractionRoom(): RoomDoc {
+    const r = startGame0(room3p());
+    r.rounds[0].roundPower = "refraction";
+    return r;
+  }
+
+  it("pauses for a re-pick where each player glimpses a random OTHER player", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0); // each player targets the first of the others
+    let r = refractionRoom();
+    r = submitTurn(r, { playerId: "A", number: 4 });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+    expect(r.phase).toBe("turn_neighbor_review");
+    // Sorted order A,B,C; with rng 0 each takes others[0]: A→B, B→A, C→A.
+    expect(r.neighborReview?.targets).toEqual({ A: "B", B: "A", C: "A" });
+    // Nobody is ever assigned themselves.
+    for (const [pid, tid] of Object.entries(r.neighborReview!.targets)) {
+      expect(tid).not.toBe(pid);
+    }
+    const online = new Set(["A", "B", "C"]);
+    // A glimpses B (initial 3); C glimpses A (initial 4).
+    expect(projectStateForPlayer(r, "A", online).privateState.neighborReveal).toEqual({
+      neighborPlayerId: "B",
+      number: 3,
+    });
+    expect(projectStateForPlayer(r, "C", online).privateState.neighborReveal).toEqual({
+      neighborPlayerId: "A",
+      number: 4,
+    });
+  });
+
+  it("resolves with the final re-picks, like Crosstalk", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    let r = refractionRoom();
+    r = submitTurn(r, { playerId: "A", number: 4 });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+    r = submitTurn(r, { playerId: "A", number: 1 });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+    expect(r.phase).toBe("turn_submitting");
+    expect(r.rounds[0].reveals[0].submissions.find((s) => s.playerId === "A")!.number).toBe(1);
   });
 });
 

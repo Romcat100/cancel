@@ -53,6 +53,7 @@ export type RoomPhase =
   | "lobby"
   | "turn_submitting"
   | "turn_peek_review"
+  | "turn_neighbor_review"
   | "round_end"
   | "game_end";
 
@@ -88,6 +89,8 @@ export interface RevealedTurn {
   swapUsed?: { swapperId: string; targetId: string };
   switchUsed?: { switcherId: string; targetId: string; switcherOriginal: number; targetOriginal: number };
   rayUsed?: { rayUserId: string; targetId: string; rolledNumber: number; originalNumber: number };
+  // Crosstalk (round power): each player's pre-review pick vs. their final pick.
+  crosstalkUsed?: { playerId: string; initialNumber: number; finalNumber: number }[];
 }
 
 export interface RoundState {
@@ -113,6 +116,9 @@ export interface PrivateState {
   hasSubmittedThisTurn: boolean;
   isPicker: boolean;
   peekReveal?: { targetPlayerId: string; revealedNumber: number; originalNumber: number };
+  // Crosstalk (round power): during turn_neighbor_review, the initial pick of the
+  // player seated next to you, so you can adjust before the turn resolves.
+  neighborReveal?: { neighborPlayerId: string; number: number };
   blockedByOthers?: boolean;
 }
 
@@ -303,14 +309,16 @@ export type RoundPowerId =
   | "harmony"
   | "amplify"
   | "static"
-  | "infrared"
-  | "equalize";
+  | "ultraviolet"
+  | "crosstalk"
+  | "refraction";
 
 export interface RoundPowerDef {
   id: RoundPowerId;
   name: string;
-  // Must start with a scope prefix tag like the per-turn powers; round powers are
-  // always "(Everyone)". The client's parseScopedDescription depends on it.
+  // Round powers apply to everyone, so descriptions carry NO scope prefix tag
+  // (unlike the per-turn POWER_UPS). parseScopedDescription returns them tag-less
+  // and ScopedDescription renders them plain, with no chip.
   description: string;
 }
 
@@ -318,38 +326,41 @@ export const ROUND_POWERS: Record<RoundPowerId, RoundPowerDef> = {
   pure_tone: {
     id: "pure_tone",
     name: "Pure Tone",
-    description:
-      "(Everyone) A clean signal. No power this round, every card scores by the normal rules.",
+    description: "A clean signal. No power this round, every card scores by the normal rules.",
   },
   harmony: {
     id: "harmony",
     name: "Harmony",
     description:
-      "(Everyone) Tied cards resonate instead of cancelling. Every card that ties this round scores 2 points, including matching zeros.",
+      "Tied signals resonate instead of cancelling. If players tie, each tied card scores double its value instead of being wiped.",
   },
   amplify: {
     id: "amplify",
     name: "Amplify",
-    description:
-      "(Everyone) The signal is boosted. Every point scored this round is doubled, gains and losses alike.",
+    description: "The signal is boosted. Every point scored this round is doubled, gains and losses alike.",
   },
   static: {
     id: "static",
     name: "Static",
-    description:
-      "(Everyone) Zeros are lost in the noise. A 0 is inert this round and cancels nothing.",
+    description: "Zeros are lost in the noise. A 0 is inert this round and cancels nothing.",
   },
-  infrared: {
-    id: "infrared",
-    name: "Infrared",
+  ultraviolet: {
+    id: "ultraviolet",
+    name: "Ultraviolet",
     description:
-      "(Everyone) The whole spectrum shifts down. Every card plays 2 lower than its face value, so a 2 becomes a 0 and cancels, and a 0 becomes a -2.",
+      "The whole spectrum shifts up. Every card plays 2 higher than its face value, so a 0 becomes a 2 and a 3 becomes a 5.",
   },
-  equalize: {
-    id: "equalize",
-    name: "Equalize",
+  crosstalk: {
+    id: "crosstalk",
+    name: "Crosstalk",
     description:
-      "(Everyone) Signals level out. Each turn, players who score above zero all get the average of those positive scores.",
+      "Signals bleed across channels. Each turn you glimpse the number the player beside you means to play, then everyone gets one chance to change their pick.",
+  },
+  refraction: {
+    id: "refraction",
+    name: "Refraction",
+    description:
+      "Each turn you glimpse a random player's number, then everyone gets one chance to change their pick.",
   },
 };
 

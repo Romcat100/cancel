@@ -34,6 +34,7 @@ function toRevealedTurn(rv: RevealDoc, roundIndex: number): RevealedTurn {
     swapUsed: rv.swapUsed,
     switchUsed: rv.switchUsed,
     rayUsed: rv.rayUsed,
+    crosstalkUsed: rv.crosstalkUsed,
   };
 }
 
@@ -133,6 +134,21 @@ export function projectStateForPlayer(
     blockedByOthers = true;
   }
 
+  // Crosstalk / Refraction: during the re-pick phase, show this player only the one other
+  // player they were assigned to glimpse (never the whole board). The target is stored
+  // in `neighborReview.targets`; fall back to the next seat for older in-flight saves.
+  let neighborReveal: { neighborPlayerId: string; number: number } | undefined;
+  if (room.phase === "turn_neighbor_review" && room.neighborReview) {
+    let targetId: string | undefined = room.neighborReview.targets?.[playerId];
+    if (!targetId) {
+      const sorted = [...room.players].sort((a, b) => a.seat - b.seat);
+      const myIdx = sorted.findIndex((p) => p.id === playerId);
+      targetId = myIdx >= 0 && sorted.length >= 2 ? sorted[(myIdx + 1) % sorted.length].id : undefined;
+    }
+    const num = targetId ? room.neighborReview.initialPicks[targetId] : undefined;
+    if (targetId && num != null) neighborReveal = { neighborPlayerId: targetId, number: num };
+  }
+
   return {
     selfPlayerId: playerId,
     rev: room.rev ?? 0,
@@ -142,6 +158,7 @@ export function projectStateForPlayer(
       hasSubmittedThisTurn,
       isPicker: !!isPicker,
       peekReveal,
+      neighborReveal,
       blockedByOthers,
     },
   };

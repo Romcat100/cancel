@@ -175,8 +175,9 @@ const ROUND_POWER_VISUAL: Record<RoundPowerId, { abbr: string; color: string }> 
   harmony: { abbr: "≋", color: "#4ade80" }, // green = good for you
   amplify: { abbr: "×2", color: "#ffb84d" }, // amber = amplify (matches double)
   static: { abbr: "Ø!", color: "#6fa8ff" }, // blue = zero/structural (matches negate_zero)
-  infrared: { abbr: "−2", color: "#ff8095" }, // rose = harm (matches minus_two)
-  equalize: { abbr: "≈", color: "#7fe4ee" }, // teal (matches per-turn equalize)
+  ultraviolet: { abbr: "UV", color: "#b48bff" }, // violet = spectrum shift up
+  crosstalk: { abbr: "◂▸", color: "#4dd6c4" }, // teal = glimpse your neighbor
+  refraction: { abbr: "△", color: "#e879f9" }, // fuchsia = glimpse a random player
 };
 
 function roundPowerVisual(id: RoundPowerId): { abbr: string; color: string } {
@@ -188,7 +189,7 @@ export function roundPowerDef(id: RoundPowerId): RoundPowerDef {
     ROUND_POWERS[id] ?? {
       id,
       name: "Unknown power",
-      description: "(Everyone) This power is no longer available.",
+      description: "This power is no longer available.",
     }
   );
 }

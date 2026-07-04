@@ -709,7 +709,7 @@ describe("scoreTurn — round powers", () => {
     );
   });
 
-  it("harmony: a tied pair scores 2 each, uniques unaffected", () => {
+  it("harmony: a tied pair each score double their value, uniques unaffected", () => {
     const r = scoreTurn(
       [
         { playerId: "A", number: 4 },
@@ -719,10 +719,11 @@ describe("scoreTurn — round powers", () => {
       undefined,
       "harmony",
     );
-    expect(points(r)).toEqual({ A: 2, B: 2, C: 3 });
+    // The tied 4s each score 4*2 = 8 instead of being wiped to 0.
+    expect(points(r)).toEqual({ A: 8, B: 8, C: 3 });
   });
 
-  it("harmony: a three-way tie scores 2 each", () => {
+  it("harmony: a three-way tie each score double", () => {
     const r = scoreTurn(
       [
         { playerId: "A", number: 5 },
@@ -732,10 +733,10 @@ describe("scoreTurn — round powers", () => {
       undefined,
       "harmony",
     );
-    expect(points(r)).toEqual({ A: 2, B: 2, C: 2 });
+    expect(points(r)).toEqual({ A: 10, B: 10, C: 10 });
   });
 
-  it("harmony: matching zeros score 2 each and still don't cancel", () => {
+  it("harmony: matching zeros score 0 (0 doubled) and still don't cancel", () => {
     const r = scoreTurn(
       [
         { playerId: "A", number: 0 },
@@ -745,7 +746,7 @@ describe("scoreTurn — round powers", () => {
       undefined,
       "harmony",
     );
-    expect(points(r)).toEqual({ A: 2, B: 2, C: 5 });
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 5 });
   });
 
   it("harmony does not rescue cards cancelled by a lone 0", () => {
@@ -762,20 +763,22 @@ describe("scoreTurn — round powers", () => {
     expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
   });
 
-  it("harmony notes avoid the client's cancelled-treatment substrings", () => {
+  it("harmony's doubled-tie survivors carry notes that don't read as cancelled", () => {
     const r = scoreTurn(
       [
         { playerId: "A", number: 4 },
         { playerId: "B", number: 4 },
-        { playerId: "C", number: 0 },
-        { playerId: "D", number: 0 },
+        { playerId: "C", number: 3 },
       ],
       undefined,
       "harmony",
     );
-    for (const l of r.lines) {
+    // The doubled tie survivors (delta > 0) must not carry notes revealTreatment
+    // would read as a cancelled/tied pair, or they'd render as CANCELLED not glowing.
+    for (const l of r.lines.filter((x) => x.delta > 0)) {
       for (const n of l.notes) {
         expect(n.startsWith("Tied")).toBe(false);
+        expect(n.includes("Cancelled by 0")).toBe(false);
         expect(n.includes("cancel suppressed")).toBe(false);
       }
     }
@@ -823,7 +826,7 @@ describe("scoreTurn — round powers", () => {
     expect(zeroLine.notes.join(" ")).toContain("Static");
   });
 
-  it("infrared: every face drops 2; a 2 becomes a 0 and cancels the board", () => {
+  it("ultraviolet: every face rises 2; scores and ties use the raised faces", () => {
     const flat = scoreTurn(
       [
         { playerId: "A", number: 4 },
@@ -831,60 +834,35 @@ describe("scoreTurn — round powers", () => {
         { playerId: "C", number: 3 },
       ],
       undefined,
-      "infrared",
+      "ultraviolet",
     );
-    expect(points(flat)).toEqual({ A: 2, B: 3, C: 1 });
+    expect(points(flat)).toEqual({ A: 6, B: 7, C: 5 });
 
-    const cancel = scoreTurn(
-      [
-        { playerId: "A", number: 2 },
-        { playerId: "B", number: 5 },
-        { playerId: "C", number: 4 },
-      ],
-      undefined,
-      "infrared",
-    );
-    expect(points(cancel)).toEqual({ A: 0, B: 0, C: 0 });
-  });
-
-  it("infrared: a 0 scores -2 when nothing cancels, and ties use shifted faces", () => {
-    const r = scoreTurn(
+    // A 0 becomes a 2 (no longer cancels), so everyone scores their raised face.
+    const zero = scoreTurn(
       [
         { playerId: "A", number: 0 },
         { playerId: "B", number: 5 },
         { playerId: "C", number: 3 },
       ],
       undefined,
-      "infrared",
+      "ultraviolet",
     );
-    // A's 0 becomes -2 (no cancel), B's 5 becomes 3, C's 3 becomes 1.
-    expect(points(r)).toEqual({ A: -2, B: 3, C: 1 });
+    expect(points(zero)).toEqual({ A: 2, B: 7, C: 5 });
+  });
 
+  it("ultraviolet: a raised tie still cancels (both play the same face)", () => {
     const tied = scoreTurn(
       [
-        { playerId: "A", number: 6 },
-        { playerId: "B", number: 6 },
+        { playerId: "A", number: 4 },
+        { playerId: "B", number: 4 },
         { playerId: "C", number: 3 },
       ],
       undefined,
-      "infrared",
+      "ultraviolet",
     );
-    expect(points(tied)).toEqual({ A: 0, B: 0, C: 1 });
-  });
-
-  it("equalize: positive scorers get the floored average, others untouched", () => {
-    const r = scoreTurn(
-      [
-        { playerId: "A", number: 6 },
-        { playerId: "B", number: 3 },
-        { playerId: "C", number: 2 },
-        { playerId: "D", number: 2 },
-      ],
-      undefined,
-      "equalize",
-    );
-    // A 6 + B 3 average to floor(9/2) = 4; the tied 2s stay at 0.
-    expect(points(r)).toEqual({ A: 4, B: 4, C: 0, D: 0 });
+    // Both 4s become 6 and tie out; C's 3 becomes a unique 5.
+    expect(points(tied)).toEqual({ A: 0, B: 0, C: 5 });
   });
 
   it("dormant composition: per-play double + amplify stack to x4", () => {
@@ -900,7 +878,7 @@ describe("scoreTurn — round powers", () => {
     expect(points(r)).toEqual({ A: 16, B: 12, C: 20 });
   });
 
-  it("dormant composition: tie_die user keeps card value under harmony, others get 2", () => {
+  it("dormant composition: tie_die user keeps card value under harmony, others double", () => {
     const r = scoreTurn(
       [
         { playerId: "A", number: 4, powerUp: "tie_die" },
@@ -910,7 +888,8 @@ describe("scoreTurn — round powers", () => {
       undefined,
       "harmony",
     );
-    expect(points(r)).toEqual({ A: 4, B: 2, C: 3 });
+    // Tie Die pays A its scoreValue (4); B's tied 4 doubles to 8 under Harmony.
+    expect(points(r)).toEqual({ A: 4, B: 8, C: 3 });
   });
 
   it("dormant composition: per-play negate_zero + static is idempotent", () => {

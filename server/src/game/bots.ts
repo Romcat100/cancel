@@ -225,6 +225,18 @@ export function decideBotMove(room: RoomDoc, botId: string, rng: () => number = 
   };
 }
 
+// A bot's re-pick during Crosstalk's turn_neighbor_review. The bot keeps its initial pick,
+// which also keeps the human's glimpsed neighbor info truthful (a bot neighbor plays what
+// the human saw). Falls back to a fresh choice if the snapshot is somehow missing.
+export function decideBotNeighborRepick(room: RoomDoc, botId: string, rng: () => number = Math.random): SubmitInput {
+  const initial = room.neighborReview?.initialPicks[botId];
+  if (initial != null) return { playerId: botId, number: initial };
+  const round = room.rounds[room.currentRoundIndex];
+  const myHand = round.hands[botId] ?? [];
+  const oppHands = room.players.filter((p) => p.id !== botId).map((p) => round.hands[p.id] ?? []);
+  return { playerId: botId, number: chooseNumber(myHand, oppHands, [], rng) };
+}
+
 // A bot peeker's re-pick during turn_peek_review: it now knows the peeked opponent's number, so
 // treat that as a guaranteed play on the board and pick around it.
 export function decideBotPeekRepick(room: RoomDoc, botId: string, rng: () => number = Math.random): SubmitInput {
@@ -256,6 +268,12 @@ export function driveBots(room: RoomDoc, rng: () => number = Math.random): RoomD
       const peeker = peekerId ? cur.players.find((p) => p.id === peekerId) : undefined;
       if (!peeker?.isBot) return cur;
       cur = submitTurn(cur, decideBotPeekRepick(cur, peeker.id, rng));
+      continue;
+    }
+    if (cur.phase === "turn_neighbor_review") {
+      const bot = cur.players.find((p) => p.isBot && !cur.pendingSubmissions[p.id]);
+      if (!bot) return cur;
+      cur = submitTurn(cur, decideBotNeighborRepick(cur, bot.id, rng));
       continue;
     }
     if (cur.phase === "round_end") {

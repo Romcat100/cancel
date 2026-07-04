@@ -208,17 +208,17 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
 
   async function submit() {
     if (!id || selectedNumber == null) return;
+    // Peek re-pick and Crosstalk re-pick are both number-only (no power slot).
+    const numberOnly = phase === "turn_peek_review" || phase === "turn_neighbor_review";
     setBusy(true);
     setErr(null);
     try {
       const res = await api.submitTurn(publicState.roomCode, id.claimToken, {
         number: selectedNumber,
-        powerUp: phase === "turn_peek_review" ? undefined : selectedPower ?? undefined,
-        powerUpTarget: phase === "turn_peek_review" ? undefined : powerTarget ?? undefined,
+        powerUp: numberOnly ? undefined : selectedPower ?? undefined,
+        powerUpTarget: numberOnly ? undefined : powerTarget ?? undefined,
         sabotageNumber:
-          phase === "turn_peek_review" || selectedPower !== "sabotage"
-            ? undefined
-            : sabotageNumber ?? undefined,
+          numberOnly || selectedPower !== "sabotage" ? undefined : sabotageNumber ?? undefined,
       });
       setState(res.state);
     } catch (e) {
@@ -245,6 +245,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
   const isPicker = privateState.isPicker;
   const isPeekReview = phase === "turn_peek_review" && !!privateState.peekReveal;
   const blockedByPeek = phase === "turn_peek_review" && privateState.blockedByOthers;
+  const isNeighborReview = phase === "turn_neighbor_review";
   const poolForPicker = isPicker && phase === "turn_submitting" ? round.poolRemaining : undefined;
   const needsTarget = selectedPower ? POWER_UPS[selectedPower].needsTarget : false;
   const needsSabotageNumber = selectedPower === "sabotage";
@@ -252,11 +253,13 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
   const canSubmit =
     phase === "turn_peek_review"
       ? isPeekReview && selectedNumber != null
-      : !privateState.hasSubmittedThisTurn &&
-        selectedNumber != null &&
-        (!isPicker || (poolForPicker?.length ?? 0) === 0 || selectedPower) &&
-        (!needsTarget || powerTarget) &&
-        (!needsSabotageNumber || sabotageNumber != null);
+      : isNeighborReview
+        ? !privateState.hasSubmittedThisTurn && selectedNumber != null
+        : !privateState.hasSubmittedThisTurn &&
+          selectedNumber != null &&
+          (!isPicker || (poolForPicker?.length ?? 0) === 0 || selectedPower) &&
+          (!needsTarget || powerTarget) &&
+          (!needsSabotageNumber || sabotageNumber != null);
 
   const playerById = useMemo(() => new Map(publicState.players.map((p) => [p.id, p])), [publicState.players]);
   const isHost = publicState.hostId === selfPlayerId;
@@ -442,7 +445,21 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
         })}
       </div>
 
-      {isHost && (phase === "turn_submitting" || phase === "turn_peek_review") && someoneMissing && (
+      {isNeighborReview && privateState.neighborReveal && (
+        <div
+          className="rounded-2xl px-4 py-3 text-sm font-mono mb-3 animate-rise border"
+          style={{ background: "rgba(77,214,196,0.12)", borderColor: "rgba(77,214,196,0.4)", color: "#bff0e8" }}
+          data-testid="game-neighbor-review"
+        >
+          ◂▸ {playerById.get(privateState.neighborReveal.neighborPlayerId)?.name} is planning to play a{" "}
+          <span className="font-bold text-base" style={{ color: "#e6fffb" }}>
+            {privateState.neighborReveal.number}
+          </span>
+          . Pick again, or keep your card.
+        </div>
+      )}
+
+      {isHost && (phase === "turn_submitting" || phase === "turn_peek_review" || isNeighborReview) && someoneMissing && (
         <button
           onClick={skipWaiting}
           disabled={busy}
@@ -545,7 +562,8 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
                 n={n}
                 state={selectedNumber === n ? "selected" : "idle"}
                 onClick={
-                  blockedByPeek || (phase === "turn_submitting" && privateState.hasSubmittedThisTurn)
+                  blockedByPeek ||
+                  ((phase === "turn_submitting" || isNeighborReview) && privateState.hasSubmittedThisTurn)
                     ? undefined
                     : () => setSelectedNumber(n === selectedNumber ? null : n)
                 }
@@ -581,6 +599,12 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
               ? "Waiting on the peeker…"
               : phase === "turn_peek_review"
               ? selectedNumber == null
+                ? "Pick a new number"
+                : "Lock it in"
+              : isNeighborReview
+              ? privateState.hasSubmittedThisTurn
+                ? "Locked in — waiting"
+                : selectedNumber == null
                 ? "Pick a new number"
                 : "Lock it in"
               : busy
@@ -1035,6 +1059,15 @@ function RevealView({
           <RevealTraceRow key={e.s.playerId} e={e} settled={settled} antiphase={false} />
         ))}
       </section>
+      {reveal.crosstalkUsed && reveal.crosstalkUsed.some((c) => c.initialNumber !== c.finalNumber) && (
+        <div className="mt-4 text-sm font-mono text-center" style={{ color: "#bff0e8" }} data-testid="reveal-crosstalk">
+          ◂▸ Crosstalk:{" "}
+          {reveal.crosstalkUsed
+            .filter((c) => c.initialNumber !== c.finalNumber)
+            .map((c) => `${playerById.get(c.playerId)?.name ?? "?"} ${c.initialNumber}→${c.finalNumber}`)
+            .join(", ")}
+        </div>
+      )}
       {reveal.peekUsed && (
         <div className="mt-4 text-cyan-200 text-sm font-mono text-center">
           ◎ {playerById.get(reveal.peekUsed.peekerId)?.name} peeked at{" "}
