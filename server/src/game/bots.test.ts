@@ -8,7 +8,7 @@ import {
   type RoomDoc,
 } from "./engine.js";
 import { decideBotMove, decideBotPeekRepick, driveBots } from "./bots.js";
-import { chooseNumber } from "./heuristics.js";
+import { chooseNumber, TUNING } from "./heuristics.js";
 import { POWER_UPS, POWER_UP_IDS } from "../../../shared/types.js";
 
 // A solo room: one human "H" plus `bots` AI players. rounds defaults low for fast tests.
@@ -64,6 +64,58 @@ describe("chooseNumber", () => {
       if (chooseNumber(hand, opp, []) !== chooseNumber(hand, opp, [])) diverged++;
     }
     expect(diverged).toBeGreaterThan(200); // > half the time they pick different cards
+  });
+});
+
+describe("difficulty tuning", () => {
+  // Same hand and board for every level; only the tuning changes. Card 5 is the top-EV pick.
+  const hand = [0, 1, 2, 3, 4, 5];
+  const opp = [hand, hand, hand];
+  const topShare = (t: (typeof TUNING)[keyof typeof TUNING]) => {
+    const picks = Array.from({ length: 800 }, () => chooseNumber(hand, opp, [], Math.random, t));
+    return picks.filter((n) => n === 5).length / picks.length;
+  };
+
+  it("hard concentrates on the top-EV card far more than easy", () => {
+    const easy = topShare(TUNING.easy);
+    const medium = topShare(TUNING.medium);
+    const hard = topShare(TUNING.hard);
+    // Monotonic in skill: harder play leans harder on the best card.
+    expect(hard).toBeGreaterThan(medium);
+    expect(medium).toBeGreaterThan(easy);
+    // And the spread is large, not a hair — the knob actually bites.
+    expect(hard).toBeGreaterThan(easy + 0.15);
+    expect(easy).toBeLessThan(0.35); // easy is close to flat/random
+  });
+
+  it("easy spreads its picks across more of the hand than hard", () => {
+    const spread = (t: (typeof TUNING)[keyof typeof TUNING]) =>
+      new Set(Array.from({ length: 300 }, () => chooseNumber(hand, opp, [], Math.random, t))).size;
+    expect(spread(TUNING.easy)).toBeGreaterThanOrEqual(spread(TUNING.hard));
+  });
+
+  it("chooseNumber defaults to medium tuning when none is passed", () => {
+    // Same seeded rng + same explicit medium tuning must produce the same pick as the default.
+    const withDefault = chooseNumber(hand, opp, [], () => 0.42);
+    const withMedium = chooseNumber(hand, opp, [], () => 0.42, TUNING.medium);
+    expect(withDefault).toBe(withMedium);
+  });
+
+  it("decideBotMove reads the room's difficulty (hard picks high more than easy)", () => {
+    const topPickShare = (level: "easy" | "hard") => {
+      let hits = 0;
+      const n = 300;
+      for (let i = 0; i < n; i++) {
+        const r = startGame(soloRoom(3));
+        r.config.difficulty = level;
+        const bot = r.players.find((p) => p.isBot)!;
+        const move = decideBotMove(r, bot.id);
+        const botHand = r.rounds[0].hands[bot.id];
+        if (move.number === Math.max(...botHand)) hits++;
+      }
+      return hits / n;
+    };
+    expect(topPickShare("hard")).toBeGreaterThan(topPickShare("easy"));
   });
 });
 

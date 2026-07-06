@@ -29,7 +29,7 @@ npm test          # runs the scoring engine + state machine tests
 
 ## Play it
 
-You can play **solo against AI** from the Home screen (tap **Single player**), or create a multiplayer room and invite friends. Multiplayer lobbies can also add AI players to fill out a small group, capped so humans + AIs stay at or below 8.
+You can play **solo against AI** from the Home screen (tap **Single player**), or create a multiplayer room and invite friends. Multiplayer lobbies can also add AI players to fill out a small group, capped so humans + AIs stay at or below 8. Any lobby with AI players gets an **Easy / Medium / Hard** difficulty control that scales how sharply the AI plays.
 
 1. **Create a room** → you get a 4-character code.
 2. **Share the code** with friends; they tap "Join with code" on the same site.

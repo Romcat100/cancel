@@ -25,6 +25,10 @@ export type PowerUpMode = "off" | "random" | "selected";
 
 export type NumberMode = "default" | "custom";
 
+// AI opponent skill. Scales only how sharply bots act on their (accurate) view of the
+// board, never what they can see. Medium is the original single-difficulty behavior.
+export type Difficulty = "easy" | "medium" | "hard";
+
 // Powers excluded from the dealt pool in 2-player games (too oppressive 1v1).
 // Shared so the engine and the lobby selection UI agree on what to filter.
 export const TWO_PLAYER_EXCLUDED_POWERS: PowerUpId[] = ["peek", "sabotage"];
@@ -144,6 +148,7 @@ export interface PublicState {
     numberMode: NumberMode;
     customNumbers: number[];
     solo: boolean;
+    difficulty: Difficulty;
   };
 }
 

@@ -210,6 +210,23 @@ describe("engine lifecycle", () => {
     expect(r.config.selectedRoundPowers).toEqual(["amplify", "ultraviolet"]);
   });
 
+  it("difficulty defaults to medium and round-trips through setRoomConfig", () => {
+    let r = room3p();
+    expect(r.config.difficulty).toBe("medium");
+    r = setRoomConfig(r, { difficulty: "hard" });
+    expect(r.config.difficulty).toBe("hard");
+    // Untouched by an unrelated patch, and honored at createRoom time.
+    r = setRoomConfig(r, { rounds: 2 });
+    expect(r.config.difficulty).toBe("hard");
+    const easyRoom = createRoom({ code: "EZ", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, difficulty: "easy" });
+    expect(easyRoom.config.difficulty).toBe("easy");
+  });
+
+  it("setRoomConfig (difficulty) is rejected once the game starts", () => {
+    const r = startGame0(room3p());
+    expect(() => setRoomConfig(r, { difficulty: "hard" })).toThrow();
+  });
+
   it("the next round re-rolls the round power", () => {
     let r = startGame0(room3p());
     expect(r.rounds[0].roundPower).toBe(ROUND_POWER_IDS[0]);

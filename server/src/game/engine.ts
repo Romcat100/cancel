@@ -3,6 +3,7 @@ import {
   POWER_UPS,
   ROUND_POWER_IDS,
   TWO_PLAYER_EXCLUDED_POWERS,
+  type Difficulty,
   type NumberMode,
   type PowerUpId,
   type PowerUpMode,
@@ -99,6 +100,7 @@ export interface RoomDoc {
     numberMode: NumberMode;
     customNumbers: number[];
     solo: boolean;
+    difficulty: Difficulty;
   };
   phase: RoomPhaseDoc;
   players: PlayerDoc[];
@@ -134,6 +136,7 @@ export function createRoom(opts: {
   numberMode?: NumberMode;
   customNumbers?: number[];
   solo?: boolean;
+  difficulty?: Difficulty;
 }): RoomDoc {
   const now = Date.now();
   return {
@@ -149,6 +152,7 @@ export function createRoom(opts: {
       numberMode: opts.numberMode ?? "default",
       customNumbers: opts.customNumbers ?? [],
       solo: opts.solo ?? false,
+      difficulty: opts.difficulty ?? "medium",
     },
     phase: "lobby",
     players: [{ id: opts.hostId, name: opts.hostName, seat: HOST_SEAT, totalScore: 0 }],
@@ -330,6 +334,7 @@ export function setRoomConfig(
     showHands?: boolean;
     numberMode?: NumberMode;
     customNumbers?: number[];
+    difficulty?: Difficulty;
   },
 ): RoomDoc {
   if (room.phase !== "lobby") throw new Error("Config locked once game starts");
@@ -347,6 +352,7 @@ export function setRoomConfig(
       showHands: patch.showHands ?? room.config.showHands,
       numberMode: patch.numberMode ?? room.config.numberMode,
       customNumbers: patch.customNumbers ?? room.config.customNumbers,
+      difficulty: patch.difficulty ?? room.config.difficulty,
     },
     updatedAt: Date.now(),
   };
