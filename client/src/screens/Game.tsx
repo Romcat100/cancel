@@ -852,7 +852,9 @@ type RevealRowItem = {
   s: { playerId: string; number: number };
   player: { name: string; seat: number };
   delta: number;
+  total: number;
   t: Treatment;
+  antiphase: boolean;
 };
 
 const REVEAL_ROW_COLS = "grid grid-cols-[52px_1fr_60px] gap-3 items-center";
@@ -875,8 +877,8 @@ function RevealSumRow() {
 
 // One signal on the shared axis: minicard (numeral + tiny wave), the full trace,
 // and its outcome. Cancelled signals fade; the surviving Ø glows.
-function RevealTraceRow({ e, settled, antiphase }: { e: RevealRowItem; settled: boolean; antiphase: boolean }) {
-  const { s, player, delta, t } = e;
+function RevealTraceRow({ e, settled }: { e: RevealRowItem; settled: boolean }) {
+  const { s, player, delta, total, t, antiphase } = e;
   const hex = seatColor(player.seat).hex;
   const rank = rankForNumber(s.number);
   const alive = t === "survivor" || t === "aliveZero";
@@ -932,6 +934,9 @@ function RevealTraceRow({ e, settled, antiphase }: { e: RevealRowItem; settled: 
         ) : (
           <b className="font-mono text-lg text-paper/40">0</b>
         )}
+        <span className="font-mono text-[10px] text-paper/45" data-testid={`reveal-total-${player.seat}`}>
+          Σ {total}
+        </span>
       </div>
     </div>
   );
@@ -944,7 +949,7 @@ function RevealView({
   onClose,
 }: {
   reveal: RevealedTurn;
-  players: { id: string; name: string; seat: number }[];
+  players: { id: string; name: string; seat: number; totalScore: number }[];
   roundPower?: RoundPowerId;
   onClose: () => void;
 }) {
@@ -956,31 +961,33 @@ function RevealView({
   }, []);
   const playerById = new Map(players.map((p) => [p.id, p]));
   const power = reveal.submissions.find((s) => s.powerUp);
-  const sortedSubs = [...reveal.submissions].sort((a, b) => {
-    const sa = playerById.get(a.playerId)?.seat ?? 0;
-    const sb = playerById.get(b.playerId)?.seat ?? 0;
-    return sa - sb;
-  });
   const settled = phase === "score";
   // Enrich each submission with its scored delta + interference treatment, then
-  // cluster: tie groups (waves in antiphase, summing to a flat CANCELLED line),
-  // cards zeroed by a lone Ø, the rest, then the surviving signals (highlighted).
-  const enriched: RevealRowItem[] = sortedSubs.map((s) => {
+  // rank strictly by running total so the current leader is always on top.
+  // Totals in the projection already include this reveal's deltas.
+  const enriched: RevealRowItem[] = reveal.submissions.map((s) => {
     const player = playerById.get(s.playerId)!;
     const score = reveal.scoring.find((l) => l.playerId === s.playerId);
     const delta = score?.delta ?? 0;
-    return { s, player, delta, t: revealTreatment(s.number, delta, score?.notes ?? []) };
+    return {
+      s,
+      player,
+      delta,
+      total: player.totalScore,
+      t: revealTreatment(s.number, delta, score?.notes ?? []),
+      antiphase: false,
+    };
   });
-  const tieGroups = new Map<number, RevealRowItem[]>();
+  enriched.sort((a, b) => b.total - a.total || a.player.seat - b.player.seat);
+  // Tied waves render mirrored regardless of where the standings put them:
+  // alternate antiphase within each face-tie group.
+  const tieSeen = new Map<number, number>();
   for (const e of enriched) {
     if (e.t !== "tie") continue;
-    const arr = tieGroups.get(e.s.number) ?? [];
-    arr.push(e);
-    tieGroups.set(e.s.number, arr);
+    const n = tieSeen.get(e.s.number) ?? 0;
+    e.antiphase = n % 2 === 1;
+    tieSeen.set(e.s.number, n + 1);
   }
-  const zeroed = enriched.filter((e) => e.t === "zeroed");
-  const others = enriched.filter((e) => e.t === "negative" || e.t === "neutral");
-  const survivors = enriched.filter((e) => e.t === "survivor" || e.t === "aliveZero");
   return (
     <div
       className="fixed inset-0 z-40 bg-ink/95 backdrop-blur-md overflow-y-auto"
@@ -1036,28 +1043,16 @@ function RevealView({
         </div>
       )}
       <section className="panel scope p-3 w-full max-w-sm">
-        {[...tieGroups.values()].map((group, gi) => (
-          <div key={`tie-${gi}`}>
-            {group.map((e, mi) => (
-              <Fragment key={e.s.playerId}>
-                {mi > 0 && <RevealSumRow />}
-                <RevealTraceRow e={e} settled={settled} antiphase={mi % 2 === 1} />
-              </Fragment>
-            ))}
-          </div>
-        ))}
-        {zeroed.map((e) => (
-          <RevealTraceRow key={e.s.playerId} e={e} settled={settled} antiphase={false} />
-        ))}
-        {others.map((e) => (
-          <RevealTraceRow key={e.s.playerId} e={e} settled={settled} antiphase={false} />
-        ))}
-        {survivors.length > 0 && (tieGroups.size > 0 || zeroed.length > 0 || others.length > 0) && (
-          <div className="h-px bg-paper/10 my-2" />
-        )}
-        {survivors.map((e) => (
-          <RevealTraceRow key={e.s.playerId} e={e} settled={settled} antiphase={false} />
-        ))}
+        {enriched.map((e, i) => {
+          const prev = enriched[i - 1];
+          const pairedWithPrev = !!prev && prev.t === "tie" && e.t === "tie" && prev.s.number === e.s.number;
+          return (
+            <Fragment key={e.s.playerId}>
+              {pairedWithPrev && <RevealSumRow />}
+              <RevealTraceRow e={e} settled={settled} />
+            </Fragment>
+          );
+        })}
       </section>
       {reveal.crosstalkUsed && reveal.crosstalkUsed.some((c) => c.initialNumber !== c.finalNumber) && (
         <div className="mt-4 text-sm font-mono text-center" style={{ color: "#bff0e8" }} data-testid="reveal-crosstalk">
