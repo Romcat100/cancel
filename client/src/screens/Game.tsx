@@ -899,7 +899,7 @@ function RevealTraceRow({ e, settled, antiphase }: { e: RevealRowItem; settled: 
           <>
             <Wave rank={rank} variant="ghosted" color={hex} className="absolute inset-0 w-full h-full" />
             <Wave pathId="cw0" variant="sum" animated={false} className="absolute inset-0 w-full h-full" />
-            <span className="absolute right-0 top-1/2 -translate-y-1/2 font-mono text-xs text-cool bg-ink px-1 rounded [text-shadow:0_0_8px_rgba(111,168,255,0.8)]">
+            <span className="absolute right-0 top-1/2 -translate-y-1/2 font-mono text-xs text-cool bg-ink px-1 rounded [text-shadow:0_0_8px_rgb(var(--th-cool)/0.8)]">
               Ø
             </span>
           </>
@@ -919,7 +919,7 @@ function RevealTraceRow({ e, settled, antiphase }: { e: RevealRowItem; settled: 
         {t === "survivor" ? (
           <b className="font-mono text-lg text-emerald-300 [text-shadow:0_0_10px_rgba(94,234,160,0.4)]">+{delta}</b>
         ) : t === "aliveZero" ? (
-          <b className="font-mono text-xl text-cool [text-shadow:0_0_14px_rgba(111,168,255,0.6)]">0</b>
+          <b className="font-mono text-xl text-cool [text-shadow:0_0_14px_rgb(var(--th-cool)/0.6)]">0</b>
         ) : t === "negative" ? (
           <b className="font-mono text-lg text-rose-300">{delta}</b>
         ) : t === "tie" || t === "zeroed" ? (

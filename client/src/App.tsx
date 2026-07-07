@@ -9,6 +9,7 @@ import { api } from "./api.js";
 import { initMusic } from "./music.js";
 import { initSfx } from "./sfx.js";
 import { pollHealth, setStaleHandler } from "./version.js";
+import { applyRoundTheme } from "./theme.js";
 import { WaveDefs } from "./wave.js";
 
 export function App() {
@@ -22,6 +23,15 @@ export function App() {
     initMusic();
     initSfx();
   }, []);
+
+  // Each round gets its own color theme (background + accent families; seat
+  // colors are pinned and never shift). No round (Home/Lobby, or after leaving)
+  // restores the default indigo. The snap happens behind the round-end summary,
+  // so there's no mid-play flash.
+  const roundIndex = state?.publicState.round?.index ?? null;
+  useEffect(() => {
+    applyRoundTheme(roundIndex);
+  }, [roundIndex]);
 
   // Watch for a newer client build deploying while this tab is open. The socket auth ack catches a
   // redeploy on reconnect (a server restart drops every socket); these polls catch backgrounded and

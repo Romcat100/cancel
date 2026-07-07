@@ -9,11 +9,14 @@ export default {
       },
       colors: {
         // Fable: Interference — deep indigo void, soft white text, glowing signals.
-        ink: "#12102e",
+        // ink/accent/cool/gold read the per-round --th-* vars (RGB triplets set in
+        // index.css :root, overridden per round by theme.ts). Seat colors must NOT
+        // use these tokens — they're pinned to literal hexes in components.tsx.
+        ink: "rgb(var(--th-bg0) / <alpha-value>)",
         paper: "#eef0fb",
-        accent: "#ff7a5c", // warm coral — the brand / CTA signal
-        cool: "#6fa8ff", // ice blue
-        gold: "#ffd166",
+        accent: "rgb(var(--th-accent) / <alpha-value>)", // warm coral — the brand / CTA signal
+        cool: "rgb(var(--th-cool) / <alpha-value>)", // ice blue
+        gold: "rgb(var(--th-gold) / <alpha-value>)",
       },
       keyframes: {
         flip: {
@@ -26,14 +29,14 @@ export default {
           "100%": { transform: "translateY(0)", opacity: "1" },
         },
         "ping-target": {
-          "0%": { transform: "translateX(0) scale(1)", boxShadow: "0 0 0 0 rgba(255,122,92,0.6)" },
-          "10%": { transform: "translateX(-6px) scale(1.06)", boxShadow: "0 0 0 4px rgba(255,122,92,0.4)" },
-          "20%": { transform: "translateX(6px) scale(1.08)", boxShadow: "0 0 0 10px rgba(255,122,92,0.25)" },
+          "0%": { transform: "translateX(0) scale(1)", boxShadow: "0 0 0 0 rgb(var(--th-accent) / 0.6)" },
+          "10%": { transform: "translateX(-6px) scale(1.06)", boxShadow: "0 0 0 4px rgb(var(--th-accent) / 0.4)" },
+          "20%": { transform: "translateX(6px) scale(1.08)", boxShadow: "0 0 0 10px rgb(var(--th-accent) / 0.25)" },
           "32%": { transform: "translateX(-5px) scale(1.06)" },
-          "44%": { transform: "translateX(4px) scale(1.04)", boxShadow: "0 0 0 16px rgba(255,122,92,0)" },
+          "44%": { transform: "translateX(4px) scale(1.04)", boxShadow: "0 0 0 16px rgb(var(--th-accent) / 0)" },
           "60%": { transform: "translateX(-3px) scale(1.02)" },
           "78%": { transform: "translateX(1.5px) scale(1.01)" },
-          "100%": { transform: "translateX(0) scale(1)", boxShadow: "0 0 0 0 rgba(255,122,92,0)" },
+          "100%": { transform: "translateX(0) scale(1)", boxShadow: "0 0 0 0 rgb(var(--th-accent) / 0)" },
         },
         "ping-sender": {
           "0%": { boxShadow: "0 0 0 0 rgba(238,240,251,0.7)" },

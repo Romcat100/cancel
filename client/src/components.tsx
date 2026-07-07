@@ -15,10 +15,12 @@ import { Wave, rankForNumber, amplitudePathForScore } from "./wave.js";
 // Seats 0-3 are the demo's named players (Ben/Voltaire/Mechano/Data Dan); 4-7 are
 // distinct glow colors that read clearly on the indigo void and against the
 // cancelled grey (#9aa0b8). The class strings below MUST stay literal (see note).
+// Seats 0-2 use arbitrary-value classes, NOT the accent/cool/gold tokens: those
+// tokens follow the per-round theme (--th-* vars) and player colors must not.
 export const SEATS = [
-  { bg: "bg-accent", text: "text-accent", hex: "#ff7a5c" }, // Ben — warm coral
-  { bg: "bg-cool", text: "text-cool", hex: "#6fa8ff" }, // Voltaire — ice blue
-  { bg: "bg-gold", text: "text-gold", hex: "#ffd166" }, // Mechano — gold
+  { bg: "bg-[#ff7a5c]", text: "text-[#ff7a5c]", hex: "#ff7a5c" }, // Ben — warm coral
+  { bg: "bg-[#6fa8ff]", text: "text-[#6fa8ff]", hex: "#6fa8ff" }, // Voltaire — ice blue
+  { bg: "bg-[#ffd166]", text: "text-[#ffd166]", hex: "#ffd166" }, // Mechano — gold
   { bg: "bg-emerald-500", text: "text-emerald-500", hex: "#5ad6a0" }, // Data Dan — green
   { bg: "bg-fuchsia-500", text: "text-fuchsia-500", hex: "#e879f9" }, // magenta
   { bg: "bg-cyan-400", text: "text-cyan-400", hex: "#22d3ee" }, // cyan
@@ -35,9 +37,9 @@ export function seatColor(seat: number) {
 // silently no-op because their string never appears in source. The `hex` field is
 // only ever used inline (style.color), never as a class, so it needs no JIT entry.
 export const SEAT_COLORS = [
-  "bg-accent",
-  "bg-cool",
-  "bg-gold",
+  "bg-[#ff7a5c]",
+  "bg-[#6fa8ff]",
+  "bg-[#ffd166]",
   "bg-emerald-500",
   "bg-fuchsia-500",
   "bg-cyan-400",
@@ -46,9 +48,9 @@ export const SEAT_COLORS = [
 ];
 
 export const SEAT_TEXT_COLORS = [
-  "text-accent",
-  "text-cool",
-  "text-gold",
+  "text-[#ff7a5c]",
+  "text-[#6fa8ff]",
+  "text-[#ffd166]",
   "text-emerald-500",
   "text-fuchsia-500",
   "text-cyan-400",
@@ -81,7 +83,7 @@ export function NumberCard({
   const sel = state === "selected";
   const numCls =
     sel
-      ? "text-[#ffb39e] [text-shadow:0_0_12px_rgba(255,122,92,0.7)]"
+      ? "text-[color:color-mix(in_srgb,rgb(var(--th-accent))_60%,white)] [text-shadow:0_0_12px_rgb(var(--th-accent)/0.7)]"
       : state === "played"
       ? "text-paper"
       : state === "ghost"
@@ -92,7 +94,7 @@ export function NumberCard({
   // undefined color → wave inherits the faint coral on .nwv (idle hand look).
   const waveColor =
     sel
-      ? "#ff8a6e"
+      ? "color-mix(in srgb, rgb(var(--th-accent)) 86%, white)"
       : state === "played"
       ? "rgba(238,240,251,0.55)"
       : state === "ghost"
@@ -104,7 +106,7 @@ export function NumberCard({
   const animated = state === "idle" || sel;
   const cx = `card-face shrink-0 flex-col justify-between items-stretch px-1.5 py-2 ${NUMBER_CARD_DIM[size]} ${
     onClick ? "cursor-pointer" : ""
-  } ${sel ? "-translate-y-1.5 border-accent/80 shadow-[0_10px_26px_rgba(255,122,92,0.28),0_0_0_1px_rgba(255,138,110,0.4)]" : ""} transition`;
+  } ${sel ? "-translate-y-1.5 border-accent/80 shadow-[0_10px_26px_rgb(var(--th-accent)/0.28),0_0_0_1px_rgb(var(--th-accent)/0.4)]" : ""} transition`;
   return (
     <button type="button" disabled={!onClick} onClick={onClick} className={cx} data-sfx="tap" data-testid={testId}>
       <span className={`block text-center leading-none ${NUMBER_CARD_TEXT[size]} ${numCls}`}>

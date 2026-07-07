@@ -3,6 +3,18 @@
 @tailwind utilities;
 
 @layer base {
+  /* Per-round theme slots (space-separated RGB triplets so Tailwind can apply
+     opacity modifiers via rgb(var(--x) / <alpha-value>)). Defaults = the base
+     indigo theme; theme.ts:applyRoundTheme overrides them inline on <html>
+     each round. Seat colors deliberately do NOT read these (components.tsx). */
+  :root {
+    --th-bg0: 18 16 46; /* #12102e ink — base background */
+    --th-bg1: 21 18 64; /* #151240 gradient mid */
+    --th-bg2: 26 23 72; /* #1a1748 gradient end */
+    --th-accent: 255 122 92; /* #ff7a5c warm coral */
+    --th-cool: 111 168 255; /* #6fa8ff ice blue */
+    --th-gold: 255 209 102; /* #ffd166 */
+  }
   html,
   body,
   #root {
@@ -16,11 +28,11 @@
     color: theme(colors.paper);
     /* Fable: Interference — deep indigo void with soft signal glows + faint scanlines. */
     background:
-      radial-gradient(900px 520px at 88% -8%, rgba(111, 168, 255, 0.1), transparent 62%),
-      radial-gradient(760px 480px at 4% 104%, rgba(255, 122, 92, 0.07), transparent 60%),
+      radial-gradient(900px 520px at 88% -8%, rgb(var(--th-cool) / 0.1), transparent 62%),
+      radial-gradient(760px 480px at 4% 104%, rgb(var(--th-accent) / 0.07), transparent 60%),
       repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 64px),
-      linear-gradient(180deg, #12102e 0%, #151240 52%, #1a1748 100%);
-    background-color: #12102e;
+      linear-gradient(180deg, rgb(var(--th-bg0)) 0%, rgb(var(--th-bg1)) 52%, rgb(var(--th-bg2)) 100%);
+    background-color: rgb(var(--th-bg0));
     background-attachment: fixed;
   }
   button,
@@ -35,10 +47,14 @@
   }
   .btn-primary {
     @apply btn font-extrabold;
-    background: linear-gradient(180deg, #ff8a6e, #ff6a47);
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, rgb(var(--th-accent)) 86%, white),
+      rgb(var(--th-accent))
+    );
     color: #1c0f2e;
     box-shadow:
-      0 0 22px rgba(255, 122, 92, 0.35),
+      0 0 22px rgb(var(--th-accent) / 0.35),
       0 6px 18px rgba(0, 0, 0, 0.35),
       inset 0 1px 0 rgba(255, 255, 255, 0.35);
   }
@@ -156,9 +172,9 @@
   bottom: 0;
   width: 2px;
   transform: translateX(-50%);
-  background: #ff7a5c;
+  background: rgb(var(--th-accent));
   border-radius: 2px;
-  box-shadow: 0 0 8px rgba(255, 122, 92, 0.9);
+  box-shadow: 0 0 8px rgb(var(--th-accent) / 0.9);
 }
 
 /* The reveal "oscilloscope" panel: a faint vertical grid behind the wave traces. */
@@ -172,7 +188,7 @@
 .nwv {
   display: block;
   width: 100%;
-  color: rgba(255, 122, 92, 0.5);
+  color: rgb(var(--th-accent) / 0.5);
   background: linear-gradient(rgba(255, 255, 255, 0.08) 0 0) center / 100% 1px no-repeat;
 }
 
@@ -242,9 +258,9 @@
   position: absolute;
   font-family: theme(fontFamily.mono);
   font-size: 13px;
-  color: #6fa8ff;
+  color: rgb(var(--th-cool));
   opacity: 0.5;
-  text-shadow: 0 0 8px rgba(111, 168, 255, 0.6);
+  text-shadow: 0 0 8px rgb(var(--th-cool) / 0.6);
 }
 
 /* ============ motion: opt-in only, so reduced-motion (and the screenshot

@@ -39,7 +39,7 @@ You can play **solo against AI** from the Home screen (tap **Single player**), o
    - Everyone privately picks a number from their hand. Each player's remaining hand is shown publicly under their name so you can see what cards your opponents still have.
    - You can **un-lock** your submission by tapping the locked-in button — as long as the turn hasn't fully resolved (i.e. not everyone has locked in yet), you can change your pick.
    - When all submissions are in, the numbers flip face-up at once, scores tally under the round power's rules, and the next turn starts.
-6. **End of round** — a tally screen shows what each player scored that round and the running totals. Tap **Next round** when you're ready; the round advances when all players are.
+6. **End of round** — a tally screen shows what each player scored that round and the running totals. Tap **Next round** when you're ready; the round advances when all players are. Each round arrives with its own color scheme (the background and UI accents shift; player colors never change).
 7. **Each round is (N+2) turns; the host picks 1-5 rounds (default 3).** Highest total wins.
 
 ## Scoring rules
