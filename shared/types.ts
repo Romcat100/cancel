@@ -123,6 +123,9 @@ export interface PrivateState {
   // Crosstalk (round power): during turn_neighbor_review, the initial pick of the
   // player seated next to you, so you can adjust before the turn resolves.
   neighborReveal?: { neighborPlayerId: string; number: number };
+  // Broadcast (round power): during turn_neighbor_review, EVERY player's initial pick
+  // (seat order, includes your own), so the whole table adjusts with open cards.
+  broadcastReveal?: { playerId: string; number: number }[];
   blockedByOthers?: boolean;
 }
 
@@ -316,7 +319,10 @@ export type RoundPowerId =
   | "static"
   | "ultraviolet"
   | "crosstalk"
-  | "refraction";
+  | "refraction"
+  | "limiter"
+  | "absorption"
+  | "broadcast";
 
 export interface RoundPowerDef {
   id: RoundPowerId;
@@ -366,6 +372,24 @@ export const ROUND_POWERS: Record<RoundPowerId, RoundPowerDef> = {
     name: "Refraction",
     description:
       "Light bends to a new angle. Each turn you glimpse the number a random player means to play, then everyone gets one chance to change their pick.",
+  },
+  limiter: {
+    id: "limiter",
+    name: "Limiter",
+    description:
+      "The loudest signal gets clipped. Each turn, the highest card that scored is cut to 0, so the biggest number on the board earns nothing.",
+  },
+  absorption: {
+    id: "absorption",
+    name: "Absorption",
+    description:
+      "The flat line drinks the sound. A lone 0 still silences the board, and it also scores the average of the cards it silenced, rounded up.",
+  },
+  broadcast: {
+    id: "broadcast",
+    name: "Broadcast",
+    description:
+      "Every pick goes out over the air. Once everyone locks in, all picks are shown to all players, and everyone gets one chance to change their card.",
   },
 };
 

@@ -477,13 +477,23 @@ export function submitTurn(room: RoomDoc, input: SubmitInput): RoomDoc {
         };
       }
     }
-    // Crosstalk / Refraction (round powers): pause the turn so everyone glimpses one
-    // other player's initial pick and gets one chance to re-pick before it resolves.
-    if ((round.roundPower === "crosstalk" || round.roundPower === "refraction") && room.players.length >= 2) {
+    // Crosstalk / Refraction / Broadcast (round powers): pause the turn so everyone
+    // glimpses another player's initial pick (or, for Broadcast, the whole board) and
+    // gets one chance to re-pick before it resolves.
+    const flowPower = round.roundPower;
+    if (
+      (flowPower === "crosstalk" || flowPower === "refraction" || flowPower === "broadcast") &&
+      room.players.length >= 2
+    ) {
       const initialPicks = Object.fromEntries(
         Object.values(next.pendingSubmissions).map((s) => [s.playerId, s.number]),
       );
-      const targets = assignPeekTargets(next, round.roundPower === "refraction" ? "random" : "neighbor");
+      // Broadcast shows every pick to everyone, so it needs no per-player target
+      // assignment — the projection reads initialPicks wholesale instead.
+      const targets =
+        flowPower === "broadcast"
+          ? {}
+          : assignPeekTargets(next, flowPower === "refraction" ? "random" : "neighbor");
       return {
         ...next,
         phase: "turn_neighbor_review",

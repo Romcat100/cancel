@@ -29,9 +29,10 @@ export function scoreTurn(
 
   // Round powers apply to everyone for the whole round. Static reuses the per-play
   // negate-zero flag; Ultraviolet is a universal +2 at the eff stage; Harmony rewires
-  // the tie branch to double the tied value; Amplify is a post-pass at the end. Pure
-  // Tone has no branch anywhere on purpose (the nothingburger pattern) — don't "fix" it.
-  // Crosstalk is a turn-flow change handled in engine.ts, not a scoring effect.
+  // the tie branch to double the tied value; Amplify and Limiter are post-passes at the
+  // end; Absorption extends the lone-canceller branch. Pure Tone has no branch anywhere
+  // on purpose (the nothingburger pattern) — don't "fix" it. Crosstalk / Refraction /
+  // Broadcast are turn-flow changes handled in engine.ts, not scoring effects.
   const staticActive = roundPower === "static";
   const ultravioletActive = roundPower === "ultraviolet";
   const harmonyActive = roundPower === "harmony";
@@ -140,6 +141,18 @@ export function scoreTurn(
           ? "Tie Die: 0 still cancels despite another 0"
           : "Played 0 (cancelled all others)",
       );
+      // Absorption: the lone canceller drinks what it silenced — it scores the average
+      // of the other cards' faces, rounded UP (in the 0's favor). Only the lone 0
+      // absorbs; suppressed multi-zeros fall through the branch below and score 0.
+      // The "cancelled all others" note above stays, so revealTreatment still renders
+      // the lone-Ø survivor look.
+      if (roundPower === "absorption") {
+        const silenced = eff.filter((o) => o.playerId !== e.playerId);
+        if (silenced.length > 0) {
+          delta = Math.ceil(silenced.reduce((s, o) => s + o.face, 0) / silenced.length);
+          notes.push(`Absorption: ${delta >= 0 ? "+" : ""}${delta} (average of the silenced cards)`);
+        }
+      }
     } else if (e.isCancel && !cancelActive) {
       if (e.playerId === jinxUserId) {
         // Jinx baited a matching 0: 0s normally suppress each other, but a Jinx
@@ -285,6 +298,27 @@ export function scoreTurn(
       if (l.delta !== 0) {
         l.delta *= 2;
         l.notes.push("Amplify: doubled");
+      }
+    }
+  }
+
+  // Limiter (round power) runs at the very end: the highest SURVIVING face is clipped
+  // to 0. Surviving = a positive delta after the full pipeline, so cards already tied
+  // out or cancelled aren't the peak — the clip lands on the highest card that actually
+  // scored (a tie-for-highest wipes itself first, and the clip falls on the next card
+  // down). A board wiped by a lone 0 has no survivors and nothing gets clipped.
+  // `lines` and `eff` share indexes (both map 1:1 from `plays`).
+  if (roundPower === "limiter") {
+    let peak = -Infinity;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].delta > 0) peak = Math.max(peak, eff[i].face);
+    }
+    if (peak !== -Infinity) {
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].delta > 0 && eff[i].face === peak) {
+          lines[i].delta = 0;
+          lines[i].notes.push(`Limiter: ${peak} clipped to 0`);
+        }
       }
     }
   }

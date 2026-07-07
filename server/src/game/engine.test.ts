@@ -349,6 +349,9 @@ describe("engine lifecycle", () => {
   it("first picker is the random firstPickerSeat and shifts one seat each round", () => {
     // rng 0.5 → floor(0.5 * 3) = seat 1, so Bob (not the host) picks first in round 0.
     let r = forceSafePool(startGame(room3p(), () => 0.5));
+    // The same rng also rolls the round power; pin it to a non-flow-changing one so
+    // the structural loop below never lands in turn_neighbor_review.
+    r.rounds[0].roundPower = "pure_tone";
     expect(r.firstPickerSeat).toBe(1);
     expect(r.rounds[0].rotation[0]).toBe("B");
 
@@ -595,6 +598,72 @@ describe("refraction (round power)", () => {
     r = submitTurn(r, { playerId: "C", number: 2 });
     expect(r.phase).toBe("turn_submitting");
     expect(r.rounds[0].reveals[0].submissions.find((s) => s.playerId === "A")!.number).toBe(1);
+  });
+});
+
+describe("broadcast (round power)", () => {
+  function broadcastRoom(): RoomDoc {
+    const r = startGame0(room3p());
+    r.rounds[0].roundPower = "broadcast";
+    return r;
+  }
+
+  it("pauses for a re-pick where EVERYONE sees the whole board's initial picks", () => {
+    let r = broadcastRoom();
+    r = submitTurn(r, { playerId: "A", number: 4 });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+    expect(r.phase).toBe("turn_neighbor_review");
+    // No per-player assignment: broadcast reveals wholesale, not via targets.
+    expect(r.neighborReview?.targets).toEqual({});
+
+    const online = new Set(["A", "B", "C"]);
+    const forA = projectStateForPlayer(r, "A", online).privateState;
+    // The whole board (seat order, own pick included), and no single-neighbor reveal.
+    expect(forA.broadcastReveal).toEqual([
+      { playerId: "A", number: 4 },
+      { playerId: "B", number: 3 },
+      { playerId: "C", number: 2 },
+    ]);
+    expect(forA.neighborReveal).toBeUndefined();
+    // Every player gets the same board.
+    expect(projectStateForPlayer(r, "C", online).privateState.broadcastReveal).toEqual(
+      forA.broadcastReveal,
+    );
+  });
+
+  it("resolves with the final re-picks and records initial vs final", () => {
+    let r = broadcastRoom();
+    r = submitTurn(r, { playerId: "A", number: 4 });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+    // A dodges after seeing the board; B and C keep their cards.
+    r = submitTurn(r, { playerId: "A", number: 1 });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+    expect(r.phase).toBe("turn_submitting");
+    expect(r.neighborReview).toBeUndefined();
+    const reveal = r.rounds[0].reveals[0];
+    expect(reveal.submissions.find((s) => s.playerId === "A")!.number).toBe(1);
+    expect(reveal.crosstalkUsed).toContainEqual({ playerId: "A", initialNumber: 4, finalNumber: 1 });
+    expect(reveal.crosstalkUsed).toContainEqual({ playerId: "B", initialNumber: 3, finalNumber: 3 });
+    // A's original 4 stays in hand (only the played 1 is discarded).
+    expect(r.rounds[0].hands["A"]).toContain(4);
+    expect(r.rounds[0].hands["A"]).not.toContain(1);
+  });
+
+  it("skip-waiting during the re-pick keeps each absentee's initial pick", () => {
+    let r = broadcastRoom();
+    r = submitTurn(r, { playerId: "A", number: 4 });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+    r = submitTurn(r, { playerId: "A", number: 1 });
+    r = forceResolveTurn(r);
+    expect(r.phase).toBe("turn_submitting");
+    const subs = r.rounds[0].reveals[0].submissions;
+    expect(subs.find((s) => s.playerId === "A")!.number).toBe(1);
+    expect(subs.find((s) => s.playerId === "B")!.number).toBe(3);
+    expect(subs.find((s) => s.playerId === "C")!.number).toBe(2);
   });
 });
 

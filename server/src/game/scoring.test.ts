@@ -904,4 +904,159 @@ describe("scoreTurn — round powers", () => {
     );
     expect(points(r)).toEqual({ A: 0, B: 5, C: 3 });
   });
+
+  it("limiter: the highest card that scored is clipped to 0", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 5 },
+        { playerId: "B", number: 3 },
+        { playerId: "C", number: 1 },
+      ],
+      undefined,
+      "limiter",
+    );
+    expect(points(r)).toEqual({ A: 0, B: 3, C: 1 });
+    const aNotes = r.lines.find((l) => l.playerId === "A")!.notes;
+    expect(aNotes).toContain("Limiter: 5 clipped to 0");
+    // The clipped line must not read as a tie/cancel to revealTreatment.
+    expect(aNotes.some((n) => n.startsWith("Tied") || n.includes("Cancelled by 0"))).toBe(false);
+  });
+
+  it("limiter: a tie for the top wipes itself first; the clip falls on the next survivor", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 6 },
+        { playerId: "B", number: 6 },
+        { playerId: "C", number: 4 },
+        { playerId: "D", number: 2 },
+      ],
+      undefined,
+      "limiter",
+    );
+    // The 6s tie out on their own; the highest SURVIVOR is the 4, which gets clipped.
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0, D: 2 });
+    expect(r.lines.find((l) => l.playerId === "C")!.notes).toContain("Limiter: 4 clipped to 0");
+  });
+
+  it("limiter: a lone 0 wipes the board and leaves nothing to clip", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 0 },
+        { playerId: "B", number: 5 },
+        { playerId: "C", number: 3 },
+      ],
+      undefined,
+      "limiter",
+    );
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
+    expect(r.lines.every((l) => !l.notes.some((n) => n.startsWith("Limiter")))).toBe(true);
+  });
+
+  it("limiter: no positive deltas at all (everyone tied) is a no-op", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 5 },
+        { playerId: "B", number: 5 },
+        { playerId: "C", number: 5 },
+      ],
+      undefined,
+      "limiter",
+    );
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
+    expect(r.lines.every((l) => !l.notes.some((n) => n.startsWith("Limiter")))).toBe(true);
+  });
+
+  it("dormant composition: limiter clips the peak face after a per-play double", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 7, powerUp: "double" },
+        { playerId: "B", number: 5 },
+        { playerId: "C", number: 2 },
+      ],
+      undefined,
+      "limiter",
+    );
+    // Double pays A 14 and B 10 / C 4 — but A's 7 is still the highest face, so it's clipped.
+    expect(points(r)).toEqual({ A: 0, B: 10, C: 4 });
+  });
+
+  it("dormant composition: limiter ignores negative deltas (nothing positive to clip)", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 4, powerUp: "make_negative" },
+        { playerId: "B", number: 6 },
+        { playerId: "C", number: 2 },
+      ],
+      undefined,
+      "limiter",
+    );
+    expect(points(r)).toEqual({ A: -4, B: -6, C: -2 });
+    expect(r.lines.every((l) => !l.notes.some((n) => n.startsWith("Limiter")))).toBe(true);
+  });
+
+  it("absorption: a lone 0 scores the average of the silenced cards, rounded up", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 0 },
+        { playerId: "B", number: 5 },
+        { playerId: "C", number: 2 },
+      ],
+      undefined,
+      "absorption",
+    );
+    // avg(5, 2) = 3.5 → rounds up to 4; the cancelled cards still score 0.
+    expect(points(r)).toEqual({ A: 4, B: 0, C: 0 });
+    expect(r.lines.find((l) => l.playerId === "A")!.notes).toContain(
+      "Absorption: +4 (average of the silenced cards)",
+    );
+  });
+
+  it("absorption: an exact average doesn't round", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 0 },
+        { playerId: "B", number: 4 },
+        { playerId: "C", number: 2 },
+      ],
+      undefined,
+      "absorption",
+    );
+    expect(points(r)).toEqual({ A: 3, B: 0, C: 0 });
+  });
+
+  it("absorption: tied opponents still count in the average", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 0 },
+        { playerId: "B", number: 3 },
+        { playerId: "C", number: 3 },
+      ],
+      undefined,
+      "absorption",
+    );
+    expect(points(r)).toEqual({ A: 3, B: 0, C: 0 });
+  });
+
+  it("absorption: matching zeros still suppress each other and absorb nothing", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 0 },
+        { playerId: "B", number: 0 },
+        { playerId: "C", number: 6 },
+      ],
+      undefined,
+      "absorption",
+    );
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 6 });
+    expect(r.lines.every((l) => !l.notes.some((n) => n.startsWith("Absorption")))).toBe(true);
+  });
+
+  it("absorption: without a lone 0 it scores identically to no power", () => {
+    const plays = [
+      { playerId: "A", number: 4 },
+      { playerId: "B", number: 4 },
+      { playerId: "C", number: 3 },
+    ];
+    expect(points(scoreTurn(plays, undefined, "absorption"))).toEqual(points(scoreTurn(plays)));
+  });
 });

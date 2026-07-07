@@ -459,6 +459,33 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
         </div>
       )}
 
+      {isNeighborReview && privateState.broadcastReveal && (
+        <div
+          className="rounded-2xl px-4 py-3 text-sm font-mono mb-3 animate-rise border"
+          style={{ background: "rgba(91,214,230,0.12)", borderColor: "rgba(91,214,230,0.4)", color: "#c4eef5" }}
+          data-testid="game-broadcast-review"
+        >
+          <div className="mb-1.5">⊚ On the air. Everyone's first pick:</div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 mb-1.5">
+            {privateState.broadcastReveal.map((e) => {
+              const p = playerById.get(e.playerId);
+              return (
+                <span key={e.playerId}>
+                  <span style={{ color: seatColor(p?.seat ?? 0).hex }}>
+                    {p?.name}
+                    {e.playerId === selfPlayerId ? " (you)" : ""}
+                  </span>{" "}
+                  <span className="font-bold text-base" style={{ color: "#e6fffb" }}>
+                    {e.number}
+                  </span>
+                </span>
+              );
+            })}
+          </div>
+          Pick again, or keep your card.
+        </div>
+      )}
+
       {isHost && (phase === "turn_submitting" || phase === "turn_peek_review" || isNeighborReview) && someoneMissing && (
         <button
           onClick={skipWaiting}

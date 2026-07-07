@@ -137,16 +137,28 @@ export function projectStateForPlayer(
   // Crosstalk / Refraction: during the re-pick phase, show this player only the one other
   // player they were assigned to glimpse (never the whole board). The target is stored
   // in `neighborReview.targets`; fall back to the next seat for older in-flight saves.
+  // Broadcast deliberately breaks the one-target rule: the WHOLE board's initial picks
+  // go to everyone (that's the power), via `broadcastReveal` instead.
   let neighborReveal: { neighborPlayerId: string; number: number } | undefined;
+  let broadcastReveal: { playerId: string; number: number }[] | undefined;
   if (room.phase === "turn_neighbor_review" && room.neighborReview) {
-    let targetId: string | undefined = room.neighborReview.targets?.[playerId];
-    if (!targetId) {
-      const sorted = [...room.players].sort((a, b) => a.seat - b.seat);
-      const myIdx = sorted.findIndex((p) => p.id === playerId);
-      targetId = myIdx >= 0 && sorted.length >= 2 ? sorted[(myIdx + 1) % sorted.length].id : undefined;
+    if (round?.roundPower === "broadcast") {
+      broadcastReveal = [...room.players]
+        .sort((a, b) => a.seat - b.seat)
+        .flatMap((p) => {
+          const num = room.neighborReview!.initialPicks[p.id];
+          return num == null ? [] : [{ playerId: p.id, number: num }];
+        });
+    } else {
+      let targetId: string | undefined = room.neighborReview.targets?.[playerId];
+      if (!targetId) {
+        const sorted = [...room.players].sort((a, b) => a.seat - b.seat);
+        const myIdx = sorted.findIndex((p) => p.id === playerId);
+        targetId = myIdx >= 0 && sorted.length >= 2 ? sorted[(myIdx + 1) % sorted.length].id : undefined;
+      }
+      const num = targetId ? room.neighborReview.initialPicks[targetId] : undefined;
+      if (targetId && num != null) neighborReveal = { neighborPlayerId: targetId, number: num };
     }
-    const num = targetId ? room.neighborReview.initialPicks[targetId] : undefined;
-    if (targetId && num != null) neighborReveal = { neighborPlayerId: targetId, number: num };
   }
 
   return {
@@ -159,6 +171,7 @@ export function projectStateForPlayer(
       isPicker: !!isPicker,
       peekReveal,
       neighborReveal,
+      broadcastReveal,
       blockedByOthers,
     },
   };

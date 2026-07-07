@@ -522,11 +522,118 @@ async function interferenceFlow(browser) {
   await shot(b, "game-end"); // win or lose, with score-amplitude waves
 }
 
+// Click a specific card number (e.g. the 0 for Absorption), or the highest
+// enabled card when number is "highest" (so Limiter has a clear peak to clip).
+async function submitCardNumber(page, number) {
+  await page.waitForSelector(tid("game-submit"), { timeout: 10_000 });
+  const picked = await page.evaluate((want) => {
+    const cards = [...document.querySelectorAll('[data-testid^="game-hand-card-"]')].filter((b) => !b.disabled);
+    if (cards.length === 0) return false;
+    const num = (b) => Number(b.getAttribute("data-testid").replace("game-hand-card-", ""));
+    const btn =
+      want === "highest"
+        ? cards.reduce((a, b) => (num(b) > num(a) ? b : a))
+        : cards.find((b) => num(b) === want);
+    if (!btn) return false;
+    btn.click();
+    return true;
+  }, number);
+  if (!picked) throw new Error(`no enabled hand card for: ${number}`);
+  await page.waitForFunction(
+    () => {
+      const b = document.querySelector('[data-testid="game-submit"]');
+      return b && !b.disabled;
+    },
+    { timeout: 10_000 },
+  );
+  await clickTestId(page, "game-submit");
+}
+
+// New-round-powers coverage: pins each power via a one-entry Choose roster
+// (same trick as interferenceFlow), then drives its distinctive moment —
+// Broadcast's whole-board re-pick banner, Limiter clipping the peak card in
+// the reveal, and Absorption paying the lone 0 the board average.
+async function roundPowersFlow(browser) {
+  let selectModalShot = false;
+  const startSoloWithPower = async (name, powerId, ai) => {
+    const p = await newPlayer(browser, name);
+    await waitForText(p, "CANCEL");
+    await clickTestId(p, "home-single-player");
+    await typeInto(p, tid("home-name-input"), name);
+    await clickTestId(p, "home-start-single");
+    await p.waitForSelector(tid("lobby-solo-header"), { timeout: 10_000 });
+    await setStepper(p, "lobby-ai", ai);
+    await clickTestId(p, "lobby-powerup-selected");
+    await p.waitForSelector(tid("round-power-select-modal"), { timeout: 10_000 });
+    await waitOpaque(p, "round-power-select-modal");
+    if (!selectModalShot) {
+      // The full roster incl. Limiter / Absorption / Broadcast.
+      await shot(p, "round-power-select-full-roster", { fullPage: false });
+      selectModalShot = true;
+    }
+    await clickTestId(p, "round-power-select-none");
+    await clickTestId(p, `round-power-select-option-${powerId}`);
+    await clickTestId(p, "round-power-select-save");
+    await p.waitForFunction(
+      () => !document.querySelector('[data-testid="round-power-select-modal"]'),
+      { timeout: 10_000 },
+    );
+    await clickTestId(p, "lobby-start-game");
+    await p.waitForSelector(tid("round-power-preview-modal"), { timeout: 10_000 });
+    await waitOpaque(p, "round-power-preview-modal");
+    await shot(p, `${powerId}-preview`, { fullPage: false });
+    await clickTestId(p, "round-power-preview-play");
+    await p.waitForSelector(tid("game-submit"), { timeout: 10_000 });
+    return p;
+  };
+
+  // --- Broadcast: after submitting, the banner shows EVERY player's pick ---
+  const bc = await startSoloWithPower("Solo", "broadcast", 3);
+  await submitCardNumber(bc, "highest");
+  await bc.waitForSelector(tid("game-broadcast-review"), { timeout: 10_000 });
+  await shot(bc, "broadcast-review-banner"); // all 4 picks on the air
+  await submitCardNumber(bc, "highest"); // keep the card; turn resolves
+  await bc.waitForSelector(tid("reveal-continue"), { timeout: 10_000 });
+  await shot(bc, "broadcast-reveal", { fullPage: false });
+
+  // --- Limiter: the peak card gets clipped to 0. Four players so some card
+  // almost always survives as the peak (a 2-player game too often ties out or
+  // lone-0s, leaving Limiter's correct no-op instead of a visible clip). Two
+  // turns shot, since a peak tie on any single turn hides the clip. ---
+  const lm = await startSoloWithPower("Solo", "limiter", 3);
+  for (let turn = 1; turn <= 2; turn++) {
+    await submitCardNumber(lm, "highest");
+    await lm.waitForSelector(tid("reveal-continue"), { timeout: 10_000 });
+    await lm
+      .waitForFunction(
+        () => document.querySelector('[data-testid="reveal-modal"]')?.getAttribute("data-reveal-phase") === "score",
+        { timeout: 5_000 },
+      )
+      .catch(() => {});
+    await shot(lm, `limiter-reveal-turn${turn}`, { fullPage: false });
+    await clickTestId(lm, "reveal-continue");
+    await lm.waitForFunction(() => !document.querySelector('[data-testid="reveal-modal"]'), { timeout: 10_000 });
+  }
+
+  // --- Absorption: play the 0; a lone 0 banks the average of what it silenced ---
+  const ab = await startSoloWithPower("Solo", "absorption", 1);
+  await submitCardNumber(ab, 0);
+  await ab.waitForSelector(tid("reveal-continue"), { timeout: 10_000 });
+  await ab
+    .waitForFunction(
+      () => document.querySelector('[data-testid="reveal-modal"]')?.getAttribute("data-reveal-phase") === "score",
+      { timeout: 5_000 },
+    )
+    .catch(() => {});
+  await shot(ab, "absorption-reveal", { fullPage: false });
+}
+
 const flows = {
   "lobby-rounds": lobbyRoundsFlow,
   "host-leave": hostLeaveFlow,
   "single-player": singlePlayerFlow,
   interference: interferenceFlow,
+  "round-powers": roundPowersFlow,
 };
 
 // ---------------------------------------------------------------------------
