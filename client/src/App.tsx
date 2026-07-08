@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactElement } from "react";
+import { useEffect, useRef, useState, type ReactElement } from "react";
 import { useAppStore } from "./store.js";
 import { Home } from "./screens/Home.js";
 import { Lobby } from "./screens/Lobby.js";
@@ -84,6 +84,7 @@ export function App() {
     <>
       <WaveDefs />
       {stale && <UpdateBanner />}
+      <HostChangeToast />
       {content}
     </>
   );
@@ -111,6 +112,55 @@ export function App() {
     return withBanner(<Lobby onLeave={leaveRoom} />);
   }
   return withBanner(<Game onLeave={leaveRoom} onAbandoned={abandonLocal} />);
+}
+
+// Shows "You are now the host." to the player the host role just moved onto
+// (host left, or they were picked by removePlayer). Watches hostId across
+// state updates; syncing the refs on a room change keeps join/create/rejoin
+// silent. Mounted at the App level so it covers Lobby, Game, and GameEnd.
+function HostChangeToast() {
+  const state = useAppStore((s) => s.state);
+  const [visible, setVisible] = useState(false);
+  const prevRoom = useRef<string | null>(null);
+  const prevHost = useRef<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const roomCode = state?.publicState.roomCode ?? null;
+  const hostId = state?.publicState.hostId ?? null;
+  const selfId = state?.selfPlayerId ?? null;
+
+  useEffect(() => {
+    if (roomCode !== prevRoom.current) {
+      prevRoom.current = roomCode;
+      prevHost.current = hostId;
+      return;
+    }
+    if (hostId === prevHost.current) return;
+    const wasHost = prevHost.current;
+    prevHost.current = hostId;
+    if (wasHost !== null && selfId !== null && hostId === selfId) {
+      setVisible(true);
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = setTimeout(() => setVisible(false), 6000);
+    }
+  }, [roomCode, hostId, selfId]);
+
+  useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
+
+  if (!visible) return null;
+  // Centering lives on the wrapper: animate-rise animates `transform` (fill
+  // both), which would override a -translate-x-1/2 on the button itself.
+  return (
+    <div className="pointer-events-none fixed inset-x-0 top-14 z-40 flex justify-center">
+      <button
+        data-testid="host-change-toast"
+        onClick={() => setVisible(false)}
+        className="pointer-events-auto animate-rise rounded-full bg-gold px-4 py-2 font-mono text-sm font-bold text-ink shadow-lg"
+      >
+        You are now the host.
+      </button>
+    </div>
+  );
 }
 
 function UpdateBanner() {

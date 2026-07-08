@@ -287,6 +287,7 @@ async function hostLeaveFlow(browser) {
   await clickTestId(host, "game-host-leave");
   await waitForText(host, "CANCEL"); // host bounced to Home
   await j1.waitForSelector(tid("game-end-game"), { timeout: 10_000 }); // J1 is now host
+  await j1.waitForSelector(tid("host-change-toast"), { timeout: 10_000 }); // and gets told so
   await shot(j1, "joiner1-now-host");
 
   // The picker for turn 1 is the (now offline) ex-host, so the turn stalls.
@@ -322,6 +323,7 @@ async function hostLeaveFlow(browser) {
   await shot(j2, "joiner2-can-claim-host");
   await clickTestId(j2, "game-claim-host");
   await j2.waitForSelector(tid("game-end-game"), { timeout: 10_000 }); // J2 is now host
+  await j2.waitForSelector(tid("host-change-toast"), { timeout: 10_000 }); // toast fires on claim too
   await shot(j2, "joiner2-now-host");
 }
 

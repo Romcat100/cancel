@@ -961,8 +961,9 @@ function RevealTraceRow({ e, settled }: { e: RevealRowItem; settled: boolean }) 
         ) : (
           <b className="font-mono text-lg text-paper/40">0</b>
         )}
-        <span className="font-mono text-[10px] text-paper/45" data-testid={`reveal-total-${player.seat}`}>
-          Σ {total}
+        <span className="flex items-baseline gap-1" data-testid={`reveal-total-${player.seat}`}>
+          <span className="font-mono text-[8px] tracking-widest text-paper/45">TOTAL</span>
+          <b className="font-mono text-lg text-gold">{total}</b>
         </span>
       </div>
     </div>
