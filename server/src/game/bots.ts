@@ -225,16 +225,46 @@ export function decideBotMove(room: RoomDoc, botId: string, rng: () => number = 
   };
 }
 
-// A bot's re-pick during Crosstalk's turn_neighbor_review. The bot keeps its initial pick,
-// which also keeps the human's glimpsed neighbor info truthful (a bot neighbor plays what
-// the human saw). Falls back to a fresh choice if the snapshot is somehow missing.
+// Chance a bot re-picks during turn_neighbor_review even when its glimpse shows no threat.
+// Keeps a glimpsed bot pick a strong hint rather than a guarantee.
+const REPICK_CHANCE = 0.1;
+
+// A bot's re-pick during the Crosstalk/Refraction/Broadcast turn_neighbor_review. The bot reads
+// only what a human in its seat sees (its glimpse: one target's initial pick, or the whole board
+// under Broadcast) and dodges when that glimpse threatens its pick — a face tie, or a lone 0 that
+// would cancel the board. A safe pick is kept, minus a small REPICK_CHANCE dodge for
+// unpredictability. Falls back to a fresh choice if the snapshot is somehow missing.
 export function decideBotNeighborRepick(room: RoomDoc, botId: string, rng: () => number = Math.random): SubmitInput {
-  const initial = room.neighborReview?.initialPicks[botId];
-  if (initial != null) return { playerId: botId, number: initial };
   const round = room.rounds[room.currentRoundIndex];
+  const review = room.neighborReview;
+  const glimpsed: number[] = [];
+  if (review) {
+    if (round.roundPower === "broadcast") {
+      for (const p of room.players) {
+        const n = p.id !== botId ? review.initialPicks[p.id] : undefined;
+        if (n != null) glimpsed.push(n);
+      }
+    } else {
+      const targetId = review.targets[botId];
+      const n = targetId ? review.initialPicks[targetId] : undefined;
+      if (n != null) glimpsed.push(n);
+    }
+  }
   const myHand = round.hands[botId] ?? [];
   const oppHands = room.players.filter((p) => p.id !== botId).map((p) => round.hands[p.id] ?? []);
-  return { playerId: botId, number: chooseNumber(myHand, oppHands, [], rng) };
+  const initial = review?.initialPicks[botId];
+  if (initial == null) return { playerId: botId, number: chooseNumber(myHand, oppHands, glimpsed, rng) };
+
+  if (initial !== 0 && glimpsed.includes(0)) {
+    // A glimpsed lone 0 cancels every nonzero card, so dump the cheapest one instead of a good one.
+    const nonzero = myHand.filter((n) => n !== 0);
+    if (nonzero.length > 0) return { playerId: botId, number: Math.min(...nonzero) };
+    return { playerId: botId, number: initial };
+  }
+  if (glimpsed.includes(initial) || rng() < REPICK_CHANCE) {
+    return { playerId: botId, number: chooseNumber(myHand, oppHands, glimpsed, rng) };
+  }
+  return { playerId: botId, number: initial };
 }
 
 // A bot peeker's re-pick during turn_peek_review: it now knows the peeked opponent's number, so

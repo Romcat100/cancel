@@ -1084,7 +1084,7 @@ function RevealView({
       </section>
       {reveal.crosstalkUsed && reveal.crosstalkUsed.some((c) => c.initialNumber !== c.finalNumber) && (
         <div className="mt-4 text-sm font-mono text-center" style={{ color: "#bff0e8" }} data-testid="reveal-crosstalk">
-          ◂▸ Crosstalk:{" "}
+          Changed picks:{" "}
           {reveal.crosstalkUsed
             .filter((c) => c.initialNumber !== c.finalNumber)
             .map((c) => `${playerById.get(c.playerId)?.name ?? "?"} ${c.initialNumber}→${c.finalNumber}`)

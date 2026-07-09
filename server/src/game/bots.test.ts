@@ -7,7 +7,7 @@ import {
   submitTurn,
   type RoomDoc,
 } from "./engine.js";
-import { decideBotMove, decideBotPeekRepick, driveBots } from "./bots.js";
+import { decideBotMove, decideBotNeighborRepick, decideBotPeekRepick, driveBots } from "./bots.js";
 import { chooseNumber } from "./heuristics.js";
 import { POWER_UPS, POWER_UP_IDS } from "../../../shared/types.js";
 
@@ -175,6 +175,78 @@ describe("driveBots", () => {
     // no bots; starting needs 2 humans
     humanOnly = setBotCount(humanOnly, 0);
     expect(driveBots(humanOnly)).toBe(humanOnly);
+  });
+});
+
+describe("decideBotNeighborRepick", () => {
+  // A 3-player room paused in turn_neighbor_review, with the bot's hand pinned so every
+  // case is deterministic. The caller pins initialPicks/targets per scenario.
+  function reviewRoom(power: "crosstalk" | "broadcast") {
+    const r = startGame(soloRoom(2));
+    const bot = r.players.filter((p) => p.isBot)[0];
+    const h = human(r);
+    r.phase = "turn_neighbor_review";
+    r.rounds[0].roundPower = power;
+    r.rounds[0].hands[bot.id] = [0, 2, 3, 4];
+    return { r, bot, h };
+  }
+  const missRoll = () => 0.99; // above REPICK_CHANCE: the random dodge never fires
+
+  it("keeps a safe initial pick (glimpse shows no tie and no 0)", () => {
+    const { r, bot, h } = reviewRoom("crosstalk");
+    r.neighborReview = { initialPicks: { [bot.id]: 3, [h.id]: 1 }, targets: { [bot.id]: h.id } };
+    expect(decideBotNeighborRepick(r, bot.id, missRoll).number).toBe(3);
+  });
+
+  it("occasionally dodges even a safe pick (REPICK_CHANCE with a real rng)", () => {
+    const { r, bot, h } = reviewRoom("crosstalk");
+    r.neighborReview = { initialPicks: { [bot.id]: 3, [h.id]: 1 }, targets: { [bot.id]: h.id } };
+    let changed = 0;
+    for (let i = 0; i < 1000; i++) {
+      if (decideBotNeighborRepick(r, bot.id).number !== 3) changed++;
+    }
+    // The dodge fires ~10% of the time (and the re-pick sometimes re-selects 3 anyway),
+    // so changes land well under the chance but clearly above zero.
+    expect(changed).toBeGreaterThan(20);
+    expect(changed).toBeLessThan(200);
+  });
+
+  it("dodges a glimpsed tie, never re-picking the tied number", () => {
+    const { r, bot, h } = reviewRoom("crosstalk");
+    r.neighborReview = { initialPicks: { [bot.id]: 3, [h.id]: 3 }, targets: { [bot.id]: h.id } };
+    for (let i = 0; i < 50; i++) {
+      const move = decideBotNeighborRepick(r, bot.id);
+      expect(move.number).not.toBe(3);
+      expect(r.rounds[0].hands[bot.id]).toContain(move.number);
+    }
+  });
+
+  it("dumps the lowest nonzero card when the glimpse shows a lone 0", () => {
+    const { r, bot, h } = reviewRoom("crosstalk");
+    r.neighborReview = { initialPicks: { [bot.id]: 4, [h.id]: 0 }, targets: { [bot.id]: h.id } };
+    expect(decideBotNeighborRepick(r, bot.id, missRoll).number).toBe(2);
+  });
+
+  it("broadcast: a tie with ANY other player's pick triggers a dodge", () => {
+    const { r, bot, h } = reviewRoom("broadcast");
+    const other = r.players.filter((p) => p.isBot)[1];
+    // No per-player targets under broadcast; the whole board is the glimpse.
+    r.neighborReview = {
+      initialPicks: { [bot.id]: 3, [h.id]: 1, [other.id]: 3 },
+      targets: {},
+    };
+    for (let i = 0; i < 50; i++) {
+      const move = decideBotNeighborRepick(r, bot.id);
+      expect(move.number).not.toBe(3);
+      expect(r.rounds[0].hands[bot.id]).toContain(move.number);
+    }
+  });
+
+  it("falls back to a fresh legal pick when the review snapshot is missing", () => {
+    const { r, bot } = reviewRoom("crosstalk");
+    r.neighborReview = undefined;
+    const move = decideBotNeighborRepick(r, bot.id, () => 0.5);
+    expect(r.rounds[0].hands[bot.id]).toContain(move.number);
   });
 });
 
