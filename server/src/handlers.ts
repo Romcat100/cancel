@@ -189,7 +189,6 @@ export function apiCreateRoom(req: CreateRoomReq, ctx: ApiCtx) {
     numberMode,
     customNumbers,
     solo: req.solo ?? false,
-    difficulty: req.difficulty ?? "medium",
   });
   // Single-player: pre-seat the requested AI opponents so the host lands in a ready-to-start lobby.
   if (req.bots && req.bots > 0) room = setBotCount(room, req.bots);
@@ -263,7 +262,6 @@ export function apiSetRoomConfig(req: SetRoomConfigReq, ctx: ApiCtx) {
     showHands: req.showHands,
     numberMode: req.numberMode,
     customNumbers: req.customNumbers,
-    difficulty: req.difficulty,
   });
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));

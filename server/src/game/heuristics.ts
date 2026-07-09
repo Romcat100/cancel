@@ -18,28 +18,12 @@ export function pUniqueAgainst(c: number, oppHands: number[][]): number {
 
 // Number-pick randomness. Rather than always playing the highest-EV card (which made every picker
 // march 5,4,3,2 down its hand and tie the others, since identical hands produce identical argmaxes),
-// the picker SAMPLES a card with probability ∝ (EV + floor)^greed. Independent draws spread pickers
-// across the hand, so they rarely converge on the same card. `greed` tunes greedy↔random: 1 is
-// roughly proportional-to-value, higher leans toward the top card, lower flattens toward uniform.
-// The floor keeps low-but-positive cards in genuine contention so play stays varied.
-//
-// These live in a per-difficulty table (TUNING). Difficulty only changes how sharply a bot acts on
-// its (accurate) EV ranking — never what it can see. `medium` is the original single-difficulty
-// behavior, so nothing regresses when difficulty is absent. `jitter` is consumed by the power brain
-// (choosePower in bots.ts), kept here so all three knobs live in one place.
-import type { Difficulty } from "../../../shared/types.js";
-
-export interface Tuning {
-  greed: number;
-  pickFloor: number; // floor added to each positive EV, as a fraction of the top card's EV
-  jitter: number; // width of the random multiplier on power scores (bots.ts)
-}
-
-export const TUNING: Record<Difficulty, Tuning> = {
-  easy: { greed: 0.5, pickFloor: 0.6, jitter: 1.2 }, // flat, near-random picks; often a worse power
-  medium: { greed: 1.3, pickFloor: 0.15, jitter: 0.4 }, // today's behavior, unchanged
-  hard: { greed: 2.4, pickFloor: 0.05, jitter: 0.1 }, // sharp, near-optimal
-};
+// the picker SAMPLES a card with probability ∝ (EV + floor)^GREED. Independent draws spread pickers
+// across the hand, so they rarely converge on the same card. GREED tunes greedy↔random: 1 is roughly
+// proportional-to-value, higher leans toward the top card, lower flattens toward uniform. The floor
+// keeps low-but-positive cards in genuine contention so play stays varied.
+const GREED = 1.3;
+const PICK_FLOOR = 0.15; // floor added to each positive EV, as a fraction of the top card's EV
 
 // Pick a number to play. Everyone holds the same hand and plays each card once per round, so
 // collisions dominate: value each card by value × P(stays unique), with a 0 valued for its denial
@@ -51,7 +35,6 @@ export function chooseNumber(
   oppHands: number[][],
   knownPlays: number[],
   rng: () => number = Math.random,
-  tuning: Tuning = TUNING.medium,
 ): number {
   if (myHand.length === 0) return 0;
   const known = new Set(knownPlays);
@@ -66,10 +49,10 @@ export function chooseNumber(
     return c * pUnique;
   });
 
-  // Weight ∝ (EV + floor)^greed for positive-EV cards; EV-0 cards (known collisions) get no weight.
+  // Weight ∝ (EV + floor)^GREED for positive-EV cards; EV-0 cards (known collisions) get no weight.
   const maxEv = Math.max(0, ...evs);
-  const floor = maxEv * tuning.pickFloor;
-  const weights = evs.map((ev) => (ev > 0 ? Math.pow(ev + floor, tuning.greed) : 0));
+  const floor = maxEv * PICK_FLOOR;
+  const weights = evs.map((ev) => (ev > 0 ? Math.pow(ev + floor, GREED) : 0));
   const total = weights.reduce((s, w) => s + w, 0);
 
   // Degenerate board (every card a known collision, or no value anywhere): pick uniformly at random.

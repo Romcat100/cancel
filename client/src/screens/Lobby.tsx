@@ -18,7 +18,6 @@ import {
   POWER_UP_IDS,
   ROUND_POWER_IDS,
   TWO_PLAYER_EXCLUDED_POWERS,
-  type Difficulty,
   type NumberMode,
   type PowerUpId,
   type PowerUpMode,
@@ -34,12 +33,6 @@ const MODES: { mode: PowerUpMode; label: string }[] = [
 const NUMBER_MODES: { mode: NumberMode; label: string }[] = [
   { mode: "default", label: "Default" },
   { mode: "custom", label: "Custom" },
-];
-
-const DIFFICULTIES: { level: Difficulty; label: string; blurb: string }[] = [
-  { level: "easy", label: "Easy", blurb: "Loose, forgiving AI. Good for learning." },
-  { level: "medium", label: "Medium", blurb: "A solid, balanced opponent." },
-  { level: "hard", label: "Hard", blurb: "Sharp AI that plays close to optimal." },
 ];
 
 // The numbers the host can pick from (0 is always dealt and not selectable).
@@ -74,7 +67,6 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
   const minBots = solo ? 1 : 0;
   const handSize = playerCount + 2;
   const rounds = publicState.config.rounds ?? 3;
-  const difficulty: Difficulty = publicState.config.difficulty ?? "medium";
   const powerUpMode: PowerUpMode = publicState.config.powerUpMode ?? "random";
   const selectedRoundPowers = publicState.config.selectedRoundPowers ?? [];
   const showHandsOn = publicState.config.showHands !== false;
@@ -185,17 +177,6 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
     }
   }
 
-  async function pickDifficulty(level: Difficulty) {
-    if (!id || !isHost || level === difficulty) return;
-    setErr(null);
-    try {
-      const res = await api.setConfig(publicState.roomCode, id.claimToken, { difficulty: level });
-      setState(res.state);
-    } catch (e) {
-      setErr((e as Error).message);
-    }
-  }
-
   async function toggleShowHands() {
     if (!id || !isHost) return;
     setErr(null);
@@ -245,8 +226,6 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
       : powerUpMode === "random"
         ? "Random power each round"
         : `${selectedRoundPowers.length} powers chosen`;
-
-  const difficultyLabel = DIFFICULTIES.find((d) => d.level === difficulty)?.label ?? "Medium";
 
   const numberModeText =
     numberMode === "default"
@@ -411,46 +390,6 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
             <span data-testid="lobby-ai-chip" className="chip bg-accent/20 text-accent">{botCount}</span>
           )}
         </div>
-        {botCount > 0 && (
-          isHost ? (
-            <div className="rounded-2xl bg-paper/5 px-4 py-3">
-              <span className="font-bold text-sm">Difficulty</span>
-              <div className="mt-2 grid grid-cols-3 gap-1 rounded-xl bg-paper/10 p-1">
-                {DIFFICULTIES.map(({ level, label }) => {
-                  const active = difficulty === level;
-                  return (
-                    <button
-                      key={level}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => pickDifficulty(level)}
-                      className={`rounded-lg py-2 text-sm font-bold transition ${
-                        active
-                          ? "bg-accent text-ink shadow-[0_2px_0_0_rgba(0,0,0,0.4)]"
-                          : "text-paper/70 hover:text-paper"
-                      }`}
-                      data-sfx="tap"
-                      data-testid={`lobby-difficulty-${level}`}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="mt-2 text-xs font-mono text-paper/40">
-                {DIFFICULTIES.find((d) => d.level === difficulty)?.blurb}
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-2xl bg-paper/5 px-4 py-3 flex items-center justify-between">
-              <div className="flex flex-col">
-                <span className="font-bold text-sm">Difficulty</span>
-                <span className="text-paper/50 text-xs font-mono">{DIFFICULTIES.find((d) => d.level === difficulty)?.blurb}</span>
-              </div>
-              <span data-testid="lobby-difficulty-chip" className="chip bg-accent/20 text-accent">{difficultyLabel}</span>
-            </div>
-          )
-        )}
         {isHost ? (
           <>
             <button

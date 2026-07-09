@@ -1,4 +1,4 @@
-import type { Difficulty, NumberMode, PowerUpId, PowerUpMode, RoomStateForPlayer, RoundPowerId } from "./types";
+import type { NumberMode, PowerUpId, PowerUpMode, RoomStateForPlayer, RoundPowerId } from "./types";
 
 export interface JoinRoomReq {
   roomCode: string;
@@ -26,7 +26,6 @@ export interface CreateRoomReq {
   // Single-player: create the room flagged solo and pre-seat this many AI opponents.
   solo?: boolean;
   bots?: number;
-  difficulty?: Difficulty;
 }
 
 export interface SetBotCountReq {
@@ -45,7 +44,6 @@ export interface SetRoomConfigReq {
   showHands?: boolean;
   numberMode?: NumberMode;
   customNumbers?: number[];
-  difficulty?: Difficulty;
 }
 
 export interface CreateRoomRes {

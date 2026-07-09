@@ -1,8 +1,8 @@
 import { POWER_UPS, type PowerUpId } from "../../../shared/types.js";
 import { ackRoundEnd, submitTurn, type RoomDoc, type SubmitInput } from "./engine.js";
-import { chooseNumber, mean, pUniqueAgainst, TUNING, type Tuning } from "./heuristics.js";
+import { chooseNumber, mean, pUniqueAgainst } from "./heuristics.js";
 
-// Single "medium" difficulty AI. Pure: every decision is a function of the RoomDoc (the engine
+// Single-difficulty AI. Pure: every decision is a function of the RoomDoc (the engine
 // already exposes full hands server-side, even when hidden from clients). The driver applies bot
 // moves through the same engine intents a human would, so bots are validated identically and the
 // game stays on one code path. No timers — bots act immediately (no artificial delay).
@@ -23,7 +23,6 @@ interface PowerCtx {
   oppHands: { id: string; hand: number[] }[];
   maxCard: number;
   rng: () => number;
-  tuning: Tuning;
 }
 
 interface PowerChoice {
@@ -37,7 +36,7 @@ interface PowerChoice {
 // powers override the number (Minus Two wants a 2, Flip/Free Three/Switch want a low card). Unknown
 // or newly-added powers fall through to a small positive default so the bot never breaks or stalls.
 function choosePower(available: PowerUpId[], intended: number, ctx: PowerCtx): PowerChoice {
-  const { myHand, oppHands, maxCard, rng, tuning } = ctx;
+  const { myHand, oppHands, maxCard, rng } = ctx;
   const oppArrays = oppHands.map((o) => o.hand);
   const baseScore = (c: number) => (c > 0 ? c * pUniqueAgainst(c, oppArrays) : 0);
   const myBase = baseScore(intended);
@@ -181,11 +180,7 @@ function choosePower(available: PowerUpId[], intended: number, ctx: PowerCtx): P
     if (POWER_UPS[power]?.needsTarget && !target) score = -Infinity;
     if (power === "sabotage" && sabotageNumber == null) score = -Infinity;
 
-    // Random multiplier centered on 1, width `tuning.jitter`. Wider (easy) makes the bot often
-    // pick a worse-scored power; tighter (hard) makes it almost always take the best. At medium
-    // (jitter 0.4) this is exactly the original 0.8 + 0.4 * rng().
-    const jittered =
-      score === -Infinity ? -Infinity : score * (1 - tuning.jitter / 2 + tuning.jitter * rng());
+    const jittered = score === -Infinity ? -Infinity : score * (0.8 + 0.4 * rng());
     if (jittered > bestScore) {
       bestScore = jittered;
       best = { powerUp: power, number, powerUpTarget: target, sabotageNumber };
@@ -205,27 +200,21 @@ function choosePower(available: PowerUpId[], intended: number, ctx: PowerCtx): P
 
 // Decide a bot's full submission for the current turn: a number, plus a power-up (with target /
 // sabotage number) when the bot is the picker and the pool is non-empty.
-// The bot skill knobs for this room's difficulty (defaults to medium for legacy rooms).
-function roomTuning(room: RoomDoc): Tuning {
-  return TUNING[room.config.difficulty] ?? TUNING.medium;
-}
-
 export function decideBotMove(room: RoomDoc, botId: string, rng: () => number = Math.random): SubmitInput {
   const round = room.rounds[room.currentRoundIndex];
   const pickerId = round.rotation[room.currentTurnIndex];
   const myHand = round.hands[botId] ?? [];
-  const tuning = roomTuning(room);
   const oppHands = room.players
     .filter((p) => p.id !== botId)
     .map((p) => ({ id: p.id, hand: round.hands[p.id] ?? [] }));
-  const intended = chooseNumber(myHand, oppHands.map((o) => o.hand), [], rng, tuning);
+  const intended = chooseNumber(myHand, oppHands.map((o) => o.hand), [], rng);
 
   if (botId !== pickerId || round.poolRemaining.length === 0) {
     return { playerId: botId, number: intended };
   }
 
   const available = Array.from(new Set(round.poolRemaining));
-  const pick = choosePower(available, intended, { myHand, oppHands, maxCard: gameMaxCard(room), rng, tuning });
+  const pick = choosePower(available, intended, { myHand, oppHands, maxCard: gameMaxCard(room), rng });
   const number = myHand.includes(pick.number) ? pick.number : intended;
   return {
     playerId: botId,
@@ -245,7 +234,7 @@ export function decideBotNeighborRepick(room: RoomDoc, botId: string, rng: () =>
   const round = room.rounds[room.currentRoundIndex];
   const myHand = round.hands[botId] ?? [];
   const oppHands = room.players.filter((p) => p.id !== botId).map((p) => round.hands[p.id] ?? []);
-  return { playerId: botId, number: chooseNumber(myHand, oppHands, [], rng, roomTuning(room)) };
+  return { playerId: botId, number: chooseNumber(myHand, oppHands, [], rng) };
 }
 
 // A bot peeker's re-pick during turn_peek_review: it now knows the peeked opponent's number, so
@@ -257,7 +246,7 @@ export function decideBotPeekRepick(room: RoomDoc, botId: string, rng: () => num
     .filter((p) => p.id !== botId)
     .map((p) => round.hands[p.id] ?? []);
   const known = room.peekReview ? [room.peekReview.revealedNumber] : [];
-  return { playerId: botId, number: chooseNumber(myHand, oppHands, known, rng, roomTuning(room)) };
+  return { playerId: botId, number: chooseNumber(myHand, oppHands, known, rng) };
 }
 
 // Advance the game by applying every pending bot action, looping until only humans remain to act

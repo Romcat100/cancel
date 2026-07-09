@@ -59,7 +59,7 @@ export function loadRoom(code: string): RoomDoc | null {
   const doc = JSON.parse(row.state) as RoomDoc;
   // Migrate rooms saved before the three-way power mode: the old boolean `powerUps`
   // maps to "off"/"random". Drop the stale field so it can't leak through the projection.
-  const cfg = doc.config as RoomDoc["config"] & { powerUps?: boolean };
+  const cfg = doc.config as RoomDoc["config"] & { powerUps?: boolean; difficulty?: string };
   if (cfg.rounds === undefined) cfg.rounds = 3;
   if (cfg.powerUpMode === undefined) cfg.powerUpMode = cfg.powerUps === false ? "off" : "random";
   if (cfg.selectedPowerUps === undefined) cfg.selectedPowerUps = [];
@@ -71,7 +71,8 @@ export function loadRoom(code: string): RoomDoc | null {
   if (cfg.numberMode === undefined) cfg.numberMode = "default";
   if (cfg.customNumbers === undefined) cfg.customNumbers = [];
   if (cfg.solo === undefined) cfg.solo = false;
-  if (cfg.difficulty === undefined) cfg.difficulty = "medium";
+  // The AI difficulty setting was removed — shed the stale field from saved rooms.
+  delete cfg.difficulty;
   if (typeof doc.rev !== "number") doc.rev = 0;
   // Games saved before the random-first-picker change stay host-first (seat 0).
   if (typeof doc.firstPickerSeat !== "number") doc.firstPickerSeat = 0;
