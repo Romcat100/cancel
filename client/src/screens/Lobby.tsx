@@ -54,6 +54,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [showRules, setShowRules] = useState(false);
+  const [showOptionsModal, setShowOptionsModal] = useState(false);
   const [showPowerModal, setShowPowerModal] = useState(false);
   const [savingPowers, setSavingPowers] = useState(false);
   const [showNumberModal, setShowNumberModal] = useState(false);
@@ -254,6 +255,17 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
         ? `0 and ${[...customNumbers].sort((a, b) => a - b).join(", ")}`
         : "No numbers picked yet";
 
+  const powerSummary =
+    powerUpMode === "off"
+      ? "no powers"
+      : powerUpMode === "random"
+        ? "random power"
+        : `${selectedRoundPowers.length} power${selectedRoundPowers.length === 1 ? "" : "s"}`;
+  const optionsSummary = `${rounds} ${rounds === 1 ? "round" : "rounds"} · ${powerSummary} · ${
+    numberMode === "custom" ? "custom numbers" : "default numbers"
+  } · ${showHandsOn ? "open hands" : "hidden hands"}`;
+  const optionsNeedsAttention = isHost && (selectedEmpty || !customCountOk);
+
   const startLabel =
     playerCount < 2
       ? "Waiting for players…"
@@ -338,41 +350,24 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
       </div>
 
       <div className="mt-auto pt-10 flex flex-col gap-3">
-        <div className="rounded-2xl bg-paper/5 px-4 py-3 flex items-center justify-between">
-          <div className="flex flex-col">
-            <span className="font-bold text-sm">Rounds</span>
-            <span className="text-paper/50 text-xs font-mono">{rounds === 1 ? "1 round" : `${rounds} rounds`}</span>
+        <button
+          type="button"
+          onClick={() => setShowOptionsModal(true)}
+          className="rounded-2xl bg-paper/5 px-4 py-3 flex items-center justify-between text-left transition hover:bg-paper/10"
+          data-sfx="tap"
+          data-testid="lobby-options"
+        >
+          <div className="flex flex-col min-w-0">
+            <span className="font-bold text-sm">Game options</span>
+            <span
+              data-testid="lobby-options-summary"
+              className={`text-xs font-mono truncate ${optionsNeedsAttention ? "text-accent" : "text-paper/50"}`}
+            >
+              {optionsSummary}
+            </span>
           </div>
-          {isHost ? (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                aria-label="Fewer rounds"
-                onClick={() => pickRounds(rounds - 1)}
-                disabled={rounds <= 1}
-                className="w-9 h-9 rounded-lg bg-paper/10 text-paper font-bold text-lg leading-none transition hover:bg-paper/20 disabled:opacity-30 disabled:hover:bg-paper/10"
-                data-sfx="tap"
-                data-testid="lobby-rounds-minus"
-              >
-                &#8722;
-              </button>
-              <span data-testid="lobby-rounds-value" className="w-6 text-center font-bold text-lg tabular-nums">{rounds}</span>
-              <button
-                type="button"
-                aria-label="More rounds"
-                onClick={() => pickRounds(rounds + 1)}
-                disabled={rounds >= 5}
-                className="w-9 h-9 rounded-lg bg-paper/10 text-paper font-bold text-lg leading-none transition hover:bg-paper/20 disabled:opacity-30 disabled:hover:bg-paper/10"
-                data-sfx="tap"
-                data-testid="lobby-rounds-plus"
-              >
-                +
-              </button>
-            </div>
-          ) : (
-            <span data-testid="lobby-rounds-chip" className="chip bg-accent/20 text-accent">{rounds}</span>
-          )}
-        </div>
+          <span className="text-paper/40 shrink-0 ml-3">→</span>
+        </button>
         <div className="rounded-2xl bg-paper/5 px-4 py-3 flex items-center justify-between">
           <div className="flex flex-col">
             <span className="font-bold text-sm">{solo ? "Opponents" : "AI players"}</span>
@@ -457,6 +452,188 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
           )
         )}
         {isHost ? (
+          <>
+            <button
+              className="btn-primary text-xl py-5"
+              disabled={busy || !canStart}
+              onClick={start}
+              data-sfx="confirm"
+              data-testid="lobby-start-game"
+            >
+              {startLabel}
+            </button>
+            <p className="text-paper/40 text-xs text-center font-mono">
+              {publicState.players.length + 2} cards each · {publicState.config.rounds} rounds
+            </p>
+          </>
+        ) : hostOffline ? (
+          <button
+            className="btn-primary text-xl py-5"
+            disabled={busy}
+            onClick={claimHost}
+            data-sfx="confirm"
+            data-testid="lobby-claim-host"
+          >
+            {busy ? "…" : "Claim host"}
+          </button>
+        ) : (
+          <div className="text-center text-paper/50 font-mono text-sm py-4">
+            Waiting for {hostPlayer?.name} to start the game…
+          </div>
+        )}
+        {err && (
+          <div className="rounded-2xl bg-accent/15 border border-accent/40 text-accent px-4 py-3 text-sm" data-testid="lobby-error">{err}</div>
+        )}
+      </div>
+
+      {showRules && <Rules onClose={() => setShowRules(false)} includePowerUps={powerUpMode !== "off"} />}
+      {showOptionsModal && (
+        <GameOptionsModal
+          isHost={isHost}
+          rounds={rounds}
+          powerUpMode={powerUpMode}
+          selectedRoundPowers={selectedRoundPowers}
+          selectedEmpty={selectedEmpty}
+          modeChip={modeChip}
+          modeText={modeText}
+          numberMode={numberMode}
+          customNumbers={customNumbers}
+          numberModeText={numberModeText}
+          customCountOk={customCountOk}
+          numbersNeeded={numbersNeeded}
+          handSize={handSize}
+          playerCount={playerCount}
+          showHandsOn={showHandsOn}
+          onPickRounds={pickRounds}
+          onPickMode={pickMode}
+          onPickNumberMode={pickNumberMode}
+          onToggleShowHands={toggleShowHands}
+          onOpenPowers={() => setShowPowerModal(true)}
+          onOpenNumbers={() => setShowNumberModal(true)}
+          onClose={() => setShowOptionsModal(false)}
+        />
+      )}
+      {showPowerModal && isHost && (
+        <RoundPowerSelectModal
+          initial={selectedRoundPowers}
+          busy={savingPowers}
+          onCancel={() => setShowPowerModal(false)}
+          onSave={saveRoundPowers}
+        />
+      )}
+      {showNumberModal && isHost && (
+        <NumberSelectModal
+          needed={numbersNeeded}
+          players={playerCount}
+          initial={customNumbers}
+          busy={savingNumbers}
+          onCancel={() => setShowNumberModal(false)}
+          onSave={saveNumbers}
+        />
+      )}
+    </div>
+  );
+}
+
+// Rules-type game settings, host-editable, everyone can read. Add a future
+// option as one more row here (plus a fragment in the lobby summary line).
+function GameOptionsModal({
+  isHost,
+  rounds,
+  powerUpMode,
+  selectedRoundPowers,
+  selectedEmpty,
+  modeChip,
+  modeText,
+  numberMode,
+  customNumbers,
+  numberModeText,
+  customCountOk,
+  numbersNeeded,
+  handSize,
+  playerCount,
+  showHandsOn,
+  onPickRounds,
+  onPickMode,
+  onPickNumberMode,
+  onToggleShowHands,
+  onOpenPowers,
+  onOpenNumbers,
+  onClose,
+}: {
+  isHost: boolean;
+  rounds: number;
+  powerUpMode: PowerUpMode;
+  selectedRoundPowers: RoundPowerId[];
+  selectedEmpty: boolean;
+  modeChip: string;
+  modeText: string;
+  numberMode: NumberMode;
+  customNumbers: number[];
+  numberModeText: string;
+  customCountOk: boolean;
+  numbersNeeded: number;
+  handSize: number;
+  playerCount: number;
+  showHandsOn: boolean;
+  onPickRounds: (n: number) => void;
+  onPickMode: (mode: PowerUpMode) => void;
+  onPickNumberMode: (mode: NumberMode) => void;
+  onToggleShowHands: () => void;
+  onOpenPowers: () => void;
+  onOpenNumbers: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 bg-ink/95 backdrop-blur-md flex flex-col animate-rise" data-testid="lobby-options-modal">
+      <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0 border-b border-paper/10">
+        <div>
+          <div className="font-mono text-xs uppercase tracking-[0.3em] text-paper/50">Lobby</div>
+          <div className="font-display text-2xl font-bold text-paper">Game options</div>
+        </div>
+        <button className="btn-ghost text-xs px-3 py-2" onClick={onClose} data-testid="lobby-options-close">
+          Done
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 pt-4 pb-5 max-w-md w-full mx-auto flex flex-col gap-3">
+        <div className="rounded-2xl bg-paper/5 px-4 py-3 flex items-center justify-between">
+          <div className="flex flex-col">
+            <span className="font-bold text-sm">Rounds</span>
+            <span className="text-paper/50 text-xs font-mono">{rounds === 1 ? "1 round" : `${rounds} rounds`}</span>
+          </div>
+          {isHost ? (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-label="Fewer rounds"
+                onClick={() => onPickRounds(rounds - 1)}
+                disabled={rounds <= 1}
+                className="w-9 h-9 rounded-lg bg-paper/10 text-paper font-bold text-lg leading-none transition hover:bg-paper/20 disabled:opacity-30 disabled:hover:bg-paper/10"
+                data-sfx="tap"
+                data-testid="lobby-rounds-minus"
+              >
+                &#8722;
+              </button>
+              <span data-testid="lobby-rounds-value" className="w-6 text-center font-bold text-lg tabular-nums">{rounds}</span>
+              <button
+                type="button"
+                aria-label="More rounds"
+                onClick={() => onPickRounds(rounds + 1)}
+                disabled={rounds >= 5}
+                className="w-9 h-9 rounded-lg bg-paper/10 text-paper font-bold text-lg leading-none transition hover:bg-paper/20 disabled:opacity-30 disabled:hover:bg-paper/10"
+                data-sfx="tap"
+                data-testid="lobby-rounds-plus"
+              >
+                +
+              </button>
+            </div>
+          ) : (
+            <span data-testid="lobby-rounds-chip" className="chip bg-accent/20 text-accent">{rounds}</span>
+          )}
+        </div>
+
+        {isHost ? (
           <div className="rounded-2xl bg-paper/5 px-4 py-3">
             <span className="font-bold text-sm">Round power</span>
             <div className="mt-2 grid grid-cols-3 gap-1 rounded-xl bg-paper/10 p-1">
@@ -467,7 +644,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
                     key={mode}
                     type="button"
                     aria-pressed={active}
-                    onClick={() => pickMode(mode)}
+                    onClick={() => onPickMode(mode)}
                     className={`rounded-lg py-2 text-sm font-bold transition ${
                       active
                         ? "bg-accent text-ink shadow-[0_2px_0_0_rgba(0,0,0,0.4)]"
@@ -485,7 +662,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
               <div className="mt-3 flex flex-col gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setShowPowerModal(true)}
+                  onClick={onOpenPowers}
                   className="btn-ghost text-sm py-2.5 flex items-center justify-between"
                   data-sfx="tap"
                   data-testid="lobby-select-powers"
@@ -528,7 +705,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
                     key={mode}
                     type="button"
                     aria-pressed={active}
-                    onClick={() => pickNumberMode(mode)}
+                    onClick={() => onPickNumberMode(mode)}
                     className={`rounded-lg py-2 text-sm font-bold transition ${
                       active
                         ? "bg-accent text-ink shadow-[0_2px_0_0_rgba(0,0,0,0.4)]"
@@ -546,7 +723,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
               <div className="mt-3 flex flex-col gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setShowNumberModal(true)}
+                  onClick={onOpenNumbers}
                   className="btn-ghost text-sm py-2.5 flex items-center justify-between"
                   data-sfx="tap"
                   data-testid="lobby-select-numbers"
@@ -590,7 +767,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
               type="button"
               role="switch"
               aria-checked={showHandsOn}
-              onClick={toggleShowHands}
+              onClick={onToggleShowHands}
               className={`relative w-12 h-7 rounded-full transition shrink-0 ${
                 showHandsOn ? "bg-accent" : "bg-paper/20"
               }`}
@@ -606,60 +783,11 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
             </span>
           )}
         </div>
-        {isHost ? (
-          <>
-            <button
-              className="btn-primary text-xl py-5"
-              disabled={busy || !canStart}
-              onClick={start}
-              data-sfx="confirm"
-              data-testid="lobby-start-game"
-            >
-              {startLabel}
-            </button>
-            <p className="text-paper/40 text-xs text-center font-mono">
-              {publicState.players.length + 2} cards each · {publicState.config.rounds} rounds
-            </p>
-          </>
-        ) : hostOffline ? (
-          <button
-            className="btn-primary text-xl py-5"
-            disabled={busy}
-            onClick={claimHost}
-            data-sfx="confirm"
-            data-testid="lobby-claim-host"
-          >
-            {busy ? "…" : "Claim host"}
-          </button>
-        ) : (
-          <div className="text-center text-paper/50 font-mono text-sm py-4">
-            Waiting for {hostPlayer?.name} to start the game…
-          </div>
-        )}
-        {err && (
-          <div className="rounded-2xl bg-accent/15 border border-accent/40 text-accent px-4 py-3 text-sm" data-testid="lobby-error">{err}</div>
+
+        {!isHost && (
+          <p className="text-paper/40 text-xs font-mono text-center pt-1">Only the host can change these.</p>
         )}
       </div>
-
-      {showRules && <Rules onClose={() => setShowRules(false)} includePowerUps={powerUpMode !== "off"} />}
-      {showPowerModal && isHost && (
-        <RoundPowerSelectModal
-          initial={selectedRoundPowers}
-          busy={savingPowers}
-          onCancel={() => setShowPowerModal(false)}
-          onSave={saveRoundPowers}
-        />
-      )}
-      {showNumberModal && isHost && (
-        <NumberSelectModal
-          needed={numbersNeeded}
-          players={playerCount}
-          initial={customNumbers}
-          busy={savingNumbers}
-          onCancel={() => setShowNumberModal(false)}
-          onSave={saveNumbers}
-        />
-      )}
     </div>
   );
 }

@@ -211,35 +211,39 @@ async function lobbyRoundsFlow(browser) {
   await clickTestId(host, "home-new-game");
   await typeInto(host, tid("home-name-input"), "Host");
   await clickTestId(host, "home-create-room");
-  await waitForText(host, "Rounds");
+  await host.waitForSelector(tid("lobby-options"), { timeout: 10_000 });
   const code = await host.$eval(tid("lobby-room-code"), (el) => el.innerText.trim());
   console.log(`[verify] room code: ${code}`);
-  await shot(host, "host-lobby-default"); // expect Rounds = 3
+  await shot(host, "host-lobby-default"); // expect summary "3 rounds · …" on the options button
 
-  // Host bumps rounds to the max; + must disable at 5.
+  // Host opens Game options and bumps rounds to the max; + must disable at 5.
+  await openOptions(host);
   await setRounds(host, 5);
   const plusDisabled = await host.$eval(tid("lobby-rounds-plus"), (b) => b.disabled);
   console.log(`[verify] at rounds=5, "+" disabled = ${plusDisabled}`);
-  await shot(host, "host-rounds-5-max");
+  await shot(host, "host-rounds-5-max", { fullPage: false });
 
-  // Joiner joins the room; sees a read-only chip mirroring the host's 5.
+  // Joiner joins the room; opens the read-only options modal mirroring the host's 5.
   const joiner = await newPlayer(browser, "Joiner");
   await waitForText(joiner, "CANCEL");
   await clickTestId(joiner, "home-join-with-code");
   await typeInto(joiner, tid("home-code-input"), code);
   await typeInto(joiner, tid("home-name-input"), "Joiner");
   await clickTestId(joiner, "home-join");
+  await joiner.waitForSelector(tid("lobby-options"), { timeout: 10_000 });
+  await openOptions(joiner);
   await waitForRoundsChip(joiner, 5);
-  await shot(joiner, "joiner-rounds-5");
+  await shot(joiner, "joiner-rounds-5", { fullPage: false });
 
-  // Host drops to 2; confirm it propagates live to the joiner's chip.
+  // Host drops to 2; confirm it propagates live into the joiner's open modal.
   await setRounds(host, 2);
-  await shot(host, "host-rounds-2");
+  await shot(host, "host-rounds-2", { fullPage: false });
   await waitForRoundsChip(joiner, 2);
-  await shot(joiner, "joiner-rounds-2");
+  await shot(joiner, "joiner-rounds-2", { fullPage: false });
 
   // Host starts the 2-round game. The room-code element only exists in the
   // lobby, so its disappearance is a reliable "we're in-game" signal.
+  await closeOptions(host);
   await clickTestId(host, "lobby-start-game");
   await host.waitForFunction(() => !document.querySelector('[data-testid="lobby-room-code"]'), {
     timeout: 10_000,
@@ -257,11 +261,13 @@ async function hostLeaveFlow(browser) {
   await clickTestId(host, "home-new-game");
   await typeInto(host, tid("home-name-input"), "Host");
   await clickTestId(host, "home-create-room");
-  await waitForText(host, "Rounds");
+  await host.waitForSelector(tid("lobby-options"), { timeout: 10_000 });
   const code = await host.$eval(tid("lobby-room-code"), (el) => el.innerText.trim());
   console.log(`[verify] room code: ${code}`);
   // Power-ups off keeps submissions to a plain number (no pool/preview/power pick).
+  await openOptions(host);
   await clickTestId(host, "lobby-powerup-off");
+  await closeOptions(host);
 
   // Two joiners.
   const join = async (name) => {
@@ -271,7 +277,7 @@ async function hostLeaveFlow(browser) {
     await typeInto(p, tid("home-code-input"), code);
     await typeInto(p, tid("home-name-input"), name);
     await clickTestId(p, "home-join");
-    await waitForText(p, "Rounds");
+    await p.waitForSelector(tid("lobby-options"), { timeout: 10_000 });
     return p;
   };
   const j1 = await join("Joiner1");
@@ -346,7 +352,9 @@ async function singlePlayerFlow(browser) {
   await shot(solo, "solo-opponents-2");
 
   // Power-ups off keeps the human's submission a plain number (no power-pick UI to drive).
+  await openOptions(solo);
   await clickTestId(solo, "lobby-powerup-off");
+  await closeOptions(solo);
 
   // Start; the submit button appearing is our "we're in-game" signal.
   await clickTestId(solo, "lobby-start-game");
@@ -411,6 +419,22 @@ async function waitOpaque(page, id) {
   );
 }
 
+// Open the lobby's Game options modal (holds rounds / round power / number pool /
+// show hands). The control testids inside are unchanged, but the modal covers the
+// Start button, so flows must closeOptions before starting the game.
+async function openOptions(page) {
+  await clickTestId(page, "lobby-options");
+  await page.waitForSelector(tid("lobby-options-modal"), { timeout: 10_000 });
+  await waitOpaque(page, "lobby-options-modal");
+}
+
+async function closeOptions(page) {
+  await clickTestId(page, "lobby-options-close");
+  await page.waitForFunction(() => !document.querySelector('[data-testid="lobby-options-modal"]'), {
+    timeout: 10_000,
+  });
+}
+
 // Interference reskin coverage. Phase A (powerups Random) reaches the Choose
 // modal, the round-start round-power preview, and the in-game round-power banner.
 // Phase B (powerups off, 2 rounds vs 1 AI) plays a whole game to reach a settled
@@ -426,6 +450,7 @@ async function interferenceFlow(browser) {
   await a.waitForSelector(tid("lobby-solo-header"), { timeout: 10_000 });
   // Choose the roster and narrow it to just Crosstalk, so the round power is
   // deterministic and we can exercise its two-phase neighbor re-pick.
+  await openOptions(a);
   await clickTestId(a, "lobby-powerup-selected");
   await a.waitForSelector(tid("round-power-select-modal"), { timeout: 10_000 });
   await waitOpaque(a, "round-power-select-modal");
@@ -437,7 +462,8 @@ async function interferenceFlow(browser) {
     () => !document.querySelector('[data-testid="round-power-select-modal"]'),
     { timeout: 10_000 },
   );
-  await shot(a, "lobby-solo-crosstalk"); // lobby with Crosstalk chosen
+  await closeOptions(a);
+  await shot(a, "lobby-solo-crosstalk"); // lobby, options summary reads "1 power"
   await clickTestId(a, "lobby-start-game");
   await a.waitForSelector(tid("round-power-preview-modal"), { timeout: 10_000 });
   await waitOpaque(a, "round-power-preview-modal");
@@ -464,8 +490,10 @@ async function interferenceFlow(browser) {
   await clickTestId(b, "home-start-single");
   await b.waitForSelector(tid("lobby-solo-header"), { timeout: 10_000 });
   await setStepper(b, "lobby-ai", 1); // 2 players → 4 turns/round
+  await openOptions(b);
   await setRounds(b, 2);
   await clickTestId(b, "lobby-powerup-off");
+  await closeOptions(b);
   await clickTestId(b, "lobby-start-game");
   await b.waitForSelector(tid("game-submit"), { timeout: 10_000 });
   if (await has(b, "game-round-power")) {
@@ -565,6 +593,7 @@ async function roundPowersFlow(browser) {
     await clickTestId(p, "home-start-single");
     await p.waitForSelector(tid("lobby-solo-header"), { timeout: 10_000 });
     await setStepper(p, "lobby-ai", ai);
+    await openOptions(p);
     await clickTestId(p, "lobby-powerup-selected");
     await p.waitForSelector(tid("round-power-select-modal"), { timeout: 10_000 });
     await waitOpaque(p, "round-power-select-modal");
@@ -580,6 +609,7 @@ async function roundPowersFlow(browser) {
       () => !document.querySelector('[data-testid="round-power-select-modal"]'),
       { timeout: 10_000 },
     );
+    await closeOptions(p);
     await clickTestId(p, "lobby-start-game");
     await p.waitForSelector(tid("round-power-preview-modal"), { timeout: 10_000 });
     await waitOpaque(p, "round-power-preview-modal");

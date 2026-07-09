@@ -33,7 +33,7 @@ You can play **solo against AI** from the Home screen (tap **Single player**), o
 
 1. **Create a room** → you get a 4-character code.
 2. **Share the code** with friends; they tap "Join with code" on the same site.
-3. In the lobby, the **Rules** button opens a full how-to-play overlay. The host sets the round count (1-5, default 3), picks the number pool (the standard set or a host-chosen custom set), and chooses a round-power mode: **None** (pure numbers, no powers), **Random** (one random power drawn each round), or **Choose** (hand-pick which powers can appear). The same Rules button is in the in-game header so anyone can re-read the rules mid-match.
+3. In the lobby, the **Rules** button opens a full how-to-play overlay. The host taps **Game options** to set the round count (1-5, default 3), pick the number pool (the standard set or a host-chosen custom set), toggle whether hands are visible, and choose a round-power mode: **None** (pure numbers, no powers), **Random** (one random power drawn each round), or **Choose** (hand-pick which powers can appear). Everyone else can open Game options too, as a read-only view of the setup. The same Rules button is in the in-game header so anyone can re-read the rules mid-match.
 4. **Host taps Start.** When round powers are on, a "This round's power" screen reveals the power drawn for the round and what it does, then a banner keeps it visible for the whole round. (Skipped when powers are off.)
 5. **Each turn:**
    - Everyone privately picks a number from their hand. Each player's remaining hand is shown publicly under their name so you can see what cards your opponents still have.
