@@ -208,7 +208,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
 
   async function submit() {
     if (!id || selectedNumber == null) return;
-    // Peek re-pick and Crosstalk re-pick are both number-only (no power slot).
+    // Peek re-pick and the glimpse re-pick are both number-only (no power slot).
     const numberOnly = phase === "turn_peek_review" || phase === "turn_neighbor_review";
     setBusy(true);
     setErr(null);

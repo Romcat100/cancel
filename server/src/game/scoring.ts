@@ -31,8 +31,8 @@ export function scoreTurn(
   // negate-zero flag; Ultraviolet is a universal +2 at the eff stage; Harmony rewires
   // the tie branch to double the tied value; Amplify and Limiter are post-passes at the
   // end; Absorption extends the lone-canceller branch. Pure Tone has no branch anywhere
-  // on purpose (the nothingburger pattern) — don't "fix" it. Crosstalk / Refraction /
-  // Broadcast are turn-flow changes handled in engine.ts, not scoring effects.
+  // on purpose (the nothingburger pattern) — don't "fix" it. Refraction / Broadcast
+  // are turn-flow changes handled in engine.ts, not scoring effects.
   const staticActive = roundPower === "static";
   const ultravioletActive = roundPower === "ultraviolet";
   const harmonyActive = roundPower === "harmony";

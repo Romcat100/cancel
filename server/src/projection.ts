@@ -134,7 +134,7 @@ export function projectStateForPlayer(
     blockedByOthers = true;
   }
 
-  // Crosstalk / Refraction: during the re-pick phase, show this player only the one other
+  // Refraction: during the re-pick phase, show this player only the one other
   // player they were assigned to glimpse (never the whole board). The target is stored
   // in `neighborReview.targets`; fall back to the next seat for older in-flight saves.
   // Broadcast deliberately breaks the one-target rule: the WHOLE board's initial picks

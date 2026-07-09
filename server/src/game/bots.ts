@@ -229,7 +229,7 @@ export function decideBotMove(room: RoomDoc, botId: string, rng: () => number = 
 // Keeps a glimpsed bot pick a strong hint rather than a guarantee.
 const REPICK_CHANCE = 0.1;
 
-// A bot's re-pick during the Crosstalk/Refraction/Broadcast turn_neighbor_review. The bot reads
+// A bot's re-pick during the Refraction/Broadcast turn_neighbor_review. The bot reads
 // only what a human in its seat sees (its glimpse: one target's initial pick, or the whole board
 // under Broadcast) and dodges when that glimpse threatens its pick — a face tie, or a lone 0 that
 // would cancel the board. A safe pick is kept, minus a small REPICK_CHANCE dodge for

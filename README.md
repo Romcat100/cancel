@@ -1,6 +1,6 @@
 # Cancel
 
-A multiplayer browser game where everyone secretly picks a number, then reveals at once. If two players pick the same number, both score zero. The `0` card is "Cancel" — one zero negates everyone else's points; two or more zeros cancel each other out and the rest of the table scores normally. Each round a random **round power** (Harmony, Amplify, Static, Ultraviolet, Crosstalk, Refraction, Limiter, Absorption, Broadcast, or plain Pure Tone) bends the rules for everyone.
+A multiplayer browser game where everyone secretly picks a number, then reveals at once. If two players pick the same number, both score zero. The `0` card is "Cancel" — one zero negates everyone else's points; two or more zeros cancel each other out and the rest of the table scores normally. Each round a random **round power** (Harmony, Amplify, Static, Ultraviolet, Refraction, Limiter, Absorption, Broadcast, or plain Pure Tone) bends the rules for everyone.
 
 The same engine supports both **live** play (everyone in the room at once) and **async** play (over hours/days — close your browser, come back later, your seat reclaims itself).
 
@@ -54,7 +54,7 @@ You can play **solo against AI** from the Home screen (tap **Single player**), o
 
 Round powers are on by default. In the lobby the host picks a mode: **None** (a pure-numbers game), **Random** (one power drawn at random each round), or **Choose** (the host hand-picks which powers can appear).
 
-When on: at the start of each round, one power is drawn and shown to everyone. It applies to every player, on every turn of that round. A banner keeps it visible during play and on each reveal.
+When on: at the start of each round, one power is drawn and shown to everyone. It applies to every player, on every turn of that round. A banner keeps it visible during play and on each reveal. In a 2-player game the random draw skips Harmony and Refraction (they fall flat 1v1), but a host can still hand-pick them in Choose mode.
 
 | Power | What it does |
 |---|---|
@@ -63,7 +63,6 @@ When on: at the start of each round, one power is drawn and shown to everyone. I
 | **Amplify** (`×2`) | The signal is boosted. Every point scored this round is doubled, gains and losses alike. |
 | **Static** (`Ø!`) | Zeros are lost in the noise. A `0` is inert this round and cancels nothing. |
 | **Ultraviolet** (`UV`) | The whole spectrum shifts up. Every card plays 2 higher than its face value, so a `0` becomes a `2` and a `3` becomes a `5`. Ties use the raised values. |
-| **Crosstalk** (`◂▸`) | Signals bleed across channels. Each turn you glimpse the number the player beside you means to play, then everyone gets one chance to change their pick before the reveal. |
 | **Refraction** (`△`) | Light bends to a new angle. Each turn you glimpse the number a random player means to play, then everyone gets one chance to change their pick before the reveal. |
 | **Limiter** (`▔`) | The loudest signal gets clipped. Each turn, the highest card that scored is cut to 0, so the biggest number on the board earns nothing. |
 | **Absorption** (`Ø+`) | The flat line drinks the sound. A lone `0` still silences the board, and it also scores the average of the cards it silenced, rounded up. |

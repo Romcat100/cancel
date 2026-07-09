@@ -181,7 +181,7 @@ describe("driveBots", () => {
 describe("decideBotNeighborRepick", () => {
   // A 3-player room paused in turn_neighbor_review, with the bot's hand pinned so every
   // case is deterministic. The caller pins initialPicks/targets per scenario.
-  function reviewRoom(power: "crosstalk" | "broadcast") {
+  function reviewRoom(power: "refraction" | "broadcast") {
     const r = startGame(soloRoom(2));
     const bot = r.players.filter((p) => p.isBot)[0];
     const h = human(r);
@@ -193,13 +193,13 @@ describe("decideBotNeighborRepick", () => {
   const missRoll = () => 0.99; // above REPICK_CHANCE: the random dodge never fires
 
   it("keeps a safe initial pick (glimpse shows no tie and no 0)", () => {
-    const { r, bot, h } = reviewRoom("crosstalk");
+    const { r, bot, h } = reviewRoom("refraction");
     r.neighborReview = { initialPicks: { [bot.id]: 3, [h.id]: 1 }, targets: { [bot.id]: h.id } };
     expect(decideBotNeighborRepick(r, bot.id, missRoll).number).toBe(3);
   });
 
   it("occasionally dodges even a safe pick (REPICK_CHANCE with a real rng)", () => {
-    const { r, bot, h } = reviewRoom("crosstalk");
+    const { r, bot, h } = reviewRoom("refraction");
     r.neighborReview = { initialPicks: { [bot.id]: 3, [h.id]: 1 }, targets: { [bot.id]: h.id } };
     let changed = 0;
     for (let i = 0; i < 1000; i++) {
@@ -212,7 +212,7 @@ describe("decideBotNeighborRepick", () => {
   });
 
   it("dodges a glimpsed tie, never re-picking the tied number", () => {
-    const { r, bot, h } = reviewRoom("crosstalk");
+    const { r, bot, h } = reviewRoom("refraction");
     r.neighborReview = { initialPicks: { [bot.id]: 3, [h.id]: 3 }, targets: { [bot.id]: h.id } };
     for (let i = 0; i < 50; i++) {
       const move = decideBotNeighborRepick(r, bot.id);
@@ -222,7 +222,7 @@ describe("decideBotNeighborRepick", () => {
   });
 
   it("dumps the lowest nonzero card when the glimpse shows a lone 0", () => {
-    const { r, bot, h } = reviewRoom("crosstalk");
+    const { r, bot, h } = reviewRoom("refraction");
     r.neighborReview = { initialPicks: { [bot.id]: 4, [h.id]: 0 }, targets: { [bot.id]: h.id } };
     expect(decideBotNeighborRepick(r, bot.id, missRoll).number).toBe(2);
   });
@@ -243,7 +243,7 @@ describe("decideBotNeighborRepick", () => {
   });
 
   it("falls back to a fresh legal pick when the review snapshot is missing", () => {
-    const { r, bot } = reviewRoom("crosstalk");
+    const { r, bot } = reviewRoom("refraction");
     r.neighborReview = undefined;
     const move = decideBotNeighborRepick(r, bot.id, () => 0.5);
     expect(r.rounds[0].hands[bot.id]).toContain(move.number);

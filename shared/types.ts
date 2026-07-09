@@ -89,7 +89,9 @@ export interface RevealedTurn {
   swapUsed?: { swapperId: string; targetId: string };
   switchUsed?: { switcherId: string; targetId: string; switcherOriginal: number; targetOriginal: number };
   rayUsed?: { rayUserId: string; targetId: string; rolledNumber: number; originalNumber: number };
-  // Crosstalk (round power): each player's pre-review pick vs. their final pick.
+  // Glimpse re-pick round powers (Refraction/Broadcast): each player's pre-review pick
+  // vs. their final pick. The field name is a legacy of the retired Crosstalk power;
+  // keep it — it's baked into persisted reveal docs.
   crosstalkUsed?: { playerId: string; initialNumber: number; finalNumber: number }[];
 }
 
@@ -116,8 +118,8 @@ export interface PrivateState {
   hasSubmittedThisTurn: boolean;
   isPicker: boolean;
   peekReveal?: { targetPlayerId: string; revealedNumber: number; originalNumber: number };
-  // Crosstalk (round power): during turn_neighbor_review, the initial pick of the
-  // player seated next to you, so you can adjust before the turn resolves.
+  // Refraction (round power): during turn_neighbor_review, the initial pick of the
+  // player you were assigned to glimpse, so you can adjust before the turn resolves.
   neighborReveal?: { neighborPlayerId: string; number: number };
   // Broadcast (round power): during turn_neighbor_review, EVERY player's initial pick
   // (seat order, includes your own), so the whole table adjusts with open cards.
@@ -313,7 +315,6 @@ export type RoundPowerId =
   | "amplify"
   | "static"
   | "ultraviolet"
-  | "crosstalk"
   | "refraction"
   | "limiter"
   | "absorption"
@@ -355,12 +356,6 @@ export const ROUND_POWERS: Record<RoundPowerId, RoundPowerDef> = {
     name: "Ultraviolet",
     description:
       "The whole spectrum shifts up. Every card plays 2 higher than its face value, so a 0 becomes a 2 and a 3 becomes a 5.",
-  },
-  crosstalk: {
-    id: "crosstalk",
-    name: "Crosstalk",
-    description:
-      "Signals bleed across channels. Each turn you glimpse the number the player beside you means to play, then everyone gets one chance to change their pick.",
   },
   refraction: {
     id: "refraction",

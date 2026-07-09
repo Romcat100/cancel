@@ -76,11 +76,13 @@ export interface PeekReviewDoc {
   originalNumber: number;
 }
 
-// The "glimpse and re-pick" round powers (Crosstalk, Refraction) pause the turn in
+// The "glimpse and re-pick" round powers (Refraction, Broadcast) pause the turn in
 // `turn_neighbor_review` after everyone's initial submission: each player sees one
-// other player's initial pick (their `targets` entry) and re-submits. Crosstalk
-// targets the next seat; Refraction targets a random other player. `initialPicks`
-// holds each player's pre-review pick until the turn resolves.
+// other player's initial pick (their `targets` entry) and re-submits. Refraction
+// targets a random other player; Broadcast stores no targets (everyone sees the whole
+// board via the projection). `initialPicks` holds each player's pre-review pick until
+// the turn resolves. (The "neighbor" naming is a legacy of the retired Crosstalk
+// power, which glimpsed the next seat.)
 export interface NeighborReviewDoc {
   initialPicks: { [playerId: string]: number };
   targets: { [playerId: string]: string };
@@ -242,17 +244,31 @@ function rollWildPower(rng: () => number = Math.random): PowerUpId {
   return WILD_ROLL_POOL[Math.floor(rng() * WILD_ROLL_POOL.length)];
 }
 
+// Round powers that fall flat in a 1v1, skipped by the random roll when a game has
+// 2 players. Harmony removes the tie penalty entirely (both players just double);
+// Refraction's "random other player" is always your one opponent, and you both glimpse
+// each other. A host who explicitly picks them in "selected" mode still gets them.
+const TWO_PLAYER_EXCLUDED_ROUND_POWERS: ReadonlySet<RoundPowerId> = new Set([
+  "harmony",
+  "refraction",
+]);
+
 // One power per round, applying to everyone. "off" rolls nothing; "random" draws
-// uniformly from the full roster; "selected" draws from the host's curated list.
-// A legacy save in selected mode with no curated round powers rolls nothing
-// (plain rounds) rather than surprising players with the full roster.
+// uniformly from the full roster (minus the 2-player exclusions); "selected" draws
+// from the host's curated list. A legacy save in selected mode with no curated round
+// powers rolls nothing (plain rounds) rather than surprising players with the full roster.
 function rollRoundPower(
   config: RoomDoc["config"],
+  playerCount: number,
   rng: () => number = Math.random,
 ): RoundPowerId | undefined {
   if (config.powerUpMode === "off") return undefined;
   const roster =
-    config.powerUpMode === "selected" ? config.selectedRoundPowers : ROUND_POWER_IDS;
+    config.powerUpMode === "selected"
+      ? config.selectedRoundPowers
+      : playerCount <= 2
+        ? ROUND_POWER_IDS.filter((id) => !TWO_PLAYER_EXCLUDED_ROUND_POWERS.has(id))
+        : ROUND_POWER_IDS;
   if (roster.length === 0) return undefined;
   return roster[Math.floor(rng() * roster.length)];
 }
@@ -360,7 +376,7 @@ function startRound(room: RoomDoc, roundIndex: number, rng: () => number = Math.
   const round: RoundDoc = {
     index: roundIndex,
     poolFull,
-    roundPower: rollRoundPower(room.config, rng),
+    roundPower: rollRoundPower(room.config, room.players.length, rng),
     poolRemaining: [],
     rotation: buildRotation(room.players, handSize, roundIndex, room.firstPickerSeat ?? 0),
     reveals: [],
@@ -471,12 +487,12 @@ export function submitTurn(room: RoomDoc, input: SubmitInput): RoomDoc {
         };
       }
     }
-    // Crosstalk / Refraction / Broadcast (round powers): pause the turn so everyone
-    // glimpses another player's initial pick (or, for Broadcast, the whole board) and
-    // gets one chance to re-pick before it resolves.
+    // Refraction / Broadcast (round powers): pause the turn so everyone glimpses
+    // another player's initial pick (or, for Broadcast, the whole board) and gets
+    // one chance to re-pick before it resolves.
     const flowPower = round.roundPower;
     if (
-      (flowPower === "crosstalk" || flowPower === "refraction" || flowPower === "broadcast") &&
+      (flowPower === "refraction" || flowPower === "broadcast") &&
       room.players.length >= 2
     ) {
       const initialPicks = Object.fromEntries(
@@ -484,10 +500,7 @@ export function submitTurn(room: RoomDoc, input: SubmitInput): RoomDoc {
       );
       // Broadcast shows every pick to everyone, so it needs no per-player target
       // assignment — the projection reads initialPicks wholesale instead.
-      const targets =
-        flowPower === "broadcast"
-          ? {}
-          : assignPeekTargets(next, flowPower === "refraction" ? "random" : "neighbor");
+      const targets = flowPower === "broadcast" ? {} : assignPeekTargets(next);
       return {
         ...next,
         phase: "turn_neighbor_review",
@@ -501,31 +514,24 @@ export function submitTurn(room: RoomDoc, input: SubmitInput): RoomDoc {
   return next;
 }
 
-// Who each player glimpses during a Crosstalk/Refraction re-pick. "neighbor" points at
-// the next seat (wrapping); "random" points at a random OTHER player (never yourself).
-// Sorted seat order keeps it robust even if seat numbers ever had gaps. Random mode
-// uses Math.random like the Wild roll — tests mock it for determinism.
+// Who each player glimpses during a Refraction re-pick: a random OTHER player (never
+// yourself). Sorted seat order keeps it robust even if seat numbers ever had gaps.
+// Uses Math.random like the Wild roll — tests mock it for determinism.
 function assignPeekTargets(
   room: RoomDoc,
-  mode: "neighbor" | "random",
   rng: () => number = Math.random,
 ): { [playerId: string]: string } {
   const sorted = [...room.players].sort((a, b) => a.seat - b.seat);
-  const n = sorted.length;
   const targets: { [playerId: string]: string } = {};
-  for (let i = 0; i < n; i++) {
-    if (mode === "neighbor") {
-      targets[sorted[i].id] = sorted[(i + 1) % n].id;
-    } else {
-      const others = sorted.filter((_, j) => j !== i);
-      targets[sorted[i].id] = others[Math.floor(rng() * others.length)].id;
-    }
+  for (let i = 0; i < sorted.length; i++) {
+    const others = sorted.filter((_, j) => j !== i);
+    targets[sorted[i].id] = others[Math.floor(rng() * others.length)].id;
   }
   return targets;
 }
 
-// Crosstalk re-pick: number-only, from the player's (still full) hand. When everyone
-// has re-submitted, resolve the turn with the final picks.
+// Glimpse re-pick (Refraction/Broadcast): number-only, from the player's (still full)
+// hand. When everyone has re-submitted, resolve the turn with the final picks.
 function submitNeighborReview(room: RoomDoc, input: SubmitInput): RoomDoc {
   if (!room.neighborReview) throw new Error("No neighbor review pending");
   if (input.powerUp) throw new Error("No power-up during neighbor review");
@@ -718,8 +724,8 @@ function resolveTurn(room: RoomDoc): RoomDoc {
     swapUsed = { swapperId: a, targetId: b };
   }
 
-  // Crosstalk: record each player's pre-review pick vs. their final pick so the
-  // reveal can show who adjusted after glimpsing their neighbor.
+  // Glimpse re-pick (Refraction/Broadcast): record each player's pre-review pick vs.
+  // their final pick so the reveal can show who adjusted after their glimpse.
   let crosstalkUsed: RevealDoc["crosstalkUsed"];
   if (room.neighborReview) {
     const initial = room.neighborReview.initialPicks;
@@ -925,7 +931,7 @@ export function forceResolveTurn(room: RoomDoc, rng: () => number = Math.random)
     });
   }
   if (room.phase === "turn_neighbor_review") {
-    // Crosstalk re-pick phase: fill non-submitters with their initial pick (or a
+    // Glimpse re-pick phase: fill non-submitters with their initial pick (or a
     // sampled card as a fallback) and resolve.
     if (!room.neighborReview) throw new Error("Nothing to skip");
     const filled = { ...room.pendingSubmissions };

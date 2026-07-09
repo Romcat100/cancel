@@ -67,6 +67,13 @@ export function loadRoom(code: string): RoomDoc | null {
   cfg.selectedPowerUps = cfg.selectedPowerUps.map((id) => ((id as string) === "reverse" ? "flip" : id));
   delete cfg.powerUps;
   if (cfg.selectedRoundPowers === undefined) cfg.selectedRoundPowers = [];
+  // The Crosstalk round power was removed — drop it from saved rosters, and remap any
+  // in-flight round onto Refraction (the surviving glimpse-and-re-pick power; a save
+  // paused mid-review keeps its stored targets, so it plays out unchanged).
+  cfg.selectedRoundPowers = cfg.selectedRoundPowers.filter((id) => (id as string) !== "crosstalk");
+  for (const rd of doc.rounds ?? []) {
+    if ((rd.roundPower as string) === "crosstalk") rd.roundPower = "refraction";
+  }
   if (cfg.showHands === undefined) cfg.showHands = true;
   if (cfg.numberMode === undefined) cfg.numberMode = "default";
   if (cfg.customNumbers === undefined) cfg.customNumbers = [];

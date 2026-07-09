@@ -178,7 +178,6 @@ const ROUND_POWER_VISUAL: Record<RoundPowerId, { abbr: string; color: string }> 
   amplify: { abbr: "×2", color: "#ffb84d" }, // amber = amplify (matches double)
   static: { abbr: "Ø!", color: "#6fa8ff" }, // blue = zero/structural (matches negate_zero)
   ultraviolet: { abbr: "UV", color: "#b48bff" }, // violet = spectrum shift up
-  crosstalk: { abbr: "◂▸", color: "#4dd6c4" }, // teal = glimpse your neighbor
   refraction: { abbr: "△", color: "#e879f9" }, // fuchsia = glimpse a random player
   limiter: { abbr: "▔", color: "#ff5c7a" }, // rose = harm (the peak gets clipped)
   absorption: { abbr: "Ø+", color: "#8ea2ff" }, // blue = zero/structural (the 0 drinks)

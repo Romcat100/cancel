@@ -66,6 +66,22 @@ describe("rev versioning", () => {
     expect(loaded.config.customNumbers).toEqual([]);
   });
 
+  it("loadRoom sheds the removed crosstalk round power from saved games", () => {
+    let r = createRoom({ code: "OLDX", hostId: "A", hostName: "Alice", rounds: 2, turnDeadlineMs: null, powerUpMode: "off" });
+    r = addPlayer(r, "B", "Bob");
+    r = startGame(r);
+    const legacy = JSON.parse(JSON.stringify(r)) as { config: Record<string, unknown>; rounds: Record<string, unknown>[] };
+    legacy.config.selectedRoundPowers = ["crosstalk", "static"];
+    legacy.rounds[0].roundPower = "crosstalk";
+    getDb()
+      .prepare(`INSERT INTO rooms (code, state, status, created_at, updated_at) VALUES (?, ?, 'active', ?, ?)`)
+      .run("OLDX", JSON.stringify(legacy), r.createdAt, r.updatedAt);
+    const loaded = loadRoom("OLDX")!;
+    expect(loaded.config.selectedRoundPowers).toEqual(["static"]);
+    // An in-flight crosstalk round remaps to Refraction, the surviving glimpse power.
+    expect(loaded.rounds[0].roundPower).toBe("refraction");
+  });
+
   it("loadRoom maps a legacy powerUps:true (or missing) to random mode", () => {
     const r = createRoom({ code: "OLD3", hostId: "A", hostName: "Alice", rounds: 2, turnDeadlineMs: null });
     const legacy = JSON.parse(JSON.stringify(r)) as { config: Record<string, unknown> };

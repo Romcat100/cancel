@@ -448,14 +448,14 @@ async function interferenceFlow(browser) {
   await typeInto(a, tid("home-name-input"), "Solo");
   await clickTestId(a, "home-start-single");
   await a.waitForSelector(tid("lobby-solo-header"), { timeout: 10_000 });
-  // Choose the roster and narrow it to just Crosstalk, so the round power is
-  // deterministic and we can exercise its two-phase neighbor re-pick.
+  // Choose the roster and narrow it to just Refraction, so the round power is
+  // deterministic and we can exercise its two-phase glimpse re-pick.
   await openOptions(a);
   await clickTestId(a, "lobby-powerup-selected");
   await a.waitForSelector(tid("round-power-select-modal"), { timeout: 10_000 });
   await waitOpaque(a, "round-power-select-modal");
   await clickTestId(a, "round-power-select-none");
-  await clickTestId(a, "round-power-select-option-crosstalk");
+  await clickTestId(a, "round-power-select-option-refraction");
   await shot(a, "round-power-select", { fullPage: false });
   await clickTestId(a, "round-power-select-save");
   await a.waitForFunction(
@@ -463,24 +463,24 @@ async function interferenceFlow(browser) {
     { timeout: 10_000 },
   );
   await closeOptions(a);
-  await shot(a, "lobby-solo-crosstalk"); // lobby, options summary reads "1 power"
+  await shot(a, "lobby-solo-refraction"); // lobby, options summary reads "1 power"
   await clickTestId(a, "lobby-start-game");
   await a.waitForSelector(tid("round-power-preview-modal"), { timeout: 10_000 });
   await waitOpaque(a, "round-power-preview-modal");
-  await shot(a, "round-start-preview", { fullPage: false }); // "this round's power" = Crosstalk
+  await shot(a, "round-start-preview", { fullPage: false }); // "this round's power" = Refraction
   await clickTestId(a, "round-power-preview-play");
   await a.waitForSelector(tid("game-submit"), { timeout: 10_000 });
   await a.waitForSelector(tid("game-round-power"), { timeout: 10_000 });
   await shot(a, "game-turn-with-round-power"); // the turn screen showing the round-power banner
   // Submit an initial pick; bots have already pre-submitted, so this opens the
-  // Crosstalk re-pick where each player sees their neighbor's number.
+  // Refraction re-pick where each player glimpses a random other player's number.
   await submitSomeCard(a);
   await a.waitForSelector(tid("game-neighbor-review"), { timeout: 10_000 });
-  await shot(a, "game-neighbor-review"); // "your neighbor is planning to play…"
+  await shot(a, "game-neighbor-review"); // "X is planning to play…"
   // Re-pick to resolve the turn and reach the reveal.
   await submitSomeCard(a);
   await a.waitForSelector(tid("reveal-continue"), { timeout: 10_000 });
-  await shot(a, "crosstalk-reveal", { fullPage: false });
+  await shot(a, "refraction-reveal", { fullPage: false });
 
   // --- Phase B: full playthrough to round results + game over ---
   const b = await newPlayer(browser, "Solo");
