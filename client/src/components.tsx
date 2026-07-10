@@ -876,8 +876,12 @@ export function RoundScoreTable({
           key={p.id}
           data-testid={`score-row-${p.seat}`}
           className={`rounded-2xl px-3 pt-3 pb-2 ${
-            i === 0 ? "bg-gold/15 border border-gold/40" : "bg-paper/5 border border-paper/10"
-          }`}
+            i === 0
+              ? "bg-gold/15 border border-gold/40"
+              : p.id === selfId
+                ? "bg-paper/10 border border-paper/10"
+                : "bg-paper/5 border border-paper/10"
+          } ${p.id === selfId ? "ring-1 ring-paper/30" : ""}`}
         >
           <div className="flex items-center gap-2">
             <span className="font-mono text-paper/40 w-5 text-right text-sm">{i + 1}</span>

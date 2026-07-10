@@ -668,6 +668,7 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
         <RevealView
           reveal={revealOverlay}
           players={publicState.players}
+          selfId={selfPlayerId}
           roundPower={revealOverlay.roundIndex === round.index ? round.roundPower : undefined}
           onClose={() => setRevealOverlay(null)}
         />
@@ -707,7 +708,7 @@ function Scoreboard({
           key={p.id}
           data-testid={`game-score-${p.seat}`}
           className={`rounded-2xl px-3 py-2 flex items-center gap-2 border border-paper/10 ${
-            p.id === selfId ? "bg-paper/15" : "bg-paper/[.035]"
+            p.id === selfId ? "bg-paper/15 ring-1 ring-paper/30" : "bg-paper/[.035]"
           }`}
         >
           <Wave
@@ -904,7 +905,7 @@ function RevealSumRow() {
 
 // One signal on the shared axis: minicard (numeral + tiny wave), the full trace,
 // and its outcome. Cancelled signals fade; the surviving Ø glows.
-function RevealTraceRow({ e, settled }: { e: RevealRowItem; settled: boolean }) {
+function RevealTraceRow({ e, settled, isSelf }: { e: RevealRowItem; settled: boolean; isSelf: boolean }) {
   const { s, player, delta, total, t, antiphase } = e;
   const hex = seatColor(player.seat).hex;
   const rank = rankForNumber(s.number);
@@ -913,7 +914,13 @@ function RevealTraceRow({ e, settled }: { e: RevealRowItem; settled: boolean }) 
   return (
     <div
       data-testid={`reveal-sub-${player.seat}`}
-      className={`${REVEAL_ROW_COLS} py-2 ${alive ? "rounded-xl border border-cool/35 bg-cool/[.06] px-2 my-1" : ""}`}
+      className={`${REVEAL_ROW_COLS} py-2 ${
+        alive
+          ? "rounded-xl border border-cool/35 bg-cool/[.06] px-2 my-1"
+          : isSelf
+            ? "rounded-xl px-2 my-1 bg-paper/[.04]"
+            : ""
+      } ${isSelf ? "ring-1 ring-paper/30" : ""}`}
     >
       <div className="flex flex-col items-start gap-1 min-w-0">
         <span className="font-mono text-[9px] tracking-widest truncate max-w-full" style={{ color: hex }}>
@@ -973,11 +980,13 @@ function RevealTraceRow({ e, settled }: { e: RevealRowItem; settled: boolean }) 
 function RevealView({
   reveal,
   players,
+  selfId,
   roundPower,
   onClose,
 }: {
   reveal: RevealedTurn;
   players: { id: string; name: string; seat: number; totalScore: number }[];
+  selfId: string;
   roundPower?: RoundPowerId;
   onClose: () => void;
 }) {
@@ -1077,7 +1086,7 @@ function RevealView({
           return (
             <Fragment key={e.s.playerId}>
               {pairedWithPrev && <RevealSumRow />}
-              <RevealTraceRow e={e} settled={settled} />
+              <RevealTraceRow e={e} settled={settled} isSelf={e.s.playerId === selfId} />
             </Fragment>
           );
         })}
