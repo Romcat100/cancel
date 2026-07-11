@@ -909,7 +909,17 @@ function RevealSumRow() {
 
 // One signal on the shared axis: minicard (numeral + tiny wave), the full trace,
 // and its outcome. Cancelled signals fade; the surviving Ø glows.
-function RevealTraceRow({ e, settled, isSelf }: { e: RevealRowItem; settled: boolean; isSelf: boolean }) {
+function RevealTraceRow({
+  e,
+  settled,
+  isSelf,
+  delayMs,
+}: {
+  e: RevealRowItem;
+  settled: boolean;
+  isSelf: boolean;
+  delayMs: number;
+}) {
   const { s, player, delta, total, t, antiphase } = e;
   const hex = seatColor(player.seat).hex;
   const rank = rankForNumber(s.number);
@@ -956,7 +966,9 @@ function RevealTraceRow({ e, settled, isSelf }: { e: RevealRowItem; settled: boo
           />
         )}
       </div>
-      <div className={`flex flex-col items-end gap-1 ${fade}`}>
+      {/* animate-rise has fill-mode "both", so the delayed rows hold the 0% frame
+          (invisible) until their turn — outcomes land bottom-up, leader last. */}
+      <div className={`flex flex-col items-end gap-1 ${fade}`} style={settled ? { animationDelay: `${delayMs}ms` } : undefined}>
         {t === "survivor" ? (
           <b className="font-mono text-lg text-emerald-300 [text-shadow:0_0_10px_rgba(94,234,160,0.4)]">+{delta}</b>
         ) : t === "aliveZero" ? (
@@ -995,15 +1007,26 @@ function RevealView({
   roundPower?: RoundPowerId;
   onClose: () => void;
 }) {
-  const [phase, setPhase] = useState<"flip" | "score">("flip");
+  // flip: cards flip in, outcomes hidden. settle: outcomes rise one row at a
+  // time, bottom-up (leader lands last). score: everything settled — the verify
+  // harness keys off data-reveal-phase="score", so it only flips once the last
+  // row's rise has finished.
+  const [phase, setPhase] = useState<"flip" | "settle" | "score">("flip");
   const [powerTapped, setPowerTapped] = useState(false);
+  const rowCount = reveal.submissions.length;
+  // Per-row stagger, clamped so the whole cascade never adds more than ~1.2s.
+  const stepMs = Math.min(180, Math.floor(1200 / Math.max(1, rowCount - 1)));
   useEffect(() => {
-    const t = setTimeout(() => setPhase("score"), 900);
-    return () => clearTimeout(t);
-  }, []);
+    const t1 = setTimeout(() => setPhase("settle"), 900);
+    const t2 = setTimeout(() => setPhase("score"), 900 + (rowCount - 1) * stepMs + 300);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [rowCount, stepMs]);
   const playerById = new Map(players.map((p) => [p.id, p]));
   const power = reveal.submissions.find((s) => s.powerUp);
-  const settled = phase === "score";
+  const settled = phase !== "flip";
   // Enrich each submission with its scored delta + interference treatment, then
   // rank strictly by running total so the current leader is always on top.
   // Totals in the projection already include this reveal's deltas.
@@ -1091,7 +1114,12 @@ function RevealView({
           return (
             <Fragment key={e.s.playerId}>
               {pairedWithPrev && <RevealSumRow />}
-              <RevealTraceRow e={e} settled={settled} isSelf={e.s.playerId === selfId} />
+              <RevealTraceRow
+                e={e}
+                settled={settled}
+                isSelf={e.s.playerId === selfId}
+                delayMs={(enriched.length - 1 - i) * stepMs}
+              />
             </Fragment>
           );
         })}
