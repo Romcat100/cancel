@@ -28,6 +28,13 @@ export default {
           "0%": { transform: "translateY(8px)", opacity: "0" },
           "100%": { transform: "translateY(0)", opacity: "1" },
         },
+        // Split-flap scorecard reveal: the row flaps down into place. rotateX
+        // (not the card's rotateY) because a wide short row reads as a board flap.
+        "flip-row": {
+          "0%": { transform: "perspective(600px) rotateX(-90deg)", opacity: "0" },
+          "60%": { transform: "perspective(600px) rotateX(8deg)", opacity: "1" },
+          "100%": { transform: "perspective(600px) rotateX(0)", opacity: "1" },
+        },
         "ping-target": {
           "0%": { transform: "translateX(0) scale(1)", boxShadow: "0 0 0 0 rgb(var(--th-accent) / 0.6)" },
           "10%": { transform: "translateX(-6px) scale(1.06)", boxShadow: "0 0 0 4px rgb(var(--th-accent) / 0.4)" },
@@ -52,6 +59,7 @@ export default {
       animation: {
         flip: "flip 600ms cubic-bezier(.2,.7,.2,1) both",
         rise: "rise 220ms cubic-bezier(.2,.7,.2,1) both",
+        "flip-row": "flip-row 600ms cubic-bezier(.2,.7,.2,1) both",
         "ping-target": "ping-target 800ms cubic-bezier(.2,.7,.2,1) both",
         "ping-sender": "ping-sender 500ms cubic-bezier(.2,.7,.2,1) both",
         "ping-wiggle": "ping-wiggle 350ms ease-in-out both",

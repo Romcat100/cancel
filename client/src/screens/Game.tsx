@@ -892,9 +892,10 @@ type RevealRowItem = {
 const REVEAL_ROW_COLS = "grid grid-cols-[52px_1fr_60px] gap-3 items-center";
 
 // The grey flatline sum sitting between two cancelled signals: 1 + (-1) = silence.
-function RevealSumRow() {
+// Flaps in with the lower row of its tie pair (rows start invisible until flipped).
+function RevealSumRow({ flipDelayMs }: { flipDelayMs: number }) {
   return (
-    <div className={`${REVEAL_ROW_COLS} py-0.5`}>
+    <div className={`${REVEAL_ROW_COLS} py-0.5 animate-flip-row`} style={{ animationDelay: `${flipDelayMs}ms` }}>
       <span className="justify-self-end font-mono text-sm text-paper/40">Σ</span>
       <div className="relative h-6">
         <Wave pathId="cw0" variant="sum" animated={false} className="absolute inset-0 w-full h-full" />
@@ -911,39 +912,38 @@ function RevealSumRow() {
 // and its outcome. Cancelled signals fade; the surviving Ø glows.
 function RevealTraceRow({
   e,
-  settled,
   isSelf,
-  delayMs,
+  flipDelayMs,
 }: {
   e: RevealRowItem;
-  settled: boolean;
   isSelf: boolean;
-  delayMs: number;
+  flipDelayMs: number;
 }) {
   const { s, player, delta, total, t, antiphase } = e;
   const hex = seatColor(player.seat).hex;
   const rank = rankForNumber(s.number);
   const alive = t === "survivor" || t === "aliveZero";
-  const fade = settled ? "animate-rise" : "opacity-0";
   return (
     <div
       data-testid={`reveal-sub-${player.seat}`}
-      className={`${REVEAL_ROW_COLS} py-2 ${
+      // animate-flip-row has fill-mode "both", so each row holds the 0% frame
+      // (invisible, face-down) until its animation-delay elapses — scorecards
+      // flap in top-down, leader first. Runs once on mount; phase changes
+      // don't touch the class, so it never restarts.
+      className={`${REVEAL_ROW_COLS} py-2 animate-flip-row ${
         alive
           ? "rounded-xl border border-cool/35 bg-cool/[.06] px-2 my-1"
           : isSelf
             ? "rounded-xl px-2 my-1 bg-paper/[.04]"
             : ""
       }`}
-      style={isSelf ? selfRingStyle(player.seat) : undefined}
+      style={{ ...(isSelf ? selfRingStyle(player.seat) : undefined), animationDelay: `${flipDelayMs}ms` }}
     >
       <div className="flex flex-col items-start gap-1 min-w-0">
         <span className="font-mono text-[9px] tracking-widest truncate max-w-full" style={{ color: hex }}>
           {player.name.toUpperCase()}
         </span>
-        <div className={settled ? "" : "animate-flip"}>
-          <NumberCard n={s.number} state="played" size="sm" testId={`reveal-card-${player.seat}`} />
-        </div>
+        <NumberCard n={s.number} state="played" size="sm" testId={`reveal-card-${player.seat}`} />
       </div>
       <div className="relative h-10">
         {t === "zeroed" ? (
@@ -966,9 +966,7 @@ function RevealTraceRow({
           />
         )}
       </div>
-      {/* animate-rise has fill-mode "both", so the delayed rows hold the 0% frame
-          (invisible) until their turn — outcomes land bottom-up, leader last. */}
-      <div className={`flex flex-col items-end gap-1 ${fade}`} style={settled ? { animationDelay: `${delayMs}ms` } : undefined}>
+      <div className="flex flex-col items-end gap-1">
         {t === "survivor" ? (
           <b className="font-mono text-lg text-emerald-300 [text-shadow:0_0_10px_rgba(94,234,160,0.4)]">+{delta}</b>
         ) : t === "aliveZero" ? (
@@ -1007,26 +1005,22 @@ function RevealView({
   roundPower?: RoundPowerId;
   onClose: () => void;
 }) {
-  // flip: cards flip in, outcomes hidden. settle: outcomes rise one row at a
-  // time, bottom-up (leader lands last). score: everything settled — the verify
-  // harness keys off data-reveal-phase="score", so it only flips once the last
-  // row's rise has finished.
-  const [phase, setPhase] = useState<"flip" | "settle" | "score">("flip");
+  // flip: scorecard rows flap in one at a time, top-down (leader first), each
+  // carrying its delta and running total. score: everything settled — the
+  // verify harness keys off data-reveal-phase="score", so it only flips once
+  // the last row's flap has finished.
+  const [phase, setPhase] = useState<"flip" | "score">("flip");
   const [powerTapped, setPowerTapped] = useState(false);
   const rowCount = reveal.submissions.length;
-  // Per-row stagger, clamped so the whole cascade never adds more than ~1.2s.
-  const stepMs = Math.min(180, Math.floor(1200 / Math.max(1, rowCount - 1)));
+  // Per-row flap stagger, clamped so the whole cascade never adds more than ~2.4s.
+  const flipStepMs = Math.min(400, Math.floor(2400 / Math.max(1, rowCount - 1)));
+  const flipMs = 600; // duration of one flip-row animation (tailwind.config.js)
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase("settle"), 900);
-    const t2 = setTimeout(() => setPhase("score"), 900 + (rowCount - 1) * stepMs + 300);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, [rowCount, stepMs]);
+    const t = setTimeout(() => setPhase("score"), flipMs + (rowCount - 1) * flipStepMs + 300);
+    return () => clearTimeout(t);
+  }, [rowCount, flipStepMs]);
   const playerById = new Map(players.map((p) => [p.id, p]));
   const power = reveal.submissions.find((s) => s.powerUp);
-  const settled = phase !== "flip";
   // Enrich each submission with its scored delta + interference treatment, then
   // rank strictly by running total so the current leader is always on top.
   // Totals in the projection already include this reveal's deltas.
@@ -1113,12 +1107,11 @@ function RevealView({
           const pairedWithPrev = !!prev && prev.t === "tie" && e.t === "tie" && prev.s.number === e.s.number;
           return (
             <Fragment key={e.s.playerId}>
-              {pairedWithPrev && <RevealSumRow />}
+              {pairedWithPrev && <RevealSumRow flipDelayMs={i * flipStepMs} />}
               <RevealTraceRow
                 e={e}
-                settled={settled}
                 isSelf={e.s.playerId === selfId}
-                delayMs={(enriched.length - 1 - i) * stepMs}
+                flipDelayMs={i * flipStepMs}
               />
             </Fragment>
           );
