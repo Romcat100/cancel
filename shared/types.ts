@@ -336,7 +336,8 @@ export type RoundPowerId =
   | "refraction"
   | "limiter"
   | "absorption"
-  | "broadcast";
+  | "broadcast"
+  | "subharmonic";
 
 export interface RoundPowerDef {
   id: RoundPowerId;
@@ -398,6 +399,12 @@ export const ROUND_POWERS: Record<RoundPowerId, RoundPowerDef> = {
     name: "Broadcast",
     description:
       "Every pick goes out over the air. Once everyone locks in, all picks are shown to all players, and everyone gets one chance to change their card.",
+  },
+  subharmonic: {
+    id: "subharmonic",
+    name: "Subharmonic",
+    description:
+      "The deep frequency swells. Each turn, the lowest card that scored gains 4 bonus points.",
   },
 };
 

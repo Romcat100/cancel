@@ -29,8 +29,8 @@ export function scoreTurn(
 
   // Round powers apply to everyone for the whole round. Static reuses the per-play
   // negate-zero flag; Ultraviolet is a universal +2 at the eff stage; Harmony rewires
-  // the tie branch to double the tied value; Amplify and Limiter are post-passes at the
-  // end; Absorption extends the lone-canceller branch. Pure Tone has no branch anywhere
+  // the tie branch to double the tied value; Amplify, Limiter, and Subharmonic are
+  // post-passes at the end; Absorption extends the lone-canceller branch. Pure Tone has no branch anywhere
   // on purpose (the nothingburger pattern) — don't "fix" it. Refraction / Broadcast
   // are turn-flow changes handled in engine.ts, not scoring effects.
   const staticActive = roundPower === "static";
@@ -318,6 +318,28 @@ export function scoreTurn(
         if (lines[i].delta > 0 && eff[i].face === peak) {
           lines[i].delta = 0;
           lines[i].notes.push(`Limiter: ${peak} clipped to 0`);
+        }
+      }
+    }
+  }
+
+  // Subharmonic (round power) is Limiter's mirror, also at the very end: the lowest
+  // SURVIVING face gains a flat +4. Surviving = a positive delta after the full
+  // pipeline, so a tied-out or cancelled card never collects the bonus (ties still
+  // score nothing) and a board wiped by a lone 0 has nothing to lift. A tie for the
+  // lowest face wipes itself first, so the lift lands on the lowest card that
+  // actually scored — and on all of them, should dormant powers ever leave several
+  // survivors sharing the low face (mirroring Limiter's clip-all-at-peak).
+  if (roundPower === "subharmonic") {
+    let low = Infinity;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].delta > 0) low = Math.min(low, eff[i].face);
+    }
+    if (low !== Infinity) {
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].delta > 0 && eff[i].face === low) {
+          lines[i].delta += 4;
+          lines[i].notes.push(`Subharmonic: ${low} lifted by 4`);
         }
       }
     }

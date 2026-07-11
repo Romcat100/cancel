@@ -594,7 +594,8 @@ async function submitCardNumber(page, number) {
 // New-round-powers coverage: pins each power via a one-entry Choose roster
 // (same trick as interferenceFlow), then drives its distinctive moment —
 // Broadcast's whole-board re-pick banner, Limiter clipping the peak card in
-// the reveal, and Absorption paying the lone 0 the board average.
+// the reveal, Subharmonic lifting the lowest scorer, and Absorption paying
+// the lone 0 the board average.
 async function roundPowersFlow(browser) {
   let selectModalShot = false;
   const startSoloWithPower = async (name, powerId, ai) => {
@@ -657,6 +658,24 @@ async function roundPowersFlow(browser) {
     await shot(lm, `limiter-reveal-turn${turn}`, { fullPage: false });
     await clickTestId(lm, "reveal-continue");
     await lm.waitForFunction(() => !document.querySelector('[data-testid="reveal-modal"]'), { timeout: 10_000 });
+  }
+
+  // --- Subharmonic: the lowest card that scored gains +4. Same 4-player,
+  // two-turn setup as Limiter (a low tie or a lone 0 on any single turn hides
+  // the lift, so two shots make one visible lift near-certain). ---
+  const sh = await startSoloWithPower("Solo", "subharmonic", 3);
+  for (let turn = 1; turn <= 2; turn++) {
+    await submitCardNumber(sh, "highest");
+    await sh.waitForSelector(tid("reveal-continue"), { timeout: 10_000 });
+    await sh
+      .waitForFunction(
+        () => document.querySelector('[data-testid="reveal-modal"]')?.getAttribute("data-reveal-phase") === "score",
+        { timeout: 5_000 },
+      )
+      .catch(() => {});
+    await shot(sh, `subharmonic-reveal-turn${turn}`, { fullPage: false });
+    await clickTestId(sh, "reveal-continue");
+    await sh.waitForFunction(() => !document.querySelector('[data-testid="reveal-modal"]'), { timeout: 10_000 });
   }
 
   // --- Absorption: play the 0; a lone 0 banks the average of what it silenced ---

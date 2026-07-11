@@ -994,6 +994,99 @@ describe("scoreTurn — round powers", () => {
     expect(r.lines.every((l) => !l.notes.some((n) => n.startsWith("Limiter")))).toBe(true);
   });
 
+  it("subharmonic: the lowest card that scored gains +4", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 5 },
+        { playerId: "B", number: 3 },
+        { playerId: "C", number: 1 },
+      ],
+      undefined,
+      "subharmonic",
+    );
+    expect(points(r)).toEqual({ A: 5, B: 3, C: 5 });
+    const cNotes = r.lines.find((l) => l.playerId === "C")!.notes;
+    expect(cNotes).toContain("Subharmonic: 1 lifted by 4");
+    // The lifted line must not read as a tie/cancel to revealTreatment.
+    expect(cNotes.some((n) => n.startsWith("Tied") || n.includes("Cancelled by 0"))).toBe(false);
+  });
+
+  it("subharmonic: a tie for the lowest wipes itself first; the lift falls on the next survivor", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 1 },
+        { playerId: "B", number: 1 },
+        { playerId: "C", number: 4 },
+        { playerId: "D", number: 6 },
+      ],
+      undefined,
+      "subharmonic",
+    );
+    // The 1s tie out on their own (ties still score nothing); the lowest SURVIVOR
+    // is the 4, which gets the lift.
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 8, D: 6 });
+    expect(r.lines.find((l) => l.playerId === "C")!.notes).toContain("Subharmonic: 4 lifted by 4");
+  });
+
+  it("subharmonic: a lone 0 wipes the board and leaves nothing to lift", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 0 },
+        { playerId: "B", number: 5 },
+        { playerId: "C", number: 3 },
+      ],
+      undefined,
+      "subharmonic",
+    );
+    // The canceller's own delta is 0, so it is not a survivor either — no lift anywhere.
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
+    expect(r.lines.every((l) => !l.notes.some((n) => n.startsWith("Subharmonic")))).toBe(true);
+  });
+
+  it("subharmonic: no positive deltas at all (everyone tied) is a no-op", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 5 },
+        { playerId: "B", number: 5 },
+        { playerId: "C", number: 5 },
+      ],
+      undefined,
+      "subharmonic",
+    );
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
+    expect(r.lines.every((l) => !l.notes.some((n) => n.startsWith("Subharmonic")))).toBe(true);
+  });
+
+  it("dormant composition: subharmonic lifts the lowest face after a per-play double", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 2, powerUp: "double" },
+        { playerId: "B", number: 5 },
+        { playerId: "C", number: 7 },
+      ],
+      undefined,
+      "subharmonic",
+    );
+    // Double pays everyone twice their card (A 4, B 10, C 14) — A's 2 is still the
+    // lowest face, so the lift lands on top of the doubled 4.
+    expect(points(r)).toEqual({ A: 8, B: 10, C: 14 });
+    expect(r.lines.find((l) => l.playerId === "A")!.notes).toContain("Subharmonic: 2 lifted by 4");
+  });
+
+  it("dormant composition: subharmonic ignores negative deltas (nothing positive to lift)", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 4, powerUp: "make_negative" },
+        { playerId: "B", number: 6 },
+        { playerId: "C", number: 2 },
+      ],
+      undefined,
+      "subharmonic",
+    );
+    expect(points(r)).toEqual({ A: -4, B: -6, C: -2 });
+    expect(r.lines.every((l) => !l.notes.some((n) => n.startsWith("Subharmonic")))).toBe(true);
+  });
+
   it("absorption: a lone 0 scores the average of the silenced cards, rounded up", () => {
     const r = scoreTurn(
       [
