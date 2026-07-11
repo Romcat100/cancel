@@ -935,7 +935,13 @@ export function forceResolveTurn(room: RoomDoc, rng: () => number = Math.random)
     // the pick avoids it. Keep peekReview so resolveTurn records peekUsed.
     if (!room.peekReview) throw new Error("Nothing to skip");
     const { peekerId, targetId, revealedNumber } = room.peekReview;
-    const number = chooseNumber(round.hands[peekerId] ?? [], handsExcept(peekerId), [revealedNumber], rng);
+    const number = chooseNumber(
+      round.hands[peekerId] ?? [],
+      handsExcept(peekerId),
+      [revealedNumber],
+      rng,
+      round.roundPower,
+    );
     const submission: SubmissionDoc = { playerId: peekerId, number, powerUp: "peek", powerUpTarget: targetId };
     return resolveTurn({
       ...room,
@@ -953,7 +959,9 @@ export function forceResolveTurn(room: RoomDoc, rng: () => number = Math.random)
       if (filled[p.id]) continue;
       const initial = room.neighborReview.initialPicks[p.id];
       const number =
-        initial != null ? initial : chooseNumber(round.hands[p.id] ?? [], handsExcept(p.id), [], rng);
+        initial != null
+          ? initial
+          : chooseNumber(round.hands[p.id] ?? [], handsExcept(p.id), [], rng, round.roundPower);
       filled[p.id] = { playerId: p.id, number };
     }
     return resolveTurn({ ...room, pendingSubmissions: filled, updatedAt: Date.now() });
@@ -963,7 +971,7 @@ export function forceResolveTurn(room: RoomDoc, rng: () => number = Math.random)
   if (missing.length === 0) return room;
   const filled = { ...room.pendingSubmissions };
   for (const p of missing) {
-    const number = chooseNumber(round.hands[p.id] ?? [], handsExcept(p.id), [], rng);
+    const number = chooseNumber(round.hands[p.id] ?? [], handsExcept(p.id), [], rng, round.roundPower);
     filled[p.id] = { playerId: p.id, number };
   }
   return resolveTurn({ ...room, pendingSubmissions: filled, updatedAt: Date.now() });

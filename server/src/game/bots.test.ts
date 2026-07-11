@@ -67,6 +67,82 @@ describe("chooseNumber", () => {
   });
 });
 
+describe("chooseNumber — round-power awareness", () => {
+  // Fraction of `picks` equal to `n`, for the distributional cases below.
+  const share = (picks: number[], n: number) => picks.filter((x) => x === n).length / picks.length;
+  const draws = (times: number, fn: () => number) => Array.from({ length: times }, fn);
+
+  it("static: plays the 0 much less (no denial value, only a junk-card dodge weight)", () => {
+    // Opponents hold no 0, so at baseline the 0 is a guaranteed lone canceller with real denial
+    // value (~23% pick share here). Under Static that collapses to a small dump weight (~15%) —
+    // deliberately not zero, or the bot hoards the 0 to the last turn and ties more elsewhere.
+    const hand = [0, 5];
+    const opp = [[1, 2], [3, 4]];
+    const baseline = draws(1000, () => chooseNumber(hand, opp, []));
+    const statics = draws(1000, () => chooseNumber(hand, opp, [], Math.random, "static"));
+    expect(share(statics, 0)).toBeGreaterThan(0); // still in rotation
+    expect(share(statics, 0)).toBeLessThan(share(baseline, 0) - 0.03);
+  });
+
+  it("harmony: embraces a known collision instead of dodging it", () => {
+    // knownPlays [5] normally zeroes the 5's EV (see the dodge test above); under Harmony the
+    // guaranteed tie pays double (10), beating the safe 4, so the 5 becomes the favorite.
+    const hand = [4, 5];
+    const opp = [[4, 5]];
+    const baseline = draws(100, () => chooseNumber(hand, opp, [5]));
+    expect(baseline.every((n) => n !== 5)).toBe(true);
+    const harmonic = draws(400, () => chooseNumber(hand, opp, [5], Math.random, "harmony"));
+    expect(share(harmonic, 5)).toBeGreaterThan(0.5);
+  });
+
+  it("absorption: leans harder on the lone 0 (it banks the board average too)", () => {
+    const hand = [0, 3];
+    const opp = [[1, 2], [1, 2]];
+    const baseline = draws(600, () => chooseNumber(hand, opp, []));
+    const absorbing = draws(600, () => chooseNumber(hand, opp, [], Math.random, "absorption"));
+    expect(share(absorbing, 0)).toBeGreaterThan(share(baseline, 0) + 0.08);
+  });
+
+  it("limiter: never plays a card certain to be the board max (it would be clipped to 0)", () => {
+    // Both opponents hold only cards below 5, so the 5 is the guaranteed board max: its whole
+    // value gets clipped, EV 0. At baseline the 5 dominates.
+    const hand = [1, 5];
+    const opp = [[1, 2], [2, 3]];
+    const baseline = draws(400, () => chooseNumber(hand, opp, []));
+    expect(share(baseline, 5)).toBeGreaterThan(0.5);
+    const limited = draws(100, () => chooseNumber(hand, opp, [], Math.random, "limiter"));
+    expect(limited.every((n) => n !== 5)).toBe(true);
+  });
+
+  it("subharmonic: favors the low card more (the board min gains +4)", () => {
+    // Opponents hold only cards above 1, so the 1 is the guaranteed board min: it collects the
+    // +4 lift (EV 5, equal to the 5), versus a small baseline EV of 1.
+    const hand = [1, 5];
+    const opp = [[2, 3], [2, 4]];
+    const baseline = draws(600, () => chooseNumber(hand, opp, []));
+    const lifted = draws(600, () => chooseNumber(hand, opp, [], Math.random, "subharmonic"));
+    expect(share(lifted, 1)).toBeGreaterThan(share(baseline, 1) + 0.15);
+  });
+
+  it("ultraviolet: shifts weight toward low cards (every face scores +2)", () => {
+    const hand = [1, 5];
+    const opp = [hand, hand];
+    const baseline = draws(1000, () => chooseNumber(hand, opp, []));
+    const uv = draws(1000, () => chooseNumber(hand, opp, [], Math.random, "ultraviolet"));
+    expect(share(uv, 1)).toBeGreaterThan(share(baseline, 1) + 0.04);
+  });
+
+  it("pure_tone / amplify: card ranking is unchanged (deliberate no-ops)", () => {
+    // Uniform scaling doesn't reorder EVs, so the crisp limiter setup above stays 5-dominant.
+    const hand = [1, 5];
+    const opp = [[1, 2], [2, 3]];
+    for (const power of ["pure_tone", "amplify"] as const) {
+      const picks = draws(400, () => chooseNumber(hand, opp, [], Math.random, power));
+      expect(share(picks, 5), power).toBeGreaterThan(0.5);
+    }
+  });
+});
+
 describe("decideBotMove", () => {
   it("a non-picker bot submits a number from its hand and no power", () => {
     const r = startGame(soloRoom(2)); // picker (turn 0) is the human at seat 0
@@ -98,6 +174,22 @@ describe("decideBotMove", () => {
       }
       // The engine must accept the bot's move without throwing.
       expect(() => submitTurn(r, move), `submit ${pid}`).not.toThrow();
+    }
+  });
+
+  it("threads the round power into the number pick (a Limiter bot never plays the certain max)", () => {
+    // Opponents hold only cards below 5, so under Limiter the 5's EV is exactly 0 (guaranteed
+    // clip); at baseline it's the dominant pick (~85%). 100 clean draws prove the round power
+    // actually reached chooseNumber.
+    const r = startGame(soloRoom(2, { powerUpMode: "off" }));
+    const bot = r.players.find((p) => p.isBot)!;
+    r.rounds[0].roundPower = "limiter";
+    r.rounds[0].hands[bot.id] = [1, 5];
+    const others = r.players.filter((p) => p.id !== bot.id);
+    r.rounds[0].hands[others[0].id] = [1, 2];
+    r.rounds[0].hands[others[1].id] = [2, 3];
+    for (let i = 0; i < 100; i++) {
+      expect(decideBotMove(r, bot.id).number).not.toBe(5);
     }
   });
 

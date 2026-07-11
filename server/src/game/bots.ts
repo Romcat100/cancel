@@ -207,7 +207,7 @@ export function decideBotMove(room: RoomDoc, botId: string, rng: () => number = 
   const oppHands = room.players
     .filter((p) => p.id !== botId)
     .map((p) => ({ id: p.id, hand: round.hands[p.id] ?? [] }));
-  const intended = chooseNumber(myHand, oppHands.map((o) => o.hand), [], rng);
+  const intended = chooseNumber(myHand, oppHands.map((o) => o.hand), [], rng, round.roundPower);
 
   if (botId !== pickerId || round.poolRemaining.length === 0) {
     return { playerId: botId, number: intended };
@@ -253,7 +253,8 @@ export function decideBotNeighborRepick(room: RoomDoc, botId: string, rng: () =>
   const myHand = round.hands[botId] ?? [];
   const oppHands = room.players.filter((p) => p.id !== botId).map((p) => round.hands[p.id] ?? []);
   const initial = review?.initialPicks[botId];
-  if (initial == null) return { playerId: botId, number: chooseNumber(myHand, oppHands, glimpsed, rng) };
+  if (initial == null)
+    return { playerId: botId, number: chooseNumber(myHand, oppHands, glimpsed, rng, round.roundPower) };
 
   if (initial !== 0 && glimpsed.includes(0)) {
     // A glimpsed lone 0 cancels every nonzero card, so dump the cheapest one instead of a good one.
@@ -262,7 +263,7 @@ export function decideBotNeighborRepick(room: RoomDoc, botId: string, rng: () =>
     return { playerId: botId, number: initial };
   }
   if (glimpsed.includes(initial) || rng() < REPICK_CHANCE) {
-    return { playerId: botId, number: chooseNumber(myHand, oppHands, glimpsed, rng) };
+    return { playerId: botId, number: chooseNumber(myHand, oppHands, glimpsed, rng, round.roundPower) };
   }
   return { playerId: botId, number: initial };
 }
@@ -276,7 +277,7 @@ export function decideBotPeekRepick(room: RoomDoc, botId: string, rng: () => num
     .filter((p) => p.id !== botId)
     .map((p) => round.hands[p.id] ?? []);
   const known = room.peekReview ? [room.peekReview.revealedNumber] : [];
-  return { playerId: botId, number: chooseNumber(myHand, oppHands, known, rng) };
+  return { playerId: botId, number: chooseNumber(myHand, oppHands, known, rng, round.roundPower) };
 }
 
 // Advance the game by applying every pending bot action, looping until only humans remain to act
