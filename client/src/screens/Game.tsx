@@ -3,7 +3,7 @@ import { POWER_UPS, type PowerUpId, type RevealedTurn, type RoundPowerId } from 
 import { api } from "../api.js";
 import { getIdentity, hasSeenPreviewLocal, markPreviewSeenLocal } from "../identity.js";
 import { useAppStore } from "../store.js";
-import { MusicToggle, NumberCard, PlayerChip, PowerDescription, PowerUpCard, PowerUpChip, RoundPowerCard, RoundPowerDescription, RoundPowerGlyph, RoundScoreTable, Rules, roundPowerDef, seatColor, type PingKind } from "../components.js";
+import { MusicToggle, NumberCard, PlayerChip, PowerDescription, PowerUpCard, PowerUpChip, RoundPowerCard, RoundPowerDescription, RoundPowerGlyph, RoundScoreTable, Rules, YouBadge, roundPowerDef, seatColor, selfRingStyle, type PingKind } from "../components.js";
 import { Wave, rankForNumber } from "../wave.js";
 import { emitPing, onPing } from "../socket.js";
 import { playSfx } from "../sfx.js";
@@ -708,8 +708,9 @@ function Scoreboard({
           key={p.id}
           data-testid={`game-score-${p.seat}`}
           className={`rounded-2xl px-3 py-2 flex items-center gap-2 border border-paper/10 ${
-            p.id === selfId ? "bg-paper/15 ring-1 ring-paper/30" : "bg-paper/[.035]"
+            p.id === selfId ? "bg-paper/15" : "bg-paper/[.035]"
           }`}
+          style={p.id === selfId ? selfRingStyle(p.seat) : undefined}
         >
           <Wave
             rank={([2, 1, 3, 4, 2, 4, 3, 1] as const)[p.seat % 8]}
@@ -717,7 +718,10 @@ function Scoreboard({
             variant="soft"
             className="w-8 h-3.5 shrink-0"
           />
-          <span className="text-sm font-bold text-paper flex-1 truncate">{p.name}</span>
+          <span className="text-sm font-bold text-paper flex-1 truncate">
+            {p.name}
+            {p.id === selfId && <YouBadge seat={p.seat} className="ml-1.5" />}
+          </span>
           <span className="font-mono text-lg font-bold text-paper">{p.totalScore}</span>
         </div>
       ))}
@@ -920,7 +924,8 @@ function RevealTraceRow({ e, settled, isSelf }: { e: RevealRowItem; settled: boo
           : isSelf
             ? "rounded-xl px-2 my-1 bg-paper/[.04]"
             : ""
-      } ${isSelf ? "ring-1 ring-paper/30" : ""}`}
+      }`}
+      style={isSelf ? selfRingStyle(player.seat) : undefined}
     >
       <div className="flex flex-col items-start gap-1 min-w-0">
         <span className="font-mono text-[9px] tracking-widest truncate max-w-full" style={{ color: hex }}>

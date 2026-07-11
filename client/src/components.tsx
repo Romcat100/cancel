@@ -32,6 +32,26 @@ export function seatColor(seat: number) {
   return SEATS[seat % SEATS.length];
 }
 
+// Self-row marker: a seat-colored ring + soft glow. Inline style, not a ring-*
+// class, because seat colors are literal hexes (never theme tokens or JIT-derived
+// class strings). Every score list marks the local player's row with this.
+export function selfRingStyle(seat: number): CSSProperties {
+  const hex = seatColor(seat).hex;
+  return { boxShadow: `0 0 0 2px ${hex}, 0 0 14px ${hex}55` };
+}
+
+// The solid seat-colored YOU tag that accompanies selfRingStyle in score lists.
+export function YouBadge({ seat, className = "" }: { seat: number; className?: string }) {
+  return (
+    <span
+      className={`font-mono text-[9px] font-bold tracking-widest rounded px-1 py-px text-ink align-middle ${className}`}
+      style={{ background: seatColor(seat).hex }}
+    >
+      YOU
+    </span>
+  );
+}
+
 // Class-name views of SEATS, kept as literal lists (not derived via .map/.replace)
 // so Tailwind's JIT actually emits each rule. Otherwise classes like text-cool
 // silently no-op because their string never appears in source. The `hex` field is
@@ -881,14 +901,15 @@ export function RoundScoreTable({
               : p.id === selfId
                 ? "bg-paper/10 border border-paper/10"
                 : "bg-paper/5 border border-paper/10"
-          } ${p.id === selfId ? "ring-1 ring-paper/30" : ""}`}
+          }`}
+          style={p.id === selfId ? selfRingStyle(p.seat) : undefined}
         >
           <div className="flex items-center gap-2">
             <span className="font-mono text-paper/40 w-5 text-right text-sm">{i + 1}</span>
             <span className={`${SEAT_COLORS[p.seat % SEAT_COLORS.length]} w-3 h-3 rounded-full`} />
             <span className="font-bold flex-1 text-sm truncate">
               {p.name}
-              {p.id === selfId && <span className="ml-1 text-paper/40 font-mono text-[10px]">(you)</span>}
+              {p.id === selfId && <YouBadge seat={p.seat} className="ml-1.5" />}
             </span>
             {rounds.map((r) => {
               const score = r.scores[p.id] ?? 0;
