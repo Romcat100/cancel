@@ -173,6 +173,7 @@ export function apiCreateRoom(req: CreateRoomReq, ctx: ApiCtx) {
   const powerUpMode = req.powerUpMode ?? "random";
   const selectedPowerUps = req.selectedPowerUps ?? [];
   const selectedRoundPowers = req.selectedRoundPowers ?? [];
+  const noRepeatPowers = req.noRepeatPowers ?? false;
   const showHands = req.showHands ?? true;
   const numberMode = req.numberMode ?? "default";
   const customNumbers = req.customNumbers ?? [];
@@ -185,6 +186,7 @@ export function apiCreateRoom(req: CreateRoomReq, ctx: ApiCtx) {
     powerUpMode,
     selectedPowerUps,
     selectedRoundPowers,
+    noRepeatPowers,
     showHands,
     numberMode,
     customNumbers,
@@ -259,6 +261,7 @@ export function apiSetRoomConfig(req: SetRoomConfigReq, ctx: ApiCtx) {
     powerUpMode: req.powerUpMode,
     selectedPowerUps: req.selectedPowerUps,
     selectedRoundPowers: req.selectedRoundPowers,
+    noRepeatPowers: req.noRepeatPowers,
     showHands: req.showHands,
     numberMode: req.numberMode,
     customNumbers: req.customNumbers,

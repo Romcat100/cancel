@@ -52,7 +52,7 @@ You can play **solo against AI** from the Home screen (tap **Single player**), o
 
 ## Round powers
 
-Round powers are on by default. In the lobby the host picks a mode: **None** (a pure-numbers game), **Random** (one power drawn at random each round), or **Choose** (the host hand-picks which powers can appear).
+Round powers are on by default. In the lobby the host picks a mode: **None** (a pure-numbers game), **Random** (one power drawn at random each round), or **Choose** (the host hand-picks which powers can appear). Game options also has a **No repeat powers** toggle: when it's on, each round draws a power that hasn't come up yet this game. If the eligible powers run out before the rounds do, repeats come back rather than leaving a round without a power.
 
 When on: at the start of each round, one power is drawn and shown to everyone. It applies to every player, on every turn of that round. A banner keeps it visible during play and on each reveal. In a 2-player game the random draw skips Harmony and Refraction (they fall flat 1v1), but a host can still hand-pick them in Choose mode.
 

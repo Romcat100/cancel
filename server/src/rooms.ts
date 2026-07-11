@@ -74,6 +74,7 @@ export function loadRoom(code: string): RoomDoc | null {
   for (const rd of doc.rounds ?? []) {
     if ((rd.roundPower as string) === "crosstalk") rd.roundPower = "refraction";
   }
+  if (cfg.noRepeatPowers === undefined) cfg.noRepeatPowers = false;
   if (cfg.showHands === undefined) cfg.showHands = true;
   if (cfg.numberMode === undefined) cfg.numberMode = "default";
   if (cfg.customNumbers === undefined) cfg.customNumbers = [];

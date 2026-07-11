@@ -20,6 +20,7 @@ export interface CreateRoomReq {
   powerUpMode?: PowerUpMode;
   selectedPowerUps?: PowerUpId[];
   selectedRoundPowers?: RoundPowerId[];
+  noRepeatPowers?: boolean;
   showHands?: boolean;
   numberMode?: NumberMode;
   customNumbers?: number[];
@@ -41,6 +42,7 @@ export interface SetRoomConfigReq {
   powerUpMode?: PowerUpMode;
   selectedPowerUps?: PowerUpId[];
   selectedRoundPowers?: RoundPowerId[];
+  noRepeatPowers?: boolean;
   showHands?: boolean;
   numberMode?: NumberMode;
   customNumbers?: number[];

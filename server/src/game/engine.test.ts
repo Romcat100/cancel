@@ -251,6 +251,65 @@ describe("engine lifecycle", () => {
     expect(r.rounds[1].roundPower).toBe(ROUND_POWER_IDS[ROUND_POWER_IDS.length - 1]);
   });
 
+  it("repeats are allowed by default: a pinned rng rolls the same power every round", () => {
+    let r = startGame0(room3p());
+    r = { ...r, phase: "round_end" };
+    r = ackAll(r);
+    expect(r.rounds[0].roundPower).toBe(ROUND_POWER_IDS[0]);
+    expect(r.rounds[1].roundPower).toBe(ROUND_POWER_IDS[0]);
+  });
+
+  it("noRepeatPowers skips powers already used in earlier rounds", () => {
+    let r = createRoom({ code: "NRP1", hostId: "A", hostName: "Alice", rounds: 3, turnDeadlineMs: null, noRepeatPowers: true });
+    r = addPlayer(r, "B", "Bob");
+    r = addPlayer(r, "C", "Carol");
+    r = startGame0(r);
+    // rng pinned to 0 always takes the first eligible entry, so each round steps
+    // one further down the roster as earlier picks get excluded.
+    expect(r.rounds[0].roundPower).toBe(ROUND_POWER_IDS[0]);
+    r = { ...r, phase: "round_end" };
+    r = ackAll(r);
+    expect(r.rounds[1].roundPower).toBe(ROUND_POWER_IDS[1]);
+    r = { ...r, phase: "round_end" };
+    r = ackAll(r);
+    expect(r.rounds[2].roundPower).toBe(ROUND_POWER_IDS[2]);
+  });
+
+  it("noRepeatPowers falls back to repeats once the curated roster is used up", () => {
+    // 2 chosen powers across 3 rounds: rounds 1-2 use each power once, round 3
+    // has nothing fresh left and repeats rather than rolling no power.
+    let r = createRoom({
+      code: "NRP2",
+      hostId: "A",
+      hostName: "Alice",
+      rounds: 3,
+      turnDeadlineMs: null,
+      powerUpMode: "selected",
+      selectedRoundPowers: ["harmony", "static"],
+      noRepeatPowers: true,
+    });
+    r = addPlayer(r, "B", "Bob");
+    r = addPlayer(r, "C", "Carol");
+    r = startGame0(r);
+    expect(r.rounds[0].roundPower).toBe("harmony");
+    r = { ...r, phase: "round_end" };
+    r = ackAll(r);
+    expect(r.rounds[1].roundPower).toBe("static");
+    r = { ...r, phase: "round_end" };
+    r = ackAll(r);
+    expect(r.rounds[2].roundPower).toBe("harmony");
+  });
+
+  it("setRoomConfig round-trips noRepeatPowers", () => {
+    let r = room3p();
+    expect(r.config.noRepeatPowers).toBe(false);
+    r = setRoomConfig(r, { noRepeatPowers: true });
+    expect(r.config.noRepeatPowers).toBe(true);
+    // Untouched by an unrelated patch.
+    r = setRoomConfig(r, { rounds: 2 });
+    expect(r.config.noRepeatPowers).toBe(true);
+  });
+
   it("resolveTurn scores under the round power (amplify doubles, harmony pays ties)", () => {
     let r = startGame0(room3p());
     r.rounds[0].roundPower = "amplify";
