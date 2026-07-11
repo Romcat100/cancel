@@ -1,8 +1,228 @@
 import { useState } from "react";
+import type { GameStats, Player, RoundHistoryEntry } from "../../../shared/types.js";
 import { api } from "../api.js";
 import { getIdentity } from "../identity.js";
 import { useAppStore } from "../store.js";
-import { Confetti, MusicToggle, RoundScoreTable, SEAT_TEXT_COLORS } from "../components.js";
+import { Confetti, MusicToggle, RoundScoreTable, SEAT_TEXT_COLORS, seatColor } from "../components.js";
+
+// Monotone-x cubic path through the points (d3 curveMonotoneX's tangent rule):
+// smooth like a signal trace, but it never overshoots a data point, so the curve
+// can't invent a peak or dip that didn't happen.
+function monotonePath(pts: { x: number; y: number }[]): string {
+  const n = pts.length;
+  if (n < 2) return "";
+  const dx: number[] = [];
+  const slope: number[] = [];
+  for (let i = 0; i < n - 1; i++) {
+    dx.push(pts[i + 1].x - pts[i].x);
+    slope.push((pts[i + 1].y - pts[i].y) / dx[i]);
+  }
+  const m: number[] = [slope[0]];
+  for (let i = 1; i < n - 1; i++) {
+    if (slope[i - 1] * slope[i] <= 0) m.push(0);
+    else {
+      const w1 = 2 * dx[i] + dx[i - 1];
+      const w2 = dx[i] + 2 * dx[i - 1];
+      m.push((w1 + w2) / (w1 / slope[i - 1] + w2 / slope[i]));
+    }
+  }
+  m.push(slope[n - 2]);
+  let d = `M${pts[0].x},${pts[0].y}`;
+  for (let i = 0; i < n - 1; i++) {
+    const cx1 = pts[i].x + dx[i] / 3;
+    const cy1 = pts[i].y + (m[i] * dx[i]) / 3;
+    const cx2 = pts[i + 1].x - dx[i] / 3;
+    const cy2 = pts[i + 1].y - (m[i + 1] * dx[i]) / 3;
+    d += `C${cx1},${cy1} ${cx2},${cy2} ${pts[i + 1].x},${pts[i + 1].y}`;
+  }
+  return d;
+}
+
+// Score-over-rounds chart: one smoothed line per player (seat color), x = round,
+// y = cumulative total, everyone starting from 0. Every line glows like a signal
+// trace (self strongest + thicker); each ends in a dot + the final total. Exact
+// per-round values live in the RoundScoreTable above, so the chart stays
+// label-light and needs no hover layer. Not rendered for single-round games
+// (two points isn't a race).
+function ScoreChart({
+  players,
+  roundHistory,
+  selfId,
+}: {
+  players: Player[];
+  roundHistory: RoundHistoryEntry[];
+  selfId: string;
+}) {
+  const rounds = [...roundHistory].sort((a, b) => a.index - b.index);
+  if (rounds.length < 2 || players.length === 0) return null;
+
+  const W = 320;
+  const H = 128;
+  const padL = 10;
+  const padR = 40; // room for the end-of-line total labels
+  const padT = 10;
+  const padB = 18; // room for the R1..Rn axis labels
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+
+  // Cumulative series per player, with a shared 0 start point.
+  const series = players.map((p) => {
+    let total = 0;
+    const values = [0, ...rounds.map((r) => (total += r.scores[p.id] ?? 0))];
+    return { player: p, values };
+  });
+  const allValues = series.flatMap((s) => s.values);
+  const max = Math.max(1, ...allValues);
+  const min = Math.min(0, ...allValues);
+  const x = (i: number) => padL + (i / rounds.length) * plotW;
+  const y = (v: number) => padT + ((max - v) / (max - min)) * plotH;
+
+  // Nudge overlapping end labels apart (top-down sweep, then clamp to the plot).
+  const labels = series
+    .map((s) => ({ ...s, ly: y(s.values[s.values.length - 1]) }))
+    .sort((a, b) => a.ly - b.ly);
+  for (let i = 1; i < labels.length; i++) {
+    labels[i].ly = Math.max(labels[i].ly, labels[i - 1].ly + 10);
+  }
+  const overflow = labels.length > 0 ? labels[labels.length - 1].ly - (H - padB) : 0;
+  if (overflow > 0) for (const l of labels) l.ly -= overflow;
+
+  // Draw self last so their glowing line sits on top.
+  const drawOrder = [...series].sort((a, b) => (a.player.id === selfId ? 1 : 0) - (b.player.id === selfId ? 1 : 0));
+
+  return (
+    <div className="rounded-2xl bg-paper/5 border border-paper/10 px-3 pt-3 pb-1 mt-3" data-testid="game-end-chart">
+      <div className="font-mono text-[10px] uppercase tracking-widest text-paper/40 mb-1">The race</div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Score by round">
+        {/* Baseline at 0 (recessive). */}
+        <line x1={padL} x2={W - padR} y1={y(0)} y2={y(0)} stroke="#eef0fb" strokeOpacity={0.15} strokeWidth={1} />
+        {rounds.map((r, i) => (
+          <text
+            key={r.index}
+            x={x(i + 1)}
+            y={H - 5}
+            textAnchor="middle"
+            fill="#eef0fb"
+            fillOpacity={0.35}
+            fontSize={8}
+            fontFamily="'Spline Sans Mono', monospace"
+          >
+            R{r.index + 1}
+          </text>
+        ))}
+        {drawOrder.map(({ player, values }) => {
+          const hex = seatColor(player.seat).hex;
+          const isSelf = player.id === selfId;
+          const d = monotonePath(values.map((v, i) => ({ x: x(i), y: y(v) })));
+          const endX = x(values.length - 1);
+          const endY = y(values[values.length - 1]);
+          return (
+            <g
+              key={player.id}
+              style={{ filter: isSelf ? `drop-shadow(0 0 4px ${hex})` : `drop-shadow(0 0 2.5px ${hex}66)` }}
+            >
+              <path
+                d={d}
+                fill="none"
+                stroke={hex}
+                strokeWidth={isSelf ? 2.5 : 1.5}
+                strokeOpacity={isSelf ? 1 : 0.8}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+              {/* Surface-colored ring separates overlapping end dots. */}
+              <circle cx={endX} cy={endY} r={3} fill={hex} stroke="rgb(var(--th-bg0))" strokeWidth={1.5} />
+            </g>
+          );
+        })}
+        {labels.map(({ player, values, ly }) => (
+          <text
+            key={player.id}
+            x={x(values.length - 1) + 7}
+            y={ly + 3}
+            fill={seatColor(player.seat).hex}
+            fontSize={10}
+            fontWeight={player.id === selfId ? 700 : 500}
+            fontFamily="'Spline Sans Mono', monospace"
+          >
+            {values[values.length - 1]}
+          </text>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
+const times = (n: number) => (n === 1 ? "once" : n === 2 ? "twice" : `${n} times`);
+
+// Game superlatives, computed server-side (publicState.gameStats, game_end only).
+function Highlights({
+  stats,
+  players,
+  selfId,
+}: {
+  stats: GameStats;
+  players: Player[];
+  selfId: string;
+}) {
+  const byId = new Map(players.map((p) => [p.id, p]));
+  const entries: { key: string; title: string; playerId: string; detail: string }[] = [];
+  if (stats.biggestTurn) {
+    entries.push({
+      key: "biggest-turn",
+      title: "Loudest signal",
+      playerId: stats.biggestTurn.playerId,
+      detail: `+${stats.biggestTurn.delta} in one turn (round ${stats.biggestTurn.roundIndex + 1})`,
+    });
+  }
+  if (stats.comeback) {
+    entries.push({
+      key: "comeback",
+      title: "Late surge",
+      playerId: stats.comeback.playerId,
+      detail: `Climbed ${stats.comeback.places} ${stats.comeback.places === 1 ? "place" : "places"} in the final round`,
+    });
+  }
+  if (stats.silencer) {
+    entries.push({
+      key: "silencer",
+      title: "The silencer",
+      playerId: stats.silencer.playerId,
+      detail: `Wiped the board with a 0 ${times(stats.silencer.count)}`,
+    });
+  }
+  if (stats.mostCancelled) {
+    entries.push({
+      key: "most-cancelled",
+      title: "Lost in the noise",
+      playerId: stats.mostCancelled.playerId,
+      detail: `Cancelled ${times(stats.mostCancelled.count)}`,
+    });
+  }
+  const cards = entries.flatMap((e) => {
+    const p = byId.get(e.playerId);
+    return p ? [{ ...e, player: p }] : [];
+  });
+  if (cards.length === 0) return null;
+
+  return (
+    <div className="grid grid-cols-2 gap-2 mt-3" data-testid="game-end-stats">
+      {cards.map((c) => (
+        <div
+          key={c.key}
+          className="rounded-2xl bg-paper/5 border border-paper/10 px-3 py-2.5"
+          data-testid={`game-end-stat-${c.key}`}
+        >
+          <div className="font-mono text-[9px] uppercase tracking-widest text-paper/40">{c.title}</div>
+          <div className="font-bold text-sm truncate" style={{ color: seatColor(c.player.seat).hex }}>
+            {c.player.id === selfId ? "You" : c.player.name}
+          </div>
+          <div className="text-xs text-paper/70 mt-0.5">{c.detail}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function GameEnd({ onLeave }: { onLeave: () => void }) {
   const state = useAppStore((s) => s.state)!;
@@ -96,6 +316,10 @@ export function GameEnd({ onLeave }: { onLeave: () => void }) {
 
       <div className="flex-1 overflow-y-auto min-h-0 -mx-1 px-1">
         <RoundScoreTable ranked={ranked} selfId={selfPlayerId} roundHistory={publicState.roundHistory} />
+        <ScoreChart players={publicState.players} roundHistory={publicState.roundHistory} selfId={selfPlayerId} />
+        {publicState.gameStats && (
+          <Highlights stats={publicState.gameStats} players={publicState.players} selfId={selfPlayerId} />
+        )}
       </div>
 
       <div className="flex flex-col gap-3 mt-4 shrink-0">

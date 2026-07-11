@@ -9,6 +9,7 @@ import type {
   ScoreLine,
 } from "../../shared/types.js";
 import type { RevealDoc, RoomDoc } from "./game/engine.js";
+import { computeGameStats } from "./game/stats.js";
 
 function toRevealedTurn(rv: RevealDoc, roundIndex: number): RevealedTurn {
   return {
@@ -111,6 +112,8 @@ export function projectStateForPlayer(
     hostId: room.hostId,
     round: roundState,
     roundHistory,
+    // Superlatives only exist once the game is over; all reveal data is public.
+    gameStats: room.phase === "game_end" ? computeGameStats(room) : undefined,
     currentTurnIndex: room.currentTurnIndex,
     currentPickerId: pickerId,
     currentSubmissions,

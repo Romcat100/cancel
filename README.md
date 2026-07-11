@@ -41,6 +41,7 @@ You can play **solo against AI** from the Home screen (tap **Single player**), o
    - When all submissions are in, the numbers flip face-up at once, scores tally under the round power's rules, and the next turn starts.
 6. **End of round** — a tally screen shows what each player scored that round and the running totals. Tap **Next round** when you're ready; the round advances when all players are. Each round arrives with its own color scheme (the background and UI accents shift; player colors never change).
 7. **Each round is (N+2) turns; the host picks 1-5 rounds (default 3).** Highest total wins.
+8. **Game over** — alongside the final standings, the screen shows a score-over-rounds chart of the whole race (multi-round games) and a few superlatives: the biggest single turn, the sneakiest `0` player, who got cancelled the most, and the best final-round comeback.
 
 ## Scoring rules
 

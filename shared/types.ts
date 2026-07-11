@@ -127,6 +127,21 @@ export interface PrivateState {
   blockedByOthers?: boolean;
 }
 
+// Game-end superlatives, computed server-side from the full reveal history
+// (past rounds' reveals are never projected to the client, so the server walks
+// them instead). Any field may be absent when the game produced no qualifying
+// moment. All reveal data is public, so there are no hiding-rule concerns.
+export interface GameStats {
+  // Largest single-turn score in the game (positive deltas only).
+  biggestTurn?: { playerId: string; delta: number; roundIndex: number };
+  // Most turns wiped out by a tie or a lone 0.
+  mostCancelled?: { playerId: string; count: number };
+  // Most turns as the lone 0 that silenced the board.
+  silencer?: { playerId: string; count: number };
+  // Biggest climb up the standings in the final round (multi-round games only).
+  comeback?: { playerId: string; places: number; pointsGained: number };
+}
+
 export interface PublicState {
   roomCode: string;
   phase: RoomPhase;
@@ -134,6 +149,8 @@ export interface PublicState {
   hostId: string;
   round?: RoundState;
   roundHistory: RoundHistoryEntry[];
+  // Present only at game_end (see projection.ts).
+  gameStats?: GameStats;
   currentTurnIndex: number;
   currentPickerId?: string;
   currentSubmissions: PublicSubmission[];
