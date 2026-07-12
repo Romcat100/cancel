@@ -6,7 +6,7 @@ import { useAppStore } from "../store.js";
 import { MusicToggle, NumberCard, PlayerChip, PowerDescription, PowerUpCard, PowerUpChip, RoundPowerCard, RoundPowerDescription, RoundPowerGlyph, RoundScoreTable, Rules, YouBadge, roundPowerDef, seatColor, selfRingStyle, type PingKind } from "../components.js";
 import { Wave, rankForNumber } from "../wave.js";
 import { emitPing, onPing } from "../socket.js";
-import { playSfx } from "../sfx.js";
+import { playRevealCascade, playSfx } from "../sfx.js";
 import { GameEnd } from "./GameEnd.js";
 
 export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandoned: () => void }) {
@@ -1047,6 +1047,16 @@ function RevealView({
     e.antiphase = n % 2 === 1;
     tieSeen.set(e.s.number, n + 1);
   }
+  // Each row sings as it flaps in: tone pitched by the card's wave rank, timbre
+  // by its outcome, scheduled on the same per-row stagger as the flip. Mount-only
+  // (like the flip animation itself) — the reveal data is static per overlay.
+  useEffect(() => {
+    playRevealCascade(
+      enriched.map((e) => ({ rank: rankForNumber(e.s.number), outcome: e.t })),
+      flipStepMs,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return (
     <div
       className="fixed inset-0 z-40 bg-ink/95 backdrop-blur-md overflow-y-auto"

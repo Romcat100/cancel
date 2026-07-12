@@ -30,7 +30,7 @@ function getAudio(): HTMLAudioElement {
   if (audio) return audio;
   audio = new Audio(MUSIC_URL);
   audio.loop = true;
-  audio.volume = VOLUME;
+  audio.volume = VOLUME * level;
   audio.preload = "auto";
   return audio;
 }
@@ -55,6 +55,37 @@ export function setMusicMuted(muted: boolean) {
     void a.play().catch(() => {});
   }
   notify(muted);
+}
+
+// In-game the track sits lower so the reveal tones and sfx read on top; Home
+// and Lobby get the full level. The change fades in small steps because
+// HTMLAudioElement has no gain ramps and a hard volume jump on a playing
+// track audibly crackles. Re-entrant: a new fade cancels the previous one.
+const GAME_LEVEL = 0.55;
+let level = 1;
+let fadeTimers: number[] = [];
+export function setMusicLevel(next: "full" | "game") {
+  const mult = next === "game" ? GAME_LEVEL : 1;
+  if (mult === level) return;
+  level = mult;
+  const a = audio;
+  if (!a) return;
+  for (const t of fadeTimers) clearTimeout(t);
+  fadeTimers = [];
+  const to = VOLUME * mult;
+  if (a.paused) {
+    a.volume = to;
+    return;
+  }
+  const from = a.volume;
+  const steps = 10;
+  for (let i = 1; i <= steps; i++) {
+    fadeTimers.push(
+      window.setTimeout(() => {
+        a.volume = from + (to - from) * (i / steps);
+      }, i * 50),
+    );
+  }
 }
 
 export function initMusic() {

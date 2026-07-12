@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { GameStats, Player, RoundHistoryEntry } from "../../../shared/types.js";
 import { api } from "../api.js";
+import { playGameEnd } from "../sfx.js";
 import { getIdentity } from "../identity.js";
 import { useAppStore } from "../store.js";
 import { Confetti, MusicToggle, RoundScoreTable, SEAT_TEXT_COLORS, seatColor } from "../components.js";
@@ -268,6 +269,12 @@ export function GameEnd({ onLeave }: { onLeave: () => void }) {
   const leaders = ranked.filter((p) => p.totalScore === topScore);
   const isTie = leaders.length > 1;
   const selfIsLeader = leaders.some((p) => p.id === selfPlayerId);
+
+  // One flourish per visit to the end screen (mount-only, like Confetti).
+  useEffect(() => {
+    playGameEnd(!selfIsLeader ? "lose" : isTie ? "tie" : "win");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="h-[100dvh] flex flex-col px-6 pt-10 pb-6 max-w-md mx-auto relative overflow-hidden">

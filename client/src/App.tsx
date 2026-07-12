@@ -6,7 +6,7 @@ import { Game } from "./screens/Game.js";
 import { connectSocket, disconnectSocket } from "./socket.js";
 import { clearIdentity, listIdentities } from "./identity.js";
 import { api } from "./api.js";
-import { initMusic } from "./music.js";
+import { initMusic, setMusicLevel } from "./music.js";
 import { initSfx } from "./sfx.js";
 import { pollHealth, setStaleHandler } from "./version.js";
 import { applyRoundTheme } from "./theme.js";
@@ -32,6 +32,13 @@ export function App() {
   useEffect(() => {
     applyRoundTheme(roundIndex);
   }, [roundIndex]);
+
+  // Music sits lower during play (any phase past the lobby, game_end included)
+  // so the reveal tones and sfx read on top; Home and Lobby get the full level.
+  const inGame = state !== null && state.publicState.phase !== "lobby";
+  useEffect(() => {
+    setMusicLevel(inGame ? "game" : "full");
+  }, [inGame]);
 
   // Watch for a newer client build deploying while this tab is open. The socket auth ack catches a
   // redeploy on reconnect (a server restart drops every socket); these polls catch backgrounded and
