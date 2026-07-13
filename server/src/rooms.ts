@@ -59,7 +59,7 @@ export function loadRoom(code: string): RoomDoc | null {
   const doc = JSON.parse(row.state) as RoomDoc;
   // Migrate rooms saved before the three-way power mode: the old boolean `powerUps`
   // maps to "off"/"random". Drop the stale field so it can't leak through the projection.
-  const cfg = doc.config as RoomDoc["config"] & { powerUps?: boolean; difficulty?: string };
+  const cfg = doc.config as RoomDoc["config"] & { powerUps?: boolean; difficulty?: string; noRepeatPowers?: boolean };
   if (cfg.rounds === undefined) cfg.rounds = 3;
   if (cfg.powerUpMode === undefined) cfg.powerUpMode = cfg.powerUps === false ? "off" : "random";
   if (cfg.selectedPowerUps === undefined) cfg.selectedPowerUps = [];
@@ -74,7 +74,8 @@ export function loadRoom(code: string): RoomDoc | null {
   for (const rd of doc.rounds ?? []) {
     if ((rd.roundPower as string) === "crosstalk") rd.roundPower = "refraction";
   }
-  if (cfg.noRepeatPowers === undefined) cfg.noRepeatPowers = false;
+  // No-repeat round powers became the standard behavior — shed the old toggle field.
+  delete cfg.noRepeatPowers;
   if (cfg.showHands === undefined) cfg.showHands = true;
   if (cfg.numberMode === undefined) cfg.numberMode = "default";
   if (cfg.customNumbers === undefined) cfg.customNumbers = [];

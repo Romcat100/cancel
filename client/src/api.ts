@@ -30,7 +30,6 @@ export const api = {
       powerUpMode?: PowerUpMode;
       selectedPowerUps?: PowerUpId[];
       selectedRoundPowers?: RoundPowerId[];
-      noRepeatPowers?: boolean;
       showHands?: boolean;
       numberMode?: NumberMode;
       customNumbers?: number[];

@@ -172,7 +172,6 @@ export interface PublicState {
     powerUpMode: PowerUpMode;
     selectedPowerUps: PowerUpId[];
     selectedRoundPowers: RoundPowerId[];
-    noRepeatPowers: boolean;
     showHands: boolean;
     numberMode: NumberMode;
     customNumbers: number[];

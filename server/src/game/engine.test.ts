@@ -36,8 +36,10 @@ function startGame0(r: RoomDoc): RoomDoc {
   return startGame(r, () => 0);
 }
 
-// Pin the round-power roll to index 0 (pure_tone) so multi-round structural tests
-// stay deterministic and never roll a flow-changing power like broadcast.
+// Pin the round-power roll to index 0 so multi-round structural tests stay
+// deterministic. Rolls always skip powers already used this game, so with rng 0
+// each round steps down the roster (pure_tone → harmony → amplify → …); games cap
+// at 5 rounds, so a flow-changing power (refraction, broadcast) is never reached.
 function ackAll(r: RoomDoc): RoomDoc {
   for (const p of r.players) r = ackRoundEnd(r, p.id, () => 0);
   return r;
@@ -251,16 +253,8 @@ describe("engine lifecycle", () => {
     expect(r.rounds[1].roundPower).toBe(ROUND_POWER_IDS[ROUND_POWER_IDS.length - 1]);
   });
 
-  it("repeats are allowed by default: a pinned rng rolls the same power every round", () => {
-    let r = startGame0(room3p());
-    r = { ...r, phase: "round_end" };
-    r = ackAll(r);
-    expect(r.rounds[0].roundPower).toBe(ROUND_POWER_IDS[0]);
-    expect(r.rounds[1].roundPower).toBe(ROUND_POWER_IDS[0]);
-  });
-
-  it("noRepeatPowers skips powers already used in earlier rounds", () => {
-    let r = createRoom({ code: "NRP1", hostId: "A", hostName: "Alice", rounds: 3, turnDeadlineMs: null, noRepeatPowers: true });
+  it("powers never repeat within a game: each roll skips powers already used", () => {
+    let r = createRoom({ code: "NRP1", hostId: "A", hostName: "Alice", rounds: 3, turnDeadlineMs: null });
     r = addPlayer(r, "B", "Bob");
     r = addPlayer(r, "C", "Carol");
     r = startGame0(r);
@@ -275,7 +269,7 @@ describe("engine lifecycle", () => {
     expect(r.rounds[2].roundPower).toBe(ROUND_POWER_IDS[2]);
   });
 
-  it("noRepeatPowers falls back to repeats once the curated roster is used up", () => {
+  it("no-repeat falls back to repeats once the curated roster is used up", () => {
     // 2 chosen powers across 3 rounds: rounds 1-2 use each power once, round 3
     // has nothing fresh left and repeats rather than rolling no power.
     let r = createRoom({
@@ -286,7 +280,6 @@ describe("engine lifecycle", () => {
       turnDeadlineMs: null,
       powerUpMode: "selected",
       selectedRoundPowers: ["harmony", "static"],
-      noRepeatPowers: true,
     });
     r = addPlayer(r, "B", "Bob");
     r = addPlayer(r, "C", "Carol");
@@ -298,16 +291,6 @@ describe("engine lifecycle", () => {
     r = { ...r, phase: "round_end" };
     r = ackAll(r);
     expect(r.rounds[2].roundPower).toBe("harmony");
-  });
-
-  it("setRoomConfig round-trips noRepeatPowers", () => {
-    let r = room3p();
-    expect(r.config.noRepeatPowers).toBe(false);
-    r = setRoomConfig(r, { noRepeatPowers: true });
-    expect(r.config.noRepeatPowers).toBe(true);
-    // Untouched by an unrelated patch.
-    r = setRoomConfig(r, { rounds: 2 });
-    expect(r.config.noRepeatPowers).toBe(true);
   });
 
   it("resolveTurn scores under the round power (amplify doubles, harmony pays ties)", () => {

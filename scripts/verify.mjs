@@ -241,18 +241,6 @@ async function lobbyRoundsFlow(browser) {
   await waitForRoundsChip(joiner, 2);
   await shot(joiner, "joiner-rounds-2", { fullPage: false });
 
-  // Host flips No repeat powers on; the joiner's read-only chip must follow live.
-  await clickTestId(host, "lobby-no-repeat-toggle");
-  await host.waitForFunction(
-    () =>
-      document
-        .querySelector('[data-testid="lobby-no-repeat-toggle"]')
-        ?.getAttribute("aria-checked") === "true",
-    { timeout: 10_000 },
-  );
-  await waitForText(joiner, "A different power every round");
-  await shot(joiner, "joiner-no-repeat-on", { fullPage: false });
-
   // Host starts the 2-round game. The room-code element only exists in the
   // lobby, so its disappearance is a reliable "we're in-game" signal.
   await closeOptions(host);

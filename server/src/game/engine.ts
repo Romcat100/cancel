@@ -98,7 +98,6 @@ export interface RoomDoc {
     powerUpMode: PowerUpMode;
     selectedPowerUps: PowerUpId[];
     selectedRoundPowers: RoundPowerId[];
-    noRepeatPowers: boolean;
     showHands: boolean;
     numberMode: NumberMode;
     customNumbers: number[];
@@ -137,7 +136,6 @@ export function createRoom(opts: {
   powerUpMode?: PowerUpMode;
   selectedPowerUps?: PowerUpId[];
   selectedRoundPowers?: RoundPowerId[];
-  noRepeatPowers?: boolean;
   showHands?: boolean;
   numberMode?: NumberMode;
   customNumbers?: number[];
@@ -153,7 +151,6 @@ export function createRoom(opts: {
       powerUpMode: opts.powerUpMode ?? "random",
       selectedPowerUps: opts.selectedPowerUps ?? [],
       selectedRoundPowers: opts.selectedRoundPowers ?? [],
-      noRepeatPowers: opts.noRepeatPowers ?? false,
       showHands: opts.showHands ?? true,
       numberMode: opts.numberMode ?? "default",
       customNumbers: opts.customNumbers ?? [],
@@ -265,9 +262,9 @@ const TWO_PLAYER_EXCLUDED_ROUND_POWERS: ReadonlySet<RoundPowerId> = new Set([
 // uniformly from the full roster (minus the 2-player exclusions); "selected" draws
 // from the host's curated list. A legacy save in selected mode with no curated round
 // powers rolls nothing (plain rounds) rather than surprising players with the full roster.
-// With noRepeatPowers on, powers rolled in earlier rounds of this game are skipped;
-// if that exhausts the roster (more rounds than eligible powers), the roll falls back
-// to the full roster rather than leaving the round power-less.
+// Powers rolled in earlier rounds of this game are always skipped, so a game never
+// repeats a power; if that exhausts the roster (more rounds than eligible powers),
+// the roll falls back to the full roster rather than leaving the round power-less.
 function rollRoundPower(
   config: RoomDoc["config"],
   playerCount: number,
@@ -282,7 +279,7 @@ function rollRoundPower(
         ? ROUND_POWER_IDS.filter((id) => !TWO_PLAYER_EXCLUDED_ROUND_POWERS.has(id))
         : ROUND_POWER_IDS;
   if (roster.length === 0) return undefined;
-  const fresh = config.noRepeatPowers ? roster.filter((id) => !usedPowers.includes(id)) : roster;
+  const fresh = roster.filter((id) => !usedPowers.includes(id));
   const pool = fresh.length > 0 ? fresh : roster;
   return pool[Math.floor(rng() * pool.length)];
 }
@@ -357,7 +354,6 @@ export function setRoomConfig(
     powerUpMode?: PowerUpMode;
     selectedPowerUps?: PowerUpId[];
     selectedRoundPowers?: RoundPowerId[];
-    noRepeatPowers?: boolean;
     showHands?: boolean;
     numberMode?: NumberMode;
     customNumbers?: number[];
@@ -375,7 +371,6 @@ export function setRoomConfig(
       powerUpMode: patch.powerUpMode ?? room.config.powerUpMode,
       selectedPowerUps: patch.selectedPowerUps ?? room.config.selectedPowerUps,
       selectedRoundPowers: patch.selectedRoundPowers ?? room.config.selectedRoundPowers,
-      noRepeatPowers: patch.noRepeatPowers ?? room.config.noRepeatPowers,
       showHands: patch.showHands ?? room.config.showHands,
       numberMode: patch.numberMode ?? room.config.numberMode,
       customNumbers: patch.customNumbers ?? room.config.customNumbers,
@@ -389,7 +384,7 @@ function startRound(room: RoomDoc, roundIndex: number, rng: () => number = Math.
   // Per-turn pools are dormant: never dealt anymore (dealPool is retained for the
   // dormant per-turn system). Each round instead rolls one power for everyone.
   const poolFull: PowerUpId[] = [];
-  // Powers rolled in earlier rounds of this game, for the no-repeat option. A rematch
+  // Powers rolled in earlier rounds of this game, skipped by the next roll. A rematch
   // resets this for free: resetToLobby wipes room.rounds.
   const usedRoundPowers = room.rounds.flatMap((rd) => (rd.roundPower ? [rd.roundPower] : []));
   const round: RoundDoc = {

@@ -70,7 +70,6 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
   const rounds = publicState.config.rounds ?? 3;
   const powerUpMode: PowerUpMode = publicState.config.powerUpMode ?? "random";
   const selectedRoundPowers = publicState.config.selectedRoundPowers ?? [];
-  const noRepeatOn = publicState.config.noRepeatPowers === true;
   const showHandsOn = publicState.config.showHands !== false;
   const numberMode: NumberMode = publicState.config.numberMode ?? "default";
   const customNumbers = publicState.config.customNumbers ?? [];
@@ -190,17 +189,6 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
     }
   }
 
-  async function toggleNoRepeat() {
-    if (!id || !isHost) return;
-    setErr(null);
-    try {
-      const res = await api.setConfig(publicState.roomCode, id.claimToken, { noRepeatPowers: !noRepeatOn });
-      setState(res.state);
-    } catch (e) {
-      setErr((e as Error).message);
-    }
-  }
-
   async function start() {
     if (!id) return;
     setBusy(true);
@@ -250,10 +238,9 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
   const powerSummary =
     powerUpMode === "off"
       ? "no powers"
-      : (powerUpMode === "random"
-          ? "random power"
-          : `${selectedRoundPowers.length} power${selectedRoundPowers.length === 1 ? "" : "s"}`) +
-        (noRepeatOn ? " (no repeats)" : "");
+      : powerUpMode === "random"
+        ? "random power"
+        : `${selectedRoundPowers.length} power${selectedRoundPowers.length === 1 ? "" : "s"}`;
   const optionsSummary = `${rounds} ${rounds === 1 ? "round" : "rounds"} · ${powerSummary} · ${
     numberMode === "custom" ? "custom numbers" : "default numbers"
   } · ${showHandsOn ? "open hands" : "hidden hands"}`;
@@ -470,12 +457,10 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
           numbersNeeded={numbersNeeded}
           handSize={handSize}
           playerCount={playerCount}
-          noRepeatOn={noRepeatOn}
           showHandsOn={showHandsOn}
           onPickRounds={pickRounds}
           onPickMode={pickMode}
           onPickNumberMode={pickNumberMode}
-          onToggleNoRepeat={toggleNoRepeat}
           onToggleShowHands={toggleShowHands}
           onOpenPowers={() => setShowPowerModal(true)}
           onOpenNumbers={() => setShowNumberModal(true)}
@@ -521,12 +506,10 @@ function GameOptionsModal({
   numbersNeeded,
   handSize,
   playerCount,
-  noRepeatOn,
   showHandsOn,
   onPickRounds,
   onPickMode,
   onPickNumberMode,
-  onToggleNoRepeat,
   onToggleShowHands,
   onOpenPowers,
   onOpenNumbers,
@@ -546,12 +529,10 @@ function GameOptionsModal({
   numbersNeeded: number;
   handSize: number;
   playerCount: number;
-  noRepeatOn: boolean;
   showHandsOn: boolean;
   onPickRounds: (n: number) => void;
   onPickMode: (mode: PowerUpMode) => void;
   onPickNumberMode: (mode: NumberMode) => void;
-  onToggleNoRepeat: () => void;
   onToggleShowHands: () => void;
   onOpenPowers: () => void;
   onOpenNumbers: () => void;
@@ -664,37 +645,6 @@ function GameOptionsModal({
               <span className="text-paper/50 text-xs font-mono">{modeText}</span>
             </div>
             <span data-testid="lobby-powerup-chip" className="chip bg-accent/20 text-accent">{modeChip}</span>
-          </div>
-        )}
-
-        {powerUpMode !== "off" && (
-          <div className="rounded-2xl bg-paper/5 px-4 py-3 flex items-center justify-between">
-            <div className="flex flex-col">
-              <span className="font-bold text-sm">No repeat powers</span>
-              <span className="text-paper/50 text-xs font-mono">
-                {noRepeatOn ? "A different power every round" : "The same power can come up again"}
-              </span>
-            </div>
-            {isHost ? (
-              <button
-                type="button"
-                role="switch"
-                aria-checked={noRepeatOn}
-                onClick={onToggleNoRepeat}
-                className={`relative w-12 h-7 rounded-full transition shrink-0 ${
-                  noRepeatOn ? "bg-accent" : "bg-paper/20"
-                }`}
-                data-testid="lobby-no-repeat-toggle"
-              >
-                <span
-                  className={`absolute top-0.5 ${noRepeatOn ? "left-[22px]" : "left-0.5"} w-6 h-6 rounded-full bg-paper transition-all`}
-                />
-              </button>
-            ) : (
-              <span data-testid="lobby-no-repeat-chip" className={`chip ${noRepeatOn ? "bg-accent/20 text-accent" : "bg-paper/15 text-paper/60"}`}>
-                {noRepeatOn ? "on" : "off"}
-              </span>
-            )}
           </div>
         )}
 
