@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { POWER_UPS, type PowerUpId, type RevealedTurn, type RoundPowerId } from "../../../shared/types.js";
 import { api } from "../api.js";
 import { getIdentity, hasSeenPreviewLocal, markPreviewSeenLocal } from "../identity.js";
@@ -891,23 +891,6 @@ type RevealRowItem = {
 
 const REVEAL_ROW_COLS = "grid grid-cols-[52px_1fr_60px] gap-3 items-center";
 
-// The grey flatline sum sitting between two cancelled signals: 1 + (-1) = silence.
-// Flaps in with the lower row of its tie pair (rows start invisible until flipped).
-function RevealSumRow({ flipDelayMs }: { flipDelayMs: number }) {
-  return (
-    <div className={`${REVEAL_ROW_COLS} py-0.5 animate-flip-row`} style={{ animationDelay: `${flipDelayMs}ms` }}>
-      <span className="justify-self-end font-mono text-sm text-paper/40">Σ</span>
-      <div className="relative h-6">
-        <Wave pathId="cw0" variant="sum" animated={false} className="absolute inset-0 w-full h-full" />
-        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 font-mono text-[8px] tracking-[0.2em] text-paper/45 bg-ink border border-paper/25 rounded px-2 py-0.5">
-          CANCELLED
-        </span>
-      </div>
-      <span />
-    </div>
-  );
-}
-
 // One signal on the shared axis: minicard (numeral + tiny wave), the full trace,
 // and its outcome. Cancelled signals fade; the surviving Ø glows.
 function RevealTraceRow({
@@ -928,7 +911,7 @@ function RevealTraceRow({
       data-testid={`reveal-sub-${player.seat}`}
       // animate-flip-row has fill-mode "both", so each row holds the 0% frame
       // (invisible, face-down) until its animation-delay elapses — scorecards
-      // flap in top-down, leader first. Runs once on mount; phase changes
+      // flap in top-down, highest card first. Runs once on mount; phase changes
       // don't touch the class, so it never restarts.
       className={`${REVEAL_ROW_COLS} py-2 animate-flip-row ${
         alive
@@ -977,7 +960,7 @@ function RevealTraceRow({
           <>
             <b className="font-mono text-lg text-paper/50">0</b>
             <span className="font-mono text-[8px] tracking-widest text-paper/45 border border-paper/25 rounded px-1.5 py-0.5">
-              CANCELLED
+              {t === "tie" ? "TIED" : "CANCELLED"}
             </span>
           </>
         ) : (
@@ -1005,8 +988,8 @@ function RevealView({
   roundPower?: RoundPowerId;
   onClose: () => void;
 }) {
-  // flip: scorecard rows flap in one at a time, top-down (leader first), each
-  // carrying its delta and running total. score: everything settled — the
+  // flip: scorecard rows flap in one at a time, top-down (highest card first),
+  // each carrying its delta and running total. score: everything settled — the
   // verify harness keys off data-reveal-phase="score", so it only flips once
   // the last row's flap has finished.
   const [phase, setPhase] = useState<"flip" | "score">("flip");
@@ -1022,7 +1005,7 @@ function RevealView({
   const playerById = new Map(players.map((p) => [p.id, p]));
   const power = reveal.submissions.find((s) => s.powerUp);
   // Enrich each submission with its scored delta + interference treatment, then
-  // rank strictly by running total so the current leader is always on top.
+  // order by the number played this turn, highest first (seat asc as tiebreak).
   // Totals in the projection already include this reveal's deltas.
   const enriched: RevealRowItem[] = reveal.submissions.map((s) => {
     const player = playerById.get(s.playerId)!;
@@ -1037,7 +1020,7 @@ function RevealView({
       antiphase: false,
     };
   });
-  enriched.sort((a, b) => b.total - a.total || a.player.seat - b.player.seat);
+  enriched.sort((a, b) => b.s.number - a.s.number || a.player.seat - b.player.seat);
   // Tied waves render mirrored regardless of where the standings put them:
   // alternate antiphase within each face-tie group.
   const tieSeen = new Map<number, number>();
@@ -1112,20 +1095,14 @@ function RevealView({
         </div>
       )}
       <section className="panel scope p-3 w-full max-w-sm">
-        {enriched.map((e, i) => {
-          const prev = enriched[i - 1];
-          const pairedWithPrev = !!prev && prev.t === "tie" && e.t === "tie" && prev.s.number === e.s.number;
-          return (
-            <Fragment key={e.s.playerId}>
-              {pairedWithPrev && <RevealSumRow flipDelayMs={i * flipStepMs} />}
-              <RevealTraceRow
-                e={e}
-                isSelf={e.s.playerId === selfId}
-                flipDelayMs={i * flipStepMs}
-              />
-            </Fragment>
-          );
-        })}
+        {enriched.map((e, i) => (
+          <RevealTraceRow
+            key={e.s.playerId}
+            e={e}
+            isSelf={e.s.playerId === selfId}
+            flipDelayMs={i * flipStepMs}
+          />
+        ))}
       </section>
       {reveal.crosstalkUsed && reveal.crosstalkUsed.some((c) => c.initialNumber !== c.finalNumber) && (
         <div className="mt-4 text-sm font-mono text-center" style={{ color: "#bff0e8" }} data-testid="reveal-crosstalk">
