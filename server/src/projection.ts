@@ -112,6 +112,8 @@ export function projectStateForPlayer(
     hostId: room.hostId,
     round: roundState,
     roundHistory,
+    // Cross-rematch tally: all public (wins and points from finished games).
+    series: room.series ?? { gamesPlayed: 0, perPlayer: {} },
     // Superlatives only exist once the game is over; all reveal data is public.
     gameStats: room.phase === "game_end" ? computeGameStats(room) : undefined,
     currentTurnIndex: room.currentTurnIndex,

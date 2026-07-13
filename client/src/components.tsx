@@ -2,10 +2,12 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import {
   POWER_UPS,
   ROUND_POWERS,
+  type Player,
   type PowerUpId,
   type PowerUpDef,
   type RoundPowerDef,
   type RoundPowerId,
+  type SeriesState,
 } from "../../shared/types.js";
 import { useMusicMuted, useMusicUnlocked } from "./music.js";
 import { Wave, rankForNumber, amplitudePathForScore } from "./wave.js";
@@ -30,6 +32,58 @@ export const SEATS = [
 
 export function seatColor(seat: number) {
   return SEATS[seat % SEATS.length];
+}
+
+// Cross-rematch series standings: one row per seated player (a mid-series joiner
+// simply shows 0-0), best record first. Shared by the lobby's series block and
+// the game-end series strip so both screens agree on the order.
+export function seriesRows(series: SeriesState, players: Player[]) {
+  return [...players]
+    .map((p) => ({ player: p, ...(series.perPlayer[p.id] ?? { wins: 0, points: 0 }) }))
+    .sort((a, b) => b.wins - a.wins || b.points - a.points || a.player.seat - b.player.seat);
+}
+
+// The series standings panel shared by GameEnd (after a rematch) and the lobby
+// (once any game has been banked). Wins lead the row in gold; cumulative points
+// trail small, matching the "wins first, points as tiebreak" sort in seriesRows.
+export function SeriesStandings({
+  series,
+  players,
+  selfId,
+  testId,
+}: {
+  series: SeriesState;
+  players: Player[];
+  selfId: string;
+  testId: string;
+}) {
+  const rows = seriesRows(series, players);
+  if (rows.length === 0) return null;
+  return (
+    <div className="rounded-2xl bg-paper/5 border border-paper/10 px-3 py-2.5" data-testid={testId}>
+      <div className="font-mono text-[10px] uppercase tracking-widest text-paper/40 mb-1.5">
+        The series · {series.gamesPlayed} {series.gamesPlayed === 1 ? "game" : "games"}
+      </div>
+      <div className="flex flex-col gap-1">
+        {rows.map(({ player, wins, points }) => (
+          <div
+            key={player.id}
+            className="flex items-baseline gap-2 text-sm"
+            data-testid={`${testId}-row-${player.seat}`}
+          >
+            <span className="flex-1 font-bold truncate" style={{ color: seatColor(player.seat).hex }}>
+              {player.name}
+              {player.id === selfId && <YouBadge seat={player.seat} className="ml-1.5" />}
+            </span>
+            <span className="font-mono font-bold text-gold tabular-nums">
+              {wins} {wins === 1 ? "win" : "wins"}
+            </span>
+            <span className="font-mono text-xs text-paper/50 tabular-nums w-14 text-right">{points} pts</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // Self-row marker: a seat-colored ring + soft glow. Inline style, not a ring-*

@@ -142,6 +142,15 @@ export interface GameStats {
   comeback?: { playerId: string; places: number; pointsGained: number };
 }
 
+// Cross-rematch series tally: wins and cumulative points per player across every
+// game finished in this room. Recorded when a game ends and carried through
+// "Play again"; a removed player's entry is dropped with their seat. A game tied
+// at the top score counts as a win for every tied leader.
+export interface SeriesState {
+  gamesPlayed: number;
+  perPlayer: { [playerId: string]: { wins: number; points: number } };
+}
+
 export interface PublicState {
   roomCode: string;
   phase: RoomPhase;
@@ -149,6 +158,7 @@ export interface PublicState {
   hostId: string;
   round?: RoundState;
   roundHistory: RoundHistoryEntry[];
+  series: SeriesState;
   // Present only at game_end (see projection.ts).
   gameStats?: GameStats;
   currentTurnIndex: number;

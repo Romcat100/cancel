@@ -7,6 +7,7 @@ import {
   type PowerUpId,
   type PowerUpMode,
   type RoundPowerId,
+  type SeriesState,
 } from "../../../shared/types.js";
 import { scoreTurn } from "./scoring.js";
 import { BOT_NAMES } from "./bot-names.js";
@@ -115,6 +116,9 @@ export interface RoomDoc {
   peekReview?: PeekReviewDoc;
   neighborReview?: NeighborReviewDoc;
   winnerId?: string;
+  // Cross-rematch series tally, banked in endGame. Deliberately NOT wiped by
+  // resetToLobby — surviving "Play again" is the whole feature.
+  series: SeriesState;
   createdAt: number;
   updatedAt: number;
   // Version stamped by saveRoom (not the engine); carried through mutations by the `...room` spread.
@@ -162,6 +166,7 @@ export function createRoom(opts: {
     currentRoundIndex: -1,
     currentTurnIndex: -1,
     pendingSubmissions: {},
+    series: { gamesPlayed: 0, perPlayer: {} },
     createdAt: now,
     updatedAt: now,
     rev: 0,
@@ -853,7 +858,20 @@ function endGame(room: RoomDoc): RoomDoc {
       winnerId = p.id;
     }
   }
-  return { ...room, phase: "game_end", winnerId, updatedAt: Date.now() };
+  // Bank this game into the cross-rematch series tally: everyone accumulates
+  // points, and every player tied at the top score gets a win (a tied game
+  // counts for all tied leaders, even though winnerId stays a single player).
+  const prev = room.series ?? { gamesPlayed: 0, perPlayer: {} };
+  const perPlayer = { ...prev.perPlayer };
+  for (const p of room.players) {
+    const entry = perPlayer[p.id] ?? { wins: 0, points: 0 };
+    perPlayer[p.id] = {
+      wins: entry.wins + (p.totalScore === max ? 1 : 0),
+      points: entry.points + p.totalScore,
+    };
+  }
+  const series: SeriesState = { gamesPlayed: prev.gamesPlayed + 1, perPlayer };
+  return { ...room, phase: "game_end", winnerId, series, updatedAt: Date.now() };
 }
 
 // "Play again" — same room, same seats, same claim tokens. Wipes all game
@@ -987,7 +1005,11 @@ export function removePlayer(room: RoomDoc, playerId: string, onlineIds: Readonl
     const players = room.players.filter((p) => p.id !== playerId).map((p, i) => ({ ...p, seat: i }));
     const hostId =
       room.hostId === playerId ? (pickNewHost(players, { onlineIds }) ?? room.hostId) : room.hostId;
-    return { ...room, players, hostId, updatedAt: Date.now() };
+    // The series line goes with the seat: a kicked player's banked wins/points leave too.
+    const prevSeries = room.series ?? { gamesPlayed: 0, perPlayer: {} };
+    const perPlayer = { ...prevSeries.perPlayer };
+    delete perPlayer[playerId];
+    return { ...room, players, hostId, series: { ...prevSeries, perPlayer }, updatedAt: Date.now() };
   }
   throw new Error("Cannot remove a player mid-turn (use Skip waiting instead)");
 }

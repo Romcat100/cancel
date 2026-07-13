@@ -9,6 +9,7 @@ import {
   RoundPowerGlyph,
   Rules,
   ScopedDescription,
+  SeriesStandings,
   roundPowerDef,
   seatColor,
 } from "../components.js";
@@ -340,6 +341,20 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
           </div>
         ))}
       </div>
+
+      {/* Rematch lobby: show the running series under the seats. Any banked
+          game counts here (unlike GameEnd's >1 gate) since a fresh lobby is
+          exactly where "the score so far" answers "one more?". */}
+      {publicState.series.gamesPlayed > 0 && (
+        <div className="mt-3 animate-rise">
+          <SeriesStandings
+            series={publicState.series}
+            players={publicState.players}
+            selfId={selfPlayerId}
+            testId="lobby-series"
+          />
+        </div>
+      )}
 
       <div className="mt-auto pt-10 flex flex-col gap-3">
         <button

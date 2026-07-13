@@ -4,7 +4,7 @@ import { api } from "../api.js";
 import { playGameEnd } from "../sfx.js";
 import { getIdentity } from "../identity.js";
 import { useAppStore } from "../store.js";
-import { Confetti, MusicToggle, RoundScoreTable, SEAT_TEXT_COLORS, seatColor } from "../components.js";
+import { Confetti, MusicToggle, RoundScoreTable, SEAT_TEXT_COLORS, seatColor, SeriesStandings } from "../components.js";
 
 // Monotone-x cubic path through the points (d3 curveMonotoneX's tangent rule):
 // smooth like a signal trace, but it never overshoots a data point, so the curve
@@ -326,6 +326,18 @@ export function GameEnd({ onLeave }: { onLeave: () => void }) {
         <ScoreChart players={publicState.players} roundHistory={publicState.roundHistory} selfId={selfPlayerId} />
         {publicState.gameStats && (
           <Highlights stats={publicState.gameStats} players={publicState.players} selfId={selfPlayerId} />
+        )}
+        {/* Series standings appear only once there IS a series: from the second
+            game on. After game one the tally would just echo the scoreboard. */}
+        {publicState.series.gamesPlayed > 1 && (
+          <div className="mt-3">
+            <SeriesStandings
+              series={publicState.series}
+              players={publicState.players}
+              selfId={selfPlayerId}
+              testId="game-end-series"
+            />
+          </div>
         )}
       </div>
 

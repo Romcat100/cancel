@@ -691,12 +691,87 @@ async function roundPowersFlow(browser) {
   await shot(ab, "absorption-reveal", { fullPage: false });
 }
 
+// Drive an in-progress powerups-off game to the game-over screen (the reveal /
+// round-results / submit loop from interferenceFlow, reusable across games).
+async function playToGameEnd(page) {
+  for (let guard = 0; guard < 50; guard++) {
+    if (await has(page, "game-end-winner")) return;
+    if (await has(page, "reveal-continue")) {
+      await clickTestId(page, "reveal-continue");
+      await page.waitForFunction(() => !document.querySelector('[data-testid="reveal-modal"]'), { timeout: 10_000 });
+      continue;
+    }
+    if (await has(page, "round-end-modal")) {
+      await clickTestId(page, "round-end-ack");
+      await page.waitForFunction(
+        () =>
+          !document.querySelector('[data-testid="round-end-modal"]') ||
+          !!document.querySelector('[data-testid="game-end-winner"]'),
+        { timeout: 10_000 },
+      );
+      continue;
+    }
+    if (await has(page, "game-submit")) {
+      await submitSomeCard(page);
+      await page.waitForFunction(
+        () =>
+          !!document.querySelector('[data-testid="reveal-continue"]') ||
+          !!document.querySelector('[data-testid="round-end-modal"]') ||
+          !!document.querySelector('[data-testid="game-end-winner"]'),
+        { timeout: 10_000 },
+      );
+      continue;
+    }
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  throw new Error("game did not reach game_end");
+}
+
+// Cross-rematch series tally: a 1-round solo game vs 1 AI, straight through to
+// game over (no series strip after game one), Play again (lobby shows the
+// running series), then a second game (game over now shows the series strip).
+async function seriesFlow(browser) {
+  const p = await newPlayer(browser, "Solo");
+  await waitForText(p, "CANCEL");
+  await clickTestId(p, "home-single-player");
+  await typeInto(p, tid("home-name-input"), "Solo");
+  await clickTestId(p, "home-start-single");
+  await p.waitForSelector(tid("lobby-solo-header"), { timeout: 10_000 });
+  await setStepper(p, "lobby-ai", 1);
+  await openOptions(p);
+  await setRounds(p, 1);
+  await clickTestId(p, "lobby-powerup-off");
+  await closeOptions(p);
+  // Fresh room: no series block in the lobby yet.
+  if (await has(p, "lobby-series")) throw new Error("lobby-series rendered before any game was played");
+  await clickTestId(p, "lobby-start-game");
+  await p.waitForSelector(tid("game-submit"), { timeout: 10_000 });
+
+  await playToGameEnd(p);
+  // After game one the series is just the scoreboard again, so no strip yet.
+  if (await has(p, "game-end-series")) throw new Error("game-end-series rendered after the first game");
+  await shot(p, "game1-end-no-series");
+
+  // Play again: the rematch lobby shows the running series under the seats.
+  await clickTestId(p, "game-end-play-again");
+  await p.waitForSelector(tid("lobby-series"), { timeout: 10_000 });
+  await shot(p, "rematch-lobby-series");
+
+  // Second game to game over: now the series strip renders.
+  await clickTestId(p, "lobby-start-game");
+  await p.waitForSelector(tid("game-submit"), { timeout: 10_000 });
+  await playToGameEnd(p);
+  await p.waitForSelector(tid("game-end-series"), { timeout: 10_000 });
+  await shot(p, "game2-end-series");
+}
+
 const flows = {
   "lobby-rounds": lobbyRoundsFlow,
   "host-leave": hostLeaveFlow,
   "single-player": singlePlayerFlow,
   interference: interferenceFlow,
   "round-powers": roundPowersFlow,
+  series: seriesFlow,
 };
 
 // ---------------------------------------------------------------------------

@@ -81,6 +81,8 @@ export function loadRoom(code: string): RoomDoc | null {
   if (cfg.solo === undefined) cfg.solo = false;
   // The AI difficulty setting was removed — shed the stale field from saved rooms.
   delete cfg.difficulty;
+  // Rooms saved before the cross-rematch series tally start with an empty series.
+  if (doc.series === undefined) doc.series = { gamesPlayed: 0, perPlayer: {} };
   if (typeof doc.rev !== "number") doc.rev = 0;
   // Games saved before the random-first-picker change stay host-first (seat 0).
   if (typeof doc.firstPickerSeat !== "number") doc.firstPickerSeat = 0;

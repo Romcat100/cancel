@@ -549,6 +549,96 @@ describe("engine lifecycle", () => {
   });
 });
 
+describe("cross-rematch series tally", () => {
+  // 1-round room so a scripted game reaches game_end in 5 turns. No forceSafePool:
+  // the live system deals an empty pool, and startGame0's pinned rng rolls
+  // pure_tone, so each turn scores as plain faces (a lone 0 cancels the board).
+  function room1r(): RoomDoc {
+    let r = createRoom({ code: "SERS", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null });
+    r = addPlayer(r, "B", "Bob");
+    r = addPlayer(r, "C", "Carol");
+    return r;
+  }
+
+  function submitAll(r: RoomDoc, picks: Record<string, number>): RoomDoc {
+    for (const [pid, number] of Object.entries(picks)) {
+      r = submitTurn(r, { playerId: pid, number });
+    }
+    return r;
+  }
+
+  // Hands are [0,1,2,3,4]. Turns 1-2 are distinct faces (everyone scores);
+  // turns 3-5 each stage one lone 0 that wipes that turn's other two cards.
+  // Totals: A = 1+2 = 3, B = 2+3 = 5, C = 3+4 = 7. Carol wins. The last turn
+  // of the last round ends the game directly (no round_end ack gate).
+  function playDecisiveGame(r: RoomDoc): RoomDoc {
+    r = submitAll(r, { A: 1, B: 2, C: 3 });
+    r = submitAll(r, { A: 2, B: 3, C: 4 });
+    r = submitAll(r, { A: 3, B: 4, C: 0 });
+    r = submitAll(r, { A: 4, B: 0, C: 1 });
+    r = submitAll(r, { A: 0, B: 1, C: 2 });
+    expect(r.phase).toBe("game_end");
+    return r;
+  }
+
+  // Everyone plays the same card every turn: four all-way ties, then three
+  // suppressed 0s. All finish on 0 — everyone shares the top score.
+  function playTiedGame(r: RoomDoc): RoomDoc {
+    for (const n of [1, 2, 3, 4, 0]) r = submitAll(r, { A: n, B: n, C: n });
+    expect(r.phase).toBe("game_end");
+    return r;
+  }
+
+  it("createRoom starts an empty series", () => {
+    const r = room1r();
+    expect(r.series).toEqual({ gamesPlayed: 0, perPlayer: {} });
+  });
+
+  it("endGame banks each player's points and the winner's win", () => {
+    const r = playDecisiveGame(startGame0(room1r()));
+    expect(r.phase).toBe("game_end");
+    expect(r.winnerId).toBe("C");
+    expect(r.series).toEqual({
+      gamesPlayed: 1,
+      perPlayer: {
+        A: { wins: 0, points: 3 },
+        B: { wins: 0, points: 5 },
+        C: { wins: 1, points: 7 },
+      },
+    });
+    // The tally is public.
+    const online = new Set(["A", "B", "C"]);
+    expect(projectStateForPlayer(r, "A", online).publicState.series).toEqual(r.series);
+  });
+
+  it("survives resetToLobby and accumulates across a rematch; a tied game is a win for every leader", () => {
+    let r = playDecisiveGame(startGame0(room1r()));
+    const lobby = resetToLobby(r);
+    expect(lobby.series.gamesPlayed).toBe(1);
+    expect(lobby.series.perPlayer.C).toEqual({ wins: 1, points: 7 });
+
+    r = playTiedGame(startGame0(lobby));
+    expect(r.phase).toBe("game_end");
+    expect(r.series).toEqual({
+      gamesPlayed: 2,
+      perPlayer: {
+        A: { wins: 1, points: 3 },
+        B: { wins: 1, points: 5 },
+        C: { wins: 2, points: 7 },
+      },
+    });
+  });
+
+  it("removePlayer drops the removed player's series line", () => {
+    const r = playDecisiveGame(startGame0(room1r()));
+    const online = new Set(["A", "B"]);
+    const after = removePlayer(r, "C", online);
+    expect(after.series.gamesPlayed).toBe(1);
+    expect(after.series.perPlayer.C).toBeUndefined();
+    expect(after.series.perPlayer.B).toEqual({ wins: 0, points: 5 });
+  });
+});
+
 describe("refraction (round power)", () => {
   afterEach(() => vi.restoreAllMocks());
 
