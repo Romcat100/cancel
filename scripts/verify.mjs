@@ -316,6 +316,12 @@ async function hostLeaveFlow(browser) {
   await shot(j1, "host-skip-waiting-available");
   await clickTestId(j1, "game-skip-waiting");
   await j1.waitForSelector(tid("reveal-continue"), { timeout: 10_000 }); // turn resolved
+  // Let the flip cascade finish so every row (incl. the J1/J2 tie — both play
+  // card 1) is face-up in the shot.
+  await j1.waitForFunction(
+    () => document.querySelector('[data-testid="reveal-modal"]')?.getAttribute("data-reveal-phase") === "score",
+    { timeout: 10_000 },
+  );
   await shot(j1, "turn-resolved-after-skip");
   await clickTestId(j1, "reveal-continue");
   // Every player sees the reveal; dismiss J2's too so its header isn't covered.
@@ -753,8 +759,58 @@ async function seriesFlow(browser) {
   await shot(p, "game2-end-series");
 }
 
+// Three humans all play card 1 for a guaranteed 3-way tie on the reveal:
+// each row's solid wave should carry a staggered dotted inverse per opposing
+// tied player, in that player's color.
+async function tie3Flow(browser) {
+  const host = await newPlayer(browser, "Host");
+  await waitForText(host, "CANCEL");
+  await clickTestId(host, "home-new-game");
+  await typeInto(host, tid("home-name-input"), "Host");
+  await clickTestId(host, "home-create-room");
+  await host.waitForSelector(tid("lobby-options"), { timeout: 10_000 });
+  const code = await host.$eval(tid("lobby-room-code"), (el) => el.innerText.trim());
+  console.log(`[verify] room code: ${code}`);
+  // Round powers off: Harmony would turn the tie into doubled survivors.
+  await openOptions(host);
+  await clickTestId(host, "lobby-powerup-off");
+  await closeOptions(host);
+  const join = async (name) => {
+    const p = await newPlayer(browser, name);
+    await waitForText(p, "CANCEL");
+    await clickTestId(p, "home-join-with-code");
+    await typeInto(p, tid("home-code-input"), code);
+    await typeInto(p, tid("home-name-input"), name);
+    await clickTestId(p, "home-join");
+    await p.waitForSelector(tid("lobby-options"), { timeout: 10_000 });
+    return p;
+  };
+  const j1 = await join("Joiner1");
+  const j2 = await join("Joiner2");
+  await clickTestId(host, "lobby-start-game");
+  const submitOne = async (page) => {
+    await page.waitForSelector(tid("game-submit"), { timeout: 10_000 });
+    await clickTestId(page, "game-hand-card-1");
+    await page.waitForFunction(() => {
+      const b = document.querySelector('[data-testid="game-submit"]');
+      return b && !b.disabled;
+    }, { timeout: 10_000 });
+    await clickTestId(page, "game-submit");
+  };
+  await submitOne(host);
+  await submitOne(j1);
+  await submitOne(j2);
+  await host.waitForSelector(tid("reveal-continue"), { timeout: 10_000 });
+  await host.waitForFunction(
+    () => document.querySelector('[data-testid="reveal-modal"]')?.getAttribute("data-reveal-phase") === "score",
+    { timeout: 10_000 },
+  );
+  await shot(host, "three-way-tie");
+}
+
 const flows = {
   "lobby-rounds": lobbyRoundsFlow,
+  "tie-3way": tie3Flow,
   "host-leave": hostLeaveFlow,
   "single-player": singlePlayerFlow,
   interference: interferenceFlow,

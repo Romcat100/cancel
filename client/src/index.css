@@ -110,6 +110,13 @@
   stroke-width: 2.4px;
   stroke-linecap: round;
 }
+/* Static phase shift (Wave's `phase` prop → --cw-phase, in viewBox units).
+   The cw-osc keyframes below carry the same var, so a phase-staggered wave
+   stays staggered while it drifts; without animation this is the resting
+   frame's shift. Default 0px = no-op for every other wave. */
+.cw use {
+  transform: translateX(var(--cw-phase, 0px));
+}
 
 /* Soft, feathered side edges (vs the hard clip above). Used on big, prominent
    waves like the home title, where the box is tall enough that the mask's
@@ -147,6 +154,13 @@
 .cw-ghosted {
   stroke-dasharray: 4 7;
   opacity: 0.4;
+}
+/* The reveal's tie treatment: the cancelling anti-signal, drawn as a dotted
+   outline over the tied player's wave. Round linecaps (from .cw) turn the
+   near-zero dashes into dots; no glow, so it reads as a trace, not a signal. */
+.cw-dotted {
+  stroke-dasharray: 0.5 5.5;
+  opacity: 0.65;
 }
 .cw-sum {
   color: #9aa0b8;
@@ -272,10 +286,10 @@
      `--cw-osc-dur` tunes the drift speed (one window-width per cycle). */
   @keyframes cw-osc {
     from {
-      transform: translateX(0);
+      transform: translateX(var(--cw-phase, 0px));
     }
     to {
-      transform: translateX(-120px);
+      transform: translateX(calc(var(--cw-phase, 0px) - 120px));
     }
   }
   .cw-anim:not(.cw-think) use {

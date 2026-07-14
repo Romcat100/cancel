@@ -886,7 +886,8 @@ type RevealRowItem = {
   delta: number;
   total: number;
   t: Treatment;
-  antiphase: boolean;
+  /** Tie rows: seat hexes of every opposing tied player, for the dotted inverse overlays. */
+  tieHexes?: string[];
 };
 
 const REVEAL_ROW_COLS = "grid grid-cols-[52px_1fr_60px] gap-3 items-center";
@@ -902,7 +903,7 @@ function RevealTraceRow({
   isSelf: boolean;
   flipDelayMs: number;
 }) {
-  const { s, player, delta, total, t, antiphase } = e;
+  const { s, player, delta, total, t, tieHexes } = e;
   const hex = seatColor(player.seat).hex;
   const rank = rankForNumber(s.number);
   const alive = t === "survivor" || t === "aliveZero";
@@ -939,12 +940,39 @@ function RevealTraceRow({
           </>
         ) : t === "aliveZero" ? (
           <Wave rank={0} variant="glow" color={hex} className="absolute inset-0 w-full h-full" />
+        ) : t === "tie" ? (
+          <>
+            {/* The tied wave plus a dotted outline of its inverse per opposing
+                tied player, each in THAT player's color — their anti-signals
+                cancelling yours. The dotted waves are geometrically identical
+                (same face), so stagger their PEAKS: spread the phase shifts
+                evenly around true antiphase, one period-fraction apart. A solo
+                overlay (2-way tie) gets shift 0 = exact antiphase. Waves are
+                periodic, so shifts are folded into [0, period) — the scroll
+                loop needs them non-negative (see Wave's `phase`). */}
+            <Wave rank={rank} variant="soft" color={hex} className="absolute inset-0 w-full h-full" />
+            {(tieHexes?.length ? tieHexes : [hex]).map((th, i, arr) => {
+              const period = 120 / Math.max(1, rank);
+              const raw = ((i - (arr.length - 1) / 2) * period) / (arr.length + 1);
+              const phase = ((raw % period) + period) % period;
+              return (
+                <Wave
+                  key={i}
+                  rank={rank}
+                  antiphase
+                  variant="dotted"
+                  color={th}
+                  phase={phase}
+                  className="absolute inset-0 w-full h-full"
+                />
+              );
+            })}
+          </>
         ) : (
           <Wave
             rank={rank}
             variant={alive ? "glow" : "soft"}
             color={hex}
-            antiphase={antiphase}
             className="absolute inset-0 w-full h-full"
           />
         )}
@@ -1017,18 +1045,26 @@ function RevealView({
       delta,
       total: player.totalScore,
       t: revealTreatment(s.number, delta, score?.notes ?? []),
-      antiphase: false,
     };
   });
   enriched.sort((a, b) => b.s.number - a.s.number || a.player.seat - b.player.seat);
-  // Tied waves render mirrored regardless of where the standings put them:
-  // alternate antiphase within each face-tie group.
-  const tieSeen = new Map<number, number>();
+  // Each tied wave gets a dotted inverse per opposing tied player, in that
+  // player's color (ordered from the next player in the face-tie group,
+  // wrapping — so the nearest overlay is always someone else's). A lone "tie"
+  // row (Free Three's virtual 3, no visible partner) keeps tieHexes undefined
+  // and falls back to its own color.
+  const tieGroups = new Map<number, RevealRowItem[]>();
   for (const e of enriched) {
     if (e.t !== "tie") continue;
-    const n = tieSeen.get(e.s.number) ?? 0;
-    e.antiphase = n % 2 === 1;
-    tieSeen.set(e.s.number, n + 1);
+    const g = tieGroups.get(e.s.number);
+    if (g) g.push(e);
+    else tieGroups.set(e.s.number, [e]);
+  }
+  for (const g of tieGroups.values()) {
+    if (g.length < 2) continue;
+    g.forEach((e, i) => {
+      e.tieHexes = [...g.slice(i + 1), ...g.slice(0, i)].map((o) => seatColor(o.player.seat).hex);
+    });
   }
   // Each row sings as it flaps in: tone pitched by the card's wave rank, timbre
   // by its outcome, scheduled on the same per-row stagger as the flip. Mount-only

@@ -12,7 +12,7 @@ import type { CSSProperties } from "react";
 // `prefers-reduced-motion: no-preference`, so the screenshot harness sees the
 // settled wave.
 
-type WaveVariant = "solid" | "glow" | "soft" | "think" | "ghosted" | "sum";
+type WaveVariant = "solid" | "glow" | "soft" | "think" | "ghosted" | "sum" | "dotted";
 
 const VARIANT_CLASS: Record<WaveVariant, string> = {
   solid: "",
@@ -21,6 +21,7 @@ const VARIANT_CLASS: Record<WaveVariant, string> = {
   think: "cw-think",
   ghosted: "cw-ghosted",
   sum: "cw-sum",
+  dotted: "cw-dotted",
 };
 
 export function Wave({
@@ -29,6 +30,7 @@ export function Wave({
   color,
   variant = "solid",
   antiphase = false,
+  phase = 0,
   animated = true,
   className = "",
   style: styleProp,
@@ -41,8 +43,16 @@ export function Wave({
   /** Signal color (hex/CSS color). Drives stroke + glow. Ignored for `sum`. */
   color?: string;
   variant?: WaveVariant;
-  /** Flip to the antiphase twin (only ranks 2 and 5 have one). */
+  /** Flip to the antiphase twin (every rank >= 1 has one; rank 0 is flat). */
   antiphase?: boolean;
+  /**
+   * Horizontal phase shift in viewBox units, staggering the peaks of otherwise
+   * identical waves (reveal tie overlays). Must be >= 0 — a negative shift
+   * opens a gap at the tail of the scroll loop; waves are periodic, so shift
+   * by `x mod period` instead. Carried by the scroll keyframes too, so the
+   * stagger holds while drifting.
+   */
+  phase?: number;
   /** Oscillate (under no-preference). Default true; pass false for static art. */
   animated?: boolean;
   className?: string;
@@ -63,6 +73,7 @@ export function Wave({
   // The sum line has an intrinsic grey (its "no signal" identity), so ignore color.
   const style: CSSProperties =
     variant === "sum" || !color ? { ...styleProp } : { color, ...styleProp };
+  if (phase) (style as Record<string, unknown>)["--cw-phase"] = `${phase}px`;
   return (
     <svg
       className={cls}
