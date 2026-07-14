@@ -922,11 +922,15 @@ export function RoundScoreTable({
   selfId,
   roundHistory,
   currentRoundIndex,
+  awards,
 }: {
   ranked: { id: string; name: string; seat: number; totalScore: number }[];
   selfId: string;
   roundHistory: { index: number; scores: { [playerId: string]: number } }[];
   currentRoundIndex?: number;
+  // Game-end only: mini emoji badges after the name, one per award the player
+  // took in the Highlights carousel (title doubles as the tooltip).
+  awards?: { [playerId: string]: { emoji: string; title: string }[] };
 }) {
   const rounds = [...roundHistory].sort((a, b) => a.index - b.index);
   const maxScore = ranked.reduce((m, p) => Math.max(m, p.totalScore), 0);
@@ -965,6 +969,11 @@ export function RoundScoreTable({
             <span className="font-bold flex-1 text-sm truncate">
               {p.name}
               {p.id === selfId && <YouBadge seat={p.seat} className="ml-1.5" />}
+              {awards?.[p.id]?.map((a) => (
+                <span key={a.title} className="ml-1 text-xs" role="img" aria-label={a.title} title={a.title}>
+                  {a.emoji}
+                </span>
+              ))}
             </span>
             {rounds.map((r) => {
               const score = r.scores[p.id] ?? 0;

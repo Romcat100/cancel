@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { GameStats, Player, RoundHistoryEntry } from "../../../shared/types.js";
 import { api } from "../api.js";
 import { playGameEnd } from "../sfx.js";
 import { getIdentity } from "../identity.js";
 import { useAppStore } from "../store.js";
 import { Confetti, MusicToggle, RoundScoreTable, SEAT_TEXT_COLORS, seatColor, SeriesStandings } from "../components.js";
+import { Wave } from "../wave.js";
 
 // Monotone-x cubic path through the points (d3 curveMonotoneX's tangent rule):
 // smooth like a signal trace, but it never overshoots a data point, so the curve
@@ -156,7 +157,116 @@ function ScoreChart({
 
 const times = (n: number) => (n === 1 ? "once" : n === 2 ? "twice" : `${n} times`);
 
+interface AwardEntry {
+  key: string;
+  title: string;
+  playerId: string;
+  detail: string;
+  emoji: string;
+  glyph: string;
+  wavePathId: string;
+  waveVariant: "glow" | "dotted";
+}
+
+// The award list, derived from the server's sparse GameStats. Shared by the
+// Highlights carousel and the mini emoji badges on the final score table, so
+// the two always agree on who won what.
+function buildAwards(stats: GameStats): AwardEntry[] {
+  const entries: AwardEntry[] = [];
+  if (stats.biggestTurn) {
+    entries.push({
+      key: "biggest-turn",
+      title: "Loudest signal",
+      playerId: stats.biggestTurn.playerId,
+      detail: `+${stats.biggestTurn.delta} in one turn (round ${stats.biggestTurn.roundIndex + 1})`,
+      emoji: "📣",
+      glyph: `+${stats.biggestTurn.delta}`,
+      wavePathId: "ca18",
+      waveVariant: "glow",
+    });
+  }
+  if (stats.bestRound) {
+    entries.push({
+      key: "best-round",
+      title: "Peak round",
+      playerId: stats.bestRound.playerId,
+      detail: `+${stats.bestRound.points} in round ${stats.bestRound.roundIndex + 1}`,
+      emoji: "🏔️",
+      glyph: "▲",
+      wavePathId: "ca11",
+      waveVariant: "glow",
+    });
+  }
+  if (stats.comeback) {
+    entries.push({
+      key: "comeback",
+      title: "Late surge",
+      playerId: stats.comeback.playerId,
+      detail: `Climbed ${stats.comeback.places} ${stats.comeback.places === 1 ? "place" : "places"} in the final round`,
+      emoji: "🚀",
+      glyph: "↗",
+      wavePathId: "ca8",
+      waveVariant: "glow",
+    });
+  }
+  if (stats.silencer) {
+    entries.push({
+      key: "silencer",
+      title: "The silencer",
+      playerId: stats.silencer.playerId,
+      detail: `Wiped the board with a 0 ${times(stats.silencer.count)}`,
+      emoji: "🤫",
+      glyph: "Ø",
+      wavePathId: "cw0",
+      waveVariant: "glow",
+    });
+  }
+  if (stats.cleanest) {
+    entries.push({
+      key: "cleanest",
+      title: "Clean signal",
+      playerId: stats.cleanest.playerId,
+      detail: `Scored on ${stats.cleanest.count} turns`,
+      emoji: "✨",
+      glyph: "~",
+      wavePathId: "cw2",
+      waveVariant: "glow",
+    });
+  }
+  if (stats.mostCancelled) {
+    entries.push({
+      key: "most-cancelled",
+      title: "Lost in the noise",
+      playerId: stats.mostCancelled.playerId,
+      detail: `Cancelled ${times(stats.mostCancelled.count)}`,
+      emoji: "💥",
+      glyph: "✕",
+      wavePathId: "cw7",
+      waveVariant: "dotted",
+    });
+  }
+  return entries;
+}
+
+// Emoji badges per player for the final score table, keyed to the carousel awards.
+export function awardBadgesByPlayer(stats: GameStats | undefined): {
+  [playerId: string]: { emoji: string; title: string }[];
+} {
+  const byPlayer: { [playerId: string]: { emoji: string; title: string }[] } = {};
+  if (!stats) return byPlayer;
+  for (const e of buildAwards(stats)) {
+    (byPlayer[e.playerId] ??= []).push({ emoji: e.emoji, title: e.title });
+  }
+  return byPlayer;
+}
+
 // Game superlatives, computed server-side (publicState.gameStats, game_end only).
+// Rendered as a swipeable row of award badges glowing in each winner's seat color
+// (`.award` in index.css, driven by the same --pc trick as the power tiles). CSS
+// scroll-snap does the swiping; the dots just mirror scroll position. Each badge
+// carries a wave chosen for the stat's flavor: amplitude waves for the big-score
+// awards, the flat silent line for the silencer, a dotted dense trace for the
+// most-cancelled (a signal lost in the noise).
 function Highlights({
   stats,
   players,
@@ -166,61 +276,82 @@ function Highlights({
   players: Player[];
   selfId: string;
 }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
   const byId = new Map(players.map((p) => [p.id, p]));
-  const entries: { key: string; title: string; playerId: string; detail: string }[] = [];
-  if (stats.biggestTurn) {
-    entries.push({
-      key: "biggest-turn",
-      title: "Loudest signal",
-      playerId: stats.biggestTurn.playerId,
-      detail: `+${stats.biggestTurn.delta} in one turn (round ${stats.biggestTurn.roundIndex + 1})`,
-    });
-  }
-  if (stats.comeback) {
-    entries.push({
-      key: "comeback",
-      title: "Late surge",
-      playerId: stats.comeback.playerId,
-      detail: `Climbed ${stats.comeback.places} ${stats.comeback.places === 1 ? "place" : "places"} in the final round`,
-    });
-  }
-  if (stats.silencer) {
-    entries.push({
-      key: "silencer",
-      title: "The silencer",
-      playerId: stats.silencer.playerId,
-      detail: `Wiped the board with a 0 ${times(stats.silencer.count)}`,
-    });
-  }
-  if (stats.mostCancelled) {
-    entries.push({
-      key: "most-cancelled",
-      title: "Lost in the noise",
-      playerId: stats.mostCancelled.playerId,
-      detail: `Cancelled ${times(stats.mostCancelled.count)}`,
-    });
-  }
-  const cards = entries.flatMap((e) => {
+  const cards = buildAwards(stats).flatMap((e) => {
     const p = byId.get(e.playerId);
     return p ? [{ ...e, player: p }] : [];
   });
   if (cards.length === 0) return null;
 
+  const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const snapTo = (i: number) => {
+    const el = scrollRef.current;
+    const child = el?.children[i] as HTMLElement | undefined;
+    if (!el || !child) return;
+    el.scrollTo({ left: child.offsetLeft - el.offsetLeft, behavior: reducedMotion() ? "auto" : "smooth" });
+  };
+  const onScroll = () => {
+    const el = scrollRef.current;
+    const first = el?.children[0] as HTMLElement | undefined;
+    if (!el || !first) return;
+    const step = first.offsetWidth + 12; // card width + gap-3
+    setActive(Math.max(0, Math.min(cards.length - 1, Math.round(el.scrollLeft / step))));
+  };
+
   return (
-    <div className="grid grid-cols-2 gap-2 mt-3" data-testid="game-end-stats">
-      {cards.map((c) => (
-        <div
-          key={c.key}
-          className="rounded-2xl bg-paper/5 border border-paper/10 px-3 py-2.5"
-          data-testid={`game-end-stat-${c.key}`}
-        >
-          <div className="font-mono text-[9px] uppercase tracking-widest text-paper/40">{c.title}</div>
-          <div className="font-bold text-sm truncate" style={{ color: seatColor(c.player.seat).hex }}>
-            {c.player.id === selfId ? "You" : c.player.name}
-          </div>
-          <div className="text-xs text-paper/70 mt-0.5">{c.detail}</div>
+    <div className="mt-3" data-testid="game-end-stats">
+      <div
+        ref={scrollRef}
+        onScroll={onScroll}
+        className="awards flex gap-3 overflow-x-auto snap-x snap-mandatory"
+        data-testid="game-end-stats-scroll"
+      >
+        {cards.map((c) => {
+          const hex = seatColor(c.player.seat).hex;
+          return (
+            <div
+              key={c.key}
+              className={`award snap-start shrink-0 px-4 py-3.5 ${cards.length === 1 ? "w-full" : "w-[81%]"}`}
+              style={{ "--pc": hex } as CSSProperties}
+              data-testid={`game-end-stat-${c.key}`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-mono text-[10px] uppercase tracking-widest text-paper/50">
+                    <span className="mr-1">{c.emoji}</span>
+                    {c.title}
+                  </div>
+                  <div className="font-display text-xl font-extrabold truncate" style={{ color: hex }}>
+                    {c.player.id === selfId ? "You" : c.player.name}
+                  </div>
+                  <div className="text-xs text-paper/70 mt-0.5">{c.detail}</div>
+                </div>
+                <div className="aw-glyph shrink-0">{c.glyph}</div>
+              </div>
+              <span className="nwv h-5 mt-3">
+                <Wave pathId={c.wavePathId} variant={c.waveVariant} color={hex} className="w-full h-full" />
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      {cards.length > 1 && (
+        <div className="flex justify-center gap-1.5 mt-2">
+          {cards.map((c, i) => (
+            <button
+              key={c.key}
+              type="button"
+              aria-label={`Show ${c.title}`}
+              data-sfx="tap"
+              data-testid={`game-end-stat-dot-${c.key}`}
+              onClick={() => snapTo(i)}
+              className={`h-1.5 rounded-full transition-all ${i === active ? "w-4 bg-paper/80" : "w-1.5 bg-paper/25"}`}
+            />
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 }
@@ -322,7 +453,12 @@ export function GameEnd({ onLeave }: { onLeave: () => void }) {
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 -mx-1 px-1">
-        <RoundScoreTable ranked={ranked} selfId={selfPlayerId} roundHistory={publicState.roundHistory} />
+        <RoundScoreTable
+          ranked={ranked}
+          selfId={selfPlayerId}
+          roundHistory={publicState.roundHistory}
+          awards={awardBadgesByPlayer(publicState.gameStats)}
+        />
         <ScoreChart players={publicState.players} roundHistory={publicState.roundHistory} selfId={selfPlayerId} />
         {publicState.gameStats && (
           <Highlights stats={publicState.gameStats} players={publicState.players} selfId={selfPlayerId} />

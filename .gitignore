@@ -31,6 +31,10 @@ Thumbs.db
 
 # Browser verification screenshots
 scripts/shots/
+scripts/theme-shots/
+
+# Personal notes
+NOTES.md
 
 # Design exploration: keep the demos + docs (styles/, README, SPEC, shoot.mjs),
 # skip the heavy/generated bits (screenshots, generated gallery, exported zip).

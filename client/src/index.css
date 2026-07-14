@@ -244,6 +244,37 @@
   transform: translateY(-4px);
 }
 
+/* ========= game-end award badges (seat-glow tiles in a snap carousel) ========= */
+/* The horizontal swipe row: native scroll-snap, no scrollbar, and a contained
+   overscroll so a hard swipe doesn't rubber-band the vertical page behind it. */
+.awards {
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.awards::-webkit-scrollbar {
+  display: none;
+}
+/* One award badge: the .pcard glow language at card scale, tinted by --pc
+   (the winner's seat color, set inline). */
+.award {
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--pc) 40%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pc) 11%, transparent), color-mix(in srgb, var(--pc) 3%, transparent)),
+    rgba(8, 7, 24, 0.35);
+  box-shadow:
+    0 0 20px color-mix(in srgb, var(--pc) 16%, transparent),
+    inset 0 0 26px color-mix(in srgb, var(--pc) 7%, transparent);
+}
+.award .aw-glyph {
+  font-family: theme(fontFamily.mono);
+  font-weight: 700;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--pc);
+  filter: drop-shadow(0 0 8px var(--pc));
+}
+
 .confetti {
   position: absolute;
   inset: 0;

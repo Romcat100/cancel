@@ -556,6 +556,21 @@ async function interferenceFlow(browser) {
   }
   await b.waitForSelector(tid("game-end-winner"), { timeout: 10_000 });
   await shot(b, "game-end"); // win or lose, with score-amplitude waves
+
+  // The awards carousel: tap the last position dot and confirm the snap scroll
+  // follows (reduced-motion makes the scroll instant, so no settling wait).
+  const dots = await b.$$('[data-testid^="game-end-stat-dot-"]');
+  if (dots.length > 1) {
+    await dots[dots.length - 1].click();
+    await b.waitForFunction(
+      () => {
+        const el = document.querySelector('[data-testid="game-end-stats-scroll"]');
+        return !!el && el.scrollLeft > 0 && Math.abs(el.scrollLeft + el.clientWidth - el.scrollWidth) < 2;
+      },
+      { timeout: 5_000 },
+    );
+    await shot(b, "game-end-awards-last"); // carousel snapped to the final badge
+  }
 }
 
 // Click a specific card number (e.g. the 0 for Absorption), or the highest

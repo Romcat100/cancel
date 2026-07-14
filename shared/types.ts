@@ -140,6 +140,10 @@ export interface GameStats {
   silencer?: { playerId: string; count: number };
   // Biggest climb up the standings in the final round (multi-round games only).
   comeback?: { playerId: string; places: number; pointsGained: number };
+  // Most points banked in a single round (positive totals only).
+  bestRound?: { playerId: string; points: number; roundIndex: number };
+  // Most turns that scored (delta > 0); needs at least 2 to earn the badge.
+  cleanest?: { playerId: string; count: number };
 }
 
 // Cross-rematch series tally: wins and cumulative points per player across every

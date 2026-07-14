@@ -29,6 +29,7 @@ export function computeGameStats(room: GameStatsInput): GameStats {
 
   const cancelledCount = new Map<string, number>();
   const silencedCount = new Map<string, number>();
+  const survivedCount = new Map<string, number>();
   for (const round of rounds) {
     for (const reveal of round.reveals) {
       for (const line of reveal.scoreLines) {
@@ -36,6 +37,9 @@ export function computeGameStats(room: GameStatsInput): GameStats {
         if (!seated.has(line.playerId)) continue;
         if (line.delta > 0 && (!stats.biggestTurn || line.delta > stats.biggestTurn.delta)) {
           stats.biggestTurn = { playerId: line.playerId, delta: line.delta, roundIndex: round.index };
+        }
+        if (line.delta > 0) {
+          survivedCount.set(line.playerId, (survivedCount.get(line.playerId) ?? 0) + 1);
         }
         if (line.notes.some(isWipeNote)) {
           cancelledCount.set(line.playerId, (cancelledCount.get(line.playerId) ?? 0) + 1);
@@ -55,6 +59,22 @@ export function computeGameStats(room: GameStatsInput): GameStats {
     const silenced = silencedCount.get(p.id) ?? 0;
     if (silenced > 0 && silenced > (stats.silencer?.count ?? 0)) {
       stats.silencer = { playerId: p.id, count: silenced };
+    }
+    // "Cleanest": at least 2 scoring turns, so a one-lucky-turn game earns nothing.
+    const survived = survivedCount.get(p.id) ?? 0;
+    if (survived >= 2 && survived > (stats.cleanest?.count ?? 0)) {
+      stats.cleanest = { playerId: p.id, count: survived };
+    }
+  }
+
+  // Best round: highest single-round total (positive only). Strict > keeps the
+  // earliest round / lowest seat on a tie, matching biggestTurn's convention.
+  for (const round of rounds) {
+    for (const p of players) {
+      const points = round.perPlayerRoundScore[p.id] ?? 0;
+      if (points > 0 && points > (stats.bestRound?.points ?? 0)) {
+        stats.bestRound = { playerId: p.id, points, roundIndex: round.index };
+      }
     }
   }
 

@@ -117,6 +117,76 @@ describe("computeGameStats", () => {
     expect(stats.silencer).toBeUndefined();
   });
 
+  describe("bestRound", () => {
+    it("finds the highest single-round total with its round", () => {
+      const stats = computeGameStats(
+        room([
+          { scores: { a: 5, b: 3, c: 0 }, lines: [] },
+          { scores: { a: 2, b: 11, c: 4 }, lines: [] },
+        ]),
+      );
+      expect(stats.bestRound).toEqual({ playerId: "b", points: 11, roundIndex: 1 });
+    });
+
+    it("is omitted when no round total is positive", () => {
+      const stats = computeGameStats(
+        room([{ scores: { a: 0, b: -3, c: 0 }, lines: [] }]),
+      );
+      expect(stats.bestRound).toBeUndefined();
+    });
+
+    it("keeps the earliest round and lowest seat on a tie", () => {
+      const stats = computeGameStats(
+        room([
+          { scores: { a: 7, b: 7, c: 1 }, lines: [] },
+          { scores: { a: 1, b: 7, c: 7 }, lines: [] },
+        ]),
+      );
+      expect(stats.bestRound).toEqual({ playerId: "a", points: 7, roundIndex: 0 });
+    });
+  });
+
+  describe("cleanest", () => {
+    it("counts scoring turns (delta > 0), breaking ties by lowest seat", () => {
+      const stats = computeGameStats(
+        room([
+          {
+            scores: { a: 8, b: 9, c: 0 },
+            lines: [
+              [ok("a", 4), ok("b", 5), tied("c", 5)],
+              [ok("a", 4), ok("b", 4), zeroed("c")],
+            ],
+          },
+        ]),
+      );
+      // a and b both scored on 2 turns; the lowest seat (a) takes the badge.
+      expect(stats.cleanest).toEqual({ playerId: "a", count: 2 });
+    });
+
+    it("needs at least 2 scoring turns", () => {
+      const stats = computeGameStats(
+        room([{ scores: { a: 4, b: 0, c: 0 }, lines: [[ok("a", 4), tied("b", 3), tied("c", 3)]] }]),
+      );
+      expect(stats.cleanest).toBeUndefined();
+    });
+
+    it("does not count zero or negative deltas as scoring turns", () => {
+      const stats = computeGameStats(
+        room([
+          {
+            scores: { a: -8, b: 5, c: 5 },
+            lines: [
+              [{ playerId: "a", delta: -4, notes: ["Sacrifice: −4"] }, ok("b", 5), ok("c", 2)],
+              [{ playerId: "a", delta: -4, notes: ["Sacrifice: −4"] }, ok("b", 0), ok("c", 3)],
+            ],
+          },
+        ]),
+      );
+      // b scored once (the 0 delta doesn't count); c scored twice.
+      expect(stats.cleanest).toEqual({ playerId: "c", count: 2 });
+    });
+  });
+
   describe("comeback", () => {
     it("is omitted for single-round games", () => {
       const stats = computeGameStats(
