@@ -942,15 +942,19 @@ function RevealTraceRow({
           <Wave rank={0} variant="glow" color={hex} className="absolute inset-0 w-full h-full" />
         ) : t === "tie" ? (
           <>
-            {/* The tied wave plus a dotted outline of its inverse per opposing
-                tied player, each in THAT player's color — their anti-signals
-                cancelling yours. The dotted waves are geometrically identical
-                (same face), so stagger their PEAKS: spread the phase shifts
-                evenly around true antiphase, one period-fraction apart. A solo
-                overlay (2-way tie) gets shift 0 = exact antiphase. Waves are
-                periodic, so shifts are folded into [0, period) — the scroll
-                loop needs them non-negative (see Wave's `phase`). */}
-            <Wave rank={rank} variant="soft" color={hex} className="absolute inset-0 w-full h-full" />
+            {/* The tied wave (ghosted — a broken line means it scored nothing;
+                solid is reserved for signals that counted) plus a dotted
+                outline of its inverse per opposing tied player, each in THAT
+                player's color — their anti-signals cancelling yours. The
+                dotted waves are geometrically identical (same face), so
+                stagger their PEAKS: spread the phase shifts evenly around true
+                antiphase, one period-fraction apart. A solo overlay (2-way
+                tie) gets shift 0 = exact antiphase. Waves are periodic, so
+                shifts are folded into [0, period) — the scroll loop needs
+                them non-negative (see Wave's `phase`). Multiple overlays
+                render thinner and dimmer so a big tie stays readable on a
+                phone; a solo one keeps full weight. */}
+            <Wave rank={rank} variant="ghosted" color={hex} className="absolute inset-0 w-full h-full" />
             {(tieHexes?.length ? tieHexes : [hex]).map((th, i, arr) => {
               const period = 120 / Math.max(1, rank);
               const raw = ((i - (arr.length - 1) / 2) * period) / (arr.length + 1);
@@ -964,6 +968,7 @@ function RevealTraceRow({
                   color={th}
                   phase={phase}
                   className="absolute inset-0 w-full h-full"
+                  style={arr.length > 1 ? { strokeWidth: "1.7px", opacity: 0.5 } : undefined}
                 />
               );
             })}
