@@ -66,7 +66,7 @@ When on: at the start of each round, one power is drawn and shown to everyone. I
 | **Ultraviolet** (`UV`) | The whole spectrum shifts up. Every card plays 2 higher than its face value, so a `0` becomes a `2` and a `3` becomes a `5`. Ties use the raised values. |
 | **Refraction** (`△`) | Light bends to a new angle. Each turn you glimpse the number a random player means to play, then everyone gets one chance to change their pick before the reveal. |
 | **Limiter** (`▔`) | The loudest signal gets clipped. Each turn, the highest card that scored is cut to 0, so the biggest number on the board earns nothing. |
-| **Absorption** (`Ø+`) | The flat line drinks the sound. A lone `0` still silences the board, and it also scores the average of the cards it silenced, rounded up. |
+| **Absorption** (`Ø+`) | The flat line drinks the sound. A lone `0` still silences the board, and it also scores the total of all the cards it silenced. |
 | **Broadcast** (`⊚`) | Every pick goes out over the air. Once everyone locks in, all picks are shown to all players, and everyone gets one chance to change their card before the reveal. |
 | **Subharmonic** (`▁`) | The deep frequency swells. Each turn, the lowest card that scored gains 4 bonus points. Tied or cancelled cards score nothing as usual, so the bonus goes to the lowest card that survived. |
 

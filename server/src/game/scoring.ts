@@ -141,16 +141,15 @@ export function scoreTurn(
           ? "Tie Die: 0 still cancels despite another 0"
           : "Played 0 (cancelled all others)",
       );
-      // Absorption: the lone canceller drinks what it silenced — it scores the average
-      // of the other cards' faces, rounded UP (in the 0's favor). Only the lone 0
-      // absorbs; suppressed multi-zeros fall through the branch below and score 0.
-      // The "cancelled all others" note above stays, so revealTreatment still renders
-      // the lone-Ø survivor look.
+      // Absorption: the lone canceller drinks what it silenced — it scores the sum
+      // of the other cards' faces. Only the lone 0 absorbs; suppressed multi-zeros
+      // fall through the branch below and score 0. The "cancelled all others" note
+      // above stays, so revealTreatment still renders the lone-Ø survivor look.
       if (roundPower === "absorption") {
         const silenced = eff.filter((o) => o.playerId !== e.playerId);
         if (silenced.length > 0) {
-          delta = Math.ceil(silenced.reduce((s, o) => s + o.face, 0) / silenced.length);
-          notes.push(`Absorption: ${delta >= 0 ? "+" : ""}${delta} (average of the silenced cards)`);
+          delta = silenced.reduce((s, o) => s + o.face, 0);
+          notes.push(`Absorption: ${delta >= 0 ? "+" : ""}${delta} (sum of the silenced cards)`);
         }
       }
     } else if (e.isCancel && !cancelActive) {

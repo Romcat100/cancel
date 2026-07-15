@@ -63,8 +63,8 @@ export function pAllAbove(c: number, oppHands: number[][]): number {
 //     double rather than a card to dodge. Deliberately no blanket tie-seeking beyond that:
 //     weighting every card by its collision chance flattened the sampler into near-random
 //     timing and simulated slightly worse than baseline play.
-//   - absorption: the lone 0 also banks ceil(avg of the silenced faces), so its denial value
-//     roughly gains the board average on top.
+//   - absorption: the lone 0 also banks the sum of the silenced faces, so its denial value
+//     roughly gains the whole board's expected total (avg face x opponent count) on top.
 //   - limiter: the highest surviving card is clipped to 0, so discount a card by its chance of
 //     being the board max. (Approximation: ignores the tie-at-the-peak case where a tied top
 //     wipes itself before the clip.)
@@ -92,7 +92,7 @@ export function chooseNumber(
         return known.has(0) ? 0 : 2 * pUniqueAgainst(0, oppHands);
       }
       const pLone = known.has(0) ? 0 : pUniqueAgainst(0, oppHands);
-      if (roundPower === "absorption") return pLone * avgOpp * 1.6; // denial + the absorbed avg
+      if (roundPower === "absorption") return pLone * avgOpp * (0.6 + oppHands.length); // denial + the absorbed sum
       return pLone * avgOpp * 0.6; // denial value of a likely lone 0
     }
     const pUnique = known.has(c) ? 0 : pUniqueAgainst(c, oppHands);

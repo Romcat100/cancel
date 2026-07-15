@@ -95,7 +95,7 @@ describe("chooseNumber — round-power awareness", () => {
     expect(share(harmonic, 5)).toBeGreaterThan(0.5);
   });
 
-  it("absorption: leans harder on the lone 0 (it banks the board average too)", () => {
+  it("absorption: leans harder on the lone 0 (it banks the silenced sum too)", () => {
     const hand = [0, 3];
     const opp = [[1, 2], [1, 2]];
     const baseline = draws(600, () => chooseNumber(hand, opp, []));

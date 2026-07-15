@@ -1087,7 +1087,7 @@ describe("scoreTurn — round powers", () => {
     expect(r.lines.every((l) => !l.notes.some((n) => n.startsWith("Subharmonic")))).toBe(true);
   });
 
-  it("absorption: a lone 0 scores the average of the silenced cards, rounded up", () => {
+  it("absorption: a lone 0 scores the sum of the silenced cards", () => {
     const r = scoreTurn(
       [
         { playerId: "A", number: 0 },
@@ -1097,27 +1097,14 @@ describe("scoreTurn — round powers", () => {
       undefined,
       "absorption",
     );
-    // avg(5, 2) = 3.5 → rounds up to 4; the cancelled cards still score 0.
-    expect(points(r)).toEqual({ A: 4, B: 0, C: 0 });
+    // 5 + 2 = 7; the cancelled cards still score 0.
+    expect(points(r)).toEqual({ A: 7, B: 0, C: 0 });
     expect(r.lines.find((l) => l.playerId === "A")!.notes).toContain(
-      "Absorption: +4 (average of the silenced cards)",
+      "Absorption: +7 (sum of the silenced cards)",
     );
   });
 
-  it("absorption: an exact average doesn't round", () => {
-    const r = scoreTurn(
-      [
-        { playerId: "A", number: 0 },
-        { playerId: "B", number: 4 },
-        { playerId: "C", number: 2 },
-      ],
-      undefined,
-      "absorption",
-    );
-    expect(points(r)).toEqual({ A: 3, B: 0, C: 0 });
-  });
-
-  it("absorption: tied opponents still count in the average", () => {
+  it("absorption: tied opponents still count in the sum", () => {
     const r = scoreTurn(
       [
         { playerId: "A", number: 0 },
@@ -1127,7 +1114,7 @@ describe("scoreTurn — round powers", () => {
       undefined,
       "absorption",
     );
-    expect(points(r)).toEqual({ A: 3, B: 0, C: 0 });
+    expect(points(r)).toEqual({ A: 6, B: 0, C: 0 });
   });
 
   it("absorption: matching zeros still suppress each other and absorb nothing", () => {

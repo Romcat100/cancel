@@ -405,7 +405,7 @@ export const ROUND_POWERS: Record<RoundPowerId, RoundPowerDef> = {
     id: "absorption",
     name: "Absorption",
     description:
-      "The flat line drinks the sound. A lone 0 still silences the board, and it also scores the average of the cards it silenced, rounded up.",
+      "The flat line drinks the sound. A lone 0 still silences the board, and it also scores the total of all the cards it silenced.",
   },
   broadcast: {
     id: "broadcast",

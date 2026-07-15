@@ -604,7 +604,7 @@ async function submitCardNumber(page, number) {
 // (same trick as interferenceFlow), then drives its distinctive moment —
 // Broadcast's whole-board re-pick banner, Limiter clipping the peak card in
 // the reveal, Subharmonic lifting the lowest scorer, and Absorption paying
-// the lone 0 the board average.
+// the lone 0 the sum of what it silenced.
 async function roundPowersFlow(browser) {
   let selectModalShot = false;
   const startSoloWithPower = async (name, powerId, ai) => {
@@ -687,7 +687,7 @@ async function roundPowersFlow(browser) {
     await sh.waitForFunction(() => !document.querySelector('[data-testid="reveal-modal"]'), { timeout: 10_000 });
   }
 
-  // --- Absorption: play the 0; a lone 0 banks the average of what it silenced ---
+  // --- Absorption: play the 0; a lone 0 banks the sum of what it silenced ---
   const ab = await startSoloWithPower("Solo", "absorption", 1);
   await submitCardNumber(ab, 0);
   await ab.waitForSelector(tid("reveal-continue"), { timeout: 10_000 });
