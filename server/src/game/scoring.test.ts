@@ -709,6 +709,21 @@ describe("scoreTurn — round powers", () => {
     );
   });
 
+  it("echo has no scoring branch: identical to no power (the effect is engine-side hand retention)", () => {
+    const plays = [
+      { playerId: "A", number: 4 },
+      { playerId: "B", number: 4 },
+      { playerId: "C", number: 3 },
+    ];
+    expect(points(scoreTurn(plays, undefined, "echo"))).toEqual(points(scoreTurn(plays)));
+    const cancelPlays = [
+      { playerId: "A", number: 0 },
+      { playerId: "B", number: 5 },
+      { playerId: "C", number: 3 },
+    ];
+    expect(points(scoreTurn(cancelPlays, undefined, "echo"))).toEqual(points(scoreTurn(cancelPlays)));
+  });
+
   it("harmony: a tied pair each score double their value, uniques unaffected", () => {
     const r = scoreTurn(
       [

@@ -351,7 +351,8 @@ export type RoundPowerId =
   | "absorption"
   | "broadcast"
   | "subharmonic"
-  | "inversion";
+  | "inversion"
+  | "echo";
 
 export interface RoundPowerDef {
   id: RoundPowerId;
@@ -425,6 +426,12 @@ export const ROUND_POWERS: Record<RoundPowerId, RoundPowerDef> = {
     name: "Inversion",
     description:
       "The whole signal flips below the axis. Every card that scores counts against its player this round, so a tie or a cancel is a lucky escape.",
+  },
+  echo: {
+    id: "echo",
+    name: "Echo",
+    description:
+      "The signal repeats. Played cards return to your hand to be played again, but silence does not echo. A played 0 is spent for good.",
   },
 };
 

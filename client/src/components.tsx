@@ -258,6 +258,7 @@ const ROUND_POWER_VISUAL: Record<RoundPowerId, { abbr: string; color: string }> 
   broadcast: { abbr: "⊚", color: "#5bd6e6" }, // cyan = information (everyone glimpses all)
   subharmonic: { abbr: "▁", color: "#34d399" }, // green = good for you (the low card lifts)
   inversion: { abbr: "−∿", color: "#ff5c7a" }, // rose = harm (matches make_negative; the signal flips below the axis)
+  echo: { abbr: "⟲", color: "#4dd6c4" }, // teal = shield/return (cards come back; only the 0 is spent)
 };
 
 function roundPowerVisual(id: RoundPowerId): { abbr: string; color: string } {

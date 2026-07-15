@@ -1,6 +1,6 @@
 # Cancel
 
-A multiplayer browser game where everyone secretly picks a number, then reveals at once. If two players pick the same number, both score zero. The `0` card is "Cancel" — one zero negates everyone else's points; two or more zeros cancel each other out and the rest of the table scores normally. Each round a random **round power** (Harmony, Amplify, Static, Ultraviolet, Refraction, Gate, Absorption, Broadcast, Subharmonic, Inversion, or plain Pure Tone) bends the rules for everyone.
+A multiplayer browser game where everyone secretly picks a number, then reveals at once. If two players pick the same number, both score zero. The `0` card is "Cancel" — one zero negates everyone else's points; two or more zeros cancel each other out and the rest of the table scores normally. Each round a random **round power** (Harmony, Amplify, Static, Ultraviolet, Refraction, Gate, Absorption, Broadcast, Subharmonic, Inversion, Echo, or plain Pure Tone) bends the rules for everyone.
 
 The same engine supports both **live** play (everyone in the room at once) and **async** play (over hours/days — close your browser, come back later, your seat reclaims itself).
 
@@ -70,6 +70,7 @@ When on: at the start of each round, one power is drawn and shown to everyone. I
 | **Broadcast** (`⊚`) | Every pick goes out over the air. Once everyone locks in, all picks are shown to all players, and everyone gets one chance to change their card before the reveal. |
 | **Subharmonic** (`▁`) | The deep frequency swells. Each turn, the lowest card that scored gains 4 bonus points. Tied or cancelled cards score nothing as usual, so the bonus goes to the lowest card that survived. |
 | **Inversion** (`−∿`) | The whole signal flips below the axis. Every card that scores counts against its player this round, so a tie or a cancel is a lucky escape. The best plays are the ones that get cancelled. |
+| **Echo** (`⟲`) | The signal repeats. Played cards return to your hand, so any card can be played again and again and every turn is a fresh standoff. Silence does not echo: a played `0` is spent for good. |
 
 ## Project layout
 

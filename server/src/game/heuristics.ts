@@ -69,7 +69,9 @@ export function pAllAbove(c: number, oppHands: number[][]): number {
 //     opponents from their negatives, so it keeps only a small junk-dump weight.
 //   - pure_tone / refraction / broadcast: no scoring effect on the pick. amplify doubles every
 //     nonzero delta uniformly (including the points a 0 denies), so card ranking is unchanged —
-//     a deliberate no-op here.
+//     a deliberate no-op here. echo (cards return to hand; only a played 0 is spent) is also a
+//     deliberate no-op: scoring is untouched and this function already evaluates one turn at a
+//     time from the current hands, never modeling card conservation across turns.
 export function chooseNumber(
   myHand: number[],
   oppHands: number[][],

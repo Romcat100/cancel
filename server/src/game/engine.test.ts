@@ -746,6 +746,86 @@ describe("broadcast (round power)", () => {
   });
 });
 
+describe("echo (round power)", () => {
+  function echoRoom(): RoomDoc {
+    const r = startGame0(room3p());
+    r.rounds[0].roundPower = "echo";
+    return r;
+  }
+
+  it("played cards return to the hand and can be played again next turn", () => {
+    let r = echoRoom();
+    r = submitTurn(r, { playerId: "A", number: 4 });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+    expect(r.rounds[0].hands["A"]).toEqual([0, 1, 2, 3, 4]);
+    expect(r.rounds[0].hands["B"]).toEqual([0, 1, 2, 3, 4]);
+    expect(r.rounds[0].hands["C"]).toEqual([0, 1, 2, 3, 4]);
+    // Same card again on turn 2.
+    r = submitTurn(r, { playerId: "A", number: 4 });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+    expect(r.rounds[0].reveals[1].submissions.find((s) => s.playerId === "A")!.number).toBe(4);
+    expect(r.rounds[0].hands["A"]).toContain(4);
+  });
+
+  it("silence does not echo: a played 0 is spent as normal", () => {
+    let r = echoRoom();
+    r = submitTurn(r, { playerId: "A", number: 0 });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+    expect(r.rounds[0].hands["A"]).toEqual([1, 2, 3, 4]);
+    // B and C keep their played cards; only the 0 left a hand.
+    expect(r.rounds[0].hands["B"]).toEqual([0, 1, 2, 3, 4]);
+    expect(() => submitTurn(r, { playerId: "A", number: 0 })).toThrow(/not in hand/i);
+  });
+
+  it("the round still ends after the normal number of turns", () => {
+    let r = echoRoom();
+    const handSize = r.players.length + 2;
+    for (let turn = 0; turn < handSize; turn++) {
+      r = submitTurn(r, { playerId: "A", number: 4 });
+      r = submitTurn(r, { playerId: "B", number: 3 });
+      r = submitTurn(r, { playerId: "C", number: 2 });
+    }
+    expect(r.phase).toBe("round_end");
+    expect(r.rounds[0].reveals).toHaveLength(handSize);
+    // Hands never shrank (nobody played their 0).
+    expect(r.rounds[0].hands["A"]).toEqual([0, 1, 2, 3, 4]);
+  });
+
+  it("scoring is untouched: normal ties and lone-0 cancels apply", () => {
+    let r = echoRoom();
+    r = submitTurn(r, { playerId: "A", number: 4 });
+    r = submitTurn(r, { playerId: "B", number: 4 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+    const scoreFor = (id: string) => r.rounds[0].reveals[0].scoreLines.find((l) => l.playerId === id)?.delta;
+    expect(scoreFor("A")).toBe(0);
+    expect(scoreFor("B")).toBe(0);
+    expect(scoreFor("C")).toBe(2);
+  });
+
+  it("dormant sabotage composition: a forced nonzero card also returns, a forced 0 is spent", () => {
+    // Forced nonzero: B keeps both their original pick and the forced card.
+    let r = echoRoom();
+    r.rounds[0].poolFull = ["sabotage", ...r.rounds[0].poolFull.slice(1)];
+    r.rounds[0].poolRemaining = ["sabotage", ...r.rounds[0].poolRemaining.slice(1)];
+    r = submitTurn(r, { playerId: "A", number: 4, powerUp: "sabotage", powerUpTarget: "B", sabotageNumber: 1 });
+    r = submitTurn(r, { playerId: "B", number: 3 });
+    r = submitTurn(r, { playerId: "C", number: 2 });
+    expect(r.rounds[0].hands["B"]).toEqual([0, 1, 2, 3, 4]);
+
+    // Forced 0: silence does not echo even when sabotaged in.
+    let z = echoRoom();
+    z.rounds[0].poolFull = ["sabotage", ...z.rounds[0].poolFull.slice(1)];
+    z.rounds[0].poolRemaining = ["sabotage", ...z.rounds[0].poolRemaining.slice(1)];
+    z = submitTurn(z, { playerId: "A", number: 4, powerUp: "sabotage", powerUpTarget: "B", sabotageNumber: 0 });
+    z = submitTurn(z, { playerId: "B", number: 3 });
+    z = submitTurn(z, { playerId: "C", number: 2 });
+    expect(z.rounds[0].hands["B"]).toEqual([1, 2, 3, 4]);
+  });
+});
+
 describe("peek mid-turn re-pick", () => {
   function setup(): RoomDoc {
     let r = startGame0(room3p());

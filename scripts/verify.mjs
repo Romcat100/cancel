@@ -605,8 +605,9 @@ async function submitCardNumber(page, number) {
 // (same trick as interferenceFlow), then drives its distinctive moment —
 // Broadcast's whole-board re-pick banner, Gate (id limiter) cutting the
 // lowest scorer in the reveal, Subharmonic lifting the lowest scorer,
-// Absorption paying the lone 0 the sum of what it silenced, and Inversion
-// flipping every scorer negative.
+// Absorption paying the lone 0 the sum of what it silenced, Inversion
+// flipping every scorer negative, and Echo keeping the played card in
+// hand on the next turn.
 async function roundPowersFlow(browser) {
   let selectModalShot = false;
   const startSoloWithPower = async (name, powerId, ai) => {
@@ -719,6 +720,26 @@ async function roundPowersFlow(browser) {
     await clickTestId(inv, "reveal-continue");
     await inv.waitForFunction(() => !document.querySelector('[data-testid="reveal-modal"]'), { timeout: 10_000 });
   }
+
+  // --- Echo: played cards return to the hand. Solo vs 1 AI deals 0..3; play
+  // the 3 on turn 1, then turn 2 must still offer it (normally it would be
+  // gone), and it gets played again. ---
+  const ec = await startSoloWithPower("Solo", "echo", 1);
+  await submitCardNumber(ec, "highest");
+  await ec.waitForSelector(tid("reveal-continue"), { timeout: 10_000 });
+  await clickTestId(ec, "reveal-continue");
+  await ec.waitForFunction(() => !document.querySelector('[data-testid="reveal-modal"]'), { timeout: 10_000 });
+  await ec.waitForSelector(tid("game-hand-card-3"), { timeout: 10_000 });
+  await shot(ec, "echo-full-hand-turn2"); // hand still holds the card played on turn 1
+  await submitCardNumber(ec, 3); // the same card, played again
+  await ec.waitForSelector(tid("reveal-continue"), { timeout: 10_000 });
+  await ec
+    .waitForFunction(
+      () => document.querySelector('[data-testid="reveal-modal"]')?.getAttribute("data-reveal-phase") === "score",
+      { timeout: 5_000 },
+    )
+    .catch(() => {});
+  await shot(ec, "echo-reveal-repeat", { fullPage: false });
 }
 
 // Drive an in-progress powerups-off game to the game-over screen (the reveal /

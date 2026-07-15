@@ -719,10 +719,14 @@ function resolveTurn(room: RoomDoc): RoomDoc {
   // Hand removal uses sabotage override but NOT switch override: each player
   // discards their own original pick (which is what's actually in their hand);
   // sabotage's forced number is the exception (the target loses the forced card,
-  // not their original).
+  // not their original). Under the Echo round power played cards return to the
+  // hand instead of being discarded — except the 0 ("silence does not echo"),
+  // which is spent as normal so a leader can't cancel the board every turn.
+  const echoActive = round.roundPower === "echo";
   const newHands = { ...round.hands };
   for (const playerId of Object.keys(room.pendingSubmissions)) {
     const removed = sabotageOverrides[playerId] ?? room.pendingSubmissions[playerId].number;
+    if (echoActive && removed !== 0) continue;
     newHands[playerId] = newHands[playerId].filter((n) => n !== removed);
   }
 
