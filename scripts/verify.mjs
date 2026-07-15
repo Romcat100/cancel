@@ -574,7 +574,8 @@ async function interferenceFlow(browser) {
 }
 
 // Click a specific card number (e.g. the 0 for Absorption), or the highest
-// enabled card when number is "highest" (so Limiter has a clear peak to clip).
+// enabled card when number is "highest" (keeps the human clear of Gate's
+// floor cut and Subharmonic's lift, so the effect lands visibly on a bot).
 async function submitCardNumber(page, number) {
   await page.waitForSelector(tid("game-submit"), { timeout: 10_000 });
   const picked = await page.evaluate((want) => {
@@ -602,9 +603,9 @@ async function submitCardNumber(page, number) {
 
 // New-round-powers coverage: pins each power via a one-entry Choose roster
 // (same trick as interferenceFlow), then drives its distinctive moment —
-// Broadcast's whole-board re-pick banner, Limiter clipping the peak card in
-// the reveal, Subharmonic lifting the lowest scorer, and Absorption paying
-// the lone 0 the sum of what it silenced.
+// Broadcast's whole-board re-pick banner, Gate (id limiter) cutting the
+// lowest scorer in the reveal, Subharmonic lifting the lowest scorer, and
+// Absorption paying the lone 0 the sum of what it silenced.
 async function roundPowersFlow(browser) {
   let selectModalShot = false;
   const startSoloWithPower = async (name, powerId, ai) => {
@@ -620,7 +621,7 @@ async function roundPowersFlow(browser) {
     await p.waitForSelector(tid("round-power-select-modal"), { timeout: 10_000 });
     await waitOpaque(p, "round-power-select-modal");
     if (!selectModalShot) {
-      // The full roster incl. Limiter / Absorption / Broadcast.
+      // The full roster incl. Gate / Absorption / Broadcast.
       await shot(p, "round-power-select-full-roster", { fullPage: false });
       selectModalShot = true;
     }
@@ -650,10 +651,11 @@ async function roundPowersFlow(browser) {
   await bc.waitForSelector(tid("reveal-continue"), { timeout: 10_000 });
   await shot(bc, "broadcast-reveal", { fullPage: false });
 
-  // --- Limiter: the peak card gets clipped to 0. Four players so some card
-  // almost always survives as the peak (a 2-player game too often ties out or
-  // lone-0s, leaving Limiter's correct no-op instead of a visible clip). Two
-  // turns shot, since a peak tie on any single turn hides the clip. ---
+  // --- Gate (id limiter): the lowest card that scored gets cut to 0. Four
+  // players so some card almost always survives as the floor (a 2-player game
+  // too often ties out or lone-0s, leaving Gate's correct no-op instead of a
+  // visible cut). Two turns shot, since a low tie on any single turn hides
+  // the cut. ---
   const lm = await startSoloWithPower("Solo", "limiter", 3);
   for (let turn = 1; turn <= 2; turn++) {
     await submitCardNumber(lm, "highest");
@@ -670,7 +672,7 @@ async function roundPowersFlow(browser) {
   }
 
   // --- Subharmonic: the lowest card that scored gains +4. Same 4-player,
-  // two-turn setup as Limiter (a low tie or a lone 0 on any single turn hides
+  // two-turn setup as Gate (a low tie or a lone 0 on any single turn hides
   // the lift, so two shots make one visible lift near-certain). ---
   const sh = await startSoloWithPower("Solo", "subharmonic", 3);
   for (let turn = 1; turn <= 2; turn++) {

@@ -905,7 +905,7 @@ describe("scoreTurn — round powers", () => {
     expect(points(r)).toEqual({ A: 0, B: 5, C: 3 });
   });
 
-  it("limiter: the highest card that scored is clipped to 0", () => {
+  it("limiter: the lowest card that scored is clipped to 0", () => {
     const r = scoreTurn(
       [
         { playerId: "A", number: 5 },
@@ -915,27 +915,27 @@ describe("scoreTurn — round powers", () => {
       undefined,
       "limiter",
     );
-    expect(points(r)).toEqual({ A: 0, B: 3, C: 1 });
-    const aNotes = r.lines.find((l) => l.playerId === "A")!.notes;
-    expect(aNotes).toContain("Limiter: 5 clipped to 0");
+    expect(points(r)).toEqual({ A: 5, B: 3, C: 0 });
+    const cNotes = r.lines.find((l) => l.playerId === "C")!.notes;
+    expect(cNotes).toContain("Gate: 1 cut to 0");
     // The clipped line must not read as a tie/cancel to revealTreatment.
-    expect(aNotes.some((n) => n.startsWith("Tied") || n.includes("Cancelled by 0"))).toBe(false);
+    expect(cNotes.some((n) => n.startsWith("Tied") || n.includes("Cancelled by 0"))).toBe(false);
   });
 
-  it("limiter: a tie for the top wipes itself first; the clip falls on the next survivor", () => {
+  it("limiter: a tie for the bottom wipes itself first; the clip falls on the next survivor", () => {
     const r = scoreTurn(
       [
-        { playerId: "A", number: 6 },
-        { playerId: "B", number: 6 },
+        { playerId: "A", number: 2 },
+        { playerId: "B", number: 2 },
         { playerId: "C", number: 4 },
-        { playerId: "D", number: 2 },
+        { playerId: "D", number: 6 },
       ],
       undefined,
       "limiter",
     );
-    // The 6s tie out on their own; the highest SURVIVOR is the 4, which gets clipped.
-    expect(points(r)).toEqual({ A: 0, B: 0, C: 0, D: 2 });
-    expect(r.lines.find((l) => l.playerId === "C")!.notes).toContain("Limiter: 4 clipped to 0");
+    // The 2s tie out on their own; the lowest SURVIVOR is the 4, which gets cut.
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0, D: 6 });
+    expect(r.lines.find((l) => l.playerId === "C")!.notes).toContain("Gate: 4 cut to 0");
   });
 
   it("limiter: a lone 0 wipes the board and leaves nothing to clip", () => {
@@ -949,7 +949,7 @@ describe("scoreTurn — round powers", () => {
       "limiter",
     );
     expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
-    expect(r.lines.every((l) => !l.notes.some((n) => n.startsWith("Limiter")))).toBe(true);
+    expect(r.lines.every((l) => !l.notes.some((n) => n.startsWith("Gate")))).toBe(true);
   });
 
   it("limiter: no positive deltas at all (everyone tied) is a no-op", () => {
@@ -963,10 +963,10 @@ describe("scoreTurn — round powers", () => {
       "limiter",
     );
     expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
-    expect(r.lines.every((l) => !l.notes.some((n) => n.startsWith("Limiter")))).toBe(true);
+    expect(r.lines.every((l) => !l.notes.some((n) => n.startsWith("Gate")))).toBe(true);
   });
 
-  it("dormant composition: limiter clips the peak face after a per-play double", () => {
+  it("dormant composition: limiter clips the floor face after a per-play double", () => {
     const r = scoreTurn(
       [
         { playerId: "A", number: 7, powerUp: "double" },
@@ -976,8 +976,8 @@ describe("scoreTurn — round powers", () => {
       undefined,
       "limiter",
     );
-    // Double pays A 14 and B 10 / C 4 — but A's 7 is still the highest face, so it's clipped.
-    expect(points(r)).toEqual({ A: 0, B: 10, C: 4 });
+    // Double pays A 14 / B 10 / C 4 — but C's 2 is still the lowest face, so it's clipped.
+    expect(points(r)).toEqual({ A: 14, B: 10, C: 0 });
   });
 
   it("dormant composition: limiter ignores negative deltas (nothing positive to clip)", () => {
@@ -991,7 +991,7 @@ describe("scoreTurn — round powers", () => {
       "limiter",
     );
     expect(points(r)).toEqual({ A: -4, B: -6, C: -2 });
-    expect(r.lines.every((l) => !l.notes.some((n) => n.startsWith("Limiter")))).toBe(true);
+    expect(r.lines.every((l) => !l.notes.some((n) => n.startsWith("Gate")))).toBe(true);
   });
 
   it("subharmonic: the lowest card that scored gains +4", () => {

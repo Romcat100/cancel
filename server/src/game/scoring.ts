@@ -29,8 +29,8 @@ export function scoreTurn(
 
   // Round powers apply to everyone for the whole round. Static reuses the per-play
   // negate-zero flag; Ultraviolet is a universal +2 at the eff stage; Harmony rewires
-  // the tie branch to double the tied value; Amplify, Limiter, and Subharmonic are
-  // post-passes at the end; Absorption extends the lone-canceller branch. Pure Tone has no branch anywhere
+  // the tie branch to double the tied value; Amplify, Gate (id `limiter`), and Subharmonic
+  // are post-passes at the end; Absorption extends the lone-canceller branch. Pure Tone has no branch anywhere
   // on purpose (the nothingburger pattern) — don't "fix" it. Refraction / Broadcast
   // are turn-flow changes handled in engine.ts, not scoring effects.
   const staticActive = roundPower === "static";
@@ -301,34 +301,35 @@ export function scoreTurn(
     }
   }
 
-  // Limiter (round power) runs at the very end: the highest SURVIVING face is clipped
-  // to 0. Surviving = a positive delta after the full pipeline, so cards already tied
-  // out or cancelled aren't the peak — the clip lands on the highest card that actually
-  // scored (a tie-for-highest wipes itself first, and the clip falls on the next card
-  // down). A board wiped by a lone 0 has no survivors and nothing gets clipped.
+  // Gate (round power, display name; the id stays `limiter` for save compat) runs at
+  // the very end: the lowest SURVIVING face is cut to 0. Surviving = a positive delta
+  // after the full pipeline, so cards already tied out or cancelled aren't the floor —
+  // the cut lands on the lowest card that actually scored (a tie-for-lowest wipes
+  // itself first, and the cut falls on the next card up). A board wiped by a lone 0
+  // has no survivors and nothing gets cut.
   // `lines` and `eff` share indexes (both map 1:1 from `plays`).
   if (roundPower === "limiter") {
-    let peak = -Infinity;
+    let floor = Infinity;
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i].delta > 0) peak = Math.max(peak, eff[i].face);
+      if (lines[i].delta > 0) floor = Math.min(floor, eff[i].face);
     }
-    if (peak !== -Infinity) {
+    if (floor !== Infinity) {
       for (let i = 0; i < lines.length; i++) {
-        if (lines[i].delta > 0 && eff[i].face === peak) {
+        if (lines[i].delta > 0 && eff[i].face === floor) {
           lines[i].delta = 0;
-          lines[i].notes.push(`Limiter: ${peak} clipped to 0`);
+          lines[i].notes.push(`Gate: ${floor} cut to 0`);
         }
       }
     }
   }
 
-  // Subharmonic (round power) is Limiter's mirror, also at the very end: the lowest
-  // SURVIVING face gains a flat +4. Surviving = a positive delta after the full
-  // pipeline, so a tied-out or cancelled card never collects the bonus (ties still
-  // score nothing) and a board wiped by a lone 0 has nothing to lift. A tie for the
-  // lowest face wipes itself first, so the lift lands on the lowest card that
-  // actually scored — and on all of them, should dormant powers ever leave several
-  // survivors sharing the low face (mirroring Limiter's clip-all-at-peak).
+  // Subharmonic (round power) is Gate's inverse on the same target, also at the
+  // very end: the lowest SURVIVING face gains a flat +4. Surviving = a positive delta
+  // after the full pipeline, so a tied-out or cancelled card never collects the bonus
+  // (ties still score nothing) and a board wiped by a lone 0 has nothing to lift. A
+  // tie for the lowest face wipes itself first, so the lift lands on the lowest card
+  // that actually scored — and on all of them, should dormant powers ever leave
+  // several survivors sharing the low face (mirroring Gate's cut-all-at-floor).
   if (roundPower === "subharmonic") {
     let low = Infinity;
     for (let i = 0; i < lines.length; i++) {

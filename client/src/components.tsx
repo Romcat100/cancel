@@ -253,10 +253,10 @@ const ROUND_POWER_VISUAL: Record<RoundPowerId, { abbr: string; color: string }> 
   static: { abbr: "Ø!", color: "#6fa8ff" }, // blue = zero/structural (matches negate_zero)
   ultraviolet: { abbr: "UV", color: "#b48bff" }, // violet = spectrum shift up
   refraction: { abbr: "△", color: "#e879f9" }, // fuchsia = glimpse a random player
-  limiter: { abbr: "▔", color: "#ff5c7a" }, // rose = harm (the peak gets clipped)
+  limiter: { abbr: "▁×", color: "#ff5c7a" }, // rose = harm (Gate: the floor gets cut; id stays limiter)
   absorption: { abbr: "Ø+", color: "#8ea2ff" }, // blue = zero/structural (the 0 drinks)
   broadcast: { abbr: "⊚", color: "#5bd6e6" }, // cyan = information (everyone glimpses all)
-  subharmonic: { abbr: "▁", color: "#34d399" }, // green = good for you (the low card lifts; glyph mirrors Limiter's)
+  subharmonic: { abbr: "▁", color: "#34d399" }, // green = good for you (the low card lifts)
 };
 
 function roundPowerVisual(id: RoundPowerId): { abbr: string; color: string } {

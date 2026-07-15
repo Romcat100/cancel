@@ -397,9 +397,9 @@ export const ROUND_POWERS: Record<RoundPowerId, RoundPowerDef> = {
   },
   limiter: {
     id: "limiter",
-    name: "Limiter",
+    name: "Gate",
     description:
-      "The loudest signal gets clipped. Each turn, the highest card that scored is cut to 0, so the biggest number on the board earns nothing.",
+      "Too quiet to pass the gate. Each turn, the lowest card that scored is cut to 0, so the smallest number on the board earns nothing.",
   },
   absorption: {
     id: "absorption",

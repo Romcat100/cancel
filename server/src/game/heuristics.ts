@@ -29,16 +29,9 @@ export function pUniqueAgainst(c: number, oppHands: number[][]): number {
 const GREED = 1.3;
 const PICK_FLOOR = 0.15; // floor added to each positive EV, as a fraction of the top card's EV
 
-// Chance every opponent plays a card strictly below `c` (so `c` would be the board max), assuming
+// Chance every opponent plays a card strictly above `c` (so `c` would be the board min), assuming
 // each opponent picks uniformly from their remaining hand. An empty opponent hand plays nothing
-// and can't beat `c`, so it contributes factor 1. Mirror: pAllAbove for the board-min chance.
-export function pAllBelow(c: number, oppHands: number[][]): number {
-  return oppHands.reduce(
-    (p, h) => (h.length > 0 ? p * (h.filter((n) => n < c).length / h.length) : p),
-    1,
-  );
-}
-
+// and can't undercut `c`, so it contributes factor 1.
 export function pAllAbove(c: number, oppHands: number[][]): number {
   return oppHands.reduce(
     (p, h) => (h.length > 0 ? p * (h.filter((n) => n > c).length / h.length) : p),
@@ -65,9 +58,9 @@ export function pAllAbove(c: number, oppHands: number[][]): number {
 //     timing and simulated slightly worse than baseline play.
 //   - absorption: the lone 0 also banks the sum of the silenced faces, so its denial value
 //     roughly gains the whole board's expected total (avg face x opponent count) on top.
-//   - limiter: the highest surviving card is clipped to 0, so discount a card by its chance of
-//     being the board max. (Approximation: ignores the tie-at-the-peak case where a tied top
-//     wipes itself before the clip.)
+//   - limiter (Gate): the lowest surviving card is cut to 0, so discount a card by its chance
+//     of being the board min. (Approximation: ignores the tie-at-the-floor case where a tied
+//     low wipes itself before the cut.)
 //   - subharmonic: the lowest surviving card gains +4, so credit a card's chance of being the
 //     board min while it survives.
 //   - pure_tone / refraction / broadcast: no scoring effect on the pick. amplify doubles every
@@ -98,7 +91,7 @@ export function chooseNumber(
     const pUnique = known.has(c) ? 0 : pUniqueAgainst(c, oppHands);
     if (roundPower === "harmony" && known.has(c)) return 2 * c;
     if (roundPower === "ultraviolet") return (c + 2) * pUnique;
-    if (roundPower === "limiter") return c * pUnique * (1 - pAllBelow(c, oppHands));
+    if (roundPower === "limiter") return c * pUnique * (1 - pAllAbove(c, oppHands));
     if (roundPower === "subharmonic") return c * pUnique + 4 * pAllAbove(c, oppHands) * pUnique;
     return c * pUnique;
   });

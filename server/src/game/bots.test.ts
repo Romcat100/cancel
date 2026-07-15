@@ -103,15 +103,15 @@ describe("chooseNumber — round-power awareness", () => {
     expect(share(absorbing, 0)).toBeGreaterThan(share(baseline, 0) + 0.08);
   });
 
-  it("limiter: never plays a card certain to be the board max (it would be clipped to 0)", () => {
-    // Both opponents hold only cards below 5, so the 5 is the guaranteed board max: its whole
-    // value gets clipped, EV 0. At baseline the 5 dominates.
+  it("limiter (Gate): never plays a card certain to be the board min (it would be cut to 0)", () => {
+    // Both opponents hold only cards above 1, so the 1 is the guaranteed board min: its whole
+    // value gets cut, EV 0. At baseline the 1 still gets a real share of picks.
     const hand = [1, 5];
-    const opp = [[1, 2], [2, 3]];
+    const opp = [[2, 3], [2, 4]];
     const baseline = draws(400, () => chooseNumber(hand, opp, []));
-    expect(share(baseline, 5)).toBeGreaterThan(0.5);
+    expect(share(baseline, 1)).toBeGreaterThan(0.05);
     const limited = draws(100, () => chooseNumber(hand, opp, [], Math.random, "limiter"));
-    expect(limited.every((n) => n !== 5)).toBe(true);
+    expect(limited.every((n) => n !== 1)).toBe(true);
   });
 
   it("subharmonic: favors the low card more (the board min gains +4)", () => {
@@ -133,7 +133,7 @@ describe("chooseNumber — round-power awareness", () => {
   });
 
   it("pure_tone / amplify: card ranking is unchanged (deliberate no-ops)", () => {
-    // Uniform scaling doesn't reorder EVs, so the crisp limiter setup above stays 5-dominant.
+    // Uniform scaling doesn't reorder EVs, so a crisp 5-dominant setup stays 5-dominant.
     const hand = [1, 5];
     const opp = [[1, 2], [2, 3]];
     for (const power of ["pure_tone", "amplify"] as const) {
@@ -177,19 +177,19 @@ describe("decideBotMove", () => {
     }
   });
 
-  it("threads the round power into the number pick (a Limiter bot never plays the certain max)", () => {
-    // Opponents hold only cards below 5, so under Limiter the 5's EV is exactly 0 (guaranteed
-    // clip); at baseline it's the dominant pick (~85%). 100 clean draws prove the round power
+  it("threads the round power into the number pick (a Gate bot never plays the certain min)", () => {
+    // Opponents hold only cards above 1, so under Gate the 1's EV is exactly 0 (guaranteed
+    // cut); at baseline it keeps a real share of picks. 100 clean draws prove the round power
     // actually reached chooseNumber.
     const r = startGame(soloRoom(2, { powerUpMode: "off" }));
     const bot = r.players.find((p) => p.isBot)!;
     r.rounds[0].roundPower = "limiter";
     r.rounds[0].hands[bot.id] = [1, 5];
     const others = r.players.filter((p) => p.id !== bot.id);
-    r.rounds[0].hands[others[0].id] = [1, 2];
-    r.rounds[0].hands[others[1].id] = [2, 3];
+    r.rounds[0].hands[others[0].id] = [2, 3];
+    r.rounds[0].hands[others[1].id] = [2, 4];
     for (let i = 0; i < 100; i++) {
-      expect(decideBotMove(r, bot.id).number).not.toBe(5);
+      expect(decideBotMove(r, bot.id).number).not.toBe(1);
     }
   });
 
