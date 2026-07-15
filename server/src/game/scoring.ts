@@ -29,8 +29,9 @@ export function scoreTurn(
 
   // Round powers apply to everyone for the whole round. Static reuses the per-play
   // negate-zero flag; Ultraviolet is a universal +2 at the eff stage; Harmony rewires
-  // the tie branch to double the tied value; Amplify, Gate (id `limiter`), and Subharmonic
-  // are post-passes at the end; Absorption extends the lone-canceller branch. Pure Tone has no branch anywhere
+  // the tie branch to double the tied value; Amplify, Gate (id `limiter`), Subharmonic,
+  // and Inversion are post-passes at the end; Absorption extends the lone-canceller
+  // branch. Pure Tone has no branch anywhere
   // on purpose (the nothingburger pattern) — don't "fix" it. Refraction / Broadcast
   // are turn-flow changes handled in engine.ts, not scoring effects.
   const staticActive = roundPower === "static";
@@ -341,6 +342,22 @@ export function scoreTurn(
           lines[i].delta += 4;
           lines[i].notes.push(`Subharmonic: ${low} lifted by 4`);
         }
+      }
+    }
+  }
+
+  // Inversion (round power) runs at the very end: every line that finished positive
+  // flips negative, so a card that scores counts against its player and the whole
+  // round becomes a hunt for ties and cancels (a wiped card keeps its 0, the best
+  // outcome on the board). Deltas already ≤ 0 (ties, cancels, dormant per-play
+  // negatives) are untouched — the power turns points into losses, it never rescues
+  // one. The flipped line renders via revealTreatment's negative-delta droop, so the
+  // note must not read as a tie/cancel.
+  if (roundPower === "inversion") {
+    for (const l of lines) {
+      if (l.delta > 0) {
+        l.notes.push(`Inversion: ${l.delta} flipped to ${-l.delta}`);
+        l.delta = -l.delta;
       }
     }
   }

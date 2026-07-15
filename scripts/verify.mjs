@@ -604,8 +604,9 @@ async function submitCardNumber(page, number) {
 // New-round-powers coverage: pins each power via a one-entry Choose roster
 // (same trick as interferenceFlow), then drives its distinctive moment —
 // Broadcast's whole-board re-pick banner, Gate (id limiter) cutting the
-// lowest scorer in the reveal, Subharmonic lifting the lowest scorer, and
-// Absorption paying the lone 0 the sum of what it silenced.
+// lowest scorer in the reveal, Subharmonic lifting the lowest scorer,
+// Absorption paying the lone 0 the sum of what it silenced, and Inversion
+// flipping every scorer negative.
 async function roundPowersFlow(browser) {
   let selectModalShot = false;
   const startSoloWithPower = async (name, powerId, ai) => {
@@ -700,6 +701,24 @@ async function roundPowersFlow(browser) {
     )
     .catch(() => {});
   await shot(ab, "absorption-reveal", { fullPage: false });
+
+  // --- Inversion: every card that scores counts against its player. Four
+  // players, two turns shot, so at least one negative droop is near-certain
+  // even if one turn ties out or gets wiped by a lone 0. ---
+  const inv = await startSoloWithPower("Solo", "inversion", 3);
+  for (let turn = 1; turn <= 2; turn++) {
+    await submitCardNumber(inv, "highest");
+    await inv.waitForSelector(tid("reveal-continue"), { timeout: 10_000 });
+    await inv
+      .waitForFunction(
+        () => document.querySelector('[data-testid="reveal-modal"]')?.getAttribute("data-reveal-phase") === "score",
+        { timeout: 5_000 },
+      )
+      .catch(() => {});
+    await shot(inv, `inversion-reveal-turn${turn}`, { fullPage: false });
+    await clickTestId(inv, "reveal-continue");
+    await inv.waitForFunction(() => !document.querySelector('[data-testid="reveal-modal"]'), { timeout: 10_000 });
+  }
 }
 
 // Drive an in-progress powerups-off game to the game-over screen (the reveal /

@@ -350,7 +350,8 @@ export type RoundPowerId =
   | "limiter"
   | "absorption"
   | "broadcast"
-  | "subharmonic";
+  | "subharmonic"
+  | "inversion";
 
 export interface RoundPowerDef {
   id: RoundPowerId;
@@ -418,6 +419,12 @@ export const ROUND_POWERS: Record<RoundPowerId, RoundPowerDef> = {
     name: "Subharmonic",
     description:
       "The deep frequency swells. Each turn, the lowest card that scored gains 4 bonus points.",
+  },
+  inversion: {
+    id: "inversion",
+    name: "Inversion",
+    description:
+      "The whole signal flips below the axis. Every card that scores counts against its player this round, so a tie or a cancel is a lucky escape.",
   },
 };
 

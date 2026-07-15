@@ -63,6 +63,10 @@ export function pAllAbove(c: number, oppHands: number[][]): number {
 //     low wipes itself before the cut.)
 //   - subharmonic: the lowest surviving card gains +4, so credit a card's chance of being the
 //     board min while it survives.
+//   - inversion: a surviving card scores MINUS its face, so desirability flips: weight a card
+//     by the loss a collision would dodge (face × P(collide); a knownPlays hit is a guaranteed
+//     save of the whole face). The 0 can neither gain nor lose and a lone 0 rescues the
+//     opponents from their negatives, so it keeps only a small junk-dump weight.
 //   - pure_tone / refraction / broadcast: no scoring effect on the pick. amplify doubles every
 //     nonzero delta uniformly (including the points a 0 denies), so card ranking is unchanged —
 //     a deliberate no-op here.
@@ -80,6 +84,7 @@ export function chooseNumber(
   const evs = myHand.map((c) => {
     if (c === 0) {
       if (roundPower === "static") return avgOpp * 0.3; // no cancel or score, just dodge value
+      if (roundPower === "inversion") return avgOpp * 0.2; // lone 0 rescues opponents; small dump weight
       if (roundPower === "ultraviolet") {
         // A 0 scores as a 2 (no denial); it still face-ties another 0, so gate on uniqueness.
         return known.has(0) ? 0 : 2 * pUniqueAgainst(0, oppHands);
@@ -90,6 +95,7 @@ export function chooseNumber(
     }
     const pUnique = known.has(c) ? 0 : pUniqueAgainst(c, oppHands);
     if (roundPower === "harmony" && known.has(c)) return 2 * c;
+    if (roundPower === "inversion") return c * (1 - pUnique);
     if (roundPower === "ultraviolet") return (c + 2) * pUnique;
     if (roundPower === "limiter") return c * pUnique * (1 - pAllAbove(c, oppHands));
     if (roundPower === "subharmonic") return c * pUnique + 4 * pAllAbove(c, oppHands) * pUnique;

@@ -124,6 +124,22 @@ describe("chooseNumber — round-power awareness", () => {
     expect(share(lifted, 1)).toBeGreaterThan(share(baseline, 1) + 0.15);
   });
 
+  it("inversion: hunts the known collision (a guaranteed tie saves the whole face)", () => {
+    // The glimpsed 5 is a certain collision: at baseline that's EV 0 (never picked while the
+    // unique 2 has value), but under Inversion a tie keeps the card at 0 while a survivor
+    // scores minus its face — so the 5 becomes the only card worth playing (the 2 would
+    // survive for -2, weight 0).
+    const hand = [2, 5];
+    const opp = [
+      [3, 4],
+      [3, 4],
+    ];
+    const baseline = draws(100, () => chooseNumber(hand, opp, [5]));
+    expect(baseline.every((n) => n === 2)).toBe(true);
+    const inverted = draws(100, () => chooseNumber(hand, opp, [5], Math.random, "inversion"));
+    expect(inverted.every((n) => n === 5)).toBe(true);
+  });
+
   it("ultraviolet: shifts weight toward low cards (every face scores +2)", () => {
     const hand = [1, 5];
     const opp = [hand, hand];

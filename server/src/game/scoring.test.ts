@@ -1139,4 +1139,88 @@ describe("scoreTurn — round powers", () => {
     ];
     expect(points(scoreTurn(plays, undefined, "absorption"))).toEqual(points(scoreTurn(plays)));
   });
+
+  it("inversion: every card that scores counts against its player", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 5 },
+        { playerId: "B", number: 3 },
+        { playerId: "C", number: 1 },
+      ],
+      undefined,
+      "inversion",
+    );
+    expect(points(r)).toEqual({ A: -5, B: -3, C: -1 });
+    const aNotes = r.lines.find((l) => l.playerId === "A")!.notes;
+    expect(aNotes).toContain("Inversion: 5 flipped to -5");
+    // The flipped line must not read as a tie/cancel to revealTreatment — a negative
+    // delta renders with the droop treatment.
+    expect(aNotes.some((n) => n.startsWith("Tied") || n.includes("Cancelled by 0"))).toBe(false);
+  });
+
+  it("inversion: a tie is a rescue — tied cards keep their 0 while survivors go negative", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 5 },
+        { playerId: "B", number: 5 },
+        { playerId: "C", number: 2 },
+      ],
+      undefined,
+      "inversion",
+    );
+    expect(points(r)).toEqual({ A: 0, B: 0, C: -2 });
+    expect(
+      r.lines
+        .filter((l) => l.playerId !== "C")
+        .every((l) => !l.notes.some((n) => n.startsWith("Inversion"))),
+    ).toBe(true);
+  });
+
+  it("inversion: a lone 0 wipes the board and leaves nothing to flip", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 0 },
+        { playerId: "B", number: 5 },
+        { playerId: "C", number: 3 },
+      ],
+      undefined,
+      "inversion",
+    );
+    // Cancelled cards keep their 0 (the best outcome under Inversion) and the lone Ø
+    // scores 0 as always — nothing positive remains, so nothing flips.
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
+    expect(r.lines.every((l) => !l.notes.some((n) => n.startsWith("Inversion")))).toBe(true);
+  });
+
+  it("dormant composition: inversion flips the result of a per-play double", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 2, powerUp: "double" },
+        { playerId: "B", number: 5 },
+        { playerId: "C", number: 7 },
+      ],
+      undefined,
+      "inversion",
+    );
+    // Double pays everyone twice their card (A 4, B 10, C 14); Inversion runs after
+    // and flips the final per-play result.
+    expect(points(r)).toEqual({ A: -4, B: -10, C: -14 });
+    expect(r.lines.find((l) => l.playerId === "A")!.notes).toContain("Inversion: 4 flipped to -4");
+  });
+
+  it("dormant composition: inversion leaves already-negative deltas alone (no double flip)", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 4, powerUp: "make_negative" },
+        { playerId: "B", number: 6 },
+        { playerId: "C", number: 2 },
+      ],
+      undefined,
+      "inversion",
+    );
+    // Make Negative already flipped every nonzero delta, so Inversion finds nothing
+    // positive — a loss must never flip back into a gain.
+    expect(points(r)).toEqual({ A: -4, B: -6, C: -2 });
+    expect(r.lines.every((l) => !l.notes.some((n) => n.startsWith("Inversion")))).toBe(true);
+  });
 });
