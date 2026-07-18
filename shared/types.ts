@@ -425,7 +425,7 @@ export const ROUND_POWERS: Record<RoundPowerId, RoundPowerDef> = {
     id: "inversion",
     name: "Inversion",
     description:
-      "The whole signal flips below the axis. Every card that scores counts against its player this round, so a tie or a cancel is a lucky escape.",
+      "The whole signal flips below the axis. Every card that scores means the player loses points this round.",
   },
   echo: {
     id: "echo",
