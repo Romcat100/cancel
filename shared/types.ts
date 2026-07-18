@@ -373,7 +373,7 @@ export const ROUND_POWERS: Record<RoundPowerId, RoundPowerDef> = {
     id: "harmony",
     name: "Harmony",
     description:
-      "Tied signals resonate instead of cancelling. If players tie, each tied card scores double its value instead of being wiped.",
+      "Tied signals resonate instead of clashing. If players tie, each tied card scores double its value instead of being wiped. A lone 0 still silences the board.",
   },
   amplify: {
     id: "amplify",

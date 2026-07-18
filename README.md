@@ -60,7 +60,7 @@ When on: at the start of each round, one power is drawn and shown to everyone. I
 | Power | What it does |
 |---|---|
 | **Pure Tone** (`~`) | A clean signal. No power this round, every card scores by the normal rules. |
-| **Harmony** (`≋`) | Tied signals resonate instead of cancelling. If players tie, each tied card scores double its value instead of being wiped. A lone `0` still cancels the board. |
+| **Harmony** (`≋`) | Tied signals resonate instead of clashing. If players tie, each tied card scores double its value instead of being wiped. A lone `0` still silences the board. |
 | **Amplify** (`×2`) | The signal is boosted. Every point scored this round is doubled, gains and losses alike. |
 | **Static** (`Ø!`) | Zeros are lost in the noise. A `0` is inert this round and cancels nothing. |
 | **Ultraviolet** (`UV`) | The whole spectrum shifts up. Every card plays 2 higher than its face value, so a `0` becomes a `2` and a `3` becomes a `5`. Ties use the raised values. |
