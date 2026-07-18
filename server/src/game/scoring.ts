@@ -37,6 +37,7 @@ export function scoreTurn(
   const staticActive = roundPower === "static";
   const ultravioletActive = roundPower === "ultraviolet";
   const harmonyActive = roundPower === "harmony";
+  const deadAirActive = roundPower === "dead_air";
 
   const negateZeroActive = powerUp === "negate_zero" || staticActive;
   const mutedId = powerUp === "mute" ? powerTarget : undefined;
@@ -106,15 +107,21 @@ export function scoreTurn(
   // A lone 0 cancels everyone. Multiple 0s normally suppress each other's cancel.
   // Tie Die (id "tie_die") on a 0 keeps it as THE canceller even when other 0s are
   // on the board — those other 0s no longer suppress it and are cancelled by it.
+  // Dead Air (round power) removes the suppression entirely: EVERY 0 cancels, so
+  // it takes precedence over the Tie Die shield (a strict superset of it).
   const shieldUserId = powerUp === "tie_die" ? powerUserId : undefined;
   const cancelZeros = eff.filter((e) => e.isCancel);
   const shieldedZero = cancelZeros.find((e) => e.playerId === shieldUserId);
-  const cancellerId = shieldedZero
-    ? shieldedZero.playerId
-    : cancelZeros.length === 1
-      ? cancelZeros[0].playerId
-      : undefined;
-  const cancelActive = cancellerId !== undefined;
+  const cancellerIds = new Set<string>(
+    deadAirActive
+      ? cancelZeros.map((z) => z.playerId)
+      : shieldedZero
+        ? [shieldedZero.playerId]
+        : cancelZeros.length === 1
+          ? [cancelZeros[0].playerId]
+          : [],
+  );
+  const cancelActive = cancellerIds.size > 0;
 
   // Tie detection: treat free_three as adding a "phantom 3" to the board. If anyone —
   // including the user themselves — played a real 3, that 3 collides with the phantom and
@@ -135,13 +142,20 @@ export function scoreTurn(
     let delta = 0;
     const notes = [...e.notes];
 
-    if (e.isCancel && e.playerId === cancellerId) {
+    if (e.isCancel && cancellerIds.has(e.playerId)) {
       delta = 0;
       notes.push(
-        shieldedZero && cancelZeros.length > 1
+        !deadAirActive && shieldedZero && cancelZeros.length > 1
           ? "Tie Die: 0 still cancels despite another 0"
           : "Played 0 (cancelled all others)",
       );
+      // Dead Air: multiple zeros all cancel instead of suppressing each other. Each
+      // keeps the standard cancelled-all-others note above (revealTreatment's winning-Ø
+      // look and stats.ts silence counts key off it); the extra note is flavor only and
+      // must not contain the revealTreatment substrings.
+      if (deadAirActive && cancelZeros.length > 1) {
+        notes.push("Dead Air: silence stacks");
+      }
       // Absorption: the lone canceller drinks what it silenced — it scores the sum
       // of the other cards' faces. Only the lone 0 absorbs; suppressed multi-zeros
       // fall through the branch below and score 0. The "cancelled all others" note

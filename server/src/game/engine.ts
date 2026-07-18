@@ -252,10 +252,13 @@ function rollWildPower(rng: () => number = Math.random): PowerUpId {
 // Round powers that fall flat in a 1v1, skipped by the random roll when a game has
 // 2 players. Harmony removes the tie penalty entirely (both players just double);
 // Refraction's "random other player" is always your one opponent, and you both glimpse
-// each other. A host who explicitly picks them in "selected" mode still gets them.
+// each other. Dead Air is score-inert with 2 players: both playing 0 already scores
+// everyone 0 under the base rules, so the power never changes an outcome. A host who
+// explicitly picks them in "selected" mode still gets them.
 const TWO_PLAYER_EXCLUDED_ROUND_POWERS: ReadonlySet<RoundPowerId> = new Set([
   "harmony",
   "refraction",
+  "dead_air",
 ]);
 
 // One power per round, applying to everyone. "off" rolls nothing; "random" draws

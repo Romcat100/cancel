@@ -140,6 +140,18 @@ describe("chooseNumber — round-power awareness", () => {
     expect(inverted.every((n) => n === 5)).toBe(true);
   });
 
+  it("dead_air: still plays the 0 against a known board 0 (the cancel can't be suppressed)", () => {
+    // knownPlays [0] collapses the 0's EV at baseline (a second 0 would suppress the
+    // cancel), so it's never picked while a live card has value. Under Dead Air the
+    // denial keeps no uniqueness gate, so the 0 stays in real rotation.
+    const hand = [0, 4];
+    const opp = [[0, 2]];
+    const baseline = draws(100, () => chooseNumber(hand, opp, [0]));
+    expect(baseline.every((n) => n !== 0)).toBe(true);
+    const dead = draws(600, () => chooseNumber(hand, opp, [0], Math.random, "dead_air"));
+    expect(share(dead, 0)).toBeGreaterThan(0.1);
+  });
+
   it("ultraviolet: shifts weight toward low cards (every face scores +2)", () => {
     const hand = [1, 5];
     const opp = [hand, hand];

@@ -1,6 +1,6 @@
 # Cancel
 
-A multiplayer browser game where everyone secretly picks a number, then reveals at once. If two players pick the same number, both score zero. The `0` card is "Cancel" — one zero negates everyone else's points; two or more zeros cancel each other out and the rest of the table scores normally. Each round a random **round power** (Harmony, Amplify, Static, Ultraviolet, Refraction, Gate, Absorption, Broadcast, Subharmonic, Inversion, Echo, or plain Pure Tone) bends the rules for everyone.
+A multiplayer browser game where everyone secretly picks a number, then reveals at once. If two players pick the same number, both score zero. The `0` card is "Cancel" — one zero negates everyone else's points; two or more zeros cancel each other out and the rest of the table scores normally. Each round a random **round power** (Harmony, Amplify, Static, Ultraviolet, Refraction, Gate, Absorption, Broadcast, Subharmonic, Inversion, Echo, Dead Air, or plain Pure Tone) bends the rules for everyone.
 
 The same engine supports both **live** play (everyone in the room at once) and **async** play (over hours/days — close your browser, come back later, your seat reclaims itself).
 
@@ -55,7 +55,7 @@ You can play **solo against AI** from the Home screen (tap **Single player**), o
 
 Round powers are on by default. In the lobby the host picks a mode: **None** (a pure-numbers game), **Random** (one power drawn at random each round), or **Choose** (the host hand-picks which powers can appear). Each round draws a power that hasn't come up yet this game, so powers never repeat within a game. If the eligible powers run out before the rounds do, repeats come back rather than leaving a round without a power.
 
-When on: at the start of each round, one power is drawn and shown to everyone. It applies to every player, on every turn of that round. A banner keeps it visible during play and on each reveal. In a 2-player game the random draw skips Harmony and Refraction (they fall flat 1v1), but a host can still hand-pick them in Choose mode.
+When on: at the start of each round, one power is drawn and shown to everyone. It applies to every player, on every turn of that round. A banner keeps it visible during play and on each reveal. In a 2-player game the random draw skips Harmony, Refraction, and Dead Air (they fall flat 1v1), but a host can still hand-pick them in Choose mode.
 
 | Power | What it does |
 |---|---|
@@ -71,6 +71,7 @@ When on: at the start of each round, one power is drawn and shown to everyone. I
 | **Subharmonic** (`▁`) | The deep frequency swells. Each turn, the lowest card that scored gains 4 bonus points. Tied or cancelled cards score nothing as usual, so the bonus goes to the lowest card that survived. |
 | **Inversion** (`−∿`) | The whole signal flips below the axis. Every card that scores counts against its player this round, so a tie or a cancel is a lucky escape. The best plays are the ones that get cancelled. |
 | **Echo** (`⟲`) | The signal repeats. Played cards return to your hand, so any card can be played again and again and every turn is a fresh standoff. Silence does not echo: a played `0` is spent for good. |
+| **Dead Air** (`ØØ`) | Silence cannot hide in silence. Zeros no longer suppress each other, so every `0` played still silences the board, no matter how many there are. |
 
 ## Project layout
 

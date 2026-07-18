@@ -1238,4 +1238,108 @@ describe("scoreTurn — round powers", () => {
     expect(points(r)).toEqual({ A: -4, B: -6, C: -2 });
     expect(r.lines.every((l) => !l.notes.some((n) => n.startsWith("Inversion")))).toBe(true);
   });
+
+  it("dead_air: two zeros still cancel — every 0 silences the board", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 0 },
+        { playerId: "B", number: 0 },
+        { playerId: "C", number: 5 },
+        { playerId: "D", number: 3 },
+      ],
+      undefined,
+      "dead_air",
+    );
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0, D: 0 });
+    for (const id of ["A", "B"]) {
+      const notes = r.lines.find((l) => l.playerId === id)!.notes;
+      // Each 0 keeps the standard note (revealTreatment's winning-Ø look and the
+      // stats.ts silence counts key off it) plus the flavor note.
+      expect(notes).toContain("Played 0 (cancelled all others)");
+      expect(notes).toContain("Dead Air: silence stacks");
+    }
+    for (const id of ["C", "D"]) {
+      expect(r.lines.find((l) => l.playerId === id)!.notes).toContain("Cancelled by 0");
+    }
+  });
+
+  it("dead_air: three zeros all cancel — the whole board scores 0", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 0 },
+        { playerId: "B", number: 0 },
+        { playerId: "C", number: 0 },
+        { playerId: "D", number: 7 },
+      ],
+      undefined,
+      "dead_air",
+    );
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0, D: 0 });
+    for (const id of ["A", "B", "C"]) {
+      expect(r.lines.find((l) => l.playerId === id)!.notes).toContain(
+        "Played 0 (cancelled all others)",
+      );
+    }
+    expect(r.lines.find((l) => l.playerId === "D")!.notes).toContain("Cancelled by 0");
+  });
+
+  it("dead_air: a lone 0 behaves exactly like the base rules", () => {
+    const plays = [
+      { playerId: "A", number: 0 },
+      { playerId: "B", number: 5 },
+      { playerId: "C", number: 3 },
+    ];
+    const r = scoreTurn(plays, undefined, "dead_air");
+    expect(points(r)).toEqual(points(scoreTurn(plays)));
+    // No suppression happened, so no flavor note either.
+    expect(r.lines.every((l) => !l.notes.some((n) => n.startsWith("Dead Air")))).toBe(true);
+  });
+
+  it("dead_air: with no zeros it scores identically to no power (ties still tie)", () => {
+    const plays = [
+      { playerId: "A", number: 4 },
+      { playerId: "B", number: 4 },
+      { playerId: "C", number: 3 },
+    ];
+    expect(points(scoreTurn(plays, undefined, "dead_air"))).toEqual(points(scoreTurn(plays)));
+  });
+
+  it("dormant composition: Negate Zero still makes 0s inert under dead_air", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 0, powerUp: "negate_zero" },
+        { playerId: "B", number: 0 },
+        { playerId: "C", number: 5 },
+      ],
+      undefined,
+      "dead_air",
+    );
+    // Negate Zero strips isCancel at the eff stage, so Dead Air finds no cancel
+    // zeros to promote — the two inert 0s just face-tie each other and C scores.
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 5 });
+    expect(r.lines.every((l) => !l.notes.some((n) => n.includes("cancelled all others")))).toBe(
+      true,
+    );
+  });
+
+  it("dormant composition: a Tie Die 0 among multiple 0s cancels via dead_air (standard note)", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 0, powerUp: "tie_die" },
+        { playerId: "B", number: 0 },
+        { playerId: "C", number: 5 },
+      ],
+      undefined,
+      "dead_air",
+    );
+    // Dead Air is a superset of the Tie Die shield: BOTH zeros cancel, so the shield
+    // note never fires and each 0 carries the standard cancelled-all-others note.
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
+    for (const id of ["A", "B"]) {
+      const notes = r.lines.find((l) => l.playerId === id)!.notes;
+      expect(notes).toContain("Played 0 (cancelled all others)");
+      expect(notes.some((n) => n.startsWith("Tie Die"))).toBe(false);
+    }
+    expect(r.lines.find((l) => l.playerId === "C")!.notes).toContain("Cancelled by 0");
+  });
 });

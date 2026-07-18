@@ -178,9 +178,9 @@ describe("engine lifecycle", () => {
     expect(ROUND_POWER_IDS).toContain(r.rounds[0].roundPower!);
   });
 
-  it("random mode never rolls harmony or refraction in a 2-player game", () => {
+  it("random mode never rolls harmony, refraction, or dead_air in a 2-player game", () => {
     // Sweep rng across the whole [0,1) range: the 2-player roster must cover every
-    // other power and never land on the two excluded ones.
+    // other power and never land on the excluded ones.
     const rolled = new Set<RoundPowerId>();
     for (let i = 0; i < 200; i++) {
       let r = createRoom({ code: "RND2", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null });
@@ -190,8 +190,9 @@ describe("engine lifecycle", () => {
     }
     expect(rolled.has("harmony")).toBe(false);
     expect(rolled.has("refraction")).toBe(false);
+    expect(rolled.has("dead_air")).toBe(false);
     // Everything else stays in the roll.
-    expect(rolled.size).toBe(ROUND_POWER_IDS.length - 2);
+    expect(rolled.size).toBe(ROUND_POWER_IDS.length - 3);
   });
 
   it("selected mode still honors an explicit harmony/refraction pick with 2 players", () => {

@@ -352,7 +352,8 @@ export type RoundPowerId =
   | "broadcast"
   | "subharmonic"
   | "inversion"
-  | "echo";
+  | "echo"
+  | "dead_air";
 
 export interface RoundPowerDef {
   id: RoundPowerId;
@@ -432,6 +433,12 @@ export const ROUND_POWERS: Record<RoundPowerId, RoundPowerDef> = {
     name: "Echo",
     description:
       "The signal repeats. Played cards return to your hand to be played again, but silence does not echo. A played 0 is spent for good.",
+  },
+  dead_air: {
+    id: "dead_air",
+    name: "Dead Air",
+    description:
+      "Silence cannot hide in silence. Zeros no longer suppress each other, so every 0 played still silences the board, no matter how many there are.",
   },
 };
 

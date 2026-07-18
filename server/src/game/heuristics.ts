@@ -63,6 +63,8 @@ export function pAllAbove(c: number, oppHands: number[][]): number {
 //     low wipes itself before the cut.)
 //   - subharmonic: the lowest surviving card gains +4, so credit a card's chance of being the
 //     board min while it survives.
+//   - dead_air: zeros never suppress each other, so the 0's denial value loses its
+//     uniqueness gate — it cancels the board no matter how many other 0s land.
 //   - inversion: a surviving card scores MINUS its face, so desirability flips: weight a card
 //     by the loss a collision would dodge (face × P(collide); a knownPlays hit is a guaranteed
 //     save of the whole face). The 0 can neither gain nor lose and a lone 0 rescues the
@@ -87,6 +89,10 @@ export function chooseNumber(
     if (c === 0) {
       if (roundPower === "static") return avgOpp * 0.3; // no cancel or score, just dodge value
       if (roundPower === "inversion") return avgOpp * 0.2; // lone 0 rescues opponents; small dump weight
+      // Dead Air: the cancel can't be suppressed, so the denial value keeps no
+      // uniqueness gate. Even against a known board 0, dumping yours costs nothing
+      // (the board is wiped either way), so the weight stays unconditional.
+      if (roundPower === "dead_air") return avgOpp * 0.6;
       if (roundPower === "ultraviolet") {
         // A 0 scores as a 2 (no denial); it still face-ties another 0, so gate on uniqueness.
         return known.has(0) ? 0 : 2 * pUniqueAgainst(0, oppHands);
