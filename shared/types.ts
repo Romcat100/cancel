@@ -465,7 +465,7 @@ export const ROUND_POWERS: Record<RoundPowerId, RoundPowerDef> = {
     id: "fadeout",
     name: "Fadeout",
     description:
-      "Last signal standing. Each turn the lowest scorer fades out and scores nothing for the rest of the round. Faded players still play, and their cards still tie and cancel. If every remaining player matches, nobody fades. Outlast everyone and earn +2 per faded rival.",
+      "Last signal standing. Each turn the player who scores the least fades out and scores nothing for the rest of the round. Tied and cancelled cards count as scoring zero. Faded players still play, and their cards still tie and cancel. If everyone left comes out even, nobody fades. Outlast everyone and earn +2 per faded rival.",
   },
   // Keep conductor LAST: engine tests pin the round-power rng to () => 0 and walk
   // this roster from index 0, so appending avoids reshuffling their expectations.
