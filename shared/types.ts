@@ -106,6 +106,18 @@ export interface RoundState {
   // The one power applying to everyone this round (public). Absent when the round
   // power mode is off, or on rounds persisted before the round-power feature.
   roundPower?: RoundPowerId;
+  // Conductor round power (all public — the pick is a spectator moment).
+  // Set at round end when this round's power is conductor and at least one option
+  // could be drawn. The winner is the round's top scorer, or one of the tied top
+  // scorers drawn by lot; only an empty option pool skips the pick entirely.
+  conductorWinnerId?: string;
+  conductorOptions?: RoundPowerId[];
+  conductorChoice?: RoundPowerId;
+  // Who chose THIS round's power (set on the round after a conducted one).
+  roundPowerChosenBy?: string;
+  // True when this power was rolled even though the previous round was a conductor
+  // round (tie / absent winner / empty options): the preview stages a random draw.
+  roundPowerDrawnAtRandom?: boolean;
 }
 
 export interface RoundHistoryEntry {
@@ -353,7 +365,8 @@ export type RoundPowerId =
   | "subharmonic"
   | "inversion"
   | "echo"
-  | "dead_air";
+  | "dead_air"
+  | "conductor";
 
 export interface RoundPowerDef {
   id: RoundPowerId;
@@ -439,6 +452,14 @@ export const ROUND_POWERS: Record<RoundPowerId, RoundPowerDef> = {
     name: "Dead Air",
     description:
       "Silence cannot hide in silence. Zeros no longer suppress each other, so every 0 played still silences the board, no matter how many there are.",
+  },
+  // Keep conductor LAST: engine tests pin the round-power rng to () => 0 and walk
+  // this roster from index 0, so appending avoids reshuffling their expectations.
+  conductor: {
+    id: "conductor",
+    name: "Conductor",
+    description:
+      "Take the podium. Cards score by the normal rules this round, and whoever scores highest picks the next round's power from 3 drawn options. A tied round sends the podium to one of the tied players by lot. Never drawn for a game's final round.",
   },
 };
 

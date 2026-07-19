@@ -4,6 +4,7 @@ import {
   addPlayer,
   claimHost,
   createRoom,
+  forceAdvanceRound,
   forceResolveTurn,
   removePlayer,
   resetToLobby,
@@ -39,7 +40,9 @@ function startGame0(r: RoomDoc): RoomDoc {
 // Pin the round-power roll to index 0 so multi-round structural tests stay
 // deterministic. Rolls always skip powers already used this game, so with rng 0
 // each round steps down the roster (pure_tone → harmony → amplify → …); games cap
-// at 5 rounds, so a flow-changing power (refraction, broadcast) is never reached.
+// at 5 rounds, so a flow-changing power (refraction, broadcast) is never reached —
+// and conductor is deliberately appended LAST in ROUND_POWERS so this walk (and
+// every pinned-rng assertion below) never lands on it either.
 function ackAll(r: RoomDoc): RoomDoc {
   for (const p of r.players) r = ackRoundEnd(r, p.id, () => 0);
   return r;
@@ -170,7 +173,8 @@ describe("engine lifecycle", () => {
 
   it("random mode rolls a round power from the full roster", () => {
     // rng 0.999 → the last roster entry; the roll is rng-threaded through startGame.
-    let r = createRoom({ code: "RND1", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null });
+    // 2 rounds so the final-round conductor exclusion doesn't shrink the roster here.
+    let r = createRoom({ code: "RND1", hostId: "A", hostName: "Alice", rounds: 2, turnDeadlineMs: null });
     r = addPlayer(r, "B", "Bob");
     r = addPlayer(r, "C", "Carol");
     r = startGame(r, () => 0.999);
@@ -181,9 +185,10 @@ describe("engine lifecycle", () => {
   it("random mode never rolls harmony, refraction, or dead_air in a 2-player game", () => {
     // Sweep rng across the whole [0,1) range: the 2-player roster must cover every
     // other power and never land on the excluded ones.
+    // 2 rounds so the final-round conductor exclusion doesn't also apply to round 0.
     const rolled = new Set<RoundPowerId>();
     for (let i = 0; i < 200; i++) {
-      let r = createRoom({ code: "RND2", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null });
+      let r = createRoom({ code: "RND2", hostId: "A", hostName: "Alice", rounds: 2, turnDeadlineMs: null });
       r = addPlayer(r, "B", "Bob");
       r = startGame(r, () => i / 200);
       rolled.add(r.rounds[0].roundPower!);
@@ -1595,3 +1600,187 @@ describe("swap_hands", () => {
     expect(r.phase).toBe("round_end");
   });
 });
+
+describe("conductor (round power)", () => {
+  // A started 3p game (rounds: 3) with conductor pinned on round 0, the same
+  // direct-mutation trick the other round-power tests use.
+  function conductorGame(): RoomDoc {
+    const r = startGame0(room3p());
+    r.rounds[0].roundPower = "conductor";
+    return r;
+  }
+
+  // Play out all 5 turns so resolveTurn runs the round-end transition for real.
+  // Ties do the score-splitting: C wins the round 7 to B's 5 and A's 3.
+  function playRoundCWins(r: RoomDoc): RoomDoc {
+    const turns: [number, number, number][] = [
+      [4, 4, 3], // A/B tie and wipe; C +3
+      [3, 2, 4], // all distinct: A +3, B +2, C +4
+      [2, 3, 2], // A/C tie and wipe; B +3
+      [1, 1, 1], // three-way tie, nobody scores
+      [0, 0, 0], // zeros suppress each other
+    ];
+    for (const [a, b, c] of turns) {
+      r = submitTurn(r, { playerId: "A", number: a });
+      r = submitTurn(r, { playerId: "B", number: b });
+      r = submitTurn(r, { playerId: "C", number: c });
+    }
+    return r;
+  }
+
+  it("a conductor round stamps the sole round winner and 3 drawn options at round end", () => {
+    let r = conductorGame();
+    r = playRoundCWins(r);
+    expect(r.phase).toBe("round_end");
+    const round = r.rounds[0];
+    expect(round.perPlayerRoundScore).toEqual({ A: 3, B: 5, C: 7 });
+    expect(round.conductorWinnerId).toBe("C");
+    const opts = round.conductorOptions!;
+    expect(opts).toHaveLength(3);
+    expect(new Set(opts).size).toBe(3);
+    for (const o of opts) {
+      expect(ROUND_POWER_IDS).toContain(o);
+      // This round used conductor, so the no-repeat filter keeps it off the menu.
+      expect(o).not.toBe("conductor");
+    }
+  });
+
+  it("a tied conductor round draws one of the tied players by lot", () => {
+    // The lot (and the option shuffle) run on Math.random; pin it so the draw is
+    // deterministic. rng 0 → the first tied player in seat order.
+    const spy = vi.spyOn(Math, "random").mockReturnValue(0);
+    try {
+      let r = conductorGame();
+      // Everyone plays identical numbers every turn: every card ties out, all scores 0,
+      // so all three players are tied for the round win.
+      for (const n of [4, 3, 2, 1, 0]) {
+        r = submitTurn(r, { playerId: "A", number: n });
+        r = submitTurn(r, { playerId: "B", number: n });
+        r = submitTurn(r, { playerId: "C", number: n });
+      }
+      expect(r.phase).toBe("round_end");
+      expect(r.rounds[0].conductorWinnerId).toBe("A");
+      expect((r.rounds[0].conductorOptions ?? []).length).toBeGreaterThan(0);
+      // The drawn player conducts exactly like a clean winner.
+      r = ackRoundEnd(r, "B");
+      r = ackRoundEnd(r, "C");
+      const choice = r.rounds[0].conductorOptions![0];
+      r = ackRoundEnd(r, "A", () => 0, choice);
+      expect(r.currentRoundIndex).toBe(1);
+      expect(r.rounds[1].roundPower).toBe(choice);
+      expect(r.rounds[1].roundPowerChosenBy).toBe("A");
+      expect(r.rounds[1].roundPowerDrawnAtRandom).toBeUndefined();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("the winner's ack carries the pick; the next round starts with it, credited", () => {
+    let r = conductorGame();
+    r = playRoundCWins(r);
+    // Non-winners ack plainly, before the winner picks.
+    r = ackRoundEnd(r, "A");
+    r = ackRoundEnd(r, "B");
+    expect(r.currentRoundIndex).toBe(0);
+    const choice = r.rounds[0].conductorOptions![0];
+    r = ackRoundEnd(r, "C", () => 0, choice);
+    expect(r.currentRoundIndex).toBe(1);
+    expect(r.rounds[0].conductorChoice).toBe(choice);
+    expect(r.rounds[1].roundPower).toBe(choice);
+    expect(r.rounds[1].roundPowerChosenBy).toBe("C");
+    // A chosen power is not a random draw.
+    expect(r.rounds[1].roundPowerDrawnAtRandom).toBeUndefined();
+  });
+
+  it("rejects a pick from a non-winner, an off-menu pick, and a winner ack without a pick", () => {
+    let r = conductorGame();
+    r = playRoundCWins(r);
+    const opts = r.rounds[0].conductorOptions!;
+    expect(() => ackRoundEnd(r, "A", () => 0, opts[0])).toThrow(/Only the round winner/);
+    const offMenu = ROUND_POWER_IDS.find((id) => id !== "conductor" && !opts.includes(id))!;
+    expect(() => ackRoundEnd(r, "C", () => 0, offMenu)).toThrow(/not one of the options/);
+    expect(() => ackRoundEnd(r, "C")).toThrow(/Pick the next round's power first/);
+  });
+
+  it("forceAdvanceRound honors a recorded pick and rolls randomly past an absent winner", () => {
+    let r = conductorGame();
+    r = playRoundCWins(r);
+    const choice = r.rounds[0].conductorOptions![1];
+    // Winner picked but A/B never ack: the host pushes through with the pick intact.
+    const picked = ackRoundEnd(r, "C", () => 0, choice);
+    const advanced = forceAdvanceRound(picked, "A", () => 0);
+    expect(advanced.currentRoundIndex).toBe(1);
+    expect(advanced.rounds[1].roundPower).toBe(choice);
+    expect(advanced.rounds[1].roundPowerChosenBy).toBe("C");
+    // Winner absent, no pick recorded: normal random roll, no credit, flagged
+    // as a random draw.
+    const fallback = forceAdvanceRound(r, "A", () => 0);
+    expect(fallback.currentRoundIndex).toBe(1);
+    expect(fallback.rounds[1].roundPower).toBe(ROUND_POWER_IDS[0]);
+    expect(fallback.rounds[1].roundPowerChosenBy).toBeUndefined();
+    expect(fallback.rounds[1].roundPowerDrawnAtRandom).toBe(true);
+  });
+
+  it("an ordinary round roll is not flagged as a conductor draw", () => {
+    let r = startGame0(room3p()); // round 0 = pure_tone, not conductor
+    r = { ...r, phase: "round_end" };
+    r = ackAll(r);
+    expect(r.rounds[1].roundPower).toBeDefined();
+    expect(r.rounds[1].roundPowerDrawnAtRandom).toBeUndefined();
+  });
+
+  it("never rolls conductor for a game's final round", () => {
+    // rounds: 1 → round 0 is the final round; sweep the rng across [0,1).
+    for (let i = 0; i < 50; i++) {
+      let r = createRoom({ code: "CND1", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null });
+      r = addPlayer(r, "B", "Bob");
+      r = addPlayer(r, "C", "Carol");
+      r = startGame(r, () => i / 50);
+      expect(r.rounds[0].roundPower).not.toBe("conductor");
+    }
+  });
+
+  it("selected mode also filters conductor on the final round; a conductor-only roster rolls nothing", () => {
+    let r = createRoom({ code: "CND2", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, powerUpMode: "selected", selectedRoundPowers: ["conductor", "static"] });
+    r = addPlayer(r, "B", "Bob");
+    // rng 0 would land on conductor (first roster entry) if the filter didn't run.
+    r = startGame(r, () => 0);
+    expect(r.rounds[0].roundPower).toBe("static");
+
+    // The filtered roster can empty out entirely: the round is just power-less.
+    let solo = createRoom({ code: "CND3", hostId: "A", hostName: "Alice", rounds: 1, turnDeadlineMs: null, powerUpMode: "selected", selectedRoundPowers: ["conductor"] });
+    solo = addPlayer(solo, "B", "Bob");
+    solo = startGame0(solo);
+    expect(solo.phase).toBe("turn_submitting");
+    expect(solo.rounds[0].roundPower).toBeUndefined();
+  });
+
+  it("skips conduct mode when no option can be drawn, so the winner isn't wedged", () => {
+    // Conductor-only roster in a 2-round game: round 0 rolls conductor, but round 1
+    // is final so the option pool filters conductor out and comes up empty.
+    let r = createRoom({ code: "CND4", hostId: "A", hostName: "Alice", rounds: 2, turnDeadlineMs: null, powerUpMode: "selected", selectedRoundPowers: ["conductor"] });
+    r = addPlayer(r, "B", "Bob");
+    r = addPlayer(r, "C", "Carol");
+    r = startGame0(r);
+    expect(r.rounds[0].roundPower).toBe("conductor");
+    r = playRoundCWins(r);
+    expect(r.rounds[0].conductorWinnerId).toBeUndefined();
+    expect(r.rounds[0].conductorOptions).toBeUndefined();
+    // Everyone acks plainly, no pick required; the final round is power-less.
+    r = ackAll(r);
+    expect(r.currentRoundIndex).toBe(1);
+    expect(r.rounds[1].roundPower).toBeUndefined();
+  });
+
+  it("offers what's left when fewer than 3 powers are eligible", () => {
+    let r = createRoom({ code: "CND5", hostId: "A", hostName: "Alice", rounds: 3, turnDeadlineMs: null, powerUpMode: "selected", selectedRoundPowers: ["conductor", "static", "harmony"] });
+    r = addPlayer(r, "B", "Bob");
+    r = addPlayer(r, "C", "Carol");
+    r = startGame0(r); // rng 0 → conductor (round 0 of 3 is not final)
+    expect(r.rounds[0].roundPower).toBe("conductor");
+    r = playRoundCWins(r);
+    expect(r.rounds[0].conductorWinnerId).toBe("C");
+    expect([...(r.rounds[0].conductorOptions ?? [])].sort()).toEqual(["harmony", "static"]);
+  });
+});
+

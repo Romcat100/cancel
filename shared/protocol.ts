@@ -62,6 +62,9 @@ export interface StartGameReq {
 export interface AckRoundEndReq {
   roomCode: string;
   claimToken: string;
+  // Conductor round power: the round winner's pick for the next round's power,
+  // sent with their ack. Validated by the engine against the drawn options.
+  chosenPower?: RoundPowerId;
 }
 
 export interface SubmitTurnReq {

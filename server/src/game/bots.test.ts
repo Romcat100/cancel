@@ -287,6 +287,42 @@ describe("driveBots", () => {
     expect(r.rounds[0].reveals[0].peekUsed?.peekerId).toBe(peeker.id);
   });
 
+  it("a bot conductor winner sends a pick with its ack", () => {
+    let r = startGame(soloRoom(1, { rounds: 2 })); // human + 1 bot
+    const bot = r.players.find((p) => p.isBot)!;
+    // Fast-forward to a conducted round end with the bot as the winner.
+    r = { ...r, phase: "round_end" as const };
+    r.rounds[0].roundPower = "conductor";
+    r.rounds[0].conductorWinnerId = bot.id;
+    r.rounds[0].conductorOptions = ["static", "echo"];
+    r = driveBots(r, () => 0); // pinned rng → the first option
+    expect(r.rounds[0].endAcksBy).toContain(bot.id);
+    expect(r.rounds[0].conductorChoice).toBe("static");
+    // The human acks; the next round starts with the bot's pick, credited.
+    r = ackRoundEnd(r, human(r).id);
+    expect(r.currentRoundIndex).toBe(1);
+    expect(r.rounds[1].roundPower).toBe("static");
+    expect(r.rounds[1].roundPowerChosenBy).toBe(bot.id);
+  });
+
+  it("bots ack plainly when the human won the conductor round (no stall)", () => {
+    let r = startGame(soloRoom(2, { rounds: 2 })); // human + 2 bots
+    r = { ...r, phase: "round_end" as const };
+    r.rounds[0].roundPower = "conductor";
+    r.rounds[0].conductorWinnerId = human(r).id;
+    r.rounds[0].conductorOptions = ["static", "echo"];
+    r = driveBots(r);
+    for (const b of r.players.filter((p) => p.isBot)) {
+      expect(r.rounds[0].endAcksBy).toContain(b.id);
+    }
+    expect(r.rounds[0].conductorChoice).toBeUndefined();
+    // The human's pick rides their ack and the round advances on it.
+    r = ackRoundEnd(r, human(r).id, undefined, "echo");
+    expect(r.currentRoundIndex).toBe(1);
+    expect(r.rounds[1].roundPower).toBe("echo");
+    expect(r.rounds[1].roundPowerChosenBy).toBe(human(r).id);
+  });
+
   it("does nothing in a lobby or a botless room", () => {
     const lobby = soloRoom(2);
     expect(driveBots(lobby)).toBe(lobby); // lobby phase → no-op (same ref)

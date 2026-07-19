@@ -311,7 +311,17 @@ export function driveBots(room: RoomDoc, rng: () => number = Math.random): RoomD
       const round = cur.rounds[cur.currentRoundIndex];
       const bot = cur.players.find((p) => p.isBot && !round.endAcksBy.includes(p.id));
       if (!bot) return cur;
-      cur = ackRoundEnd(cur, bot.id);
+      // Conductor: a bot that won the round must send a pick with its ack. Random
+      // among the drawn options — chooseNumber never models future rounds, so there
+      // is no EV basis to prefer one power over another.
+      const opts =
+        round.roundPower === "conductor" &&
+        round.conductorWinnerId === bot.id &&
+        !round.conductorChoice
+          ? round.conductorOptions ?? []
+          : [];
+      const choice = opts.length > 0 ? opts[Math.floor(rng() * opts.length)] : undefined;
+      cur = ackRoundEnd(cur, bot.id, undefined, choice);
       continue;
     }
     return cur; // lobby / game_end — nothing for bots to do

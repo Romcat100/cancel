@@ -72,6 +72,7 @@ When on: at the start of each round, one power is drawn and shown to everyone. I
 | **Inversion** (`−∿`) | The whole signal flips below the axis. Every card that scores counts against its player this round, so a tie or a cancel is a lucky escape. The best plays are the ones that get cancelled. |
 | **Echo** (`⟲`) | The signal repeats. Played cards return to your hand, so any card can be played again and again and every turn is a fresh standoff. Silence does not echo: a played `0` is spent for good. |
 | **Dead Air** (`ØØ`) | Silence cannot hide in silence. Zeros no longer suppress each other, so every `0` played still silences the board, no matter how many there are. |
+| **Conductor** (`♪`) | Take the podium. Cards score by the normal rules this round, and whoever scores highest picks the next round's power from 3 drawn options. A tied round sends the podium to one of the tied players by lot. Never drawn for a game's final round (there would be nothing left to conduct). |
 
 ## Project layout
 

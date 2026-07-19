@@ -284,7 +284,7 @@ export function apiAckRoundEnd(req: AckRoundEndReq, ctx: ApiCtx) {
   const player = authPlayer(req.roomCode, req.claimToken);
   let room = loadRoom(req.roomCode);
   if (!room) throw new Error("Room not found");
-  room = ackRoundEnd(room, player.id);
+  room = ackRoundEnd(room, player.id, Math.random, req.chosenPower);
   room = driveBots(room);
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));

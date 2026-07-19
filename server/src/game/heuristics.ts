@@ -73,7 +73,9 @@ export function pAllAbove(c: number, oppHands: number[][]): number {
 //     nonzero delta uniformly (including the points a 0 denies), so card ranking is unchanged —
 //     a deliberate no-op here. echo (cards return to hand; only a played 0 is spent) is also a
 //     deliberate no-op: scoring is untouched and this function already evaluates one turn at a
-//     time from the current hands, never modeling card conservation across turns.
+//     time from the current hands, never modeling card conservation across turns. conductor
+//     (round winner picks the next round's power) is likewise a deliberate no-op: scoring is
+//     baseline during its round, and this function never models future rounds.
 export function chooseNumber(
   myHand: number[],
   oppHands: number[][],

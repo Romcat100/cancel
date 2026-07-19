@@ -46,8 +46,11 @@ export const api = {
       count,
     });
   },
-  ackRoundEnd(roomCode: string, claimToken: string) {
-    return call<{ ok: true; state: RoomStateForPlayer }>("POST", `/api/rooms/${roomCode}/ack-round-end`, { claimToken });
+  ackRoundEnd(roomCode: string, claimToken: string, chosenPower?: RoundPowerId) {
+    return call<{ ok: true; state: RoomStateForPlayer }>("POST", `/api/rooms/${roomCode}/ack-round-end`, {
+      claimToken,
+      chosenPower,
+    });
   },
   forceAdvance(roomCode: string, claimToken: string) {
     return call<{ ok: true; state: RoomStateForPlayer }>("POST", `/api/rooms/${roomCode}/force-advance`, { claimToken });

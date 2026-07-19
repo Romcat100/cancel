@@ -68,6 +68,21 @@ export interface RoundDoc {
   // The one power applying to everyone this round. Absent when powerUpMode is off,
   // or on rounds persisted before the round-power feature.
   roundPower?: RoundPowerId;
+  // Conductor round power: stamped onto the ending round by resolveTurn when at
+  // least one option could be drawn. The winner is the round's top scorer, or one
+  // of the tied top scorers drawn by lot. The winner's ack then carries their pick
+  // into conductorChoice; ackRoundEnd/forceAdvanceRound hand it to startRound as
+  // the next round's forced power. All optional — absent on empty option pools and
+  // every pre-feature save.
+  conductorWinnerId?: string;
+  conductorOptions?: RoundPowerId[];
+  conductorChoice?: RoundPowerId;
+  // Who chose this round's power (the previous round's conductor winner).
+  roundPowerChosenBy?: string;
+  // True when this round's power was ROLLED even though the previous round was a
+  // conductor round (a tie, an absent winner, or an empty option draw): the client
+  // plays a "random draw" reveal on the round-power preview instead of a credit.
+  roundPowerDrawnAtRandom?: boolean;
 }
 
 export interface PeekReviewDoc {
@@ -261,30 +276,53 @@ const TWO_PLAYER_EXCLUDED_ROUND_POWERS: ReadonlySet<RoundPowerId> = new Set([
   "dead_air",
 ]);
 
-// One power per round, applying to everyone. "off" rolls nothing; "random" draws
-// uniformly from the full roster (minus the 2-player exclusions); "selected" draws
-// from the host's curated list. A legacy save in selected mode with no curated round
-// powers rolls nothing (plain rounds) rather than surprising players with the full roster.
+// The eligible round powers for a given round: "off" yields nothing; "random" draws
+// from the full roster (minus the 2-player exclusions); "selected" draws from the
+// host's curated list. A legacy save in selected mode with no curated round powers
+// rolls nothing (plain rounds) rather than surprising players with the full roster.
 // Powers rolled in earlier rounds of this game are always skipped, so a game never
 // repeats a power; if that exhausts the roster (more rounds than eligible powers),
-// the roll falls back to the full roster rather than leaving the round power-less.
-function rollRoundPower(
+// the pool falls back to the full roster rather than leaving the round power-less.
+// Conductor chooses the NEXT round's power, so it is dead weight on a game's final
+// round: it's filtered from the roster BEFORE the fresh/fallback split (so even the
+// exhausted-roster fallback can't resurface it there). Shared by the roll and the
+// conductor options draw so their eligibility rules can never drift apart.
+function roundPowerPool(
   config: RoomDoc["config"],
   playerCount: number,
   usedPowers: RoundPowerId[],
-  rng: () => number = Math.random,
-): RoundPowerId | undefined {
-  if (config.powerUpMode === "off") return undefined;
-  const roster =
+  roundIndex: number,
+): RoundPowerId[] {
+  if (config.powerUpMode === "off") return [];
+  let roster =
     config.powerUpMode === "selected"
       ? config.selectedRoundPowers
       : playerCount <= 2
         ? ROUND_POWER_IDS.filter((id) => !TWO_PLAYER_EXCLUDED_ROUND_POWERS.has(id))
         : ROUND_POWER_IDS;
-  if (roster.length === 0) return undefined;
+  if (roundIndex + 1 >= config.rounds) roster = roster.filter((id) => id !== "conductor");
+  if (roster.length === 0) return [];
   const fresh = roster.filter((id) => !usedPowers.includes(id));
-  const pool = fresh.length > 0 ? fresh : roster;
+  return fresh.length > 0 ? fresh : roster;
+}
+
+// One power per round, applying to everyone, drawn uniformly from roundPowerPool.
+function rollRoundPower(
+  config: RoomDoc["config"],
+  playerCount: number,
+  usedPowers: RoundPowerId[],
+  roundIndex: number,
+  rng: () => number = Math.random,
+): RoundPowerId | undefined {
+  const pool = roundPowerPool(config, playerCount, usedPowers, roundIndex);
+  if (pool.length === 0) return undefined;
   return pool[Math.floor(rng() * pool.length)];
+}
+
+// Powers rolled in earlier rounds of this game, skipped by the next roll. A rematch
+// resets this for free: resetToLobby wipes room.rounds.
+function usedRoundPowers(rounds: RoundDoc[]): RoundPowerId[] {
+  return rounds.flatMap((rd) => (rd.roundPower ? [rd.roundPower] : []));
 }
 
 // `allowed` narrows the eligible powers (the host's "selected" allow-list). When omitted,
@@ -382,18 +420,32 @@ export function setRoomConfig(
   };
 }
 
-function startRound(room: RoomDoc, roundIndex: number, rng: () => number = Math.random): RoomDoc {
+function startRound(
+  room: RoomDoc,
+  roundIndex: number,
+  rng: () => number = Math.random,
+  // Conductor: the previous round's winner picked this round's power, so skip the
+  // roll and credit them on the new round.
+  forced?: { power: RoundPowerId; chosenBy: string },
+): RoomDoc {
   const handSize = room.players.length + 2;
   // Per-turn pools are dormant: never dealt anymore (dealPool is retained for the
   // dormant per-turn system). Each round instead rolls one power for everyone.
   const poolFull: PowerUpId[] = [];
-  // Powers rolled in earlier rounds of this game, skipped by the next roll. A rematch
-  // resets this for free: resetToLobby wipes room.rounds.
-  const usedRoundPowers = room.rounds.flatMap((rd) => (rd.roundPower ? [rd.roundPower] : []));
+  const roundPower =
+    forced?.power ??
+    rollRoundPower(room.config, room.players.length, usedRoundPowers(room.rounds), roundIndex, rng);
+  // A conductor round was supposed to hand this pick to its winner; if we rolled
+  // anyway (absent winner skipped by forceAdvance, or an empty option draw), flag
+  // it so the client can stage the roll as a visible random draw.
+  const afterConductor =
+    !forced && roundPower != null && room.rounds[roundIndex - 1]?.roundPower === "conductor";
   const round: RoundDoc = {
     index: roundIndex,
     poolFull,
-    roundPower: rollRoundPower(room.config, room.players.length, usedRoundPowers, rng),
+    roundPower,
+    roundPowerChosenBy: forced?.chosenBy,
+    roundPowerDrawnAtRandom: afterConductor || undefined,
     poolRemaining: [],
     rotation: buildRotation(room.players, handSize, roundIndex, room.firstPickerSeat ?? 0),
     reveals: [],
@@ -799,7 +851,39 @@ function resolveTurn(room: RoomDoc): RoomDoc {
 
   if (isLastTurn) {
     const isLastRound = room.currentRoundIndex + 1 >= room.config.rounds;
-    const ended: RoomDoc = { ...next, phase: "round_end" };
+    let ended: RoomDoc = { ...next, phase: "round_end" };
+    if (!isLastRound && round.roundPower === "conductor") {
+      // Conductor: the round's top scorer picks the next round's power from up to
+      // 3 drawn options. A tie for the top sends the podium to one of the tied
+      // players by lot (the client stages the draw as a name flicker). Only an
+      // empty option pool (e.g. a one-entry Choose roster before a final round)
+      // skips conduct mode entirely, so a winner is never wedged behind a pick
+      // with no options; that case falls back to the normal random roll.
+      const scores = room.players.map((p) => updatedRoundScores[p.id] ?? 0);
+      const max = Math.max(...scores);
+      const winners = room.players.filter((p) => (updatedRoundScores[p.id] ?? 0) === max);
+      // Math.random like the Wild roll and peek targets; tests mock it.
+      const winner = winners[Math.floor(Math.random() * winners.length)];
+      // next.rounds already includes this round, so conductor itself counts as
+      // used and can only reappear via the exhausted-roster fallback.
+      const pool = roundPowerPool(
+        room.config,
+        room.players.length,
+        usedRoundPowers(next.rounds),
+        room.currentRoundIndex + 1,
+      );
+      const options = shuffle(pool).slice(0, 3);
+      if (options.length > 0) {
+        ended = {
+          ...ended,
+          rounds: ended.rounds.map((r, i) =>
+            i === room.currentRoundIndex
+              ? { ...r, conductorWinnerId: winner.id, conductorOptions: options }
+              : r,
+          ),
+        };
+      }
+    }
     return isLastRound ? endGame(ended) : ended;
   }
   return next;
@@ -817,17 +901,44 @@ export function unsubmitTurn(room: RoomDoc, playerId: string): RoomDoc {
   };
 }
 
+// Conductor: the recorded pick for the next round, if this round had a conducting
+// winner who chose. Absent (→ normal random roll) on ties, non-conductor rounds,
+// and when the winner never picked (forceAdvance past an absent winner).
+function conductorForced(round: RoundDoc): { power: RoundPowerId; chosenBy: string } | undefined {
+  return round.roundPower === "conductor" && round.conductorChoice && round.conductorWinnerId
+    ? { power: round.conductorChoice, chosenBy: round.conductorWinnerId }
+    : undefined;
+}
+
 export function ackRoundEnd(
   room: RoomDoc,
   playerId: string,
   rng: () => number = Math.random,
+  chosenPower?: RoundPowerId,
 ): RoomDoc {
   if (room.phase !== "round_end") return room;
   const round = room.rounds[room.currentRoundIndex];
   if (round.endAcksBy.includes(playerId)) return room;
+  // Conductor: the round winner's ack must carry their pick for the next round.
+  const conducting =
+    round.roundPower === "conductor" &&
+    round.conductorWinnerId === playerId &&
+    (round.conductorOptions?.length ?? 0) > 0;
+  if (chosenPower != null) {
+    if (!conducting) throw new Error("Only the round winner picks the next power");
+    if (!round.conductorOptions!.includes(chosenPower)) {
+      throw new Error("That power is not one of the options");
+    }
+  } else if (conducting && !round.conductorChoice) {
+    throw new Error("Pick the next round's power first");
+  }
   const acks = [...round.endAcksBy, playerId];
   const allReady = acks.length === room.players.length;
-  const updatedRound: RoundDoc = { ...round, endAcksBy: acks };
+  const updatedRound: RoundDoc = {
+    ...round,
+    endAcksBy: acks,
+    conductorChoice: chosenPower ?? round.conductorChoice,
+  };
   const next: RoomDoc = {
     ...room,
     rounds: room.rounds.map((r, i) => (i === room.currentRoundIndex ? updatedRound : r)),
@@ -836,7 +947,7 @@ export function ackRoundEnd(
   if (!allReady) return next;
   const nextRoundIdx = room.currentRoundIndex + 1;
   if (nextRoundIdx >= room.config.rounds) return endGame(next);
-  return startRound(next, nextRoundIdx, rng);
+  return startRound(next, nextRoundIdx, rng, conductorForced(updatedRound));
 }
 
 export function forceAdvanceRound(
@@ -848,7 +959,9 @@ export function forceAdvanceRound(
   if (room.phase !== "round_end") return room;
   const nextRoundIdx = room.currentRoundIndex + 1;
   if (nextRoundIdx >= room.config.rounds) return endGame(room);
-  return startRound(room, nextRoundIdx, rng);
+  // Honors a conductor pick recorded before the stall; an absent winner who never
+  // picked just falls back to the random roll.
+  return startRound(room, nextRoundIdx, rng, conductorForced(room.rounds[room.currentRoundIndex]));
 }
 
 function endGame(room: RoomDoc): RoomDoc {

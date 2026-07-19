@@ -97,6 +97,13 @@ export function projectStateForPlayer(
         roundScores: round.perPlayerRoundScore,
         endAcksBy: round.endAcksBy,
         roundPower: round.roundPower,
+        // Conductor round power: all public by design — everyone watches the
+        // winner's pick, and the chosen-by credit is part of the next round.
+        conductorWinnerId: round.conductorWinnerId,
+        conductorOptions: round.conductorOptions,
+        conductorChoice: round.conductorChoice,
+        roundPowerChosenBy: round.roundPowerChosenBy,
+        roundPowerDrawnAtRandom: round.roundPowerDrawnAtRandom,
       }
     : undefined;
 

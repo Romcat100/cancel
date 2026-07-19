@@ -865,9 +865,180 @@ async function tie3Flow(browser) {
   await shot(host, "three-way-tie");
 }
 
+// Conductor round power: two scripted humans, a one-entry Choose roster so round 1
+// is guaranteed conductor, a 4-round game, and a deterministic host round-1 win
+// (cards 0..3 in a 2-player game: Host 1,0,2,3 vs Joiner 0,3,1,2 → the lone 0s wipe
+// turns 1-2, then Host takes 2v1 and 3v2 for a 5-3 round). Screenshots the live
+// leader line from both seats, the joiner's waiting chip, the host's pick UI (a
+// single option — conductor again, via the exhausted-roster fallback, locking the
+// "offer what's left" edge), the joiner's chosen chip, and round 2's "Chosen by"
+// credit on the preview and the in-game banner. Round 2 (conductor again) is then
+// played to a scripted all-tie: the podium is drawn by lot between the tied players
+// (shots of the lot winner's "tie broke your way" pick UI and the other seat's
+// "drew the podium" chip — which side is which is random, so the flow branches),
+// then the host skips waiting past the unpicked winner to lock round 3's "Drawn at
+// random" slot-machine preview reveal (the draw animation runs in the harness too,
+// so the shot waits for the settle fade to finish).
+async function conductorFlow(browser) {
+  const host = await newPlayer(browser, "Host");
+  await waitForText(host, "CANCEL");
+  await clickTestId(host, "home-new-game");
+  await typeInto(host, tid("home-name-input"), "Host");
+  await clickTestId(host, "home-create-room");
+  await host.waitForSelector(tid("lobby-options"), { timeout: 10_000 });
+  const code = await host.$eval(tid("lobby-room-code"), (el) => el.innerText.trim());
+  console.log(`[verify] room code: ${code}`);
+
+  // Choose roster = [conductor] only; 4 rounds so round 3 can re-draw conductor
+  // (a conductor-only roster before a FINAL round has nothing to offer).
+  await openOptions(host);
+  await setRounds(host, 4);
+  await clickTestId(host, "lobby-powerup-selected");
+  await host.waitForSelector(tid("round-power-select-modal"), { timeout: 10_000 });
+  await waitOpaque(host, "round-power-select-modal");
+  await clickTestId(host, "round-power-select-none");
+  await clickTestId(host, "round-power-select-option-conductor");
+  await clickTestId(host, "round-power-select-save");
+  await host.waitForFunction(
+    () => !document.querySelector('[data-testid="round-power-select-modal"]'),
+    { timeout: 10_000 },
+  );
+  await closeOptions(host);
+
+  const joiner = await newPlayer(browser, "Joiner");
+  await waitForText(joiner, "CANCEL");
+  await clickTestId(joiner, "home-join-with-code");
+  await typeInto(joiner, tid("home-code-input"), code);
+  await typeInto(joiner, tid("home-name-input"), "Joiner");
+  await clickTestId(joiner, "home-join");
+  await joiner.waitForSelector(tid("lobby-options"), { timeout: 10_000 });
+
+  await clickTestId(host, "lobby-start-game");
+  const dismissPreview = async (page) => {
+    await page.waitForSelector(tid("round-power-preview-modal"), { timeout: 10_000 });
+    await waitOpaque(page, "round-power-preview-modal");
+    await clickTestId(page, "round-power-preview-play");
+    await page.waitForSelector(tid("game-submit"), { timeout: 10_000 });
+  };
+  await dismissPreview(host);
+  await dismissPreview(joiner);
+
+  // Play a scripted list of [host, joiner] card pairs, clicking through reveals.
+  const playTurns = async (pairs, onAfterTurn) => {
+    for (let i = 0; i < pairs.length; i++) {
+      const [h, j] = pairs[i];
+      await submitCardNumber(host, h);
+      await submitCardNumber(joiner, j);
+      for (const page of [host, joiner]) {
+        await page.waitForSelector(tid("reveal-continue"), { timeout: 10_000 });
+        await clickTestId(page, "reveal-continue");
+        await page.waitForFunction(() => !document.querySelector('[data-testid="reveal-modal"]'), {
+          timeout: 10_000,
+        });
+      }
+      if (onAfterTurn) await onAfterTurn(i);
+    }
+  };
+
+  // Round 1: 4 turns in a 2-player game, host wins 5-3.
+  await playTurns(
+    [
+      [1, 0], // Joiner's lone 0 wipes the board
+      [0, 3], // Host's lone 0 wipes back
+      [2, 1], // Host +2, Joiner +1
+      [3, 2], // Host +3, Joiner +2 → Host wins 5-3
+    ],
+    async (i) => {
+      if (i !== 2) return;
+      // After turn 3 the host leads 2-1: the banner's live conductor readout,
+      // from both seats ("you lead…" vs "Host leads…").
+      await host.waitForFunction(
+        () => document.querySelector('[data-testid="game-round-power-leader"]')?.textContent?.includes("you lead"),
+        { timeout: 10_000 },
+      );
+      await shot(host, "conductor-leader-line");
+      await joiner.waitForFunction(
+        () => document.querySelector('[data-testid="game-round-power-leader"]')?.textContent?.includes("Host leads"),
+        { timeout: 10_000 },
+      );
+      await shot(joiner, "conductor-leader-line-opponent");
+    },
+  );
+
+  // Round end: the joiner waits on the conducting host.
+  await joiner.waitForSelector(tid("round-end-conductor-waiting"), { timeout: 10_000 });
+  await waitOpaque(joiner, "round-end-modal");
+  await shot(joiner, "conductor-joiner-waiting", { fullPage: false });
+  await host.waitForSelector(tid("round-end-conductor-choose"), { timeout: 10_000 });
+  await waitOpaque(host, "round-end-modal");
+  await shot(host, "conductor-host-pick", { fullPage: false });
+
+  // Host picks (the lone fallback option: conductor again); joiner sees the chosen chip.
+  await clickTestId(host, "round-end-conductor-option-conductor");
+  await joiner.waitForSelector(tid("round-end-conductor-chosen"), { timeout: 10_000 });
+  await shot(joiner, "conductor-joiner-chosen-chip", { fullPage: false });
+
+  // Joiner acks → round 2 starts with the chosen power, credited on the preview…
+  await clickTestId(joiner, "round-end-ack");
+  await joiner.waitForSelector(tid("round-power-preview-chosen-by"), { timeout: 10_000 });
+  await waitOpaque(joiner, "round-power-preview-modal");
+  await shot(joiner, "conductor-round2-preview-chosen-by", { fullPage: false });
+  await dismissPreview(joiner);
+
+  // …and on the host's in-game banner ("chosen by you").
+  await host.waitForSelector(tid("round-power-preview-modal"), { timeout: 10_000 });
+  await dismissPreview(host);
+  await host.waitForSelector(tid("game-round-power-chosen-by"), { timeout: 10_000 });
+  await shot(host, "conductor-round2-banner-chosen-by");
+
+  // Round 2 (conductor, chosen by Host): identical cards every turn → every card
+  // ties or suppresses, an all-zero round → the podium is drawn by LOT between
+  // the two tied players (a name-flicker plays first, then the pick UI lands on
+  // whichever seat the engine drew).
+  await playTurns([
+    [0, 0],
+    [1, 1],
+    [2, 2],
+    [3, 3],
+  ]);
+  await host.waitForFunction(
+    () =>
+      document.querySelector('[data-testid="round-end-conductor-choose"]') ||
+      document.querySelector('[data-testid="round-end-conductor-waiting"]'),
+    { timeout: 15_000 },
+  );
+  const hostDrewLot = await has(host, "round-end-conductor-choose");
+  const lotWinner = hostDrewLot ? host : joiner;
+  const lotOther = hostDrewLot ? joiner : host;
+  console.log(`[verify] lot winner: ${hostDrewLot ? "Host" : "Joiner"}`);
+  await lotWinner.waitForSelector(tid("round-end-conductor-choose"), { timeout: 15_000 });
+  await waitOpaque(lotWinner, "round-end-modal");
+  await shot(lotWinner, "conductor-lot-winner-pick", { fullPage: false }); // "The tie broke your way."
+  await lotOther.waitForSelector(tid("round-end-conductor-waiting"), { timeout: 15_000 });
+  await shot(lotOther, "conductor-lot-waiting-chip", { fullPage: false }); // "NAME drew the podium…"
+
+  // Nobody picks; the host skips waiting past the unpicked lot winner → round 3
+  // opens with the slot-machine "Drawn at random" reveal (the draw is conductor
+  // again, the only roster entry and round 3 is not final). The drawn-random
+  // testid appears at settle; wait out the 300ms description/button fade-in
+  // before shooting the landed frame.
+  await clickTestId(host, "round-end-force-advance");
+  await host.waitForSelector(tid("round-power-preview-drawn-random"), { timeout: 15_000 });
+  await host.waitForFunction(
+    () => {
+      const b = document.querySelector('[data-testid="round-power-preview-play"]');
+      return b && getComputedStyle(b).opacity === "1";
+    },
+    { timeout: 10_000 },
+  );
+  await waitOpaque(host, "round-power-preview-modal");
+  await shot(host, "conductor-round3-drawn-at-random", { fullPage: false });
+}
+
 const flows = {
   "lobby-rounds": lobbyRoundsFlow,
   "tie-3way": tie3Flow,
+  conductor: conductorFlow,
   "host-leave": hostLeaveFlow,
   "single-player": singlePlayerFlow,
   interference: interferenceFlow,

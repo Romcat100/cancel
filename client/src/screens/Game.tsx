@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { POWER_UPS, type PowerUpId, type RevealedTurn, type RoundPowerId } from "../../../shared/types.js";
+import { POWER_UPS, ROUND_POWER_IDS, type PowerUpId, type RevealedTurn, type RoundPowerId } from "../../../shared/types.js";
 import { api } from "../api.js";
 import { getIdentity, hasSeenPreviewLocal, markPreviewSeenLocal } from "../identity.js";
 import { useAppStore } from "../store.js";
@@ -121,11 +121,11 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
     markPreviewSeenLocal(publicState.roomCode, round.index);
   }
 
-  async function ackRound() {
+  async function ackRound(chosenPower?: RoundPowerId) {
     if (!id) return;
     setBusy(true);
     try {
-      const res = await api.ackRoundEnd(publicState.roomCode, id.claimToken);
+      const res = await api.ackRoundEnd(publicState.roomCode, id.claimToken, chosenPower);
       setState(res.state);
     } catch (e) {
       setErr((e as Error).message);
@@ -357,6 +357,34 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
               <div className="font-display font-bold text-paper leading-tight">
                 {roundPowerDef(round.roundPower).name}
               </div>
+              {(() => {
+                // Conductor credit: only when the chooser is still seated (kicked players drop out).
+                const chooser = publicState.players.find((p) => p.id === round.roundPowerChosenBy);
+                return chooser ? (
+                  <div className="text-[11px] text-paper/50 leading-tight" data-testid="game-round-power-chosen-by">
+                    chosen by {chooser.id === selfPlayerId ? "you" : chooser.name}
+                  </div>
+                ) : null;
+              })()}
+              {round.roundPower === "conductor" &&
+                (() => {
+                  // Live "who conducts next" readout: the round's current top scorer.
+                  // A tie (including the all-zero start) would send the podium to a lot.
+                  const scores = round.roundScores ?? {};
+                  const max = Math.max(...publicState.players.map((p) => scores[p.id] ?? 0));
+                  const leaders = publicState.players.filter((p) => (scores[p.id] ?? 0) === max);
+                  const line =
+                    leaders.length === 1
+                      ? leaders[0].id === selfPlayerId
+                        ? `you lead the round at +${max}`
+                        : `${leaders[0].name} leads the round at +${max}`
+                      : "tied for the lead, a tie draws the podium by lot";
+                  return (
+                    <div className="text-[11px] text-gold/80 leading-tight" data-testid="game-round-power-leader">
+                      {line}
+                    </div>
+                  );
+                })()}
             </div>
             <span className="text-paper/40 text-[11px] font-mono shrink-0">
               {roundPowerOpen ? "hide" : "what's this?"}
@@ -650,7 +678,16 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
       </div>
 
       {showPreview && phase !== "round_end" && round.roundPower != null && (
-        <RoundPowerPreview id={round.roundPower} onDismiss={dismissPreview} roundIndex={round.index} />
+        <RoundPowerPreview
+          id={round.roundPower}
+          onDismiss={dismissPreview}
+          roundIndex={round.index}
+          chosenByName={(() => {
+            const chooser = publicState.players.find((p) => p.id === round.roundPowerChosenBy);
+            return chooser ? (chooser.id === selfPlayerId ? "you" : chooser.name) : undefined;
+          })()}
+          drawnAtRandom={round.roundPowerDrawnAtRandom}
+        />
       )}
       {/* Dormant: pool previews only appear for legacy in-flight rounds with a dealt pool. */}
       {showPreview && phase !== "round_end" && round.roundPower == null && round.poolFull.length > 0 && (
@@ -682,6 +719,10 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
           roundHistory={publicState.roundHistory}
           acks={round.endAcksBy}
           onAck={ackRound}
+          roundPower={round.roundPower}
+          conductorWinnerId={round.conductorWinnerId}
+          conductorOptions={round.conductorOptions}
+          conductorChoice={round.conductorChoice}
           alreadyAcked={round.endAcksBy.includes(selfPlayerId)}
           busy={busy}
           isHost={isHost}
@@ -834,11 +875,50 @@ function RoundPowerPreview({
   id,
   onDismiss,
   roundIndex,
+  chosenByName,
+  drawnAtRandom,
 }: {
   id: RoundPowerId;
   onDismiss: () => void;
   roundIndex: number;
+  // Conductor credit: the previous round's winner who picked this power.
+  chosenByName?: string;
+  // The conductor pick fell through (tie / absent winner / empty options): stage
+  // the roll as a slot-machine draw before settling on the real result.
+  drawnAtRandom?: boolean;
 }) {
+  // Non-null while the draw animation cycles decoy powers; null once settled.
+  // The result is already decided server-side, this is pure theatre. Seeded
+  // spinning (when it will animate at all) so the real power never flashes first.
+  const [spin, setSpin] = useState<RoundPowerId | null>(() =>
+    drawnAtRandom && !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? ROUND_POWER_IDS.find((p) => p !== id) ?? null
+      : null,
+  );
+  const settled = spin == null;
+  useEffect(() => {
+    if (!drawnAtRandom) return;
+    // Respect reduced motion (and keep the verify harness on the resting frame).
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const decoys = ROUND_POWER_IDS.filter((p) => p !== id).sort(() => Math.random() - 0.5);
+    const steps = 12;
+    let step = 0;
+    let timer: number;
+    const tick = () => {
+      if (step >= steps) {
+        setSpin(null);
+        playSfx("confirm");
+        return;
+      }
+      setSpin(decoys[step % decoys.length]);
+      playSfx("tap");
+      // Decelerate: quick flicker at first, slowing to a landing.
+      timer = window.setTimeout(tick, 60 + step * step * 2.2);
+      step++;
+    };
+    tick();
+    return () => window.clearTimeout(timer);
+  }, [drawnAtRandom, id]);
   return (
     <div
       className="fixed inset-0 z-50 bg-ink/95 backdrop-blur-md flex flex-col items-center justify-center p-4 animate-rise overflow-y-auto"
@@ -848,13 +928,30 @@ function RoundPowerPreview({
         <div className="font-mono text-xs uppercase tracking-[0.3em] text-paper/50">Round {roundIndex + 1}</div>
         <div className="font-display text-3xl font-bold text-gold mt-2">This round's power</div>
         <div className="text-paper/50 text-sm mt-1">It applies to everyone, on every turn this round.</div>
+        {chosenByName != null && (
+          <div className="text-gold/90 text-sm mt-1" data-testid="round-power-preview-chosen-by">
+            Chosen by <span className="font-bold">{chosenByName}</span>
+          </div>
+        )}
+        {drawnAtRandom && (
+          <div
+            className="text-gold/90 text-sm mt-1"
+            data-testid={settled ? "round-power-preview-drawn-random" : undefined}
+          >
+            {settled ? "Drawn at random" : "Drawing at random…"}
+          </div>
+        )}
       </div>
-      <RoundPowerCard id={id} size="lg" testId="round-power-preview-card" />
-      <div className="mt-4 max-w-sm w-full">
+      <RoundPowerCard id={spin ?? id} size="lg" testId="round-power-preview-card" />
+      <div
+        className={`mt-4 max-w-sm w-full transition-opacity duration-300 ${settled ? "opacity-100" : "opacity-0"}`}
+      >
         <RoundPowerDescription id={id} />
       </div>
       <button
-        className="btn-primary mt-6 px-8 py-4 text-lg"
+        className={`btn-primary mt-6 px-8 py-4 text-lg transition-opacity duration-300 ${
+          settled ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
         onClick={onDismiss}
         data-sfx="confirm"
         data-testid="round-power-preview-play"
@@ -1234,6 +1331,10 @@ function RoundEnd({
   roundHistory,
   acks,
   onAck,
+  roundPower,
+  conductorWinnerId,
+  conductorOptions,
+  conductorChoice,
   alreadyAcked,
   busy,
   isHost,
@@ -1247,7 +1348,11 @@ function RoundEnd({
   totalRounds: number;
   roundHistory: { index: number; scores: { [playerId: string]: number } }[];
   acks: string[];
-  onAck: () => void;
+  onAck: (chosenPower?: RoundPowerId) => void;
+  roundPower?: RoundPowerId;
+  conductorWinnerId?: string;
+  conductorOptions?: RoundPowerId[];
+  conductorChoice?: RoundPowerId;
   alreadyAcked: boolean;
   busy: boolean;
   isHost: boolean;
@@ -1261,6 +1366,49 @@ function RoundEnd({
     (a, b) => b.totalScore - a.totalScore || (currentScores[b.id] ?? 0) - (currentScores[a.id] ?? 0),
   );
   const isLast = roundIndex + 1 >= totalRounds;
+  // Conductor round power: the round's winner picks the next round's power with
+  // their ready tap; a tied round sends the podium to one of the tied players by
+  // lot. Absent (empty pool, other powers) → the plain flow below.
+  const conduct = conductorWinnerId != null && (conductorOptions?.length ?? 0) > 0;
+  const conductorName = players.find((p) => p.id === conductorWinnerId)?.name ?? "The round winner";
+  // Tied-for-top players this round; >1 with a stamped winner means the engine
+  // drew the podium by lot, which the flicker below dramatizes.
+  const maxRoundScore = Math.max(...players.map((p) => currentScores[p.id] ?? 0));
+  const leaders = players.filter((p) => (currentScores[p.id] ?? 0) === maxRoundScore);
+  const tiebreak = conduct && leaders.length > 1;
+  // Name-flicker while the lot is "drawn" (pure theatre, the engine already chose).
+  // Skipped on rejoin (already acked) and under reduced motion.
+  const [lot, setLot] = useState<string | null>(() =>
+    tiebreak && !alreadyAcked && !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? leaders[0].name
+      : null,
+  );
+  const lotRolling = lot != null;
+  useEffect(() => {
+    // Runs once on mount; lotRolling's initial value decides whether to animate.
+    if (!lotRolling) return;
+    const names = leaders.map((l) => l.name);
+    let step = 0;
+    const steps = 10;
+    let timer: number;
+    const tick = () => {
+      if (step >= steps) {
+        setLot(null);
+        playSfx("confirm");
+        return;
+      }
+      setLot(names[step % names.length]);
+      playSfx("tap");
+      // Decelerate toward the landing, like the power draw.
+      timer = window.setTimeout(tick, 70 + step * step * 3);
+      step++;
+    };
+    tick();
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const selfConducting =
+    conduct && conductorWinnerId === selfId && !alreadyAcked && !conductorChoice && !lotRolling;
   return (
     <div className="fixed inset-0 z-50 bg-ink/95 backdrop-blur-md flex flex-col items-center justify-start p-6 overflow-y-auto animate-rise" data-testid="round-end-modal">
       <div className="text-center mb-4 mt-4">
@@ -1299,15 +1447,95 @@ function RoundEnd({
             </span>
           ))}
         </div>
-        <button
-          className={`btn-primary w-full text-lg py-4 ${alreadyAcked ? "opacity-50 cursor-not-allowed shadow-none" : ""}`}
-          disabled={alreadyAcked || busy}
-          onClick={onAck}
-          data-sfx="confirm"
-          data-testid="round-end-ack"
-        >
-          {alreadyAcked ? "Ready — waiting for others" : busy ? "…" : isLast ? "See the winner" : "Next round"}
-        </button>
+        {roundPower === "conductor" && !conduct && !isLast && (
+          // No pick this round: say why instead of silently rolling on. Conduct
+          // mode only skips when the option draw came up empty.
+          <div
+            className="text-center text-sm text-paper/60 mb-4 rounded-xl px-3 py-2 bg-paper/5 border border-paper/10"
+            data-testid={leaders.length === 1 ? "round-end-conductor-no-options" : "round-end-conductor-tied"}
+          >
+            {leaders.length === 1
+              ? "No powers were left to offer, so there is no pick this time."
+              : "The round ended tied and no powers were left to offer, so there is no pick this time."}
+          </div>
+        )}
+        {lotRolling && (
+          <div
+            className="text-center text-sm text-gold/90 mb-4 rounded-xl px-3 py-2 bg-gold/10 border border-gold/30"
+            data-testid="round-end-conductor-lot"
+          >
+            The round ended tied. Drawing the podium… <span className="font-bold">{lot}</span>
+          </div>
+        )}
+        {!lotRolling && conduct && conductorChoice != null && (
+          <div
+            className="flex items-center justify-center gap-2 mb-4 rounded-xl px-3 py-2 bg-gold/10 border border-gold/30"
+            data-testid="round-end-conductor-chosen"
+          >
+            <RoundPowerGlyph id={conductorChoice} size="sm" />
+            <span className="text-sm text-paper/80">
+              <span className="font-bold text-gold">{conductorWinnerId === selfId ? "You" : conductorName}</span> chose{" "}
+              <span className="font-bold text-paper">{roundPowerDef(conductorChoice).name}</span> for the next round
+            </span>
+          </div>
+        )}
+        {!lotRolling && conduct && conductorChoice == null && conductorWinnerId !== selfId && (
+          <div
+            className="text-center text-sm text-gold/90 mb-4 rounded-xl px-3 py-2 bg-gold/10 border border-gold/30"
+            data-testid="round-end-conductor-waiting"
+          >
+            {tiebreak ? (
+              <>
+                The round ended tied. <span className="font-bold">{conductorName}</span> drew the podium and picks
+                the next round's power.
+              </>
+            ) : (
+              <>
+                <span className="font-bold">{conductorName}</span> won the round and is conducting: they pick the
+                next round's power.
+              </>
+            )}
+          </div>
+        )}
+        {lotRolling ? null : selfConducting ? (
+          <div data-testid="round-end-conductor-choose">
+            <div className="text-center mb-3">
+              <div className="font-display text-xl font-bold text-gold">
+                {tiebreak ? "The tie broke your way." : "You set the tone."}
+              </div>
+              <div className="text-sm text-paper/60 mt-1">Choose the next round's power.</div>
+            </div>
+            <div className="flex flex-col gap-2">
+              {(conductorOptions ?? []).map((optId) => (
+                <button
+                  key={optId}
+                  className="w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 bg-gold/10 border border-gold/30 hover:border-gold/60 text-left active:scale-[.99] transition disabled:opacity-40"
+                  disabled={busy}
+                  onClick={() => onAck(optId)}
+                  data-sfx="confirm"
+                  data-testid={`round-end-conductor-option-${optId}`}
+                >
+                  <RoundPowerGlyph id={optId} />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-display font-bold text-paper leading-tight">{roundPowerDef(optId).name}</div>
+                    {/* Round-power descriptions carry no scope tag, so rendering raw is safe here. */}
+                    <div className="text-xs text-paper/60 leading-snug mt-0.5">{roundPowerDef(optId).description}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <button
+            className={`btn-primary w-full text-lg py-4 ${alreadyAcked ? "opacity-50 cursor-not-allowed shadow-none" : ""}`}
+            disabled={alreadyAcked || busy}
+            onClick={() => onAck()}
+            data-sfx="confirm"
+            data-testid="round-end-ack"
+          >
+            {alreadyAcked ? "Ready — waiting for others" : busy ? "…" : isLast ? "See the winner" : "Next round"}
+          </button>
+        )}
         {isHost && acks.length < players.length && (
           <button
             className="w-full mt-3 text-[11px] uppercase tracking-widest font-mono text-paper/60 hover:text-paper border border-paper/15 hover:border-paper/40 rounded-xl px-3 py-2 transition disabled:opacity-40"
