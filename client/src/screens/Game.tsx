@@ -939,9 +939,13 @@ function RoundPowerPreview({
   }, [drawnAtRandom, id]);
   return (
     <div
-      className="fixed inset-0 z-50 bg-ink/95 backdrop-blur-md flex flex-col items-center justify-center p-4 animate-rise overflow-y-auto"
+      className="fixed inset-0 z-50 bg-ink/95 backdrop-blur-md flex flex-col items-center p-4 animate-rise overflow-y-auto"
       data-testid="round-power-preview-modal"
     >
+      {/* m-auto instead of justify-center on the scroll container: centers when
+          the content is short, but scrolls from the top when it overflows
+          (justify-center + overflow clips the top unreachably). */}
+      <div className="m-auto flex flex-col items-center w-full">
       <div className="text-center mb-4">
         <div className="font-mono text-xs uppercase tracking-[0.3em] text-paper/50">Round {roundIndex + 1}</div>
         <div className="font-display text-3xl font-bold text-gold mt-2">This round's power</div>
@@ -962,7 +966,9 @@ function RoundPowerPreview({
       </div>
       <RoundPowerCard id={spin ?? id} size="lg" testId="round-power-preview-card" />
       <div
-        className={`mt-4 max-w-sm w-full transition-opacity duration-300 ${settled ? "opacity-100" : "opacity-0"}`}
+        className={`mt-4 max-w-sm w-full transition-opacity duration-300 ${
+          settled ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
       >
         <RoundPowerDescription id={id} />
       </div>
@@ -976,6 +982,7 @@ function RoundPowerPreview({
       >
         Let's play
       </button>
+      </div>
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
 } from "../../shared/types.js";
 import { useMusicMuted, useMusicUnlocked } from "./music.js";
 import { Wave, rankForNumber, amplitudePathForScore } from "./wave.js";
+import { RoundPowerExamples } from "./powerExamples.js";
 
 // The 8 player signals. Each seat has a tailwind bg/text class (for solid fills
 // like the avatar) and a `hex` that drives its glowing waveform (inline color).
@@ -358,6 +359,10 @@ export function RoundPowerDescription({ id }: { id: RoundPowerId }) {
         description={def.description}
         className="text-paper/80 text-sm leading-relaxed"
       />
+      {/* Keyed so the carousel's scroll position resets when the power changes
+          (the banner instance survives across rounds). Import cycle with
+          powerExamples.tsx is deliberate and safe — see the note there. */}
+      <RoundPowerExamples key={id} id={id} />
     </div>
   );
 }

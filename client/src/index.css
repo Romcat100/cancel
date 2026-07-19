@@ -246,7 +246,9 @@
 
 /* ========= game-end award badges (seat-glow tiles in a snap carousel) ========= */
 /* The horizontal swipe row: native scroll-snap, no scrollbar, and a contained
-   overscroll so a hard swipe doesn't rubber-band the vertical page behind it. */
+   overscroll so a hard swipe doesn't rubber-band the vertical page behind it.
+   Shared with the round-power example carousel (powerExamples.tsx), which uses
+   the same snap + dots mechanics. */
 .awards {
   overscroll-behavior-x: contain;
   scrollbar-width: none;

@@ -639,7 +639,22 @@ async function roundPowersFlow(browser) {
     await clickTestId(p, "lobby-start-game");
     await p.waitForSelector(tid("round-power-preview-modal"), { timeout: 10_000 });
     await waitOpaque(p, "round-power-preview-modal");
-    await shot(p, `${powerId}-preview`, { fullPage: false });
+    await shot(p, `${powerId}-preview`, { fullPage: false }); // captures example slide 1
+    // Snap the example carousel to its last slide via the dots (same settle
+    // wait as the game-end awards: the harness runs without reduced motion,
+    // so the snap animates smoothly).
+    const dots = await p.$$('[data-testid^="round-power-example-dot-"]');
+    if (dots.length > 1) {
+      await dots[dots.length - 1].click();
+      await p.waitForFunction(
+        () => {
+          const el = document.querySelector('[data-testid="round-power-example-scroll"]');
+          return !!el && el.scrollLeft > 0 && Math.abs(el.scrollLeft + el.clientWidth - el.scrollWidth) < 2;
+        },
+        { timeout: 5_000 },
+      );
+      await shot(p, `${powerId}-preview-example-last`, { fullPage: false });
+    }
     await clickTestId(p, "round-power-preview-play");
     await p.waitForSelector(tid("game-submit"), { timeout: 10_000 });
     return p;
@@ -647,6 +662,21 @@ async function roundPowersFlow(browser) {
 
   // --- Broadcast: after submitting, the banner shows EVERY player's pick ---
   const bc = await startSoloWithPower("Solo", "broadcast", 3);
+  // The in-game surface for the example carousel: the banner's "what's this?"
+  // toggle opens the same RoundPowerDescription. Shot once here (any power
+  // would do); closed again so the rest of the flow sees the usual layout.
+  // The testid sits on the wrapper div (button + open description), so click
+  // the inner button directly — the wrapper's center shifts onto the
+  // description once it's open and a second wrapper-click wouldn't toggle.
+  const bannerToggle = '[data-testid="game-round-power"] button';
+  await bc.click(bannerToggle);
+  await bc.waitForSelector(tid("game-round-power-description"), { timeout: 10_000 });
+  await shot(bc, "broadcast-banner-examples");
+  await bc.click(bannerToggle);
+  await bc.waitForFunction(
+    () => !document.querySelector('[data-testid="game-round-power-description"]'),
+    { timeout: 10_000 },
+  );
   await submitCardNumber(bc, "highest");
   await bc.waitForSelector(tid("game-broadcast-review"), { timeout: 10_000 });
   await shot(bc, "broadcast-review-banner"); // all 4 picks on the air
@@ -762,6 +792,11 @@ async function roundPowersFlow(browser) {
   }
   await fo.waitForSelector(tid("game-round-power-fadeout"), { timeout: 10_000 });
   await shot(fo, "fadeout-banner-readout"); // "N of 4 signals remain"
+
+  // --- Conductor: preview only. Its example slide 2 is the lone custom-JSX
+  // slide (the three-glyph pick diagram), captured by the helper's
+  // last-dot tap; the round-end pick UI itself is the conductor flow's job. ---
+  await startSoloWithPower("Solo", "conductor", 1);
 }
 
 // Drive an in-progress powerups-off game to the game-over screen (the reveal /
