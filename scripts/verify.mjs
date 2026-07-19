@@ -606,8 +606,9 @@ async function submitCardNumber(page, number) {
 // Broadcast's whole-board re-pick banner, Gate (id limiter) cutting the
 // lowest scorer in the reveal, Subharmonic lifting the lowest scorer,
 // Absorption paying the lone 0 the sum of what it silenced, Inversion
-// flipping every scorer negative, and Echo keeping the played card in
-// hand on the next turn.
+// flipping every scorer negative, Echo keeping the played card in hand
+// on the next turn, and Fadeout fading the lowest scorer each turn with
+// its live "signals remain" banner readout.
 async function roundPowersFlow(browser) {
   let selectModalShot = false;
   const startSoloWithPower = async (name, powerId, ai) => {
@@ -740,6 +741,27 @@ async function roundPowersFlow(browser) {
     )
     .catch(() => {});
   await shot(ec, "echo-reveal-repeat", { fullPage: false });
+
+  // --- Fadeout: the lowest scorer each turn fades and scores nothing after.
+  // Four players; two turns shot so a FADED/SIGNAL LOST chip is near-certain
+  // (a single turn can legitimately fade nobody on a full tie or a lone-0
+  // wipe). Between turns, the round-power banner shows the live race readout. ---
+  const fo = await startSoloWithPower("Solo", "fadeout", 3);
+  for (let turn = 1; turn <= 2; turn++) {
+    await submitCardNumber(fo, "highest");
+    await fo.waitForSelector(tid("reveal-continue"), { timeout: 10_000 });
+    await fo
+      .waitForFunction(
+        () => document.querySelector('[data-testid="reveal-modal"]')?.getAttribute("data-reveal-phase") === "score",
+        { timeout: 5_000 },
+      )
+      .catch(() => {});
+    await shot(fo, `fadeout-reveal-turn${turn}`, { fullPage: false });
+    await clickTestId(fo, "reveal-continue");
+    await fo.waitForFunction(() => !document.querySelector('[data-testid="reveal-modal"]'), { timeout: 10_000 });
+  }
+  await fo.waitForSelector(tid("game-round-power-fadeout"), { timeout: 10_000 });
+  await shot(fo, "fadeout-banner-readout"); // "N of 4 signals remain"
 }
 
 // Drive an in-progress powerups-off game to the game-over screen (the reveal /

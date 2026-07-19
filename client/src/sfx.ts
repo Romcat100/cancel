@@ -122,7 +122,7 @@ function rankFreq(rank: number): number {
 }
 
 // Mirrors Game.tsx's revealTreatment union — what happened to one revealed card.
-export type RevealOutcome = "survivor" | "aliveZero" | "tie" | "zeroed" | "negative" | "neutral";
+export type RevealOutcome = "survivor" | "aliveZero" | "tie" | "zeroed" | "negative" | "neutral" | "faded";
 
 // The flip-row animation runs 600ms; the face reads as "landed" near the
 // mid-flap, so tones fire this long after each row's animation-delay.
@@ -160,7 +160,9 @@ export function playRevealCascade(rows: { rank: number; outcome: RevealOutcome }
         playTone(c, { startAt: at + 0.012, wave: "sine", freq: f * 1.0595, duration: 0.38, gain: 0.07, filterFreq: 1800, attack: 0.006 });
         break;
       case "zeroed":
-        // Signal choked off by the Ø: pitch collapses through a closing filter.
+      case "faded":
+        // Signal choked off (by the Ø, or a Fadeout ghost's zeroed line): pitch
+        // collapses through a closing filter.
         playTone(c, { startAt: at, wave: "sine", freq: f, endFreq: Math.max(40, f * 0.25), duration: 0.22, gain: 0.06, filterFreq: 700, attack: 0.005 });
         break;
       case "negative":

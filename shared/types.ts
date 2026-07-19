@@ -93,6 +93,10 @@ export interface RevealedTurn {
   // vs. their final pick. The field name is a legacy of the retired Crosstalk power;
   // keep it — it's baked into persisted reveal docs.
   crosstalkUsed?: { playerId: string; initialNumber: number; finalNumber: number }[];
+  // Fadeout round power: who faded out on this turn, and (the turn the race ends)
+  // the sole survivor who banked the bonus.
+  fadeoutFaded?: string[];
+  fadeoutSurvivorId?: string;
 }
 
 export interface RoundState {
@@ -118,6 +122,9 @@ export interface RoundState {
   // True when this power was rolled even though the previous round was a conductor
   // round (tie / absent winner / empty options): the preview stages a random draw.
   roundPowerDrawnAtRandom?: boolean;
+  // Fadeout round power (public): players eliminated so far this round, in fade
+  // order. They keep playing but score nothing for the rest of the round.
+  fadedIds?: string[];
 }
 
 export interface RoundHistoryEntry {
@@ -366,6 +373,7 @@ export type RoundPowerId =
   | "inversion"
   | "echo"
   | "dead_air"
+  | "fadeout"
   | "conductor";
 
 export interface RoundPowerDef {
@@ -452,6 +460,12 @@ export const ROUND_POWERS: Record<RoundPowerId, RoundPowerDef> = {
     name: "Dead Air",
     description:
       "Silence cannot hide in silence. Zeros no longer suppress each other, so every 0 played still silences the board, no matter how many there are.",
+  },
+  fadeout: {
+    id: "fadeout",
+    name: "Fadeout",
+    description:
+      "Last signal standing. Each turn the lowest scorer fades out and scores nothing for the rest of the round. Faded players still play, and their cards still tie and cancel. If every remaining player matches, nobody fades. Outlast everyone and earn +2 per faded rival.",
   },
   // Keep conductor LAST: engine tests pin the round-power rng to () => 0 and walk
   // this roster from index 0, so appending avoids reshuffling their expectations.

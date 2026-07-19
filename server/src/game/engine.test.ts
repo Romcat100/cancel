@@ -182,7 +182,7 @@ describe("engine lifecycle", () => {
     expect(ROUND_POWER_IDS).toContain(r.rounds[0].roundPower!);
   });
 
-  it("random mode never rolls harmony, refraction, or dead_air in a 2-player game", () => {
+  it("random mode never rolls harmony, refraction, dead_air, or fadeout in a 2-player game", () => {
     // Sweep rng across the whole [0,1) range: the 2-player roster must cover every
     // other power and never land on the excluded ones.
     // 2 rounds so the final-round conductor exclusion doesn't also apply to round 0.
@@ -196,8 +196,9 @@ describe("engine lifecycle", () => {
     expect(rolled.has("harmony")).toBe(false);
     expect(rolled.has("refraction")).toBe(false);
     expect(rolled.has("dead_air")).toBe(false);
+    expect(rolled.has("fadeout")).toBe(false);
     // Everything else stays in the roll.
-    expect(rolled.size).toBe(ROUND_POWER_IDS.length - 3);
+    expect(rolled.size).toBe(ROUND_POWER_IDS.length - 4);
   });
 
   it("selected mode still honors an explicit harmony/refraction pick with 2 players", () => {
@@ -1598,6 +1599,96 @@ describe("swap_hands", () => {
     expect(r.rounds[0].hands["B"]).toEqual([]);
     expect(r.rounds[0].reveals[0].swapUsed).toEqual({ swapperId: "B", targetId: "A" });
     expect(r.phase).toBe("round_end");
+  });
+});
+
+describe("fadeout (round power)", () => {
+  // 3p game, hands 0..4, 5 turns; bonus = 2 per outlasted rival = +4.
+  function fadeoutRoom(): RoomDoc {
+    const r = startGame0(room3p());
+    r.rounds[0].roundPower = "fadeout";
+    return r;
+  }
+  function turn(r: RoomDoc, a: number, b: number, c: number): RoomDoc {
+    r = submitTurn(r, { playerId: "A", number: a });
+    r = submitTurn(r, { playerId: "B", number: b });
+    return submitTurn(r, { playerId: "C", number: c });
+  }
+
+  it("the lowest scorer fades each turn, ghosts still interfere, and the survivor banks the bonus", () => {
+    let r = fadeoutRoom();
+    // Turn 1: all unique. C is the lowest scorer and fades — but this turn's
+    // score still counts (you fade AFTER your weakest showing).
+    r = turn(r, 4, 3, 2);
+    expect(r.rounds[0].reveals[0].fadeoutFaded).toEqual(["C"]);
+    expect(r.rounds[0].fadedIds).toEqual(["C"]);
+    expect(r.rounds[0].perPlayerRoundScore).toEqual({ A: 4, B: 3, C: 2 });
+
+    // Turn 2: ghost C's 4 face-ties B's 4 and wipes it (interference is the
+    // feature); A scores 3. B is the lowest living scorer and fades, leaving A
+    // the last signal standing: +3 plus the +4 bonus.
+    r = turn(r, 3, 4, 4);
+    expect(r.rounds[0].reveals[1].fadeoutFaded).toEqual(["B"]);
+    expect(r.rounds[0].reveals[1].fadeoutSurvivorId).toBe("A");
+    expect(r.rounds[0].fadedIds).toEqual(["C", "B"]);
+    const aLine = r.rounds[0].reveals[1].scoreLines.find((l) => l.playerId === "A")!;
+    expect(aLine.delta).toBe(7);
+    expect(aLine.notes).toContain("Fadeout: last signal standing, +4");
+    expect(r.rounds[0].perPlayerRoundScore).toEqual({ A: 11, B: 3, C: 2 });
+
+    // Turn 3: the race is over — nobody else fades, ghost lines are zeroed with
+    // the silenced note, and a ghost tie still wipes the survivor's card.
+    r = turn(r, 2, 2, 3);
+    expect(r.rounds[0].reveals[2].fadeoutFaded).toBeUndefined();
+    const lines = r.rounds[0].reveals[2].scoreLines;
+    expect(lines.find((l) => l.playerId === "A")!.delta).toBe(0); // tied by ghost B
+    expect(lines.find((l) => l.playerId === "C")!.delta).toBe(0);
+    expect(lines.find((l) => l.playerId === "C")!.notes).toContain("Fadeout: silenced");
+    expect(r.rounds[0].perPlayerRoundScore).toEqual({ A: 11, B: 3, C: 2 });
+
+    // Play out the rest of the round: totals stand and the round ends normally.
+    r = turn(r, 1, 1, 1);
+    r = turn(r, 0, 0, 0);
+    expect(r.phase).toBe("round_end");
+    expect(r.players.find((p) => p.id === "A")!.totalScore).toBe(11);
+  });
+
+  it("a tie for the lowest fades everyone at the minimum (and can end the race in one turn)", () => {
+    let r = fadeoutRoom();
+    // A and B tie on 4 (delta 0); C's 3 survives. Both tied players fade at
+    // once and C immediately banks the bonus: +3 + 4 = 7.
+    r = turn(r, 4, 4, 3);
+    expect(r.rounds[0].reveals[0].fadeoutFaded).toEqual(["A", "B"]);
+    expect(r.rounds[0].reveals[0].fadeoutSurvivorId).toBe("C");
+    expect(r.rounds[0].perPlayerRoundScore).toEqual({ A: 0, B: 0, C: 7 });
+  });
+
+  it("a full tie fades nobody", () => {
+    let r = fadeoutRoom();
+    r = turn(r, 3, 3, 3);
+    expect(r.rounds[0].reveals[0].fadeoutFaded).toBeUndefined();
+    expect(r.rounds[0].fadedIds).toBeUndefined();
+  });
+
+  it("a board wiped by a lone 0 fades nobody (the 0 is a stall button)", () => {
+    let r = fadeoutRoom();
+    r = turn(r, 0, 4, 3);
+    expect(r.rounds[0].reveals[0].fadeoutFaded).toBeUndefined();
+    expect(r.rounds[0].fadedIds).toBeUndefined();
+  });
+
+  it("a round with no sole survivor pays no bonus", () => {
+    let r = fadeoutRoom();
+    // Every turn is a full tie: no fades, no bonus, the round just ends.
+    for (const n of [4, 3, 2, 1, 0]) r = turn(r, n, n, n);
+    expect(r.phase).toBe("round_end");
+    expect(r.rounds[0].fadedIds).toBeUndefined();
+    for (const rv of r.rounds[0].reveals) {
+      expect(rv.fadeoutSurvivorId).toBeUndefined();
+      expect(
+        rv.scoreLines.every((l) => !l.notes.some((n) => n.includes("last signal standing"))),
+      ).toBe(true);
+    }
   });
 });
 

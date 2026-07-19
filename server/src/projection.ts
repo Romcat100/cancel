@@ -36,6 +36,8 @@ function toRevealedTurn(rv: RevealDoc, roundIndex: number): RevealedTurn {
     switchUsed: rv.switchUsed,
     rayUsed: rv.rayUsed,
     crosstalkUsed: rv.crosstalkUsed,
+    fadeoutFaded: rv.fadeoutFaded,
+    fadeoutSurvivorId: rv.fadeoutSurvivorId,
   };
 }
 
@@ -104,6 +106,8 @@ export function projectStateForPlayer(
         conductorChoice: round.conductorChoice,
         roundPowerChosenBy: round.roundPowerChosenBy,
         roundPowerDrawnAtRandom: round.roundPowerDrawnAtRandom,
+        // Fadeout round power: elimination state is public by design.
+        fadedIds: round.fadedIds,
       }
     : undefined;
 

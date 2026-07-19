@@ -21,6 +21,10 @@ export function scoreTurn(
   plays: PlayInput[],
   gameNumbers?: number[],
   roundPower?: RoundPowerId,
+  // Fadeout round power: players already eliminated this round. Their cards are
+  // scored as ordinary plays (so they still tie and cancel the living) and then
+  // zeroed by the post-pass at the very end of the pipeline.
+  fadedIds?: string[],
 ): ScoreResult {
   const powerPlay = plays.find((p) => p.powerUp);
   const powerUp = powerPlay?.powerUp;
@@ -30,8 +34,8 @@ export function scoreTurn(
   // Round powers apply to everyone for the whole round. Static reuses the per-play
   // negate-zero flag; Ultraviolet is a universal +2 at the eff stage; Harmony rewires
   // the tie branch to double the tied value; Amplify, Gate (id `limiter`), Subharmonic,
-  // and Inversion are post-passes at the end; Absorption extends the lone-canceller
-  // branch. Pure Tone has no branch anywhere
+  // Inversion, and Fadeout's ghost zeroing are post-passes at the end; Absorption
+  // extends the lone-canceller branch. Pure Tone has no branch anywhere
   // on purpose (the nothingburger pattern) — don't "fix" it. Refraction / Broadcast
   // are turn-flow changes handled in engine.ts, not scoring effects.
   const staticActive = roundPower === "static";
@@ -372,6 +376,20 @@ export function scoreTurn(
       if (l.delta > 0) {
         l.notes.push(`Inversion: ${l.delta} flipped to ${-l.delta}`);
         l.delta = -l.delta;
+      }
+    }
+  }
+
+  // Fadeout (round power) ghost zeroing runs dead last: a faded player's card has
+  // already participated in ties/cancels above (their interference is the feature),
+  // but their own line scores nothing for the rest of the round. The note must not
+  // contain revealTreatment's tie/cancel substrings — the client keys a distinct
+  // "faded" ghost look off it.
+  if (roundPower === "fadeout" && fadedIds && fadedIds.length > 0) {
+    for (const l of lines) {
+      if (fadedIds.includes(l.playerId)) {
+        l.delta = 0;
+        l.notes.push("Fadeout: silenced");
       }
     }
   }

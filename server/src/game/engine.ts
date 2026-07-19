@@ -51,6 +51,10 @@ export interface RevealDoc {
   switchUsed?: { switcherId: string; targetId: string; switcherOriginal: number; targetOriginal: number };
   rayUsed?: { rayUserId: string; targetId: string; rolledNumber: number; originalNumber: number };
   crosstalkUsed?: { playerId: string; initialNumber: number; finalNumber: number }[];
+  // Fadeout round power: who faded out on this turn, and (on the turn the race
+  // ends) the sole survivor who banked the bonus.
+  fadeoutFaded?: string[];
+  fadeoutSurvivorId?: string;
   revealedAt: number;
 }
 
@@ -83,6 +87,10 @@ export interface RoundDoc {
   // conductor round (a tie, an absent winner, or an empty option draw): the client
   // plays a "random draw" reveal on the round-power preview instead of a credit.
   roundPowerDrawnAtRandom?: boolean;
+  // Fadeout round power: players eliminated so far this round, in fade order.
+  // They keep playing (and interfering) but score nothing. Optional so legacy
+  // saves need no loadRoom default.
+  fadedIds?: string[];
 }
 
 export interface PeekReviewDoc {
@@ -274,7 +282,14 @@ const TWO_PLAYER_EXCLUDED_ROUND_POWERS: ReadonlySet<RoundPowerId> = new Set([
   "harmony",
   "refraction",
   "dead_air",
+  // Fadeout's race is over on turn 1 with 2 players (one fade decides it), leaving
+  // the rest of the round a dead mop-up.
+  "fadeout",
 ]);
+
+// Fadeout: the last signal standing banks this much per outlasted rival
+// (+6 in a 4-player game, +8 with 5).
+const FADEOUT_BONUS_PER_OUTLASTED = 2;
 
 // The eligible round powers for a given round: "off" yields nothing; "random" draws
 // from the full roster (minus the 2-player exclusions); "selected" draws from the
@@ -738,7 +753,39 @@ function resolveTurn(room: RoomDoc): RoomDoc {
     sabotageNumber: s.sabotageNumber,
   }));
 
-  const result = scoreTurn(plays, gameNumbers(room), round.roundPower);
+  const result = scoreTurn(
+    plays,
+    gameNumbers(room),
+    round.roundPower,
+    round.roundPower === "fadeout" ? round.fadedIds : undefined,
+  );
+
+  // Fadeout (round power): after scoring, the weakest living signal fades — every
+  // still-alive player at the turn's minimum delta is eliminated for the rest of
+  // the round (scoreTurn zeroes their future lines; their cards still tie/cancel).
+  // A turn with no clear weakest (all alive deltas equal: a full tie, or a board
+  // wiped by a lone 0) fades nobody, so the 0 doubles as a stall button. The turn
+  // the race reaches a sole survivor, the bonus lands on their score line before
+  // totals/round scores are derived from it below.
+  let fadeoutFaded: string[] | undefined;
+  let fadeoutSurvivorId: string | undefined;
+  let newFadedIds = round.fadedIds;
+  if (round.roundPower === "fadeout") {
+    const already = round.fadedIds ?? [];
+    const aliveLines = result.lines.filter((l) => !already.includes(l.playerId));
+    const min = Math.min(...aliveLines.map((l) => l.delta));
+    if (aliveLines.length > 1 && aliveLines.some((l) => l.delta !== min)) {
+      fadeoutFaded = aliveLines.filter((l) => l.delta === min).map((l) => l.playerId);
+      newFadedIds = [...already, ...fadeoutFaded];
+      const survivors = aliveLines.filter((l) => l.delta !== min);
+      if (survivors.length === 1) {
+        const bonus = FADEOUT_BONUS_PER_OUTLASTED * (room.players.length - 1);
+        survivors[0].delta += bonus;
+        survivors[0].notes.push(`Fadeout: last signal standing, +${bonus}`);
+        fadeoutSurvivorId = survivors[0].playerId;
+      }
+    }
+  }
 
   let peekUsed: RevealDoc["peekUsed"];
   if (room.peekReview) {
@@ -820,6 +867,8 @@ function resolveTurn(room: RoomDoc): RoomDoc {
     switchUsed,
     rayUsed,
     crosstalkUsed,
+    fadeoutFaded,
+    fadeoutSurvivorId,
     revealedAt: Date.now(),
   };
 
@@ -829,6 +878,7 @@ function resolveTurn(room: RoomDoc): RoomDoc {
     hands: newHands,
     reveals: [...round.reveals, reveal],
     perPlayerRoundScore: updatedRoundScores,
+    fadedIds: newFadedIds,
   };
 
   const handSize = room.players.length + 2;

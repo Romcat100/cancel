@@ -1357,4 +1357,88 @@ describe("scoreTurn — round powers", () => {
     }
     expect(r.lines.find((l) => l.playerId === "C")!.notes).toContain("Cancelled by 0");
   });
+
+  it("fadeout without fadedIds is identical to no power", () => {
+    const plays = [
+      { playerId: "A", number: 4 },
+      { playerId: "B", number: 4 },
+      { playerId: "C", number: 3 },
+    ];
+    expect(points(scoreTurn(plays, undefined, "fadeout"))).toEqual(points(scoreTurn(plays)));
+    expect(points(scoreTurn(plays, undefined, "fadeout", []))).toEqual(points(scoreTurn(plays)));
+  });
+
+  it("fadeout zeroes a faded player's line with the silenced note", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 5 },
+        { playerId: "B", number: 3 },
+        { playerId: "C", number: 1 },
+      ],
+      undefined,
+      "fadeout",
+      ["B"],
+    );
+    expect(points(r)).toEqual({ A: 5, B: 0, C: 1 });
+    const notes = r.lines.find((l) => l.playerId === "B")!.notes;
+    expect(notes).toContain("Fadeout: silenced");
+    // The note must not read as a tie/cancel to revealTreatment.
+    expect(
+      notes.every(
+        (n) =>
+          !n.startsWith("Tied") && !n.includes("Cancelled by 0") && !n.includes("cancelled all others"),
+      ),
+    ).toBe(true);
+  });
+
+  it("fadeout ghost still ties a living player's card before being zeroed", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 4 },
+        { playerId: "B", number: 4 },
+        { playerId: "C", number: 2 },
+      ],
+      undefined,
+      "fadeout",
+      ["B"],
+    );
+    // B is a ghost but its 4 still face-ties A's 4: both score 0, C survives.
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 2 });
+    expect(r.lines.find((l) => l.playerId === "A")!.notes.some((n) => n.startsWith("Tied"))).toBe(
+      true,
+    );
+  });
+
+  it("fadeout ghost's lone 0 still wipes the living", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 0 },
+        { playerId: "B", number: 5 },
+        { playerId: "C", number: 3 },
+      ],
+      undefined,
+      "fadeout",
+      ["A"],
+    );
+    expect(points(r)).toEqual({ A: 0, B: 0, C: 0 });
+    expect(r.lines.find((l) => l.playerId === "B")!.notes).toContain("Cancelled by 0");
+    expect(r.lines.find((l) => l.playerId === "C")!.notes).toContain("Cancelled by 0");
+  });
+
+  it("dormant composition: a per-play Double on a ghost is still zeroed (ghost pass runs last)", () => {
+    const r = scoreTurn(
+      [
+        { playerId: "A", number: 4, powerUp: "double" },
+        { playerId: "B", number: 3 },
+        { playerId: "C", number: 1 },
+      ],
+      undefined,
+      "fadeout",
+      ["A"],
+    );
+    // Double is universal (B and C double too); the point is the ghost's own
+    // doubled card still ends at 0 because the ghost pass runs last.
+    expect(points(r)).toEqual({ A: 0, B: 6, C: 2 });
+    expect(r.lines.find((l) => l.playerId === "A")!.notes).toContain("Fadeout: silenced");
+  });
 });

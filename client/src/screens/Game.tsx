@@ -366,6 +366,24 @@ export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandone
                   </div>
                 ) : null;
               })()}
+              {round.roundPower === "fadeout" &&
+                (() => {
+                  // Live race readout: how many signals are still in the running.
+                  const faded = round.fadedIds ?? [];
+                  const aliveCount = publicState.players.length - faded.length;
+                  const selfFaded = selfPlayerId != null && faded.includes(selfPlayerId);
+                  const line =
+                    aliveCount <= 1
+                      ? "the race is over, one signal remains"
+                      : selfFaded
+                        ? `you have faded, ${aliveCount} signals remain`
+                        : `${aliveCount} of ${publicState.players.length} signals remain`;
+                  return (
+                    <div className="text-[11px] text-gold/80 leading-tight" data-testid="game-round-power-fadeout">
+                      {line}
+                    </div>
+                  );
+                })()}
               {round.roundPower === "conductor" &&
                 (() => {
                   // Live "who conducts next" readout: the round's current top scorer.
@@ -964,7 +982,7 @@ function RoundPowerPreview({
 
 // The interference treatment for one revealed card, derived purely from its
 // played number + scored delta + scoring notes (never from hardcoded seats).
-type Treatment = "survivor" | "aliveZero" | "tie" | "zeroed" | "negative" | "neutral";
+type Treatment = "survivor" | "aliveZero" | "tie" | "zeroed" | "negative" | "neutral" | "faded";
 
 function revealTreatment(number: number, delta: number, notes: string[]): Treatment {
   if (delta > 0) return "survivor";
@@ -974,6 +992,10 @@ function revealTreatment(number: number, delta: number, notes: string[]): Treatm
     return "aliveZero"; // the lone surviving Ø — the silent signal that wins
   if (notes.some((n) => n.startsWith("Tied") || n.includes("Free Three's virtual 3"))) return "tie";
   if (notes.some((n) => n.includes("Cancelled by 0"))) return "zeroed";
+  // Fadeout ghosts: checked AFTER tie/cancel so a ghost that tied or wiped the
+  // living keeps the informative interference render; only a card that would
+  // otherwise have scored shows as plainly faded.
+  if (notes.some((n) => n.includes("Fadeout: silenced"))) return "faded";
   return "neutral"; // a suppressed/negated 0, an equalized 0, etc. — flat but not cancelled
 }
 
@@ -985,6 +1007,10 @@ type RevealRowItem = {
   t: Treatment;
   /** Tie rows: seat hexes of every opposing tied player, for the dotted inverse overlays. */
   tieHexes?: string[];
+  /** Fadeout: this player faded out on THIS turn. */
+  fadedNow?: boolean;
+  /** Fadeout: this player just became the last signal standing (bonus banked). */
+  lastSignal?: boolean;
 };
 
 const REVEAL_ROW_COLS = "grid grid-cols-[52px_1fr_60px] gap-3 items-center";
@@ -1000,7 +1026,7 @@ function RevealTraceRow({
   isSelf: boolean;
   flipDelayMs: number;
 }) {
-  const { s, player, delta, total, t, tieHexes } = e;
+  const { s, player, delta, total, t, tieHexes, fadedNow, lastSignal } = e;
   const hex = seatColor(player.seat).hex;
   const rank = rankForNumber(s.number);
   const alive = t === "survivor" || t === "aliveZero";
@@ -1070,6 +1096,10 @@ function RevealTraceRow({
               );
             })}
           </>
+        ) : t === "faded" ? (
+          // A ghosted trace with no overlays: the signal is still in the mix but
+          // scores nothing (Fadeout).
+          <Wave rank={rank} variant="ghosted" color={hex} className="absolute inset-0 w-full h-full" />
         ) : (
           <Wave
             rank={rank}
@@ -1086,15 +1116,25 @@ function RevealTraceRow({
           <b className="font-mono text-xl text-cool [text-shadow:0_0_14px_rgb(var(--th-cool)/0.6)]">0</b>
         ) : t === "negative" ? (
           <b className="font-mono text-lg text-rose-300">{delta}</b>
-        ) : t === "tie" || t === "zeroed" ? (
+        ) : t === "tie" || t === "zeroed" || t === "faded" ? (
           <>
             <b className="font-mono text-lg text-paper/50">0</b>
             <span className="font-mono text-[8px] tracking-widest text-paper/45 border border-paper/25 rounded px-1.5 py-0.5">
-              {t === "tie" ? "TIED" : "CANCELLED"}
+              {t === "tie" ? "TIED" : t === "zeroed" ? "CANCELLED" : "FADED"}
             </span>
           </>
         ) : (
           <b className="font-mono text-lg text-paper/40">0</b>
+        )}
+        {fadedNow && (
+          <span className="font-mono text-[8px] tracking-widest text-rose-300 border border-rose-300/40 rounded px-1.5 py-0.5">
+            SIGNAL LOST
+          </span>
+        )}
+        {lastSignal && (
+          <span className="font-mono text-[8px] tracking-widest text-gold border border-gold/40 rounded px-1.5 py-0.5">
+            LAST SIGNAL
+          </span>
         )}
         <span className="flex items-baseline gap-1" data-testid={`reveal-total-${player.seat}`}>
           <span className="font-mono text-[8px] tracking-widest text-paper/45">TOTAL</span>
@@ -1147,6 +1187,8 @@ function RevealView({
       delta,
       total: player.totalScore,
       t: revealTreatment(s.number, delta, score?.notes ?? []),
+      fadedNow: reveal.fadeoutFaded?.includes(s.playerId) || undefined,
+      lastSignal: reveal.fadeoutSurvivorId === s.playerId || undefined,
     };
   });
   enriched.sort((a, b) => b.s.number - a.s.number || a.player.seat - b.player.seat);

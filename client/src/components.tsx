@@ -260,6 +260,7 @@ const ROUND_POWER_VISUAL: Record<RoundPowerId, { abbr: string; color: string }> 
   inversion: { abbr: "−∿", color: "#ff5c7a" }, // rose = harm (matches make_negative; the signal flips below the axis)
   echo: { abbr: "⟲", color: "#4dd6c4" }, // teal = shield/return (cards come back; only the 0 is spent)
   dead_air: { abbr: "ØØ", color: "#7b96ff" }, // blue = zero/structural (every 0 cancels, none suppress)
+  fadeout: { abbr: "∿…", color: "#ff5c7a" }, // rose = harm (the weakest signal fades each turn)
   conductor: { abbr: "♪", color: "#ffcf5c" }, // gold = reward (the round winner leads the next movement)
 };
 

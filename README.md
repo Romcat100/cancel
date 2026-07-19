@@ -55,7 +55,7 @@ You can play **solo against AI** from the Home screen (tap **Single player**), o
 
 Round powers are on by default. In the lobby the host picks a mode: **None** (a pure-numbers game), **Random** (one power drawn at random each round), or **Choose** (the host hand-picks which powers can appear). Each round draws a power that hasn't come up yet this game, so powers never repeat within a game. If the eligible powers run out before the rounds do, repeats come back rather than leaving a round without a power.
 
-When on: at the start of each round, one power is drawn and shown to everyone. It applies to every player, on every turn of that round. A banner keeps it visible during play and on each reveal. In a 2-player game the random draw skips Harmony, Refraction, and Dead Air (they fall flat 1v1), but a host can still hand-pick them in Choose mode.
+When on: at the start of each round, one power is drawn and shown to everyone. It applies to every player, on every turn of that round. A banner keeps it visible during play and on each reveal. In a 2-player game the random draw skips Harmony, Refraction, Dead Air, and Fadeout (they fall flat 1v1), but a host can still hand-pick them in Choose mode.
 
 | Power | What it does |
 |---|---|
@@ -72,6 +72,7 @@ When on: at the start of each round, one power is drawn and shown to everyone. I
 | **Inversion** (`−∿`) | The whole signal flips below the axis. Every card that scores counts against its player this round, so a tie or a cancel is a lucky escape. The best plays are the ones that get cancelled. |
 | **Echo** (`⟲`) | The signal repeats. Played cards return to your hand, so any card can be played again and again and every turn is a fresh standoff. Silence does not echo: a played `0` is spent for good. |
 | **Dead Air** (`ØØ`) | Silence cannot hide in silence. Zeros no longer suppress each other, so every `0` played still silences the board, no matter how many there are. |
+| **Fadeout** (`∿…`) | Last signal standing. Each turn the lowest scorer fades out and scores nothing for the rest of the round. Faded players still play, and their cards still tie and cancel the living. If every remaining player matches (a full tie, or a board wiped by a lone `0`), nobody fades. The last player left in the mix earns +2 per faded rival. |
 | **Conductor** (`♪`) | Take the podium. Cards score by the normal rules this round, and whoever scores highest picks the next round's power from 3 drawn options. A tied round sends the podium to one of the tied players by lot. Never drawn for a game's final round (there would be nothing left to conduct). |
 
 ## Project layout

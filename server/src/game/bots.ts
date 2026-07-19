@@ -207,6 +207,11 @@ export function decideBotMove(room: RoomDoc, botId: string, rng: () => number = 
   const oppHands = room.players
     .filter((p) => p.id !== botId)
     .map((p) => ({ id: p.id, hand: round.hands[p.id] ?? [] }));
+  // Fadeout: a faded bot's lines score nothing for the rest of the round, so it
+  // stops optimizing and dumps its lowest card, saving nothing for later.
+  if (round.roundPower === "fadeout" && round.fadedIds?.includes(botId) && myHand.length > 0) {
+    return { playerId: botId, number: Math.min(...myHand) };
+  }
   const intended = chooseNumber(myHand, oppHands.map((o) => o.hand), [], rng, round.roundPower);
 
   if (botId !== pickerId || round.poolRemaining.length === 0) {

@@ -75,7 +75,10 @@ export function pAllAbove(c: number, oppHands: number[][]): number {
 //     deliberate no-op: scoring is untouched and this function already evaluates one turn at a
 //     time from the current hands, never modeling card conservation across turns. conductor
 //     (round winner picks the next round's power) is likewise a deliberate no-op: scoring is
-//     baseline during its round, and this function never models future rounds.
+//     baseline during its round, and this function never models future rounds. fadeout (the
+//     turn's lowest scorer is eliminated) is a deliberate no-op for players still alive: the
+//     baseline unique-high weighting is already both the scoring and the survival play, since
+//     collisions score 0 and fade you. Faded bots never reach here (bots.ts dumps their lowest).
 export function chooseNumber(
   myHand: number[],
   oppHands: number[][],

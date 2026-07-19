@@ -221,6 +221,17 @@ describe("decideBotMove", () => {
     }
   });
 
+  it("a faded bot under Fadeout dumps its lowest card", () => {
+    const r = startGame(soloRoom(2, { powerUpMode: "off" }));
+    const bot = r.players.find((p) => p.isBot)!;
+    r.rounds[0].roundPower = "fadeout";
+    r.rounds[0].fadedIds = [bot.id];
+    r.rounds[0].hands[bot.id] = [1, 3, 5];
+    for (let i = 0; i < 20; i++) {
+      expect(decideBotMove(r, bot.id).number).toBe(1);
+    }
+  });
+
   it("plays a number-only move when the picker bot faces an empty pool", () => {
     const r = startGame(soloRoom(2));
     const bot = r.players.find((p) => p.isBot)!;
