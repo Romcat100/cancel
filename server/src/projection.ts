@@ -71,6 +71,7 @@ export function projectStateForPlayer(
       hand,
       isBot: !!p.isBot,
       flair: p.flair,
+      nameFlair: p.nameFlair,
     };
   });
 

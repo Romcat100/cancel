@@ -10,11 +10,14 @@ import { earnedFlairs, FLAIRS } from "../../shared/campaign.js";
 
 export interface ProfileDoc extends CampaignProgress {
   unlockedFlairs: FlairId[];
+  // One equipped cosmetic per kind, worn together. `equippedFlair` is the wave
+  // slot (the original single slot, name kept for save compat).
   equippedFlair: FlairId | null;
+  equippedName: FlairId | null;
 }
 
 export function freshProfile(): ProfileDoc {
-  return { completedLevels: {}, unlockedFlairs: [], equippedFlair: null };
+  return { completedLevels: {}, unlockedFlairs: [], equippedFlair: null, equippedName: null };
 }
 
 // Tokens come straight from clients — bound them so junk can't grow keys unboundedly.
@@ -44,8 +47,19 @@ export function loadProfile(token: string): ProfileDoc {
   doc.unlockedFlairs = [
     ...new Set([...doc.unlockedFlairs.filter((id) => id in FLAIRS), ...earnedFlairs(doc)]),
   ];
-  if (doc.equippedFlair === undefined || (doc.equippedFlair && !(doc.equippedFlair in FLAIRS))) {
+  // Each slot must hold a flair of its own kind (the wave slot predates kinds,
+  // so every legacy value is wave-kind already).
+  if (
+    doc.equippedFlair === undefined ||
+    (doc.equippedFlair && FLAIRS[doc.equippedFlair]?.kind !== "wave")
+  ) {
     doc.equippedFlair = null;
+  }
+  if (
+    doc.equippedName === undefined ||
+    (doc.equippedName && FLAIRS[doc.equippedName]?.kind !== "name")
+  ) {
+    doc.equippedName = null;
   }
   return doc;
 }
@@ -74,13 +88,17 @@ export function restoreProfile(token: string, doc: ProfileDoc): void {
   ).run(token, JSON.stringify(doc), now, now);
 }
 
-// A player's equipped flair, or null for a fresh/unknown token. Never throws —
+// A player's equipped cosmetics, empty for a fresh/unknown token. Never throws —
 // flair lookup is decoration, not a gate.
-export function equippedFlairFor(token: string | undefined): FlairId | null {
-  if (!token) return null;
+export function equippedCosmeticsFor(token: string | undefined): {
+  wave: FlairId | null;
+  name: FlairId | null;
+} {
+  if (!token) return { wave: null, name: null };
   try {
-    return loadProfile(validateProfileToken(token)).equippedFlair;
+    const p = loadProfile(validateProfileToken(token));
+    return { wave: p.equippedFlair, name: p.equippedName };
   } catch {
-    return null;
+    return { wave: null, name: null };
   }
 }

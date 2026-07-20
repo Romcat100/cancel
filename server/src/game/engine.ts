@@ -30,10 +30,11 @@ export interface PlayerDoc {
   // AI player. Bots have no claim token / players row; they're driven by the bot
   // engine (see bots.ts) and never hold the host role.
   isBot?: boolean;
-  // Campaign-unlocked wave cosmetic, snapshotted from the player's profile when
+  // Campaign-unlocked cosmetics, snapshotted from the player's profile when
   // they took their seat (stamped by the handlers, never by the engine). Bots
-  // never have flair.
+  // never have flair. `flair` = wave slot, `nameFlair` = name slot.
   flair?: FlairId;
+  nameFlair?: FlairId;
 }
 
 export interface SubmissionDoc {

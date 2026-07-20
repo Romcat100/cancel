@@ -4,7 +4,7 @@ import type { FlairId } from "../../../shared/campaign.js";
 import { api } from "../api.js";
 import { getIdentity, hasSeenPreviewLocal, markPreviewSeenLocal } from "../identity.js";
 import { useAppStore } from "../store.js";
-import { MusicToggle, NumberCard, PlayerChip, PowerDescription, PowerUpCard, PowerUpChip, RoundPowerCard, RoundPowerDescription, RoundPowerGlyph, RoundScoreTable, Rules, YouBadge, roundPowerDef, seatColor, selfRingStyle, type PingKind } from "../components.js";
+import { MusicToggle, NumberCard, PlayerChip, PowerDescription, PowerUpCard, PowerUpChip, RoundPowerCard, RoundPowerDescription, RoundPowerGlyph, RoundScoreTable, Rules, YouBadge, nameFlairClass, roundPowerDef, seatColor, selfRingStyle, type PingKind } from "../components.js";
 import { Wave, rankForNumber } from "../wave.js";
 import { emitPing, onPing } from "../socket.js";
 import { playRevealCascade, playSfx } from "../sfx.js";
@@ -758,7 +758,7 @@ function Scoreboard({
   players,
   selfId,
 }: {
-  players: { id: string; name: string; seat: number; totalScore: number; flair?: FlairId }[];
+  players: { id: string; name: string; seat: number; totalScore: number; flair?: FlairId; nameFlair?: FlairId }[];
   selfId: string;
 }) {
   return (
@@ -779,7 +779,7 @@ function Scoreboard({
             flair={p.flair}
             className="w-8 h-3.5 shrink-0"
           />
-          <span className="text-sm font-bold text-paper flex-1 truncate">
+          <span className={`text-sm font-bold text-paper flex-1 truncate ${nameFlairClass(p.nameFlair)}`}>
             {p.name}
             {p.id === selfId && <YouBadge seat={p.seat} className="ml-1.5" />}
           </span>

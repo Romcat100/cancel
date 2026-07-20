@@ -10,6 +10,7 @@ import {
   Rules,
   ScopedDescription,
   SeriesStandings,
+  nameFlairClass,
   roundPowerDef,
   seatColor,
 } from "../components.js";
@@ -317,7 +318,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
               flair={p.flair}
               className="w-12 h-5 shrink-0"
             />
-            <div className="flex-1 font-bold" style={{ color: seatColor(p.seat).hex }}>
+            <div className={`flex-1 font-bold ${nameFlairClass(p.nameFlair)}`} style={{ color: seatColor(p.seat).hex }}>
               {p.name}
             </div>
             <div className="flex items-center gap-2 text-xs">

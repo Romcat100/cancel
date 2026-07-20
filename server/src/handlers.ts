@@ -18,11 +18,12 @@ import {
 } from "./game/engine.js";
 import { driveBots } from "./game/bots.js";
 import { archiveRoom, findPlayerByClaim, generateRoomCode, loadRoom, newClaimToken, newPlayerId, recordPlayer, saveRoom } from "./rooms.js";
-import { equippedFlairFor, loadProfile, saveProfile, validateProfileToken } from "./profiles.js";
+import { equippedCosmeticsFor, loadProfile, saveProfile, validateProfileToken } from "./profiles.js";
 import { evaluateObjective } from "./game/campaign.js";
 import {
   campaignLevel,
   earnedFlairs,
+  FLAIRS,
   isLevelUnlocked,
   objectiveText,
   type FlairId,
@@ -174,14 +175,17 @@ function authPlayer(roomCode: string, claimToken: string) {
   return player;
 }
 
-// Snapshot a player's equipped flair onto their seat. Purely decorative, so a
-// missing/invalid token just means no flair. Bots never pass through here.
+// Snapshot a player's equipped cosmetics (wave + name) onto their seat. Purely
+// decorative, so a missing/invalid token just means no flair. Bots never pass
+// through here.
 function stampFlair(room: RoomDoc, playerId: string, profileToken: string | undefined): RoomDoc {
-  const flair = equippedFlairFor(profileToken);
-  if (!flair) return room;
+  const { wave, name } = equippedCosmeticsFor(profileToken);
+  if (!wave && !name) return room;
   return {
     ...room,
-    players: room.players.map((p) => (p.id === playerId ? { ...p, flair } : p)),
+    players: room.players.map((p) =>
+      p.id === playerId ? { ...p, flair: wave ?? undefined, nameFlair: name ?? undefined } : p,
+    ),
   };
 }
 
@@ -231,6 +235,7 @@ export function apiGetProfile(profileToken: string) {
       completedLevels: profile.completedLevels,
       unlockedFlairs: profile.unlockedFlairs,
       equippedFlair: profile.equippedFlair,
+      equippedName: profile.equippedName,
     },
   };
 }
@@ -239,10 +244,14 @@ export function apiEquipFlair(req: EquipFlairReq) {
   const token = validateProfileToken(req.profileToken);
   const profile = loadProfile(token);
   const flair = req.flair ?? null;
+  if (flair !== null && !(flair in FLAIRS)) throw new Error("Unknown flair");
   if (flair !== null && !profile.unlockedFlairs.includes(flair)) {
     throw new Error("That flair is not unlocked yet");
   }
-  profile.equippedFlair = flair;
+  // A flair implies its own slot; a bare null clears the requested (default wave) slot.
+  const kind = flair !== null ? FLAIRS[flair].kind : (req.kind ?? "wave");
+  if (kind === "name") profile.equippedName = flair;
+  else profile.equippedFlair = flair;
   saveProfile(token, profile);
   return apiGetProfile(token);
 }
@@ -347,6 +356,27 @@ export function apiJoinRoom(req: JoinRoomReq, ctx: ApiCtx) {
     if (existing && existing.roomCode === req.roomCode) {
       const inGame = room.players.some((p) => p.id === existing.id);
       if (inGame) {
+        // Reclaim also refreshes the seat's cosmetics snapshot, so equipping a
+        // new flair then rejoining shows it without needing a brand-new room.
+        const { wave, name } = equippedCosmeticsFor(req.profileToken);
+        const seated = room.players.find((p) => p.id === existing.id);
+        if (
+          req.profileToken &&
+          seated &&
+          ((seated.flair ?? null) !== wave || (seated.nameFlair ?? null) !== name)
+        ) {
+          const updated: RoomDoc = {
+            ...room,
+            players: room.players.map((p) =>
+              p.id === existing.id
+                ? { ...p, flair: wave ?? undefined, nameFlair: name ?? undefined }
+                : p,
+            ),
+          };
+          room = updated;
+          saveRoom(updated);
+          setImmediate(() => broadcastRoom(ctx.io, updated));
+        }
         return {
           ok: true as const,
           claimToken: req.claimToken,

@@ -152,7 +152,35 @@ describe("campaign rooms (handlers path)", () => {
 describe("profiles & flair (handlers path)", () => {
   it("getProfile returns a fresh empty profile for a new token", () => {
     const res = apiGetProfile("brand-new-token-xyz1");
-    expect(res.profile).toEqual({ completedLevels: {}, unlockedFlairs: [], equippedFlair: null });
+    expect(res.profile).toEqual({
+      completedLevels: {},
+      unlockedFlairs: [],
+      equippedFlair: null,
+      equippedName: null,
+    });
+  });
+
+  it("wave and name flair occupy separate slots, worn together", () => {
+    const token = "two-slot-token-000001";
+    const p = freshProfile();
+    p.unlockedFlairs = ["shimmer", "neon"];
+    saveProfile(token, p);
+    let res = apiEquipFlair({ profileToken: token, flair: "shimmer" });
+    expect(res.profile.equippedFlair).toBe("shimmer");
+    res = apiEquipFlair({ profileToken: token, flair: "neon" });
+    // Equipping a name flair fills the name slot without touching the wave slot.
+    expect(res.profile.equippedFlair).toBe("shimmer");
+    expect(res.profile.equippedName).toBe("neon");
+    // A bare null clears the requested slot only.
+    res = apiEquipFlair({ profileToken: token, flair: null, kind: "name" });
+    expect(res.profile.equippedName).toBeNull();
+    expect(res.profile.equippedFlair).toBe("shimmer");
+    // Both stamp onto a new seat.
+    res = apiEquipFlair({ profileToken: token, flair: "neon" });
+    const room = apiCreateRoom({ name: "Parker", profileToken: token }, ctx);
+    const self = room.state.publicState.players.find((pl) => pl.id === room.playerId)!;
+    expect(self.flair).toBe("shimmer");
+    expect(self.nameFlair).toBe("neon");
   });
 
   it("equip validates against unlocked flairs; null unequips", () => {
@@ -195,6 +223,23 @@ describe("profiles & flair (handlers path)", () => {
     expect(apiEquipFlair({ profileToken: token, flair: "shimmer" }).profile.equippedFlair).toBe(
       "shimmer",
     );
+  });
+
+  it("rejoining with a claim token refreshes the seat's flair snapshot", () => {
+    const token = "flair-token-000000003";
+    const res = apiCreateRoom({ name: "Parker", profileToken: token }, ctx);
+    expect(res.state.publicState.players[0].flair).toBeUndefined();
+    // Equip after the room exists, then reclaim the same seat.
+    const p = freshProfile();
+    p.unlockedFlairs = ["shimmer"];
+    p.equippedFlair = "shimmer";
+    saveProfile(token, p);
+    const rejoin = apiJoinRoom(
+      { roomCode: res.roomCode, name: "Parker", claimToken: res.claimToken, profileToken: token },
+      ctx,
+    );
+    expect(rejoin.playerId).toBe(res.playerId);
+    expect(rejoin.state.publicState.players[0].flair).toBe("shimmer");
   });
 
   it("rejects malformed profile tokens", () => {

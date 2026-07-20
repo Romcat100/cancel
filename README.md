@@ -45,9 +45,11 @@ You can play **solo against AI** from the Home screen (tap **Single player**), w
 
 ## Campaign
 
-The **Campaign** button on the Home screen opens a solo level map: chapters of hand-authored levels, each one a short game against AI with a fixed setup (round count, opponents, and one pinned round power, so the campaign doubles as a tour of the roster) and an objective to beat, like "win the game and score at least one doubled tie" under Harmony. Beating a level unlocks the next; some levels (and finishing a whole chapter) unlock **wave flair**, cosmetic styles for your waveform that show on your player wave in any game you play, multiplayer included. Equip one from the **Flair** button on the campaign screen.
+The **Campaign** button on the Home screen opens a solo level map: five chapters of three hand-authored levels, exactly one level per round power, so finishing the campaign means you've played the whole roster. Each level is a short game against AI with a fixed setup (round count, opponents, its power) and an objective to beat, like "win the game and score at least one doubled tie" under Harmony. Beating a level unlocks the next, all the way to a six-player hidden-hands Fadeout finale where you have to be the last signal standing.
 
-Progress is saved automatically per device (no account needed) under an anonymous profile stored by the server. Chapters 1 and 2 (five levels each) are playable now; chapters 3-5 are on the map as teasers. The flair picker is also reachable from the **Wave flair** button on the Home screen, so you can change your look without re-entering the campaign.
+Some levels (and finishing a chapter) unlock **flair**: cosmetic styles that show in any game you play, multiplayer included. Flair comes in two kinds, wave styles for your waveform and name styles for your player name, and you can wear one of each. Equip them from the **Flair** button on the campaign screen or the **Wave flair** button on Home.
+
+Progress is saved automatically per device (no account needed) under an anonymous profile stored by the server.
 
 ## Scoring rules
 

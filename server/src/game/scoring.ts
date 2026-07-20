@@ -364,6 +364,8 @@ export function scoreTurn(
       for (let i = 0; i < lines.length; i++) {
         if (lines[i].delta > 0 && eff[i].face === low) {
           lines[i].delta += 4;
+          // The "Subharmonic:" prefix is load-bearing: the campaign's lifted
+          // objective (game/campaign.ts) keys off it.
           lines[i].notes.push(`Subharmonic: ${low} lifted by 4`);
         }
       }

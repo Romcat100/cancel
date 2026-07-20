@@ -11,10 +11,27 @@ import type { RoundPowerId } from "./types.js";
 
 // --- Wave flair (campaign-unlocked cosmetics) ---
 
-export type FlairId = "shimmer" | "echo_trace" | "comet" | "fuzz" | "undertow" | "halo";
+export type FlairId =
+  // Wave flairs: restyle your waveform.
+  | "shimmer"
+  | "echo_trace"
+  | "comet"
+  | "fuzz"
+  | "aurora"
+  | "eclipse"
+  // Name flairs: restyle your player name.
+  | "neon"
+  | "marquee"
+  | "backlit"
+  | "gilded";
+
+// Two cosmetic slots, one equipped per kind: a wave flair and a name flair can
+// be worn at the same time.
+export type FlairKind = "wave" | "name";
 
 export interface FlairDef {
   id: FlairId;
+  kind: FlairKind;
   name: string;
   description: string;
 }
@@ -22,33 +39,63 @@ export interface FlairDef {
 export const FLAIRS: Record<FlairId, FlairDef> = {
   shimmer: {
     id: "shimmer",
+    kind: "wave",
     name: "Shimmer",
-    description: "Your wave glows with a slow, breathing pulse.",
+    description: "Your wave burns hot with a slow, breathing pulse.",
   },
   echo_trace: {
     id: "echo_trace",
+    kind: "wave",
     name: "Echo Trace",
-    description: "A faint second trace trails your wave.",
+    description: "A shadow of your wave trails close behind it.",
   },
   comet: {
     id: "comet",
+    kind: "wave",
     name: "Comet",
     description: "Your wave streaks by in bright broken dashes.",
   },
   fuzz: {
     id: "fuzz",
+    kind: "wave",
     name: "Fuzz",
     description: "Your wave crackles with broken static.",
   },
-  undertow: {
-    id: "undertow",
-    name: "Undertow",
-    description: "A shadow of your wave rides beneath it.",
+  aurora: {
+    id: "aurora",
+    kind: "wave",
+    name: "Aurora",
+    description: "Your wave drifts in soft glowing ribbons, like northern lights.",
   },
-  halo: {
-    id: "halo",
-    name: "Halo",
-    description: "A white-hot core burns inside your glow.",
+  eclipse: {
+    id: "eclipse",
+    kind: "wave",
+    name: "Eclipse",
+    description: "Your wave goes dark, rimmed in white light.",
+  },
+  neon: {
+    id: "neon",
+    kind: "name",
+    name: "Neon",
+    description: "Your name glows like a lit sign.",
+  },
+  marquee: {
+    id: "marquee",
+    kind: "name",
+    name: "Marquee",
+    description: "Your name runs in tall broadcast capitals.",
+  },
+  backlit: {
+    id: "backlit",
+    kind: "name",
+    name: "Backlit",
+    description: "A soft white light burns behind your name.",
+  },
+  gilded: {
+    id: "gilded",
+    kind: "name",
+    name: "Gilded",
+    description: "Your name shines with a golden halo.",
   },
 };
 
@@ -67,7 +114,19 @@ export type CampaignObjective =
   // Win with no card of yours tied out or cancelled, the whole game.
   | { type: "untouched" }
   // Win without the Gate ever cutting your card (limiter rounds).
-  | { type: "never_gated" };
+  | { type: "never_gated" }
+  // Win and collect the Subharmonic +4 lift `count` times.
+  | { type: "lifted"; count: number }
+  // Win with a final margin of at least `min` over the runner-up.
+  | { type: "win_margin"; min: number }
+  // Win and, on some Refraction/Broadcast turn, score with a pick you changed
+  // during the glimpse (initial != final and that turn's delta > 0).
+  | { type: "repick_score" }
+  // Win and take the Conductor's podium (be a conductor round's winner) at
+  // least once.
+  | { type: "conducted" }
+  // Win and be the sole survivor of a Fadeout round.
+  | { type: "last_standing" };
 
 // The one line players see for a level's goal, on the level tile and on the
 // game-end result panel. Every objective beyond plain "win" also requires the win.
@@ -89,6 +148,18 @@ export function objectiveText(objective: CampaignObjective): string {
       return "Win the game with none of your cards tied or cancelled";
     case "never_gated":
       return "Win the game without the Gate ever cutting your card";
+    case "lifted":
+      return objective.count === 1
+        ? "Win the game and catch the Subharmonic lift"
+        : `Win the game and catch the Subharmonic lift ${objective.count === 2 ? "twice" : `${objective.count} times`}`;
+    case "win_margin":
+      return `Win the game by ${objective.min} points or more`;
+    case "repick_score":
+      return "Win the game and score with a pick you changed during a glimpse";
+    case "conducted":
+      return "Win the game and take the Conductor's podium at least once";
+    case "last_standing":
+      return "Win the game and be the last signal standing in a Fadeout round";
   }
 }
 
@@ -120,8 +191,9 @@ export interface CampaignLevelDef {
   unlocksFlair?: FlairId;
 }
 
-// All five chapters are titled now so the map view can tease what's ahead;
-// only Chapter 1 has playable levels in v1.
+// Five chapters of three levels: exactly one level per round power, so the
+// campaign is a complete tour of the roster with no filler (locked by a
+// campaign.test.ts case — adding a 16th power means adding its level).
 export const CAMPAIGN_CHAPTERS: CampaignChapterDef[] = [
   {
     id: "ch1",
@@ -135,28 +207,28 @@ export const CAMPAIGN_CHAPTERS: CampaignChapterDef[] = [
     title: "Interference",
     flavor: "Signals start to collide. The zero is a weapon now.",
     themeIndex: 1,
-    completionFlair: "halo",
+    completionFlair: "neon",
   },
   {
     id: "ch3",
     title: "The Spectrum",
-    flavor: "Every color of the wave.",
+    flavor: "Every color of the wave: the deep lift, the gate, the ultraviolet shift.",
     themeIndex: 2,
-    comingSoon: true,
+    completionFlair: "aurora",
   },
   {
     id: "ch4",
     title: "Distortion",
-    flavor: "Nothing scores the way it should.",
+    flavor: "Information games. Glimpses, open airwaves, and the podium.",
     themeIndex: 3,
-    comingSoon: true,
+    completionFlair: "eclipse",
   },
   {
     id: "ch5",
     title: "On the Air",
-    flavor: "The final broadcast.",
+    flavor: "The last stretch. Signals repeat, flip, and fade to one.",
     themeIndex: 4,
-    comingSoon: true,
+    completionFlair: "gilded",
   },
 ];
 
@@ -191,23 +263,6 @@ export const CAMPAIGN_LEVELS: CampaignLevelDef[] = [
     unlocksFlair: "echo_trace",
   },
   {
-    id: "1-4",
-    chapterId: "ch1",
-    title: "Crowded Channel",
-    flavor: "Five signals on one band, and every card plays 2 higher. The spectrum runs hot.",
-    setup: { rounds: 3, roster: ["ultraviolet"], bots: 4 },
-    objective: { type: "win" },
-  },
-  {
-    id: "1-5",
-    chapterId: "ch1",
-    title: "Recital",
-    flavor: "Every power from this chapter, drawn in any order. Play what the round demands.",
-    setup: { rounds: 4, roster: ["pure_tone", "harmony", "amplify", "ultraviolet"], bots: 3 },
-    // No per-level flair: beating it completes the chapter, which grants comet.
-    objective: { type: "win" },
-  },
-  {
     id: "2-1",
     chapterId: "ch2",
     title: "Noise Floor",
@@ -233,22 +288,81 @@ export const CAMPAIGN_LEVELS: CampaignLevelDef[] = [
     objective: { type: "silence", count: 2 },
   },
   {
-    id: "2-4",
-    chapterId: "ch2",
+    id: "3-1",
+    chapterId: "ch3",
+    title: "The Low End",
+    flavor: "The deep frequency swells, and the smallest card that scores gets paid. Play low on purpose.",
+    setup: { rounds: 3, roster: ["subharmonic"], bots: 3 },
+    objective: { type: "lifted", count: 2 },
+  },
+  {
+    id: "3-2",
+    chapterId: "ch3",
     title: "Past the Gate",
     flavor: "The quietest card that scores is cut every turn. Do not let it be yours.",
     setup: { rounds: 3, roster: ["limiter"], bots: 3 },
     objective: { type: "never_gated" },
-    unlocksFlair: "undertow",
+    unlocksFlair: "marquee",
   },
   {
-    id: "2-5",
-    chapterId: "ch2",
-    title: "Interference Storm",
-    flavor: "Four ways for the noise to eat you, one round at a time.",
-    setup: { rounds: 4, roster: ["static", "absorption", "dead_air", "limiter"], bots: 4 },
-    // No per-level flair: beating it completes the chapter, which grants halo.
+    id: "3-3",
+    chapterId: "ch3",
+    title: "Crowded Channel",
+    flavor: "Five signals on one band, and every card plays 2 higher. The spectrum runs hot.",
+    setup: { rounds: 3, roster: ["ultraviolet"], bots: 4 },
+    // Chapter completion grants aurora.
     objective: { type: "win" },
+  },
+  {
+    id: "4-1",
+    chapterId: "ch4",
+    title: "Bent Light",
+    flavor: "Each turn you glimpse one player's pick, and everyone gets one change. Use yours well.",
+    setup: { rounds: 3, roster: ["refraction"], bots: 3 },
+    objective: { type: "repick_score" },
+  },
+  {
+    id: "4-2",
+    chapterId: "ch4",
+    title: "Open Air",
+    flavor: "Six signals, and every pick goes out over the air before it counts. No secrets, no mercy.",
+    setup: { rounds: 3, roster: ["broadcast"], bots: 5 },
+    objective: { type: "win" },
+    unlocksFlair: "backlit",
+  },
+  {
+    id: "4-3",
+    chapterId: "ch4",
+    title: "Take the Podium",
+    flavor: "The round's top scorer conducts what comes next. Make sure it's you.",
+    setup: { rounds: 3, roster: ["conductor"], bots: 3 },
+    // Chapter completion grants eclipse.
+    objective: { type: "conducted" },
+  },
+  {
+    id: "5-1",
+    chapterId: "ch5",
+    title: "Repeat After Me",
+    flavor: "Your cards come back every turn. Find the line that works and run it into the ground.",
+    setup: { rounds: 3, roster: ["echo"], bots: 3 },
+    objective: { type: "win_margin", min: 8 },
+  },
+  {
+    id: "5-2",
+    chapterId: "ch5",
+    title: "Mirror World",
+    flavor: "Every card that scores counts against you. The best plays are the ones that get cancelled.",
+    setup: { rounds: 3, roster: ["inversion"], bots: 3 },
+    objective: { type: "win" },
+  },
+  {
+    id: "5-3",
+    chapterId: "ch5",
+    title: "The Final Broadcast",
+    flavor: "Six signals in the dark, and every turn the weakest one fades. Outlast them all to sign off.",
+    setup: { rounds: 3, roster: ["fadeout"], bots: 5, showHands: false },
+    // Campaign finale: completing the chapter grants gilded.
+    objective: { type: "last_standing" },
   },
 ];
 

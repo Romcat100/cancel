@@ -7,7 +7,15 @@ export interface CampaignEvalInput {
   players: { id: string; totalScore: number; isBot?: boolean }[];
   rounds: {
     perPlayerRoundScore: { [playerId: string]: number };
-    reveals: { scoreLines: { playerId: string; delta: number; notes: string[] }[] }[];
+    // Conductor rounds stamp their podium winner here (RoundDoc field).
+    conductorWinnerId?: string;
+    reveals: {
+      scoreLines: { playerId: string; delta: number; notes: string[] }[];
+      // Refraction/Broadcast: each player's pre-glimpse pick vs final pick.
+      crosstalkUsed?: { playerId: string; initialNumber: number; finalNumber: number }[];
+      // Fadeout: the sole survivor, on the turn the race ends.
+      fadeoutSurvivorId?: string;
+    }[];
   }[];
 }
 
@@ -25,10 +33,12 @@ export interface ObjectiveResult {
 //   lone 0, Absorption, and every Dead Air canceller (stats.ts uses it too).
 // - untouched: the tie/cancel wipe notes, same matcher as stats.ts:isWipeNote.
 // - never_gated: the Gate cut note ("Gate: N cut to 0").
+// - lifted: the Subharmonic lift note ("Subharmonic: N lifted by 4").
 const isHarmonyDoubleNote = (n: string) => n.startsWith("Harmony: tied on");
 const isSilenceNote = (n: string) => n.includes("cancelled all others");
 const isWipeNote = (n: string) => n.startsWith("Tied") || n === "Cancelled by 0";
 const isGateCutNote = (n: string) => n.startsWith("Gate:");
+const isLiftNote = (n: string) => n.startsWith("Subharmonic:");
 
 // "Win" means the human finishes at (or tied for) the top score — the same rule
 // endGame uses for series wins.
@@ -98,6 +108,53 @@ export function evaluateObjective(input: CampaignEvalInput, level: CampaignLevel
         passed: false,
         detail: `You won, but the Gate cut your card ${cuts === 1 ? "once" : `${cuts} times`}.`,
       };
+    }
+    case "lifted": {
+      const got = countNotes(input, human.id, isLiftNote);
+      if (got >= obj.count) return { passed: true };
+      if (got === 0) return { passed: false, detail: "You won, but never caught the lift." };
+      return {
+        passed: false,
+        detail: `You won and caught the lift ${got === 1 ? "once" : `${got} times`}. Catch it ${obj.count} times.`,
+      };
+    }
+    case "win_margin": {
+      const others = input.players.filter((p) => p.id !== human.id).map((p) => p.totalScore);
+      const margin = human.totalScore - Math.max(...others);
+      if (margin >= obj.min) return { passed: true };
+      return {
+        passed: false,
+        detail: `You won by ${margin}. Win by ${obj.min} or more.`,
+      };
+    }
+    case "repick_score": {
+      const scored = input.rounds.some((r) =>
+        r.reveals.some((rv) => {
+          const repick = rv.crosstalkUsed?.find(
+            (c) => c.playerId === human.id && c.initialNumber !== c.finalNumber,
+          );
+          if (!repick) return false;
+          const line = rv.scoreLines.find((l) => l.playerId === human.id);
+          return !!line && line.delta > 0;
+        }),
+      );
+      if (scored) return { passed: true };
+      return {
+        passed: false,
+        detail: "You won, but never scored with a changed pick. Change your card after a glimpse and make it count.",
+      };
+    }
+    case "conducted": {
+      const took = input.rounds.some((r) => r.conductorWinnerId === human.id);
+      if (took) return { passed: true };
+      return { passed: false, detail: "You won the game, but never took a round's podium." };
+    }
+    case "last_standing": {
+      const survived = input.rounds.some((r) =>
+        r.reveals.some((rv) => rv.fadeoutSurvivorId === human.id),
+      );
+      if (survived) return { passed: true };
+      return { passed: false, detail: "You won, but never outlasted the whole board in a fade." };
     }
   }
 }

@@ -36,6 +36,13 @@ export function seatColor(seat: number) {
   return SEATS[seat % SEATS.length];
 }
 
+// Name-flair CSS class for a player's name text ("" when none). The server only
+// ever stamps name-kind flairs into Player.nameFlair, so no kind check here.
+// Same safe-placement rule as wave flair: decorative sites only, never the reveal.
+export function nameFlairClass(flair?: FlairId): string {
+  return flair ? `nf-${flair}` : "";
+}
+
 // Cross-rematch series standings: one row per seated player (a mid-series joiner
 // simply shows 0-0), best record first. Shared by the lobby's series block and
 // the game-end series strip so both screens agree on the order.
@@ -935,7 +942,7 @@ export function RoundScoreTable({
   currentRoundIndex,
   awards,
 }: {
-  ranked: { id: string; name: string; seat: number; totalScore: number; flair?: FlairId }[];
+  ranked: { id: string; name: string; seat: number; totalScore: number; flair?: FlairId; nameFlair?: FlairId }[];
   selfId: string;
   roundHistory: { index: number; scores: { [playerId: string]: number } }[];
   currentRoundIndex?: number;
@@ -977,7 +984,7 @@ export function RoundScoreTable({
           <div className="flex items-center gap-2">
             <span className="font-mono text-paper/40 w-5 text-right text-sm">{i + 1}</span>
             <span className={`${SEAT_COLORS[p.seat % SEAT_COLORS.length]} w-3 h-3 rounded-full`} />
-            <span className="font-bold flex-1 text-sm truncate">
+            <span className={`font-bold flex-1 text-sm truncate ${nameFlairClass(p.nameFlair)}`}>
               {p.name}
               {p.id === selfId && <YouBadge seat={p.seat} className="ml-1.5" />}
               {awards?.[p.id]?.map((a) => (

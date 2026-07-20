@@ -1,6 +1,6 @@
 import type { CreateRoomRes, JoinRoomRes, ProfileRes } from "../../shared/protocol.js";
 import type { NumberMode, PowerUpId, PowerUpMode, RoomStateForPlayer, RoundPowerId } from "../../shared/types.js";
-import type { FlairId } from "../../shared/campaign.js";
+import type { FlairId, FlairKind } from "../../shared/campaign.js";
 
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, {
@@ -26,8 +26,8 @@ export const api = {
   getProfile(profileToken: string) {
     return call<ProfileRes>("GET", `/api/profile?token=${encodeURIComponent(profileToken)}`);
   },
-  equipFlair(profileToken: string, flair: FlairId | null) {
-    return call<ProfileRes>("POST", "/api/profile/equip", { profileToken, flair });
+  equipFlair(profileToken: string, flair: FlairId | null, kind?: FlairKind) {
+    return call<ProfileRes>("POST", "/api/profile/equip", { profileToken, flair, kind });
   },
   startGame(roomCode: string, claimToken: string) {
     return call<{ ok: true; state: RoomStateForPlayer }>("POST", `/api/rooms/${roomCode}/start`, { claimToken });

@@ -22,6 +22,7 @@ import {
   isLevelUnlocked,
   objectiveText,
   type FlairId,
+  type FlairKind,
 } from "../../../shared/campaign.js";
 import type { ProfileView } from "../../../shared/protocol.js";
 
@@ -75,13 +76,13 @@ export function FlairButton({ className = "", testId }: { className?: string; te
       const res = await api.getProfile(getProfileToken());
       setProfile(res.profile);
     } catch {
-      setProfile({ completedLevels: {}, unlockedFlairs: [], equippedFlair: null });
+      setProfile({ completedLevels: {}, unlockedFlairs: [], equippedFlair: null, equippedName: null });
     }
   }
 
-  async function equip(flair: FlairId | null) {
+  async function equip(flair: FlairId | null, kind: FlairKind) {
     try {
-      const res = await api.equipFlair(getProfileToken(), flair);
+      const res = await api.equipFlair(getProfileToken(), flair, kind);
       setProfile(res.profile);
     } catch {
       // leave the picker as-is; the campaign screen surfaces equip errors
@@ -159,16 +160,17 @@ export function Campaign({ onBack }: { onBack: () => void }) {
     void begin(levelId, knownName.trim());
   }
 
-  async function equip(flair: FlairId | null) {
+  async function equip(flair: FlairId | null, kind: FlairKind) {
     try {
-      const res = await api.equipFlair(getProfileToken(), flair);
+      const res = await api.equipFlair(getProfileToken(), flair, kind);
       setProfile(res.profile);
     } catch (e) {
       setErr((e as Error).message);
     }
   }
 
-  const progress = profile ?? { completedLevels: {}, unlockedFlairs: [], equippedFlair: null };
+  const progress =
+    profile ?? { completedLevels: {}, unlockedFlairs: [], equippedFlair: null, equippedName: null };
 
   return (
     <div className="min-h-screen flex flex-col px-6 pt-8 pb-8 max-w-md mx-auto relative">
@@ -228,7 +230,14 @@ export function Campaign({ onBack }: { onBack: () => void }) {
                   </span>
                 )}
               </div>
-              <div className="text-paper/55 text-xs mt-0.5 mb-3">{chapter.flavor}</div>
+              <div className="text-paper/55 text-xs mt-0.5 mb-1">{chapter.flavor}</div>
+              {chapter.completionFlair ? (
+                <div className="mb-3 font-mono text-[10px] text-paper/40">
+                  Finish the chapter to unlock: {FLAIRS[chapter.completionFlair].name}
+                </div>
+              ) : (
+                <div className="mb-2" />
+              )}
 
               {chapter.comingSoon ? (
                 <div className="rounded-2xl border border-paper/10 bg-paper/[.03] px-4 py-4 text-paper/35 font-mono text-xs">
@@ -336,58 +345,83 @@ function FlairPicker({
   onClose,
 }: {
   profile: ProfileView;
-  onEquip: (flair: FlairId | null) => void;
+  onEquip: (flair: FlairId | null, kind: FlairKind) => void;
   onClose: () => void;
 }) {
+  const sections: { kind: FlairKind; title: string }[] = [
+    { kind: "wave", title: "Wave" },
+    { kind: "name", title: "Name" },
+  ];
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-ink/90 backdrop-blur-md p-4" onClick={onClose}>
       {/* testid on the rising panel (not the static overlay) so waitOpaque
           actually waits out the entrance animation before screenshots. */}
-      <div className="panel w-full max-w-md rounded-3xl p-5 animate-rise bg-ink" onClick={(e) => e.stopPropagation()} data-testid="campaign-flair-modal">
+      <div
+        className="panel w-full max-w-md rounded-3xl p-5 animate-rise bg-ink max-h-[80vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+        data-testid="campaign-flair-modal"
+      >
         <div className="flex items-center justify-between">
-          <div className="font-display text-xl font-extrabold">Wave flair</div>
+          <div className="font-display text-xl font-extrabold">Flair</div>
           <button className="btn-ghost px-3 py-1.5 text-sm" onClick={onClose} data-testid="campaign-flair-close">
             Close
           </button>
         </div>
         <div className="text-paper/55 text-xs mt-1">
-          Earned in the campaign, shown on your wave everywhere you play. One at a time; tap your
-          equipped flair to go plain.
+          Earned in the campaign, worn everywhere you play. One wave style and one name style at a
+          time; tap an equipped flair to go plain.
         </div>
-        <div className="mt-4 flex flex-col gap-2">
-          {FLAIR_IDS.map((id) => {
-            const unlocked = profile.unlockedFlairs.includes(id);
-            const equipped = profile.equippedFlair === id;
-            return (
-              <button
-                key={id}
-                disabled={!unlocked}
-                onClick={() => onEquip(equipped ? null : id)}
-                data-sfx={unlocked ? "click" : "none"}
-                data-testid={`campaign-flair-${id}`}
-                className={`rounded-2xl border px-4 py-3 text-left transition ${
-                  equipped
-                    ? "border-gold/70 bg-gold/10"
-                    : unlocked
-                      ? "border-paper/15 bg-paper/5"
-                      : "border-paper/10 bg-paper/[.02] opacity-40"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="w-16 h-6 shrink-0">
-                    <Wave rank={2} color="#6fa8ff" variant="soft" flair={unlocked ? id : null} className="w-full h-full" />
-                  </span>
-                  <span className="flex-1">
-                    <span className="font-bold text-sm block">{FLAIRS[id].name}</span>
-                    <span className="text-paper/55 text-xs block">{FLAIRS[id].description}</span>
-                  </span>
-                  {equipped && <span className="chip bg-gold/20 text-gold text-xs">equipped</span>}
-                  {!unlocked && <span className="font-mono text-[10px] text-paper/40">locked</span>}
-                </div>
-              </button>
-            );
-          })}
-        </div>
+        {sections.map((section) => (
+          <div key={section.kind}>
+            <div className="mt-4 mb-2 font-mono text-[10px] uppercase tracking-[0.25em] text-paper/45">
+              {section.title}
+            </div>
+            <div className="flex flex-col gap-2">
+              {FLAIR_IDS.filter((id) => FLAIRS[id].kind === section.kind).map((id) => {
+                const unlocked = profile.unlockedFlairs.includes(id);
+                const equipped =
+                  section.kind === "name" ? profile.equippedName === id : profile.equippedFlair === id;
+                return (
+                  <button
+                    key={id}
+                    disabled={!unlocked}
+                    onClick={() => onEquip(equipped ? null : id, section.kind)}
+                    data-sfx={unlocked ? "click" : "none"}
+                    data-testid={`campaign-flair-${id}`}
+                    className={`rounded-2xl border px-4 py-3 text-left transition ${
+                      equipped
+                        ? "border-gold/70 bg-gold/10"
+                        : unlocked
+                          ? "border-paper/15 bg-paper/5"
+                          : "border-paper/10 bg-paper/[.02] opacity-40"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="w-16 h-6 shrink-0 flex items-center justify-center">
+                        {section.kind === "wave" ? (
+                          <Wave rank={2} color="#6fa8ff" variant="soft" flair={unlocked ? id : null} className="w-full h-full" />
+                        ) : (
+                          <span
+                            className={`font-bold text-sm ${unlocked ? `nf-${id}` : ""}`}
+                            style={{ color: "#6fa8ff" }}
+                          >
+                            You
+                          </span>
+                        )}
+                      </span>
+                      <span className="flex-1">
+                        <span className="font-bold text-sm block">{FLAIRS[id].name}</span>
+                        <span className="text-paper/55 text-xs block">{FLAIRS[id].description}</span>
+                      </span>
+                      {equipped && <span className="chip bg-gold/20 text-gold text-xs">equipped</span>}
+                      {!unlocked && <span className="font-mono text-[10px] text-paper/40">locked</span>}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import type { NumberMode, PowerUpId, PowerUpMode, RoomStateForPlayer, RoundPowerId } from "./types";
-import type { CampaignProgress, FlairId } from "./campaign";
+import type { CampaignProgress, FlairId, FlairKind } from "./campaign";
 
 export interface JoinRoomReq {
   roomCode: string;
@@ -122,9 +122,12 @@ export interface SkipWaitingReq {
 }
 
 // The client-visible slice of a profile (campaign progress + cosmetics).
+// One equipped cosmetic per kind: equippedFlair is the wave slot, equippedName
+// the name slot.
 export interface ProfileView extends CampaignProgress {
   unlockedFlairs: FlairId[];
   equippedFlair: FlairId | null;
+  equippedName: FlairId | null;
 }
 
 export interface ProfileRes {
@@ -134,8 +137,9 @@ export interface ProfileRes {
 
 export interface EquipFlairReq {
   profileToken: string;
-  // null unequips.
+  // null unequips the `kind` slot; a flair id implies its own kind.
   flair: FlairId | null;
+  kind?: FlairKind;
 }
 
 export interface ErrorRes {

@@ -49,9 +49,11 @@ export interface Player {
   totalScore: number;
   hand: number[];
   isBot: boolean;
-  // Campaign-unlocked wave cosmetic, snapshotted from the player's profile when
-  // they took their seat. Public and purely decorative.
+  // Campaign-unlocked cosmetics, snapshotted from the player's profile when
+  // they took their seat. Public and purely decorative. `flair` is the wave
+  // slot; `nameFlair` styles the player name.
   flair?: FlairId;
+  nameFlair?: FlairId;
 }
 
 export type RoomPhase =
