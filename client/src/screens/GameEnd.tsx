@@ -8,7 +8,63 @@ import { connectSocket, disconnectSocket } from "../socket.js";
 import { Confetti, MusicToggle, RoundScoreTable, SEAT_TEXT_COLORS, seatColor, SeriesStandings } from "../components.js";
 import { Wave } from "../wave.js";
 import { requestCampaignReturn } from "./Campaign.js";
-import { campaignLevel, FLAIRS, nextLevelId } from "../../../shared/campaign.js";
+import { campaignLevel, FLAIRS, nextLevelId, type FlairId } from "../../../shared/campaign.js";
+
+// Victory flourish (campaign cosmetic): the winner's personal celebration,
+// rendered on EVERY client when the game has a sole winner who has one
+// equipped. Replaces the winner's default Confetti. All motion is behind
+// prefers-reduced-motion (fx-* recipes in index.css), like everything else.
+function VictoryFlourish({ kind, hex }: { kind: FlairId; hex: string }) {
+  const [drops] = useState(() =>
+    Array.from({ length: 16 }, (_, i) => {
+      const dur = 6 + Math.random() * 4;
+      return {
+        key: i,
+        left: Math.random() * 94,
+        top: Math.random() * 60,
+        size: Math.round(12 + Math.random() * 14),
+        delay: -Math.random() * dur,
+        dur,
+      };
+    }),
+  );
+  if (kind === "shockwave") {
+    return (
+      <div className="fx" style={{ color: hex }} data-testid="game-end-flourish">
+        {[0, 1, 2, 3].map((i) => (
+          <i key={i} className="fxr" style={{ animationDelay: `${i * 0.65}s` }} />
+        ))}
+      </div>
+    );
+  }
+  if (kind === "zero_rain") {
+    return (
+      <div className="fx" style={{ color: hex }} data-testid="game-end-flourish">
+        {drops.map((d) => (
+          <span
+            key={d.key}
+            className="fxo"
+            style={{
+              left: `${d.left}%`,
+              top: `${d.top}%`,
+              fontSize: `${d.size}px`,
+              animationDelay: `${d.delay}s`,
+              animationDuration: `${d.dur}s`,
+            }}
+          >
+            Ø
+          </span>
+        ))}
+      </div>
+    );
+  }
+  // limelight
+  return (
+    <div className="fx" style={{ color: hex }} data-testid="game-end-flourish">
+      <i className="fxl" />
+    </div>
+  );
+}
 
 // Monotone-x cubic path through the points (d3 curveMonotoneX's tangent rule):
 // smooth like a signal trace, but it never overshoots a data point, so the curve
@@ -457,9 +513,16 @@ export function GameEnd({ onLeave }: { onLeave: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // A sole winner's equipped flourish celebrates on every client (that's the
+  // cosmetic's point); without one, the winner keeps their own private confetti.
+  const winnerFlourish = !isTie ? leaders[0]?.flourishFlair : undefined;
   return (
     <div className="h-[100dvh] flex flex-col px-6 pt-10 pb-6 max-w-md mx-auto relative overflow-hidden">
-      {!isTie && selfIsLeader && <Confetti />}
+      {winnerFlourish ? (
+        <VictoryFlourish kind={winnerFlourish} hex={seatColor(leaders[0].seat).hex} />
+      ) : (
+        !isTie && selfIsLeader && <Confetti />
+      )}
       <div className="absolute top-3 right-3 z-10">
         <MusicToggle />
       </div>

@@ -11,6 +11,7 @@ import {
 } from "../identity.js";
 import { useAppStore } from "../store.js";
 import { MusicToggle } from "../components.js";
+import { playSignaturePreview, type SignatureVoice } from "../sfx.js";
 import { Wave } from "../wave.js";
 import { ROUND_THEMES } from "../theme.js";
 import {
@@ -57,6 +58,15 @@ export function clearCampaignReturn() {
   }
 }
 
+const EMPTY_PROFILE: ProfileView = {
+  completedLevels: {},
+  unlockedFlairs: [],
+  equippedFlair: null,
+  equippedName: null,
+  equippedFlourish: null,
+  equippedSound: null,
+};
+
 // Chapter tints come straight from the round themes (inline styles only — the
 // global --th-* vars stay untouched, so Home/campaign remain indigo overall).
 function themeRgb(triplet: string, alpha = 1): string {
@@ -76,7 +86,7 @@ export function FlairButton({ className = "", testId }: { className?: string; te
       const res = await api.getProfile(getProfileToken());
       setProfile(res.profile);
     } catch {
-      setProfile({ completedLevels: {}, unlockedFlairs: [], equippedFlair: null, equippedName: null });
+      setProfile(EMPTY_PROFILE);
     }
   }
 
@@ -169,8 +179,7 @@ export function Campaign({ onBack }: { onBack: () => void }) {
     }
   }
 
-  const progress =
-    profile ?? { completedLevels: {}, unlockedFlairs: [], equippedFlair: null, equippedName: null };
+  const progress = profile ?? EMPTY_PROFILE;
 
   return (
     <div className="min-h-screen flex flex-col px-6 pt-8 pb-8 max-w-md mx-auto relative">
@@ -351,7 +360,19 @@ function FlairPicker({
   const sections: { kind: FlairKind; title: string }[] = [
     { kind: "wave", title: "Wave" },
     { kind: "name", title: "Name" },
+    { kind: "flourish", title: "Victory flourish" },
+    { kind: "sound", title: "Signature sound" },
   ];
+  const equippedIn = (kind: FlairKind) =>
+    kind === "name"
+      ? profile.equippedName
+      : kind === "flourish"
+        ? profile.equippedFlourish
+        : kind === "sound"
+          ? profile.equippedSound
+          : profile.equippedFlair;
+  // Static preview glyphs for the two non-visual-on-a-wave kinds.
+  const FLOURISH_GLYPH: { [id: string]: string } = { shockwave: "◎", zero_rain: "Ø", limelight: "✦" };
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-ink/90 backdrop-blur-md p-4" onClick={onClose}>
       {/* testid on the rising panel (not the static overlay) so waitOpaque
@@ -379,14 +400,19 @@ function FlairPicker({
             <div className="flex flex-col gap-2">
               {FLAIR_IDS.filter((id) => FLAIRS[id].kind === section.kind).map((id) => {
                 const unlocked = profile.unlockedFlairs.includes(id);
-                const equipped =
-                  section.kind === "name" ? profile.equippedName === id : profile.equippedFlair === id;
+                const equipped = equippedIn(section.kind) === id;
                 return (
                   <button
                     key={id}
                     disabled={!unlocked}
-                    onClick={() => onEquip(equipped ? null : id, section.kind)}
-                    data-sfx={unlocked ? "click" : "none"}
+                    onClick={() => {
+                      // Equipping a signature sound plays it, so the pick is audible.
+                      if (section.kind === "sound" && !equipped) {
+                        playSignaturePreview(id as SignatureVoice);
+                      }
+                      onEquip(equipped ? null : id, section.kind);
+                    }}
+                    data-sfx={unlocked && section.kind !== "sound" ? "click" : "none"}
                     data-testid={`campaign-flair-${id}`}
                     className={`rounded-2xl border px-4 py-3 text-left transition ${
                       equipped
@@ -400,12 +426,19 @@ function FlairPicker({
                       <span className="w-16 h-6 shrink-0 flex items-center justify-center">
                         {section.kind === "wave" ? (
                           <Wave rank={2} color="#6fa8ff" variant="soft" flair={unlocked ? id : null} className="w-full h-full" />
-                        ) : (
+                        ) : section.kind === "name" ? (
                           <span
                             className={`font-bold text-sm ${unlocked ? `nf-${id}` : ""}`}
                             style={{ color: "#6fa8ff" }}
                           >
                             You
+                          </span>
+                        ) : (
+                          <span
+                            className="font-mono text-lg"
+                            style={{ color: "#6fa8ff", textShadow: unlocked ? "0 0 8px #6fa8ff" : undefined }}
+                          >
+                            {section.kind === "sound" ? "♪" : FLOURISH_GLYPH[id] ?? "❋"}
                           </span>
                         )}
                       </span>

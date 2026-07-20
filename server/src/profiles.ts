@@ -10,14 +10,23 @@ import { earnedFlairs, FLAIRS } from "../../shared/campaign.js";
 
 export interface ProfileDoc extends CampaignProgress {
   unlockedFlairs: FlairId[];
-  // One equipped cosmetic per kind, worn together. `equippedFlair` is the wave
-  // slot (the original single slot, name kept for save compat).
+  // One equipped cosmetic per kind, all worn together. `equippedFlair` is the
+  // wave slot (the original single slot, name kept for save compat).
   equippedFlair: FlairId | null;
   equippedName: FlairId | null;
+  equippedFlourish: FlairId | null;
+  equippedSound: FlairId | null;
 }
 
 export function freshProfile(): ProfileDoc {
-  return { completedLevels: {}, unlockedFlairs: [], equippedFlair: null, equippedName: null };
+  return {
+    completedLevels: {},
+    unlockedFlairs: [],
+    equippedFlair: null,
+    equippedName: null,
+    equippedFlourish: null,
+    equippedSound: null,
+  };
 }
 
 // Tokens come straight from clients — bound them so junk can't grow keys unboundedly.
@@ -47,20 +56,14 @@ export function loadProfile(token: string): ProfileDoc {
   doc.unlockedFlairs = [
     ...new Set([...doc.unlockedFlairs.filter((id) => id in FLAIRS), ...earnedFlairs(doc)]),
   ];
-  // Each slot must hold a flair of its own kind (the wave slot predates kinds,
-  // so every legacy value is wave-kind already).
-  if (
-    doc.equippedFlair === undefined ||
-    (doc.equippedFlair && FLAIRS[doc.equippedFlair]?.kind !== "wave")
-  ) {
-    doc.equippedFlair = null;
-  }
-  if (
-    doc.equippedName === undefined ||
-    (doc.equippedName && FLAIRS[doc.equippedName]?.kind !== "name")
-  ) {
-    doc.equippedName = null;
-  }
+  // Each slot must hold a flair of its own kind (this also sheds retired ids
+  // and defaults slots that predate their kind).
+  const slotOk = (id: FlairId | null | undefined, kind: string) =>
+    id != null && FLAIRS[id]?.kind === kind ? id : null;
+  doc.equippedFlair = slotOk(doc.equippedFlair, "wave");
+  doc.equippedName = slotOk(doc.equippedName, "name");
+  doc.equippedFlourish = slotOk(doc.equippedFlourish, "flourish");
+  doc.equippedSound = slotOk(doc.equippedSound, "sound");
   return doc;
 }
 
@@ -90,15 +93,26 @@ export function restoreProfile(token: string, doc: ProfileDoc): void {
 
 // A player's equipped cosmetics, empty for a fresh/unknown token. Never throws —
 // flair lookup is decoration, not a gate.
-export function equippedCosmeticsFor(token: string | undefined): {
+export interface EquippedCosmetics {
   wave: FlairId | null;
   name: FlairId | null;
-} {
-  if (!token) return { wave: null, name: null };
+  flourish: FlairId | null;
+  sound: FlairId | null;
+}
+
+const NO_COSMETICS: EquippedCosmetics = { wave: null, name: null, flourish: null, sound: null };
+
+export function equippedCosmeticsFor(token: string | undefined): EquippedCosmetics {
+  if (!token) return NO_COSMETICS;
   try {
     const p = loadProfile(validateProfileToken(token));
-    return { wave: p.equippedFlair, name: p.equippedName };
+    return {
+      wave: p.equippedFlair,
+      name: p.equippedName,
+      flourish: p.equippedFlourish,
+      sound: p.equippedSound,
+    };
   } catch {
-    return { wave: null, name: null };
+    return NO_COSMETICS;
   }
 }

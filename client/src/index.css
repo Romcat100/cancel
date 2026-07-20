@@ -391,6 +391,41 @@
   text-shadow: 0 0 8px rgb(var(--th-cool) / 0.6);
 }
 
+/* ===== Victory flourishes (game-end, the sole winner's pick, seen by all) =====
+   Colored by the winner's seat via currentColor on the .fx container. Resting
+   frames read correctly: a faint ring, scattered zeros, a still glow. */
+.fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.fxr {
+  position: absolute;
+  left: 50%;
+  top: 28%;
+  width: 64px;
+  height: 64px;
+  margin: -32px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  opacity: 0.22;
+  box-shadow: 0 0 18px currentColor;
+}
+.fxo {
+  position: absolute;
+  font-family: theme(fontFamily.mono);
+  color: currentColor;
+  opacity: 0.45;
+  text-shadow: 0 0 10px currentColor;
+}
+.fxl {
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(ellipse at 50% 20%, currentColor, transparent 55%);
+  opacity: 0.16;
+}
+
 /* ============ motion: opt-in only, so reduced-motion (and the screenshot
    harness) always see the correct resting frame ============ */
 @media (prefers-reduced-motion: no-preference) {
@@ -449,5 +484,34 @@
   .cfd,
   .cfo {
     animation: cf-fall 7s linear infinite;
+  }
+  /* Victory flourish motion (see the fx-* recipes above the motion block). */
+  @keyframes fx-ring {
+    from {
+      scale: 0.15;
+      opacity: 0.8;
+    }
+    to {
+      scale: 3;
+      opacity: 0;
+    }
+  }
+  .fxr {
+    animation: fx-ring 2.6s ease-out infinite;
+  }
+  .fxo {
+    animation: cf-fall 8s linear infinite;
+  }
+  @keyframes fx-sweep {
+    0%,
+    100% {
+      opacity: 0.1;
+    }
+    50% {
+      opacity: 0.24;
+    }
+  }
+  .fxl {
+    animation: fx-sweep 3.2s ease-in-out infinite;
   }
 }

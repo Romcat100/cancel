@@ -47,7 +47,7 @@ You can play **solo against AI** from the Home screen (tap **Single player**), w
 
 The **Campaign** button on the Home screen opens a solo level map: five chapters of three hand-authored levels, exactly one level per round power, so finishing the campaign means you've played the whole roster. Each level is a short game against AI with a fixed setup (round count, opponents, its power) and an objective to beat, like "win the game and score at least one doubled tie" under Harmony. Beating a level unlocks the next, all the way to a six-player hidden-hands Fadeout finale where you have to be the last signal standing.
 
-Some levels (and finishing a chapter) unlock **flair**: cosmetic styles that show in any game you play, multiplayer included. Flair comes in two kinds, wave styles for your waveform and name styles for your player name, and you can wear one of each. Equip them from the **Flair** button on the campaign screen or the **Wave flair** button on Home.
+Some levels (and finishing a chapter) unlock **flair**: cosmetics that show in any game you play, multiplayer included. Flair comes in four kinds, three of each: **wave** styles for your waveform, **name** styles for your player name, **victory flourishes** (your personal celebration on the game-over screen, seen by the whole table when you win), and **signature sounds** (your scoring cards get their own voice in the reveal). You can wear one of each kind at once. Equip them from the **Flair** button on the campaign screen or the **Wave flair** button on Home.
 
 Progress is saved automatically per device (no account needed) under an anonymous profile stored by the server.
 

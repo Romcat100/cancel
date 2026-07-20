@@ -175,16 +175,24 @@ function authPlayer(roomCode: string, claimToken: string) {
   return player;
 }
 
-// Snapshot a player's equipped cosmetics (wave + name) onto their seat. Purely
-// decorative, so a missing/invalid token just means no flair. Bots never pass
-// through here.
+// Snapshot a player's equipped cosmetics (all four slots) onto their seat.
+// Purely decorative, so a missing/invalid token just means no flair. Bots
+// never pass through here.
 function stampFlair(room: RoomDoc, playerId: string, profileToken: string | undefined): RoomDoc {
-  const { wave, name } = equippedCosmeticsFor(profileToken);
-  if (!wave && !name) return room;
+  const eq = equippedCosmeticsFor(profileToken);
+  if (!eq.wave && !eq.name && !eq.flourish && !eq.sound) return room;
   return {
     ...room,
     players: room.players.map((p) =>
-      p.id === playerId ? { ...p, flair: wave ?? undefined, nameFlair: name ?? undefined } : p,
+      p.id === playerId
+        ? {
+            ...p,
+            flair: eq.wave ?? undefined,
+            nameFlair: eq.name ?? undefined,
+            flourishFlair: eq.flourish ?? undefined,
+            soundFlair: eq.sound ?? undefined,
+          }
+        : p,
     ),
   };
 }
@@ -236,6 +244,8 @@ export function apiGetProfile(profileToken: string) {
       unlockedFlairs: profile.unlockedFlairs,
       equippedFlair: profile.equippedFlair,
       equippedName: profile.equippedName,
+      equippedFlourish: profile.equippedFlourish,
+      equippedSound: profile.equippedSound,
     },
   };
 }
@@ -251,6 +261,8 @@ export function apiEquipFlair(req: EquipFlairReq) {
   // A flair implies its own slot; a bare null clears the requested (default wave) slot.
   const kind = flair !== null ? FLAIRS[flair].kind : (req.kind ?? "wave");
   if (kind === "name") profile.equippedName = flair;
+  else if (kind === "flourish") profile.equippedFlourish = flair;
+  else if (kind === "sound") profile.equippedSound = flair;
   else profile.equippedFlair = flair;
   saveProfile(token, profile);
   return apiGetProfile(token);
@@ -358,18 +370,26 @@ export function apiJoinRoom(req: JoinRoomReq, ctx: ApiCtx) {
       if (inGame) {
         // Reclaim also refreshes the seat's cosmetics snapshot, so equipping a
         // new flair then rejoining shows it without needing a brand-new room.
-        const { wave, name } = equippedCosmeticsFor(req.profileToken);
+        const eq = equippedCosmeticsFor(req.profileToken);
         const seated = room.players.find((p) => p.id === existing.id);
-        if (
-          req.profileToken &&
+        const stale =
           seated &&
-          ((seated.flair ?? null) !== wave || (seated.nameFlair ?? null) !== name)
-        ) {
+          ((seated.flair ?? null) !== eq.wave ||
+            (seated.nameFlair ?? null) !== eq.name ||
+            (seated.flourishFlair ?? null) !== eq.flourish ||
+            (seated.soundFlair ?? null) !== eq.sound);
+        if (req.profileToken && stale) {
           const updated: RoomDoc = {
             ...room,
             players: room.players.map((p) =>
               p.id === existing.id
-                ? { ...p, flair: wave ?? undefined, nameFlair: name ?? undefined }
+                ? {
+                    ...p,
+                    flair: eq.wave ?? undefined,
+                    nameFlair: eq.name ?? undefined,
+                    flourishFlair: eq.flourish ?? undefined,
+                    soundFlair: eq.sound ?? undefined,
+                  }
                 : p,
             ),
           };

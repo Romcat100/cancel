@@ -7,7 +7,7 @@ import { useAppStore } from "../store.js";
 import { MusicToggle, NumberCard, PlayerChip, PowerDescription, PowerUpCard, PowerUpChip, RoundPowerCard, RoundPowerDescription, RoundPowerGlyph, RoundScoreTable, Rules, YouBadge, nameFlairClass, roundPowerDef, seatColor, selfRingStyle, type PingKind } from "../components.js";
 import { Wave, rankForNumber } from "../wave.js";
 import { emitPing, onPing } from "../socket.js";
-import { playRevealCascade, playSfx } from "../sfx.js";
+import { playRevealCascade, playSfx, type SignatureVoice } from "../sfx.js";
 import { GameEnd } from "./GameEnd.js";
 
 export function Game({ onLeave, onAbandoned }: { onLeave: () => void; onAbandoned: () => void }) {
@@ -1010,7 +1010,7 @@ function revealTreatment(number: number, delta: number, notes: string[]): Treatm
 
 type RevealRowItem = {
   s: { playerId: string; number: number };
-  player: { name: string; seat: number };
+  player: { name: string; seat: number; soundFlair?: FlairId };
   delta: number;
   total: number;
   t: Treatment;
@@ -1162,7 +1162,7 @@ function RevealView({
   onClose,
 }: {
   reveal: RevealedTurn;
-  players: { id: string; name: string; seat: number; totalScore: number }[];
+  players: { id: string; name: string; seat: number; totalScore: number; soundFlair?: FlairId }[];
   selfId: string;
   roundPower?: RoundPowerId;
   onClose: () => void;
@@ -1224,7 +1224,13 @@ function RevealView({
   // (like the flip animation itself) — the reveal data is static per overlay.
   useEffect(() => {
     playRevealCascade(
-      enriched.map((e) => ({ rank: rankForNumber(e.s.number), outcome: e.t })),
+      // A player's signature sound voices their survivor tone (soundFlair holds
+      // only sound-kind ids, which are exactly the SignatureVoice values).
+      enriched.map((e) => ({
+        rank: rankForNumber(e.s.number),
+        outcome: e.t,
+        voice: e.player.soundFlair as SignatureVoice | undefined,
+      })),
       flipStepMs,
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps

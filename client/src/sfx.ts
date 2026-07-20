@@ -124,6 +124,49 @@ function rankFreq(rank: number): number {
 // Mirrors Game.tsx's revealTreatment union — what happened to one revealed card.
 export type RevealOutcome = "survivor" | "aliveZero" | "tie" | "zeroed" | "negative" | "neutral" | "faded";
 
+// Signature sounds (campaign cosmetics): a player's equipped sound flair voices
+// THEIR survivor tone in the cascade. Only the survivor outcome is voiced — the
+// tie clash, Ø glide, choke, and droop keep their standard sound so the
+// reveal's audio language stays readable. Ids match the sound-kind FlairIds.
+export type SignatureVoice = "chime" | "pluck" | "brass";
+
+function playSurvivor(c: AudioContext, at: number, f: number, voice?: SignatureVoice) {
+  switch (voice) {
+    case "chime":
+      // Bell: fundamental + octave + a soft inharmonic partial, long ring.
+      playTone(c, { startAt: at, wave: "sine", freq: f, duration: 0.7, gain: 0.08, filterFreq: 3000, attack: 0.004 });
+      playTone(c, { startAt: at, wave: "sine", freq: f * 2, duration: 0.6, gain: 0.03, filterFreq: 3600, attack: 0.004 });
+      playTone(c, { startAt: at, wave: "sine", freq: f * 2.76, duration: 0.35, gain: 0.018, filterFreq: 4200, attack: 0.004 });
+      return;
+    case "pluck":
+      // Plucked string: sharp attack, fast decay, bright then gone.
+      playTone(c, { startAt: at, wave: "triangle", freq: f, duration: 0.2, gain: 0.1, filterFreq: 2600, attack: 0.002 });
+      playTone(c, { startAt: at, wave: "triangle", freq: f * 2, duration: 0.14, gain: 0.03, filterFreq: 3000, attack: 0.002 });
+      return;
+    case "brass":
+      // Brassy swell: detuned saws into a mid filter, slower attack.
+      playTone(c, { startAt: at, wave: "sawtooth", freq: f, duration: 0.45, gain: 0.05, filterFreq: 1500, attack: 0.03 });
+      playTone(c, { startAt: at, wave: "sawtooth", freq: f * 1.006, duration: 0.45, gain: 0.03, filterFreq: 1200, attack: 0.03 });
+      return;
+    default:
+      // Standard survivor: clean ring with an octave shimmer on top.
+      playTone(c, { startAt: at, wave: "sine", freq: f, duration: 0.5, gain: 0.085, filterFreq: 2600, attack: 0.008 });
+      playTone(c, { startAt: at, wave: "sine", freq: f * 2, duration: 0.5, gain: 0.025, filterFreq: 3200, attack: 0.008 });
+  }
+}
+
+// One voiced survivor tone on demand — the flair picker plays this when a
+// signature sound is equipped, so the choice is audible immediately.
+export function playSignaturePreview(voice: SignatureVoice) {
+  if (isMusicMuted()) return;
+  const c = getCtx();
+  if (!c) return;
+  if (c.state === "suspended") {
+    void c.resume().catch(() => {});
+  }
+  playSurvivor(c, c.currentTime + 0.02, rankFreq(4), voice);
+}
+
 // The flip-row animation runs 600ms; the face reads as "landed" near the
 // mid-flap, so tones fire this long after each row's animation-delay.
 const FLIP_LAND_MS = 280;
@@ -131,7 +174,10 @@ const FLIP_LAND_MS = 280;
 // Schedules one tone per reveal row, sample-accurately, using the same
 // per-row stagger (stepMs = flipStepMs in RevealView) as the visual cascade.
 // Rows arrive in standings order, so every reveal is a different melody.
-export function playRevealCascade(rows: { rank: number; outcome: RevealOutcome }[], stepMs: number) {
+export function playRevealCascade(
+  rows: { rank: number; outcome: RevealOutcome; voice?: SignatureVoice }[],
+  stepMs: number,
+) {
   if (isMusicMuted()) return;
   const c = getCtx();
   if (!c) return;
@@ -144,9 +190,7 @@ export function playRevealCascade(rows: { rank: number; outcome: RevealOutcome }
     const f = rankFreq(row.rank);
     switch (row.outcome) {
       case "survivor":
-        // Clean ring with an octave shimmer on top.
-        playTone(c, { startAt: at, wave: "sine", freq: f, duration: 0.5, gain: 0.085, filterFreq: 2600, attack: 0.008 });
-        playTone(c, { startAt: at, wave: "sine", freq: f * 2, duration: 0.5, gain: 0.025, filterFreq: 3200, attack: 0.008 });
+        playSurvivor(c, at, f, row.voice);
         break;
       case "aliveZero":
         // The winning silence: a soft power-down glide into the floor. Stays

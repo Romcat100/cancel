@@ -72,6 +72,8 @@ export function projectStateForPlayer(
       isBot: !!p.isBot,
       flair: p.flair,
       nameFlair: p.nameFlair,
+      flourishFlair: p.flourishFlair,
+      soundFlair: p.soundFlair,
     };
   });
 

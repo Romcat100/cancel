@@ -32,9 +32,11 @@ export interface PlayerDoc {
   isBot?: boolean;
   // Campaign-unlocked cosmetics, snapshotted from the player's profile when
   // they took their seat (stamped by the handlers, never by the engine). Bots
-  // never have flair. `flair` = wave slot, `nameFlair` = name slot.
+  // never have flair. One field per cosmetic kind.
   flair?: FlairId;
   nameFlair?: FlairId;
+  flourishFlair?: FlairId;
+  soundFlair?: FlairId;
 }
 
 export interface SubmissionDoc {

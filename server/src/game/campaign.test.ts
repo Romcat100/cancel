@@ -239,21 +239,17 @@ describe("earnedFlairs", () => {
 
   it("grants per-level unlocks as levels complete, one from the very first win", () => {
     expect(earnedFlairs(did("1-1"))).toEqual(["shimmer"]);
-    expect(earnedFlairs(did("1-1", "1-2"))).toEqual(["shimmer"]);
-    // 1-3 pays out its own flair AND completes the chapter.
-    expect(earnedFlairs(did("1-1", "1-2", "1-3"))).toEqual(["shimmer", "echo_trace", "comet"]);
+    expect(earnedFlairs(did("1-1", "1-2"))).toEqual(["shimmer", "chime"]);
+    // 1-3 completes the chapter, which pays the completion flair.
+    expect(earnedFlairs(did("1-1", "1-2", "1-3"))).toEqual(["shimmer", "chime", "comet"]);
   });
 
   it("chapter completion adds the chapter flair, exactly once", () => {
-    const ch1 = ["1-1", "1-2", "1-3"];
-    const all = earnedFlairs(did(...ch1));
-    expect(all).toContain("shimmer");
-    expect(all).toContain("echo_trace");
-    expect(all).toContain("comet");
-    expect(new Set(all).size).toBe(all.length);
-    const both = earnedFlairs(did(...ch1, "2-1", "2-2", "2-3"));
-    expect(both).toContain("fuzz");
+    const both = earnedFlairs(did("1-1", "1-2", "1-3", "2-1", "2-2", "2-3"));
+    expect(both).toContain("comet");
     expect(both).toContain("neon");
+    expect(both).toContain("shockwave");
+    expect(both).toContain("zero_rain");
     expect(new Set(both).size).toBe(both.length);
   });
 

@@ -122,12 +122,13 @@ export interface SkipWaitingReq {
 }
 
 // The client-visible slice of a profile (campaign progress + cosmetics).
-// One equipped cosmetic per kind: equippedFlair is the wave slot, equippedName
-// the name slot.
+// One equipped cosmetic per kind; equippedFlair is the wave slot.
 export interface ProfileView extends CampaignProgress {
   unlockedFlairs: FlairId[];
   equippedFlair: FlairId | null;
   equippedName: FlairId | null;
+  equippedFlourish: FlairId | null;
+  equippedSound: FlairId | null;
 }
 
 export interface ProfileRes {

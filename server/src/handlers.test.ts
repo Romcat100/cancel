@@ -157,30 +157,37 @@ describe("profiles & flair (handlers path)", () => {
       unlockedFlairs: [],
       equippedFlair: null,
       equippedName: null,
+      equippedFlourish: null,
+      equippedSound: null,
     });
   });
 
-  it("wave and name flair occupy separate slots, worn together", () => {
+  it("the four cosmetic kinds occupy separate slots, all worn together", () => {
     const token = "two-slot-token-000001";
     const p = freshProfile();
-    p.unlockedFlairs = ["shimmer", "neon"];
+    p.unlockedFlairs = ["shimmer", "neon", "shockwave", "brass"];
     saveProfile(token, p);
-    let res = apiEquipFlair({ profileToken: token, flair: "shimmer" });
-    expect(res.profile.equippedFlair).toBe("shimmer");
-    res = apiEquipFlair({ profileToken: token, flair: "neon" });
-    // Equipping a name flair fills the name slot without touching the wave slot.
+    apiEquipFlair({ profileToken: token, flair: "shimmer" });
+    apiEquipFlair({ profileToken: token, flair: "neon" });
+    apiEquipFlair({ profileToken: token, flair: "shockwave" });
+    let res = apiEquipFlair({ profileToken: token, flair: "brass" });
+    // Each equip filled its own slot without touching the others.
     expect(res.profile.equippedFlair).toBe("shimmer");
     expect(res.profile.equippedName).toBe("neon");
+    expect(res.profile.equippedFlourish).toBe("shockwave");
+    expect(res.profile.equippedSound).toBe("brass");
     // A bare null clears the requested slot only.
     res = apiEquipFlair({ profileToken: token, flair: null, kind: "name" });
     expect(res.profile.equippedName).toBeNull();
     expect(res.profile.equippedFlair).toBe("shimmer");
-    // Both stamp onto a new seat.
-    res = apiEquipFlair({ profileToken: token, flair: "neon" });
+    expect(res.profile.equippedSound).toBe("brass");
+    // All slots stamp onto a new seat.
     const room = apiCreateRoom({ name: "Parker", profileToken: token }, ctx);
     const self = room.state.publicState.players.find((pl) => pl.id === room.playerId)!;
     expect(self.flair).toBe("shimmer");
-    expect(self.nameFlair).toBe("neon");
+    expect(self.nameFlair).toBeUndefined();
+    expect(self.flourishFlair).toBe("shockwave");
+    expect(self.soundFlair).toBe("brass");
   });
 
   it("equip validates against unlocked flairs; null unequips", () => {

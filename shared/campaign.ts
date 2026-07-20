@@ -14,20 +14,26 @@ import type { RoundPowerId } from "./types.js";
 export type FlairId =
   // Wave flairs: restyle your waveform.
   | "shimmer"
-  | "echo_trace"
   | "comet"
-  | "fuzz"
   | "aurora"
-  | "eclipse"
   // Name flairs: restyle your player name.
   | "neon"
   | "marquee"
-  | "backlit"
-  | "gilded";
+  | "gilded"
+  // Victory flourishes: your personal celebration on the game-over screen,
+  // shown to the whole table when you win outright.
+  | "shockwave"
+  | "zero_rain"
+  | "limelight"
+  // Signature sounds: your scoring cards get their own voice in the reveal
+  // cascade (only the survivor tone is voiced; every other outcome keeps its
+  // standard sound, so the reveal's audio language stays readable).
+  | "chime"
+  | "pluck"
+  | "brass";
 
-// Two cosmetic slots, one equipped per kind: a wave flair and a name flair can
-// be worn at the same time.
-export type FlairKind = "wave" | "name";
+// Four cosmetic slots, one equipped per kind, all worn at the same time.
+export type FlairKind = "wave" | "name" | "flourish" | "sound";
 
 export interface FlairDef {
   id: FlairId;
@@ -43,35 +49,17 @@ export const FLAIRS: Record<FlairId, FlairDef> = {
     name: "Shimmer",
     description: "Your wave burns hot with a slow, breathing pulse.",
   },
-  echo_trace: {
-    id: "echo_trace",
-    kind: "wave",
-    name: "Echo Trace",
-    description: "A shadow of your wave trails close behind it.",
-  },
   comet: {
     id: "comet",
     kind: "wave",
     name: "Comet",
     description: "Your wave streaks by in bright broken dashes.",
   },
-  fuzz: {
-    id: "fuzz",
-    kind: "wave",
-    name: "Fuzz",
-    description: "Your wave crackles with broken static.",
-  },
   aurora: {
     id: "aurora",
     kind: "wave",
     name: "Aurora",
     description: "Your wave drifts in soft glowing ribbons, like northern lights.",
-  },
-  eclipse: {
-    id: "eclipse",
-    kind: "wave",
-    name: "Eclipse",
-    description: "Your wave goes dark, rimmed in white light.",
   },
   neon: {
     id: "neon",
@@ -85,17 +73,47 @@ export const FLAIRS: Record<FlairId, FlairDef> = {
     name: "Marquee",
     description: "Your name runs in tall broadcast capitals.",
   },
-  backlit: {
-    id: "backlit",
-    kind: "name",
-    name: "Backlit",
-    description: "A soft white light burns behind your name.",
-  },
   gilded: {
     id: "gilded",
     kind: "name",
     name: "Gilded",
     description: "Your name shines with a golden halo.",
+  },
+  shockwave: {
+    id: "shockwave",
+    kind: "flourish",
+    name: "Shockwave",
+    description: "Win a game and rings of your signal blast across the screen.",
+  },
+  zero_rain: {
+    id: "zero_rain",
+    kind: "flourish",
+    name: "Zero Rain",
+    description: "Win a game and a slow rain of silent zeros falls over the final screen.",
+  },
+  limelight: {
+    id: "limelight",
+    kind: "flourish",
+    name: "Limelight",
+    description: "Win a game and the stage light swings to you.",
+  },
+  chime: {
+    id: "chime",
+    kind: "sound",
+    name: "Chime",
+    description: "Your scoring cards ring out like little bells.",
+  },
+  pluck: {
+    id: "pluck",
+    kind: "sound",
+    name: "Pluck",
+    description: "Your scoring cards snap like a plucked string.",
+  },
+  brass: {
+    id: "brass",
+    kind: "sound",
+    name: "Brass",
+    description: "Your scoring cards blare with a brassy edge.",
   },
 };
 
@@ -207,7 +225,7 @@ export const CAMPAIGN_CHAPTERS: CampaignChapterDef[] = [
     title: "Interference",
     flavor: "Signals start to collide. The zero is a weapon now.",
     themeIndex: 1,
-    completionFlair: "neon",
+    completionFlair: "zero_rain",
   },
   {
     id: "ch3",
@@ -221,7 +239,7 @@ export const CAMPAIGN_CHAPTERS: CampaignChapterDef[] = [
     title: "Distortion",
     flavor: "Information games. Glimpses, open airwaves, and the podium.",
     themeIndex: 3,
-    completionFlair: "eclipse",
+    completionFlair: "brass",
   },
   {
     id: "ch5",
@@ -251,6 +269,7 @@ export const CAMPAIGN_LEVELS: CampaignLevelDef[] = [
     flavor: "Ties resonate here. Stop dodging collisions and start engineering them.",
     setup: { rounds: 3, roster: ["harmony"], bots: 3 },
     objective: { type: "harmony_double" },
+    unlocksFlair: "chime",
   },
   {
     id: "1-3",
@@ -259,8 +278,8 @@ export const CAMPAIGN_LEVELS: CampaignLevelDef[] = [
     flavor: "Everything is doubled. Big rounds win this one, not safe ones.",
     setup: { rounds: 3, roster: ["amplify"], bots: 3 },
     // Tune min in playtesting; ~14 is a strong-but-reachable amplified round.
+    // No per-level flair: beating it completes the chapter, which grants comet.
     objective: { type: "round_score", min: 14 },
-    unlocksFlair: "echo_trace",
   },
   {
     id: "2-1",
@@ -269,6 +288,7 @@ export const CAMPAIGN_LEVELS: CampaignLevelDef[] = [
     flavor: "Zeros drown in the hiss and cancel nothing. Only a clean signal survives.",
     setup: { rounds: 3, roster: ["static"], bots: 3 },
     objective: { type: "untouched" },
+    unlocksFlair: "neon",
   },
   {
     id: "2-2",
@@ -277,7 +297,7 @@ export const CAMPAIGN_LEVELS: CampaignLevelDef[] = [
     flavor: "The flat line drinks the sound and keeps it. Time your zero perfectly.",
     setup: { rounds: 3, roster: ["absorption"], bots: 3 },
     objective: { type: "silence" },
-    unlocksFlair: "fuzz",
+    unlocksFlair: "shockwave",
   },
   {
     id: "2-3",
@@ -328,7 +348,7 @@ export const CAMPAIGN_LEVELS: CampaignLevelDef[] = [
     flavor: "Six signals, and every pick goes out over the air before it counts. No secrets, no mercy.",
     setup: { rounds: 3, roster: ["broadcast"], bots: 5 },
     objective: { type: "win" },
-    unlocksFlair: "backlit",
+    unlocksFlair: "limelight",
   },
   {
     id: "4-3",
@@ -354,6 +374,7 @@ export const CAMPAIGN_LEVELS: CampaignLevelDef[] = [
     flavor: "Every card that scores counts against you. The best plays are the ones that get cancelled.",
     setup: { rounds: 3, roster: ["inversion"], bots: 3 },
     objective: { type: "win" },
+    unlocksFlair: "pluck",
   },
   {
     id: "5-3",

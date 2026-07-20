@@ -51,9 +51,12 @@ export interface Player {
   isBot: boolean;
   // Campaign-unlocked cosmetics, snapshotted from the player's profile when
   // they took their seat. Public and purely decorative. `flair` is the wave
-  // slot; `nameFlair` styles the player name.
+  // slot; the others style the name, the game-end celebration, and the
+  // reveal-cascade survivor tone.
   flair?: FlairId;
   nameFlair?: FlairId;
+  flourishFlair?: FlairId;
+  soundFlair?: FlairId;
 }
 
 export type RoomPhase =
