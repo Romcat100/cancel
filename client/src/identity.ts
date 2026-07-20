@@ -48,6 +48,48 @@ export function clearIdentity(roomCode: string) {
   writeAll(all);
 }
 
+// --- Anonymous profile (campaign progress + cosmetics) ---
+// One persistent UUID per device, separate from the per-room identities above.
+// It's the credential the server keys campaign progress and flair on; treat it
+// like a claim token. Also remembers the last-used display name so the campaign
+// screen can start a level without asking again.
+
+interface StoredProfile {
+  token: string;
+  name?: string;
+}
+
+const PROFILE_KEY = "cancel/profile/v1";
+
+function readProfile(): StoredProfile | null {
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY);
+    return raw ? (JSON.parse(raw) as StoredProfile) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function getProfileToken(): string {
+  const existing = readProfile();
+  if (existing?.token) return existing.token;
+  const token =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+  localStorage.setItem(PROFILE_KEY, JSON.stringify({ ...existing, token }));
+  return token;
+}
+
+export function getProfileName(): string | null {
+  return readProfile()?.name ?? null;
+}
+
+export function saveProfileName(name: string) {
+  const token = getProfileToken();
+  localStorage.setItem(PROFILE_KEY, JSON.stringify({ token, name }));
+}
+
 export function markPreviewSeenLocal(roomCode: string, roundIndex: number) {
   const all = readAll();
   const id = all[roomCode];

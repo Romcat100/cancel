@@ -167,6 +167,61 @@
   stroke-width: 3px;
 }
 
+/* ===== Wave flair (campaign-unlocked cosmetics) =====
+   Applied via Wave's `flair` prop, only where waves are decorative (lobby rows,
+   scoreboard chips, game-end score rows) — never in the reveal, where wave
+   styling carries scoring meaning. Defined after the variant classes so a
+   flair's filter wins over .cw-soft/.cw-glow; each recipe carries its own glow.
+   Resting frame is always correct; motion is opt-in per convention (the comet's
+   dashes ride the existing cw-osc scroll for free). */
+.cw-flair-shimmer {
+  filter: drop-shadow(0 0 3px currentColor) drop-shadow(0 0 10px currentColor);
+}
+/* A faint offset twin trailing the trace. The glow pass also haloes the echo. */
+.cw-flair-echo-trace {
+  filter: drop-shadow(6px 4px 0 color-mix(in srgb, currentColor 40%, transparent))
+    drop-shadow(0 0 4px currentColor);
+}
+.cw-flair-comet {
+  filter: drop-shadow(0 0 4px currentColor);
+}
+.cw-flair-comet use {
+  stroke-dasharray: 10 6;
+}
+/* Fuzz: irregular broken dashes + a touch of blur, like a signal full of static. */
+.cw-flair-fuzz {
+  filter: blur(0.3px) drop-shadow(0 0 5px currentColor);
+}
+.cw-flair-fuzz use {
+  stroke-dasharray: 6 3 2 3 10 4;
+}
+/* Undertow: a faint shadow trace directly beneath the wave. */
+.cw-flair-undertow {
+  filter: drop-shadow(0 5px 0 color-mix(in srgb, currentColor 35%, transparent))
+    drop-shadow(0 0 4px currentColor);
+}
+/* Halo: a white-hot core inside the colored glow. */
+.cw-flair-halo {
+  filter: drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 6px currentColor)
+    drop-shadow(0 0 14px currentColor);
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* Shimmer: slow breathing glow. On the svg root, so it can't collide with the
+     cw-osc scroll animation living on the inner <use>. */
+  @keyframes flair-breathe {
+    0%,
+    100% {
+      filter: drop-shadow(0 0 2px currentColor) drop-shadow(0 0 6px currentColor);
+    }
+    50% {
+      filter: drop-shadow(0 0 5px currentColor) drop-shadow(0 0 16px currentColor);
+    }
+  }
+  .cw-flair-shimmer {
+    animation: flair-breathe 3.4s ease-in-out infinite;
+  }
+}
+
 /* The lobby room-code "tuning dial": tick marks above/below with a coral needle. */
 .dial {
   position: relative;

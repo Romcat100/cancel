@@ -1,12 +1,13 @@
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { api } from "../api.js";
 import { connectSocket, disconnectSocket } from "../socket.js";
-import { clearIdentity, getIdentity, saveIdentity } from "../identity.js";
+import { clearIdentity, getIdentity, getProfileToken, saveIdentity, saveProfileName } from "../identity.js";
 import { useAppStore } from "../store.js";
 import { MusicToggle } from "../components.js";
 import { Wave } from "../wave.js";
+import { Campaign, clearCampaignReturn, FlairButton, peekCampaignReturn } from "./Campaign.js";
 
-type Mode = "menu" | "create" | "join" | "single";
+type Mode = "menu" | "create" | "join" | "single" | "campaign";
 
 // Single-player starts you against this many AI opponents; tweak it in the lobby's Opponents stepper.
 const DEFAULT_SOLO_BOTS = 3;
@@ -14,7 +15,13 @@ const DEFAULT_SOLO_BOTS = 3;
 export function Home() {
   const setState = useAppStore((s) => s.setState);
   const reset = useAppStore((s) => s.reset);
-  const [mode, setMode] = useState<Mode>("menu");
+  // "Back to campaign" from a finished level returns through Home; the flag
+  // skips the menu and reopens the campaign screen directly. Cleared in an
+  // effect (not the initializer) so StrictMode's double-invoke can't eat it.
+  const [mode, setMode] = useState<Mode>(() => (peekCampaignReturn() ? "campaign" : "menu"));
+  useEffect(() => {
+    clearCampaignReturn();
+  }, []);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -31,12 +38,17 @@ export function Home() {
     };
   }
 
+  if (mode === "campaign") {
+    return <Campaign onBack={() => setMode("menu")} />;
+  }
+
   async function handleCreate() {
     if (!name.trim()) return setErr("Enter a name");
     setBusy(true);
     setErr(null);
     try {
-      const res = await api.createRoom(name.trim());
+      const res = await api.createRoom(name.trim(), { profileToken: getProfileToken() });
+      saveProfileName(name.trim());
       saveIdentity({ roomCode: res.roomCode, claimToken: res.claimToken, playerId: res.playerId, name: name.trim() });
       setState(res.state);
       connectSocket(res.roomCode, res.claimToken, buildHandlers(res.roomCode));
@@ -52,7 +64,12 @@ export function Home() {
     setBusy(true);
     setErr(null);
     try {
-      const res = await api.createRoom(name.trim(), { solo: true, bots: DEFAULT_SOLO_BOTS });
+      const res = await api.createRoom(name.trim(), {
+        solo: true,
+        bots: DEFAULT_SOLO_BOTS,
+        profileToken: getProfileToken(),
+      });
+      saveProfileName(name.trim());
       saveIdentity({ roomCode: res.roomCode, claimToken: res.claimToken, playerId: res.playerId, name: name.trim() });
       setState(res.state);
       connectSocket(res.roomCode, res.claimToken, buildHandlers(res.roomCode));
@@ -75,7 +92,8 @@ export function Home() {
       // reclaims their existing seat instead of rejecting with "game already
       // started". A fresh joiner has no stored identity and joins normally.
       const existing = getIdentity(roomCode);
-      const res = await api.joinRoom(roomCode, name.trim(), existing?.claimToken);
+      const res = await api.joinRoom(roomCode, name.trim(), existing?.claimToken, getProfileToken());
+      saveProfileName(name.trim());
       saveIdentity({ roomCode, claimToken: res.claimToken, playerId: res.playerId, name: name.trim() });
       setState(res.state);
       connectSocket(roomCode, res.claimToken, buildHandlers(roomCode));
@@ -128,9 +146,15 @@ export function Home() {
           <button className="btn-ghost text-xl py-5" onClick={() => setMode("single")} data-testid="home-single-player">
             Single player
           </button>
+          <button className="btn-ghost text-xl py-5" onClick={() => setMode("campaign")} data-testid="home-campaign">
+            Campaign
+          </button>
           <button className="btn-ghost text-xl py-5" onClick={() => setMode("join")} data-testid="home-join-with-code">
             Join with code
           </button>
+          {/* Flair is earned in the campaign but worn everywhere, so the picker
+              is reachable without entering the campaign. */}
+          <FlairButton className="btn-ghost text-sm py-3 mt-2" testId="home-flair" />
         </div>
       )}
 

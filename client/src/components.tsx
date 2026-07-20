@@ -9,6 +9,7 @@ import {
   type RoundPowerId,
   type SeriesState,
 } from "../../shared/types.js";
+import type { FlairId } from "../../shared/campaign.js";
 import { useMusicMuted, useMusicUnlocked } from "./music.js";
 import { Wave, rankForNumber, amplitudePathForScore } from "./wave.js";
 import { RoundPowerExamples } from "./powerExamples.js";
@@ -934,7 +935,7 @@ export function RoundScoreTable({
   currentRoundIndex,
   awards,
 }: {
-  ranked: { id: string; name: string; seat: number; totalScore: number }[];
+  ranked: { id: string; name: string; seat: number; totalScore: number; flair?: FlairId }[];
   selfId: string;
   roundHistory: { index: number; scores: { [playerId: string]: number } }[];
   currentRoundIndex?: number;
@@ -1015,6 +1016,7 @@ export function RoundScoreTable({
             pathId={amplitudePathForScore(p.totalScore, maxScore)}
             color={seatColor(p.seat).hex}
             variant={i === 0 ? "glow" : "solid"}
+            flair={p.flair}
             className={`w-full h-7 mt-1.5 ${i === 0 ? "opacity-100" : "opacity-40"}`}
           />
         </div>

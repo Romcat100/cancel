@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { POWER_UPS, ROUND_POWER_IDS, type PowerUpId, type RevealedTurn, type RoundPowerId } from "../../../shared/types.js";
+import type { FlairId } from "../../../shared/campaign.js";
 import { api } from "../api.js";
 import { getIdentity, hasSeenPreviewLocal, markPreviewSeenLocal } from "../identity.js";
 import { useAppStore } from "../store.js";
@@ -757,7 +758,7 @@ function Scoreboard({
   players,
   selfId,
 }: {
-  players: { id: string; name: string; seat: number; totalScore: number }[];
+  players: { id: string; name: string; seat: number; totalScore: number; flair?: FlairId }[];
   selfId: string;
 }) {
   return (
@@ -775,6 +776,7 @@ function Scoreboard({
             rank={([2, 1, 3, 4, 2, 4, 3, 1] as const)[p.seat % 8]}
             color={seatColor(p.seat).hex}
             variant="soft"
+            flair={p.flair}
             className="w-8 h-3.5 shrink-0"
           />
           <span className="text-sm font-bold text-paper flex-1 truncate">

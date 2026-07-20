@@ -314,6 +314,7 @@ export function Lobby({ onLeave }: { onLeave: () => void }) {
               rank={([2, 1, 3, 4, 2, 4, 3, 1] as const)[p.seat % 8]}
               color={seatColor(p.seat).hex}
               variant="soft"
+              flair={p.flair}
               className="w-12 h-5 shrink-0"
             />
             <div className="flex-1 font-bold" style={{ color: seatColor(p.seat).hex }}>

@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import type { FlairId } from "../../shared/campaign.js";
 
 // Fable: Interference — the waveform motif.
 //
@@ -32,6 +33,7 @@ export function Wave({
   antiphase = false,
   phase = 0,
   animated = true,
+  flair,
   className = "",
   style: styleProp,
   title,
@@ -55,6 +57,13 @@ export function Wave({
   phase?: number;
   /** Oscillate (under no-preference). Default true; pass false for static art. */
   animated?: boolean;
+  /**
+   * Campaign-unlocked cosmetic style (`cw-flair-*` recipes in index.css).
+   * Safe-placement rule: only pass this where waves are decorative (lobby rows,
+   * scoreboard chips, game-end score rows) — NEVER in RevealView, where wave
+   * styling carries scoring meaning.
+   */
+  flair?: FlairId | null;
   className?: string;
   /** Extra inline style (e.g. positioning). Merged after the color. */
   style?: CSSProperties;
@@ -67,7 +76,13 @@ export function Wave({
     // Every rank >= 1 has an antiphase twin (cwNi); rank 0 is flat (no phase).
     id = antiphase && r >= 1 ? `cw${r}i` : `cw${r}`;
   }
-  const cls = ["cw", VARIANT_CLASS[variant], animated ? "cw-anim" : "", className]
+  const cls = [
+    "cw",
+    VARIANT_CLASS[variant],
+    animated ? "cw-anim" : "",
+    flair ? `cw-flair-${flair.replace(/_/g, "-")}` : "",
+    className,
+  ]
     .filter(Boolean)
     .join(" ");
   // The sum line has an intrinsic grey (its "no signal" identity), so ignore color.

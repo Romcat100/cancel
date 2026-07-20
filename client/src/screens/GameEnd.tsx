@@ -2,10 +2,13 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { GameStats, Player, RoundHistoryEntry } from "../../../shared/types.js";
 import { api } from "../api.js";
 import { playGameEnd } from "../sfx.js";
-import { getIdentity } from "../identity.js";
+import { clearIdentity, getIdentity, getProfileToken, saveIdentity } from "../identity.js";
 import { useAppStore } from "../store.js";
+import { connectSocket, disconnectSocket } from "../socket.js";
 import { Confetti, MusicToggle, RoundScoreTable, SEAT_TEXT_COLORS, seatColor, SeriesStandings } from "../components.js";
 import { Wave } from "../wave.js";
+import { requestCampaignReturn } from "./Campaign.js";
+import { campaignLevel, FLAIRS, nextLevelId } from "../../../shared/campaign.js";
 
 // Monotone-x cubic path through the points (d3 curveMonotoneX's tangent rule):
 // smooth like a signal trace, but it never overshoots a data point, so the curve
@@ -359,6 +362,7 @@ function Highlights({
 export function GameEnd({ onLeave }: { onLeave: () => void }) {
   const state = useAppStore((s) => s.state)!;
   const setState = useAppStore((s) => s.setState);
+  const reset = useAppStore((s) => s.reset);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const { publicState, selfPlayerId } = state;
@@ -395,6 +399,52 @@ export function GameEnd({ onLeave }: { onLeave: () => void }) {
       setBusy(false);
     }
   }
+  // Campaign rooms are single-use: the result panel replaces Play again, and
+  // Retry / Next level create a fresh room while this one is left behind.
+  const campaign = publicState.campaign;
+  const campaignDef = campaign ? campaignLevel(campaign.levelId) : undefined;
+  const campaignNext = campaign ? nextLevelId(campaign.levelId) : undefined;
+  const me = publicState.players.find((p) => p.id === selfPlayerId);
+
+  async function startCampaignLevel(levelId: string) {
+    const playerName = me?.name ?? "Player";
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await api.createRoom(playerName, {
+        campaignLevelId: levelId,
+        profileToken: getProfileToken(),
+      });
+      clearIdentity(publicState.roomCode);
+      disconnectSocket();
+      saveIdentity({
+        roomCode: res.roomCode,
+        claimToken: res.claimToken,
+        playerId: res.playerId,
+        name: playerName,
+      });
+      setState(res.state);
+      connectSocket(res.roomCode, res.claimToken, {
+        onRoomState: setState,
+        onRoomAbandoned: () => {
+          clearIdentity(res.roomCode);
+          disconnectSocket();
+          reset();
+        },
+      });
+    } catch (e) {
+      setErr((e as Error).message);
+      setBusy(false);
+    }
+  }
+
+  function backToCampaign() {
+    requestCampaignReturn();
+    clearIdentity(publicState.roomCode);
+    disconnectSocket();
+    reset();
+  }
+
   const ranked = [...publicState.players].sort((a, b) => b.totalScore - a.totalScore);
   const topScore = ranked[0]?.totalScore;
   const leaders = ranked.filter((p) => p.totalScore === topScore);
@@ -453,6 +503,36 @@ export function GameEnd({ onLeave }: { onLeave: () => void }) {
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 -mx-1 px-1">
+        {campaign?.result && (
+          <div
+            className={`rounded-2xl border px-4 py-3 mb-3 animate-rise ${
+              campaign.result.passed
+                ? "border-emerald-400/40 bg-emerald-400/10"
+                : "border-rose-400/40 bg-rose-400/10"
+            }`}
+            data-testid="game-end-campaign-result"
+          >
+            <div className="font-mono text-[10px] uppercase tracking-widest text-paper/50">
+              Campaign · {campaign.levelId} {campaignDef?.title}
+            </div>
+            <div
+              className={`font-display text-xl font-extrabold mt-0.5 ${
+                campaign.result.passed ? "text-emerald-300" : "text-rose-300"
+              }`}
+            >
+              {campaign.result.passed ? "Objective complete" : "Objective missed"}
+            </div>
+            <div className="text-xs text-paper/70 mt-0.5">{campaign.result.objectiveText}</div>
+            {!campaign.result.passed && campaign.result.detail && (
+              <div className="text-xs text-paper/55 mt-1">{campaign.result.detail}</div>
+            )}
+            {campaign.result.unlockedFlairs?.map((f) => (
+              <div key={f} className="mt-1.5 text-xs font-bold text-gold" data-testid={`game-end-campaign-flair-${f}`}>
+                Flair unlocked: {FLAIRS[f].name}
+              </div>
+            ))}
+          </div>
+        )}
         <RoundScoreTable
           ranked={ranked}
           selfId={selfPlayerId}
@@ -478,7 +558,30 @@ export function GameEnd({ onLeave }: { onLeave: () => void }) {
       </div>
 
       <div className="flex flex-col gap-3 mt-4 shrink-0">
-        {isHost ? (
+        {campaign ? (
+          <>
+            {campaign.result?.passed && campaignNext && (
+              <button
+                className="btn-primary text-xl py-5"
+                disabled={busy}
+                onClick={() => startCampaignLevel(campaignNext)}
+                data-sfx="confirm"
+                data-testid="game-end-campaign-next"
+              >
+                {busy ? "Loading…" : "Next level"}
+              </button>
+            )}
+            <button
+              className={campaign.result?.passed ? "btn-ghost text-sm py-3" : "btn-primary text-xl py-5"}
+              disabled={busy}
+              onClick={() => startCampaignLevel(campaign.levelId)}
+              data-sfx="confirm"
+              data-testid="game-end-campaign-retry"
+            >
+              {busy ? "Loading…" : campaign.result?.passed ? "Replay level" : "Retry"}
+            </button>
+          </>
+        ) : isHost ? (
           <button className="btn-primary text-xl py-5" disabled={busy} onClick={playAgain} data-sfx="confirm" data-testid="game-end-play-again">
             {busy ? "Restarting…" : "Play again"}
           </button>
@@ -494,9 +597,15 @@ export function GameEnd({ onLeave }: { onLeave: () => void }) {
         {err && (
           <div className="rounded-2xl bg-accent/15 border border-accent/40 text-accent px-4 py-3 text-sm" data-testid="game-end-error">{err}</div>
         )}
-        <button className="btn-ghost text-sm py-3" onClick={onLeave} data-testid="game-end-leave">
-          Leave room
-        </button>
+        {campaign ? (
+          <button className="btn-ghost text-sm py-3" onClick={backToCampaign} data-testid="game-end-campaign-back">
+            Back to campaign
+          </button>
+        ) : (
+          <button className="btn-ghost text-sm py-3" onClick={onLeave} data-testid="game-end-leave">
+            Leave room
+          </button>
+        )}
       </div>
     </div>
   );
