@@ -29,7 +29,7 @@ npm test          # runs the scoring engine + state machine tests
 
 ## Play it
 
-You can play **solo against AI** from the Home screen (tap **Single player**), or create a multiplayer room and invite friends. Multiplayer lobbies can also add AI players to fill out a small group, capped so humans + AIs stay at or below 8.
+You can play **solo against AI** from the Home screen (tap **Single player**), work through the **Campaign**, or create a multiplayer room and invite friends. Multiplayer lobbies can also add AI players to fill out a small group, capped so humans + AIs stay at or below 8.
 
 1. **Create a room** → you get a 4-character code.
 2. **Share the code** with friends; they tap "Join with code" on the same site.
@@ -42,6 +42,12 @@ You can play **solo against AI** from the Home screen (tap **Single player**), o
 6. **End of round** — a tally screen shows what each player scored that round and the running totals. Tap **Next round** when you're ready; the round advances when all players are. Each round arrives with its own color scheme (the background and UI accents shift; player colors never change).
 7. **Each round is (N+2) turns; the host picks 1-5 rounds (default 3).** Highest total wins.
 8. **Game over** — alongside the final standings, the screen shows a score-over-rounds chart of the whole race (multi-round games) and a few superlatives: the biggest single turn, the sneakiest `0` player, who got cancelled the most, and the best final-round comeback.
+
+## Campaign
+
+The **Campaign** button on the Home screen opens a solo level map: chapters of hand-authored levels, each one a short game against AI with a fixed setup (round count, opponents, and one pinned round power, so the campaign doubles as a tour of the roster) and an objective to beat, like "win the game and score at least one doubled tie" under Harmony. Beating a level unlocks the next; some levels (and finishing a whole chapter) unlock **wave flair**, cosmetic styles for your waveform that show on your player wave in any game you play, multiplayer included. Equip one from the **Flair** button on the campaign screen.
+
+Progress is saved automatically per device (no account needed) under an anonymous profile stored by the server. Chapters 1 and 2 (five levels each) are playable now; chapters 3-5 are on the map as teasers. The flair picker is also reachable from the **Wave flair** button on the Home screen, so you can change your look without re-entering the campaign.
 
 ## Scoring rules
 
@@ -130,6 +136,6 @@ Room state lives in local SQLite, and on Render's free tier the filesystem is ep
 
 Setup (one-time, ~10 min): create a free Upstash account, click **Create database**, open it, and copy the **REST API** URL + token into Render's Environment tab (and into a local `.env` if you want to test it locally — see `.env.example`).
 
-How it works: SQLite stays the synchronous source of truth for every request. On each save the room and its seats are mirrored to Upstash in the background (fire-and-forget, so a KV hiccup can never slow or break gameplay), and on boot the server reads them back once to rehydrate. Rooms refresh a 7-day TTL on every save, so abandoned rooms self-expire while live ones stay alive.
+How it works: SQLite stays the synchronous source of truth for every request. On each save the room and its seats are mirrored to Upstash in the background (fire-and-forget, so a KV hiccup can never slow or break gameplay), and on boot the server reads them back once to rehydrate. Rooms refresh a 7-day TTL on every save, so abandoned rooms self-expire while live ones stay alive. Campaign profiles (progress + unlocked flair) are mirrored the same way, with no TTL, so campaign progress survives redeploys too.
 
 **Without these vars set, the app runs exactly as before** (local SQLite only) — they're purely additive, so it's safe to deploy first and enable later.

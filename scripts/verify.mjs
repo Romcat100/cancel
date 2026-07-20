@@ -573,9 +573,11 @@ async function interferenceFlow(browser) {
   }
 }
 
-// Click a specific card number (e.g. the 0 for Absorption), or the highest
-// enabled card when number is "highest" (keeps the human clear of Gate's
-// floor cut and Subharmonic's lift, so the effect lands visibly on a bot).
+// Click a specific card number (e.g. the 0 for Absorption), the highest enabled
+// card when number is "highest" (keeps the human clear of Gate's floor cut and
+// Subharmonic's lift, so the effect lands visibly on a bot), or a random enabled
+// card for "random" (a deterministic pick collides with bots too predictably
+// when a flow actually needs to WIN, like the campaign's).
 async function submitCardNumber(page, number) {
   await page.waitForSelector(tid("game-submit"), { timeout: 10_000 });
   const picked = await page.evaluate((want) => {
@@ -585,7 +587,9 @@ async function submitCardNumber(page, number) {
     const btn =
       want === "highest"
         ? cards.reduce((a, b) => (num(b) > num(a) ? b : a))
-        : cards.find((b) => num(b) === want);
+        : want === "random"
+          ? cards[Math.floor(Math.random() * cards.length)]
+          : cards.find((b) => num(b) === want);
     if (!btn) return false;
     btn.click();
     return true;
@@ -1092,8 +1096,117 @@ async function conductorFlow(browser) {
   await shot(host, "conductor-round3-drawn-at-random", { fullPage: false });
 }
 
+// Campaign: home → campaign map → start 1-1 (one-time name prompt) → play to the
+// game-end campaign result panel → win (retrying via the Retry button if a bot
+// takes the game — bots are random, so the win itself can't be scripted) → back
+// to the campaign map with 1-2 unlocked → flair picker.
+async function campaignFlow(browser) {
+  const p = await newPlayer(browser, "Solo");
+  await waitForText(p, "CANCEL");
+  await clickTestId(p, "home-campaign");
+  await p.waitForSelector(tid("campaign-level-1-1"), { timeout: 10_000 });
+  await shot(p, "campaign-map"); // chapter 1 open, 1-2/1-3 locked, chapters 2-5 teased
+
+  // Start 1-1; a fresh context has no stored name, so the inline prompt appears.
+  await clickTestId(p, "campaign-level-1-1");
+  await p.waitForSelector(tid("campaign-name-input"), { timeout: 10_000 });
+  await shot(p, "campaign-name-prompt", { fullPage: false });
+  await typeInto(p, tid("campaign-name-input"), "Solo");
+  await clickTestId(p, "campaign-name-start");
+
+  // Drive one full campaign game: previews (pure_tone still previews), reveals,
+  // round-end acks, playing the highest enabled card each turn.
+  const playGame = async () => {
+    for (let guard = 0; guard < 80; guard++) {
+      if (await has(p, "game-end-campaign-result")) return;
+      if (await has(p, "round-power-preview-play")) {
+        await clickTestId(p, "round-power-preview-play");
+        continue;
+      }
+      if (await has(p, "reveal-continue")) {
+        await p
+          .waitForFunction(
+            () => document.querySelector('[data-testid="reveal-modal"]')?.getAttribute("data-reveal-phase") === "score",
+            { timeout: 5_000 },
+          )
+          .catch(() => {});
+        await clickTestId(p, "reveal-continue");
+        await p.waitForFunction(() => !document.querySelector('[data-testid="reveal-modal"]'), { timeout: 10_000 });
+        continue;
+      }
+      if (await has(p, "round-end-modal")) {
+        await clickTestId(p, "round-end-ack");
+        await p.waitForFunction(
+          () =>
+            !document.querySelector('[data-testid="round-end-modal"]') ||
+            !!document.querySelector('[data-testid="game-end-winner"]'),
+          { timeout: 10_000 },
+        );
+        continue;
+      }
+      if (await has(p, "game-submit")) {
+        await submitCardNumber(p, "random");
+        // Bots pre-submit, so the turn resolves immediately: wait for the next
+        // stage before re-reading the board (else we'd double-submit into the
+        // mounting reveal overlay).
+        await p.waitForFunction(
+          () =>
+            !!document.querySelector('[data-testid="reveal-continue"]') ||
+            !!document.querySelector('[data-testid="round-end-modal"]') ||
+            !!document.querySelector('[data-testid="game-end-winner"]'),
+          { timeout: 10_000 },
+        );
+        continue;
+      }
+      await new Promise((r) => setTimeout(r, 150));
+    }
+    throw new Error("campaign game did not reach the result panel");
+  };
+
+  await playGame();
+  await shot(p, "campaign-first-result"); // pass or fail, the panel shows the objective
+
+  // Bots are random: retry until the win lands (the Retry button is part of the
+  // flow under test). Passed = the Next level button exists.
+  for (let attempt = 0; attempt < 12; attempt++) {
+    if (await has(p, "game-end-campaign-next")) break;
+    console.log(`[verify] level 1-1 not passed yet, retrying (attempt ${attempt + 1})`);
+    await clickTestId(p, "game-end-campaign-retry");
+    await p.waitForFunction(() => !document.querySelector('[data-testid="game-end-campaign-result"]'), {
+      timeout: 10_000,
+    });
+    await playGame();
+  }
+  if (!(await has(p, "game-end-campaign-next"))) {
+    throw new Error("could not win level 1-1 in 12 attempts");
+  }
+  await shot(p, "campaign-result-passed"); // Objective complete + Next level button
+
+  // Back to campaign: lands straight on the map (session flag), 1-2 now unlocked.
+  await clickTestId(p, "game-end-campaign-back");
+  await p.waitForSelector(tid("campaign-level-1-2"), { timeout: 10_000 });
+  await p.waitForFunction(
+    () => {
+      const done = document.querySelector('[data-testid="campaign-level-1-1"]');
+      const next = document.querySelector('[data-testid="campaign-level-1-2"]');
+      return !!done && !!next && done.innerText.includes("done") && !next.disabled;
+    },
+    { timeout: 10_000 },
+  );
+  await shot(p, "campaign-map-1-2-unlocked"); // 1-1 done ✓, 1-2 glowing, 1-3 locked
+
+  // Flair picker: the 1-1 win unlocked shimmer; equip it and confirm the chip.
+  await clickTestId(p, "campaign-profile");
+  await p.waitForSelector(tid("campaign-flair-modal"), { timeout: 10_000 });
+  await waitOpaque(p, "campaign-flair-modal");
+  await clickTestId(p, "campaign-flair-shimmer");
+  await waitForText(p, "equipped");
+  await shot(p, "campaign-flair-equipped", { fullPage: false }); // shimmer equipped, others locked
+}
+
 const flows = {
   "lobby-rounds": lobbyRoundsFlow,
+  campaign: campaignFlow,
   "tie-3way": tie3Flow,
   conductor: conductorFlow,
   "host-leave": hostLeaveFlow,
