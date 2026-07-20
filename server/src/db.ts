@@ -45,6 +45,13 @@ function initSchema(db: DB) {
     );
     CREATE INDEX IF NOT EXISTS players_room_idx ON players(room_code);
 
+    CREATE TABLE IF NOT EXISTS profiles (
+      token TEXT PRIMARY KEY,
+      state TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS push_subscriptions (
       id TEXT PRIMARY KEY,
       player_id TEXT NOT NULL,

@@ -1,3 +1,5 @@
+import type { CampaignResult, FlairId } from "./campaign.js";
+
 export type PowerUpId =
   | "double"
   | "tie_die"
@@ -47,6 +49,9 @@ export interface Player {
   totalScore: number;
   hand: number[];
   isBot: boolean;
+  // Campaign-unlocked wave cosmetic, snapshotted from the player's profile when
+  // they took their seat. Public and purely decorative.
+  flair?: FlairId;
 }
 
 export type RoomPhase =
@@ -184,6 +189,9 @@ export interface PublicState {
   series: SeriesState;
   // Present only at game_end (see projection.ts).
   gameStats?: GameStats;
+  // Campaign rooms only: the level being played, plus the objective result once
+  // the game ends. The profile token is a credential and is never projected.
+  campaign?: { levelId: string; result?: CampaignResult };
   currentTurnIndex: number;
   currentPickerId?: string;
   currentSubmissions: PublicSubmission[];

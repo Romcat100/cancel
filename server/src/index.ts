@@ -8,7 +8,8 @@ import { Server as SocketServer } from "socket.io";
 import { getDb } from "./db.js";
 import { BUILD_ID } from "./version.js";
 import { countActiveGames, gcAbandoned, restoreRoom, restorePlayer } from "./rooms.js";
-import { hydrateActiveRooms } from "./kv.js";
+import { hydrateActiveRooms, hydrateProfiles } from "./kv.js";
+import { restoreProfile, type ProfileDoc } from "./profiles.js";
 import {
   attachSocketHandlers,
   apiCreateRoom,
@@ -27,6 +28,8 @@ import {
   apiClaimHost,
   apiSkipWaiting,
   apiFetchState,
+  apiGetProfile,
+  apiEquipFlair,
 } from "./handlers.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -55,6 +58,9 @@ function safe<T>(res: Response, fn: () => T) {
 }
 
 app.get("/api/health", (_req, res) => res.json({ ok: true, buildId: BUILD_ID }));
+
+app.get("/api/profile", (req, res) => safe(res, () => apiGetProfile(String(req.query.token))));
+app.post("/api/profile/equip", (req, res) => safe(res, () => apiEquipFlair(req.body)));
 
 app.post("/api/rooms", (req, res) => safe(res, () => apiCreateRoom(req.body, ctx)));
 app.post("/api/rooms/:code/join", (req, res) =>
@@ -153,6 +159,9 @@ async function hydrateFromKv() {
     for (const doc of rooms) restoreRoom(doc);
     for (const p of players) restorePlayer(p);
     if (rooms.length > 0) console.log(`[kv] hydrated ${rooms.length} room(s), ${players.length} player(s) from durable store`);
+    const profiles = await hydrateProfiles<ProfileDoc>();
+    for (const { token, doc } of profiles) restoreProfile(token, doc);
+    if (profiles.length > 0) console.log(`[kv] hydrated ${profiles.length} profile(s) from durable store`);
   } catch (e) {
     console.warn(`[kv] boot hydrate failed, continuing with local state only: ${(e as Error).message}`);
   }

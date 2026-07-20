@@ -148,6 +148,9 @@ export function scoreTurn(
 
     if (e.isCancel && cancellerIds.has(e.playerId)) {
       delta = 0;
+      // The "cancelled all others" substring is load-bearing: revealTreatment's
+      // winning-Ø look, stats.ts silence counts, AND the campaign's "silence"
+      // objective (game/campaign.ts) all key off it.
       notes.push(
         !deadAirActive && shieldedZero && cancelZeros.length > 1
           ? "Tie Die: 0 still cancels despite another 0"
@@ -202,7 +205,8 @@ export function scoreTurn(
         } else if (harmonyActive) {
           // Harmony: a tied card scores double its value instead of being wiped. Note
           // must not start with "Tied" — revealTreatment keys off that prefix to render
-          // CANCELLED pairs, and a positive delta must read as a survivor.
+          // CANCELLED pairs, and a positive delta must read as a survivor. The campaign's
+          // harmony_double objective (game/campaign.ts) also keys off this exact string.
           delta = e.scoreValue * 2;
           notes.push(`Harmony: tied on ${e.face}, doubled to ${delta}`);
         } else {
@@ -336,6 +340,8 @@ export function scoreTurn(
       for (let i = 0; i < lines.length; i++) {
         if (lines[i].delta > 0 && eff[i].face === floor) {
           lines[i].delta = 0;
+          // The "Gate:" prefix is load-bearing: the campaign's never_gated
+          // objective (game/campaign.ts) keys off it.
           lines[i].notes.push(`Gate: ${floor} cut to 0`);
         }
       }

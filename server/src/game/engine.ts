@@ -9,6 +9,7 @@ import {
   type RoundPowerId,
   type SeriesState,
 } from "../../../shared/types.js";
+import type { CampaignResult, FlairId } from "../../../shared/campaign.js";
 import { scoreTurn } from "./scoring.js";
 import { BOT_NAMES } from "./bot-names.js";
 import { chooseNumber } from "./heuristics.js";
@@ -29,6 +30,10 @@ export interface PlayerDoc {
   // AI player. Bots have no claim token / players row; they're driven by the bot
   // engine (see bots.ts) and never hold the host role.
   isBot?: boolean;
+  // Campaign-unlocked wave cosmetic, snapshotted from the player's profile when
+  // they took their seat (stamped by the handlers, never by the engine). Bots
+  // never have flair.
+  flair?: FlairId;
 }
 
 export interface SubmissionDoc {
@@ -141,6 +146,11 @@ export interface RoomDoc {
   // Cross-rematch series tally, banked in endGame. Deliberately NOT wiped by
   // resetToLobby — surviving "Play again" is the whole feature.
   series: SeriesState;
+  // Campaign rooms only. Stamped by apiCreateRoom (never by the engine — the
+  // engine carries it through mutations via the `...room` spread); the handlers
+  // evaluate the objective and fill `result` when the game ends. `profileToken`
+  // is a credential: projected NEVER, only levelId + result are public.
+  campaign?: { levelId: string; profileToken: string; result?: CampaignResult };
   createdAt: number;
   updatedAt: number;
   // Version stamped by saveRoom (not the engine); carried through mutations by the `...room` spread.

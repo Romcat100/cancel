@@ -70,6 +70,7 @@ export function projectStateForPlayer(
       totalScore: p.totalScore,
       hand,
       isBot: !!p.isBot,
+      flair: p.flair,
     };
   });
 
@@ -127,6 +128,10 @@ export function projectStateForPlayer(
     series: room.series ?? { gamesPlayed: 0, perPlayer: {} },
     // Superlatives only exist once the game is over; all reveal data is public.
     gameStats: room.phase === "game_end" ? computeGameStats(room) : undefined,
+    // Campaign: level + result only. The profile token is a credential — never project it.
+    campaign: room.campaign
+      ? { levelId: room.campaign.levelId, result: room.campaign.result }
+      : undefined,
     currentTurnIndex: room.currentTurnIndex,
     currentPickerId: pickerId,
     currentSubmissions,

@@ -18,12 +18,22 @@ import {
 } from "./game/engine.js";
 import { driveBots } from "./game/bots.js";
 import { archiveRoom, findPlayerByClaim, generateRoomCode, loadRoom, newClaimToken, newPlayerId, recordPlayer, saveRoom } from "./rooms.js";
+import { equippedFlairFor, loadProfile, saveProfile, validateProfileToken } from "./profiles.js";
+import { evaluateObjective } from "./game/campaign.js";
+import {
+  campaignLevel,
+  earnedFlairs,
+  isLevelUnlocked,
+  objectiveText,
+  type FlairId,
+} from "../../shared/campaign.js";
 import { projectStateForPlayer } from "./projection.js";
 import { BUILD_ID } from "./version.js";
 import { SOCKET_EVENTS } from "../../shared/protocol.js";
 import type {
   AbandonRoomReq,
   CreateRoomReq,
+  EquipFlairReq,
   JoinRoomReq,
   SetRoomConfigReq,
   SetBotCountReq,
@@ -164,10 +174,123 @@ function authPlayer(roomCode: string, claimToken: string) {
   return player;
 }
 
+// Snapshot a player's equipped flair onto their seat. Purely decorative, so a
+// missing/invalid token just means no flair. Bots never pass through here.
+function stampFlair(room: RoomDoc, playerId: string, profileToken: string | undefined): RoomDoc {
+  const flair = equippedFlairFor(profileToken);
+  if (!flair) return room;
+  return {
+    ...room,
+    players: room.players.map((p) => (p.id === playerId ? { ...p, flair } : p)),
+  };
+}
+
+// Campaign game finished: evaluate the objective, stamp the result onto the room
+// (pre-save, so it's projected and survives refresh), and on a pass record the
+// completion + flair unlocks into the profile. Idempotent — a replayed call finds
+// `result` already set and does nothing; completion recording re-derives flairs
+// from progress, so it can never double-grant. Called from every handler that can
+// reach game_end: the final round has NO round_end ack (resolveTurn ends the game
+// straight from the last submit), so submit/skip-waiting are hooks too.
+function settleCampaign(room: RoomDoc): RoomDoc {
+  if (room.phase !== "game_end" || !room.campaign || room.campaign.result) return room;
+  const level = campaignLevel(room.campaign.levelId);
+  if (!level) return room;
+  const { passed, detail } = evaluateObjective(room, level);
+  let unlockedFlairs: FlairId[] | undefined;
+  if (passed) {
+    const token = room.campaign.profileToken;
+    const profile = loadProfile(token);
+    if (!profile.completedLevels[level.id]) {
+      profile.completedLevels = {
+        ...profile.completedLevels,
+        [level.id]: { completedAt: Date.now() },
+      };
+      const before = new Set(profile.unlockedFlairs);
+      profile.unlockedFlairs = [...new Set([...profile.unlockedFlairs, ...earnedFlairs(profile)])];
+      unlockedFlairs = profile.unlockedFlairs.filter((f) => !before.has(f));
+      if (unlockedFlairs.length === 0) unlockedFlairs = undefined;
+      saveProfile(token, profile);
+    }
+  }
+  return {
+    ...room,
+    campaign: {
+      ...room.campaign,
+      result: { passed, objectiveText: objectiveText(level.objective), detail, unlockedFlairs },
+    },
+  };
+}
+
+export function apiGetProfile(profileToken: string) {
+  const token = validateProfileToken(profileToken);
+  const profile = loadProfile(token);
+  return {
+    ok: true as const,
+    profile: {
+      completedLevels: profile.completedLevels,
+      unlockedFlairs: profile.unlockedFlairs,
+      equippedFlair: profile.equippedFlair,
+    },
+  };
+}
+
+export function apiEquipFlair(req: EquipFlairReq) {
+  const token = validateProfileToken(req.profileToken);
+  const profile = loadProfile(token);
+  const flair = req.flair ?? null;
+  if (flair !== null && !profile.unlockedFlairs.includes(flair)) {
+    throw new Error("That flair is not unlocked yet");
+  }
+  profile.equippedFlair = flair;
+  saveProfile(token, profile);
+  return apiGetProfile(token);
+}
+
+// Campaign level start: the whole config comes from the level definition — any
+// client-sent config fields are ignored — and the game auto-starts so the player
+// lands directly on round 1's power preview, no lobby stop.
+function createCampaignRoom(req: CreateRoomReq, code: string, hostId: string): RoomDoc {
+  const level = campaignLevel(req.campaignLevelId!);
+  if (!level) throw new Error("Unknown campaign level");
+  const token = validateProfileToken(req.profileToken);
+  const profile = loadProfile(token);
+  if (!isLevelUnlocked(profile, level.id)) throw new Error("That level is still locked");
+  let room = createRoom({
+    code,
+    hostId,
+    hostName: req.name.trim(),
+    rounds: level.setup.rounds,
+    turnDeadlineMs: null,
+    powerUpMode: "selected",
+    selectedRoundPowers: level.setup.roster,
+    showHands: level.setup.showHands ?? true,
+    solo: true,
+  });
+  room = setBotCount(room, level.setup.bots);
+  room = { ...room, campaign: { levelId: level.id, profileToken: token } };
+  room = stampFlair(room, hostId, token);
+  room = startGame(room);
+  room = driveBots(room);
+  return room;
+}
+
 export function apiCreateRoom(req: CreateRoomReq, ctx: ApiCtx) {
   const code = generateRoomCode();
   const hostId = newPlayerId();
   const claimToken = newClaimToken();
+  if (req.campaignLevelId) {
+    const room = createCampaignRoom(req, code, hostId);
+    saveRoom(room);
+    recordPlayer({ id: hostId, roomCode: code, name: req.name.trim(), seat: 0, claimToken });
+    return {
+      ok: true as const,
+      roomCode: code,
+      claimToken,
+      playerId: hostId,
+      state: projectStateForPlayer(room, hostId, new Set()),
+    };
+  }
   const rounds = req.rounds ?? 3;
   const turnDeadlineMs = req.turnDeadlineMs ?? null;
   const powerUpMode = req.powerUpMode ?? "random";
@@ -192,6 +315,7 @@ export function apiCreateRoom(req: CreateRoomReq, ctx: ApiCtx) {
   });
   // Single-player: pre-seat the requested AI opponents so the host lands in a ready-to-start lobby.
   if (req.bots && req.bots > 0) room = setBotCount(room, req.bots);
+  room = stampFlair(room, hostId, req.profileToken);
   saveRoom(room);
   recordPlayer({ id: hostId, roomCode: code, name: req.name.trim(), seat: 0, claimToken });
   return {
@@ -233,11 +357,14 @@ export function apiJoinRoom(req: JoinRoomReq, ctx: ApiCtx) {
     }
   }
 
+  // Campaign rooms are single player; only the seat's own claim token (above) re-enters.
+  if (room.campaign) throw new Error("Campaign games are single player");
   if (room.phase !== "lobby") throw new Error("Game already started — cannot join");
   const playerId = newPlayerId();
   const claimToken = newClaimToken();
   const seat = room.players.length;
   room = addPlayer(room, playerId, req.name.trim());
+  room = stampFlair(room, playerId, req.profileToken);
   saveRoom(room);
   recordPlayer({ id: playerId, roomCode: req.roomCode, name: req.name.trim(), seat, claimToken });
   ctx.io && setImmediate(() => broadcastRoom(ctx.io, room));
@@ -286,6 +413,7 @@ export function apiAckRoundEnd(req: AckRoundEndReq, ctx: ApiCtx) {
   if (!room) throw new Error("Room not found");
   room = ackRoundEnd(room, player.id, Math.random, req.chosenPower);
   room = driveBots(room);
+  room = settleCampaign(room);
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));
   return { ok: true as const, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)) };
@@ -297,6 +425,7 @@ export function apiForceAdvance(req: AckRoundEndReq, ctx: ApiCtx) {
   if (!room) throw new Error("Room not found");
   room = forceAdvanceRound(room, player.id);
   room = driveBots(room);
+  room = settleCampaign(room);
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));
   return { ok: true as const, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)) };
@@ -314,6 +443,7 @@ export function apiSubmitTurn(req: SubmitTurnReq, ctx: ApiCtx) {
     sabotageNumber: req.sabotageNumber,
   });
   room = driveBots(room);
+  room = settleCampaign(room);
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));
   return { ok: true as const, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)) };
@@ -367,6 +497,7 @@ export function apiSkipWaiting(req: SkipWaitingReq, ctx: ApiCtx) {
   if (player.id !== room.hostId) throw new Error("Only host can skip waiting");
   room = forceResolveTurn(room);
   room = driveBots(room);
+  room = settleCampaign(room);
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));
   return { ok: true as const, state: projectStateForPlayer(room, player.id, onlineSet(req.roomCode)) };
@@ -377,6 +508,8 @@ export function apiPlayAgain(req: PlayAgainReq, ctx: ApiCtx) {
   let room = loadRoom(req.roomCode);
   if (!room) throw new Error("Room not found");
   if (player.id !== room.hostId) throw new Error("Only host can start a new game");
+  // Campaign rooms are single-use: Retry / Next level create a fresh room.
+  if (room.campaign) throw new Error("Campaign levels restart from the campaign screen");
   room = resetToLobby(room);
   saveRoom(room);
   setImmediate(() => broadcastRoom(ctx.io, room));

@@ -18,6 +18,9 @@ const TTL_SECONDS = 7 * 24 * 60 * 60; // abandoned rooms self-expire; live ones 
 
 const roomKey = (code: string) => `room:${code}`;
 const playersKey = (code: string) => `room:${code}:players`;
+// All profiles live in one hash (token → state blob). No TTL: campaign progress
+// persists indefinitely, unlike rooms which self-expire when abandoned.
+const PROFILES_KEY = "profiles";
 
 // The subset of the Upstash client we use. The real client satisfies this structurally;
 // tests inject a small in-memory fake via __setKvClientForTest.
@@ -99,6 +102,34 @@ export function mirrorPlayer(p: PlayerRow): Promise<void> {
       console.warn(`[kv] mirrorPlayer ${snapshot.id} failed: ${(e as Error).message}`);
     }
   });
+}
+
+export function mirrorProfile(token: string, doc: unknown): Promise<void> {
+  const client = getClient();
+  if (!client) return Promise.resolve();
+  const snapshot = structuredClone(doc);
+  // Chained per-token so writes for one profile apply in FIFO order, like rooms.
+  return enqueue(`profile:${token}`, async () => {
+    try {
+      await client.hset(PROFILES_KEY, { [token]: snapshot });
+    } catch (e) {
+      console.warn(`[kv] mirrorProfile failed: ${(e as Error).message}`);
+    }
+  });
+}
+
+// Read once, at boot, alongside hydrateActiveRooms.
+export async function hydrateProfiles<T>(): Promise<{ token: string; doc: T }[]> {
+  const client = getClient();
+  if (!client) return [];
+  try {
+    const map = await client.hgetall<T>(PROFILES_KEY);
+    if (!map) return [];
+    return Object.entries(map).map(([token, doc]) => ({ token, doc }));
+  } catch (e) {
+    console.warn(`[kv] hydrate profiles failed: ${(e as Error).message}`);
+    return [];
+  }
 }
 
 export function dropRoom(code: string): Promise<void> {

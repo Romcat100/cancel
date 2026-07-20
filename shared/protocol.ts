@@ -1,9 +1,13 @@
 import type { NumberMode, PowerUpId, PowerUpMode, RoomStateForPlayer, RoundPowerId } from "./types";
+import type { CampaignProgress, FlairId } from "./campaign";
 
 export interface JoinRoomReq {
   roomCode: string;
   name: string;
   claimToken?: string;
+  // Optional anonymous profile token: lets the server stamp the joiner's
+  // equipped flair onto their seat. Never echoed back in any projection.
+  profileToken?: string;
 }
 
 export interface JoinRoomRes {
@@ -26,6 +30,11 @@ export interface CreateRoomReq {
   // Single-player: create the room flagged solo and pre-seat this many AI opponents.
   solo?: boolean;
   bots?: number;
+  // Campaign: create a solo room whose whole config is derived server-side from
+  // this level (client-sent config fields are ignored) and auto-start it.
+  // Requires profileToken; the level must be unlocked for that profile.
+  campaignLevelId?: string;
+  profileToken?: string;
 }
 
 export interface SetBotCountReq {
@@ -110,6 +119,23 @@ export interface ClaimHostReq {
 export interface SkipWaitingReq {
   roomCode: string;
   claimToken: string;
+}
+
+// The client-visible slice of a profile (campaign progress + cosmetics).
+export interface ProfileView extends CampaignProgress {
+  unlockedFlairs: FlairId[];
+  equippedFlair: FlairId | null;
+}
+
+export interface ProfileRes {
+  ok: true;
+  profile: ProfileView;
+}
+
+export interface EquipFlairReq {
+  profileToken: string;
+  // null unequips.
+  flair: FlairId | null;
 }
 
 export interface ErrorRes {
